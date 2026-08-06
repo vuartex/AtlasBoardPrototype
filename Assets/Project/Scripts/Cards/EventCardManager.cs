@@ -5,6 +5,10 @@ using UnityEngine.UI;
 
 public class EventCardManager : MonoBehaviour
 {
+    [Header("References")]
+    [SerializeField]
+    private BankruptcyManager bankruptcyManager;
+
     [Header("Card Pool")]
     [SerializeField]
     private EventCardData[] eventCards;
@@ -49,7 +53,8 @@ public class EventCardManager : MonoBehaviour
             return;
         }
 
-        resolutionCompleted = onResolutionCompleted;
+        resolutionCompleted =
+            onResolutionCompleted;
 
         if (player == null)
         {
@@ -72,14 +77,65 @@ public class EventCardManager : MonoBehaviour
 
         isResolvingEvent = true;
 
-        int appliedMoneyChange =
-            ApplyMoneyEffect(
-                player,
+        int appliedMoneyChange;
+        bool causedBankruptcy = false;
+        int transferredProperties = 0;
+
+        if (selectedCard.MoneyChange > 0)
+        {
+            player.AddMoney(
                 selectedCard.MoneyChange);
+
+            appliedMoneyChange =
+                selectedCard.MoneyChange;
+        }
+        else if (selectedCard.MoneyChange < 0)
+        {
+            int requestedLoss =
+                Mathf.Abs(
+                    selectedCard.MoneyChange);
+
+            if (bankruptcyManager != null)
+            {
+                BankruptcyManager.PaymentResolution result =
+                    bankruptcyManager.ResolveMandatoryPayment(
+                        player,
+                        null,
+                        requestedLoss,
+                        $"Event card: {selectedCard.Title}");
+
+                appliedMoneyChange =
+                    -result.AmountPaid;
+
+                causedBankruptcy =
+                    result.DebtorBankrupt;
+
+                transferredProperties =
+                    result.TransferredPropertyCount;
+            }
+            else
+            {
+                int actualLoss =
+                    Mathf.Min(
+                        requestedLoss,
+                        player.CurrentMoney);
+
+                player.TrySpend(actualLoss);
+
+                appliedMoneyChange =
+                    -actualLoss;
+            }
+        }
+        else
+        {
+            appliedMoneyChange = 0;
+        }
 
         UpdateEventUI(
             selectedCard,
-            appliedMoneyChange);
+            appliedMoneyChange,
+            causedBankruptcy,
+            transferredProperties);
 
         if (eventPanel != null)
         {
@@ -88,8 +144,9 @@ public class EventCardManager : MonoBehaviour
 
         Debug.Log(
             $"{player.DisplayName} drew event card " +
-            $"'{selectedCard.Title}'. " +
-            $"Money change: {appliedMoneyChange}.",
+            $"'{selectedCard.Title}'. Money change: " +
+            $"{appliedMoneyChange}. Bankrupt: " +
+            $"{causedBankruptcy}.",
             this);
     }
 
@@ -117,7 +174,8 @@ public class EventCardManager : MonoBehaviour
         {
             if (card != null)
             {
-                totalWeight += Mathf.Max(1, card.Weight);
+                totalWeight +=
+                    Mathf.Max(1, card.Weight);
             }
         }
 
@@ -127,7 +185,9 @@ public class EventCardManager : MonoBehaviour
         }
 
         int randomValue =
-            UnityEngine.Random.Range(0, totalWeight);
+            UnityEngine.Random.Range(
+                0,
+                totalWeight);
 
         int cumulativeWeight = 0;
 
@@ -150,37 +210,11 @@ public class EventCardManager : MonoBehaviour
         return null;
     }
 
-    private int ApplyMoneyEffect(
-        PlayerGameState player,
-        int requestedMoneyChange)
-    {
-        if (requestedMoneyChange > 0)
-        {
-            player.AddMoney(requestedMoneyChange);
-            return requestedMoneyChange;
-        }
-
-        if (requestedMoneyChange < 0)
-        {
-            int requestedLoss =
-                Mathf.Abs(requestedMoneyChange);
-
-            int actualLoss =
-                Mathf.Min(
-                    requestedLoss,
-                    player.CurrentMoney);
-
-            player.TrySpend(actualLoss);
-
-            return -actualLoss;
-        }
-
-        return 0;
-    }
-
     private void UpdateEventUI(
         EventCardData card,
-        int appliedMoneyChange)
+        int appliedMoneyChange,
+        bool causedBankruptcy,
+        int transferredProperties)
     {
         if (eventTitleText != null)
         {
@@ -194,23 +228,36 @@ public class EventCardManager : MonoBehaviour
                 card.Description;
         }
 
-        if (eventResultText != null)
+        if (eventResultText == null)
         {
-            if (appliedMoneyChange > 0)
-            {
-                eventResultText.text =
-                    $"+{appliedMoneyChange} ₵";
-            }
-            else if (appliedMoneyChange < 0)
-            {
-                eventResultText.text =
-                    $"{appliedMoneyChange} ₵";
-            }
-            else
-            {
-                eventResultText.text =
-                    "Para değişmedi";
-            }
+            return;
+        }
+
+        if (causedBankruptcy)
+        {
+            eventResultText.text =
+                "İFLAS\n" +
+                $"Ödenen: {Mathf.Abs(appliedMoneyChange)} ₵\n" +
+                $"Devredilen/boşa çıkan mülk: " +
+                $"{transferredProperties}";
+
+            return;
+        }
+
+        if (appliedMoneyChange > 0)
+        {
+            eventResultText.text =
+                $"+{appliedMoneyChange} ₵";
+        }
+        else if (appliedMoneyChange < 0)
+        {
+            eventResultText.text =
+                $"{appliedMoneyChange} ₵";
+        }
+        else
+        {
+            eventResultText.text =
+                "Para değişmedi";
         }
     }
 

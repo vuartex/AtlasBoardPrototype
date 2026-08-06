@@ -26,20 +26,14 @@ public class PlayerGameState : MonoBehaviour
     [SerializeField, Min(0)]
     private int turnsToSkip;
 
-    /*
-     * PlayerIndex mevcut scriptlerle geriye dönük
-     * uyumluluk için korunuyor.
-     *
-     * Bu değer tur sırası değildir.
-     * Oyuncunun maç boyunca değişmeyen slot kimliğidir.
-     */
+    [Header("Elimination")]
+    [SerializeField]
+    private bool isBankrupt;
+
     public int PlayerIndex => playerSlotIndex;
     public int PlayerSlotIndex => playerSlotIndex;
-
     public string DisplayName => displayName;
-
-    public PlayerVisualProfile VisualProfile =>
-        visualProfile;
+    public PlayerVisualProfile VisualProfile => visualProfile;
 
     public Material OwnershipMaterial =>
         visualProfile != null
@@ -54,27 +48,31 @@ public class PlayerGameState : MonoBehaviour
     public int CurrentMoney => currentMoney;
     public int TurnsToSkip => turnsToSkip;
     public bool HasTurnsToSkip => turnsToSkip > 0;
+    public bool IsBankrupt => isBankrupt;
 
     public event Action<PlayerGameState> MoneyChanged;
     public event Action<PlayerGameState> TurnStatusChanged;
+    public event Action<PlayerGameState> BankruptcyChanged;
 
     private void Awake()
     {
         currentMoney = startingMoney;
+        turnsToSkip = 0;
+        isBankrupt = false;
 
         ValidateStableIdentity();
     }
 
     public bool TrySpend(int amount)
     {
-        if (amount < 0 ||
+        if (isBankrupt ||
+            amount < 0 ||
             currentMoney < amount)
         {
             return false;
         }
 
         currentMoney -= amount;
-
         MoneyChanged?.Invoke(this);
 
         return true;
@@ -82,43 +80,76 @@ public class PlayerGameState : MonoBehaviour
 
     public void AddMoney(int amount)
     {
-        if (amount <= 0)
+        if (isBankrupt || amount <= 0)
         {
             return;
         }
 
         currentMoney += amount;
+        MoneyChanged?.Invoke(this);
+    }
+
+    public int TakeAllMoney()
+    {
+        if (currentMoney <= 0)
+        {
+            return 0;
+        }
+
+        int removedAmount = currentMoney;
+        currentMoney = 0;
 
         MoneyChanged?.Invoke(this);
+
+        return removedAmount;
     }
 
     public void AddTurnsToSkip(int amount)
     {
-        if (amount <= 0)
+        if (isBankrupt || amount <= 0)
         {
             return;
         }
 
         turnsToSkip += amount;
-
         TurnStatusChanged?.Invoke(this);
 
         Debug.Log(
-            $"{displayName} will skip " +
-            $"{turnsToSkip} turn(s).",
+            $"{displayName} will skip {turnsToSkip} turn(s).",
             this);
     }
 
     public bool ConsumeSkippedTurn()
     {
-        if (turnsToSkip <= 0)
+        if (isBankrupt || turnsToSkip <= 0)
         {
             return false;
         }
 
         turnsToSkip--;
-
         TurnStatusChanged?.Invoke(this);
+
+        return true;
+    }
+
+    public bool DeclareBankrupt()
+    {
+        if (isBankrupt)
+        {
+            return false;
+        }
+
+        isBankrupt = true;
+        currentMoney = 0;
+        turnsToSkip = 0;
+
+        MoneyChanged?.Invoke(this);
+        TurnStatusChanged?.Invoke(this);
+        BankruptcyChanged?.Invoke(this);
+
+        Debug.Log(
+            $"{displayName} [Slot {playerSlotIndex}] was declared bankrupt.",
+            this);
 
         return true;
     }
@@ -128,8 +159,7 @@ public class PlayerGameState : MonoBehaviour
         if (visualProfile == null)
         {
             Debug.LogError(
-                $"{displayName} does not have a " +
-                "PlayerVisualProfile.",
+                $"{displayName} does not have a PlayerVisualProfile.",
                 this);
 
             return;
@@ -138,8 +168,8 @@ public class PlayerGameState : MonoBehaviour
         if (visualProfile.OwnershipMaterial == null)
         {
             Debug.LogError(
-                $"{displayName}'s visual profile does not " +
-                "have an ownership material.",
+                $"{displayName}'s visual profile does not have " +
+                "an ownership material.",
                 visualProfile);
         }
     }

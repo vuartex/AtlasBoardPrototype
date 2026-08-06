@@ -26,7 +26,12 @@ public class PlayerPawnMover : MonoBehaviour
     [SerializeField]
     private Vector3 boardSlotOffset;
 
+    private PlayerGameState playerState;
+    private Renderer[] pawnRenderers;
+    private Collider[] pawnColliders;
+
     private bool isMoving;
+    private bool isPawnVisible = true;
 
     public int CurrentTileIndex =>
         currentTileIndex;
@@ -34,16 +39,59 @@ public class PlayerPawnMover : MonoBehaviour
     public bool IsMoving =>
         isMoving;
 
+    public bool IsPawnVisible =>
+        isPawnVisible;
+
     public event Action<PlayerPawnMover>
         MovementCompleted;
 
     public event Action<PlayerPawnMover>
         PassedStart;
 
+    private void Awake()
+    {
+        playerState =
+            GetComponent<PlayerGameState>();
+
+        pawnRenderers =
+            GetComponentsInChildren<Renderer>(
+                true);
+
+        pawnColliders =
+            GetComponentsInChildren<Collider>(
+                true);
+
+        if (playerState != null)
+        {
+            playerState.BankruptcyChanged +=
+                HandleBankruptcyChanged;
+        }
+    }
+
     private void Start()
     {
         EnsureBoardPath();
-        SnapToCurrentTile();
+
+        bool shouldBeVisible =
+            playerState == null ||
+            !playerState.IsBankrupt;
+
+        SetPawnVisible(
+            shouldBeVisible);
+
+        if (shouldBeVisible)
+        {
+            SnapToCurrentTile();
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (playerState != null)
+        {
+            playerState.BankruptcyChanged -=
+                HandleBankruptcyChanged;
+        }
     }
 
     public BoardTile GetCurrentTile()
@@ -61,7 +109,9 @@ public class PlayerPawnMover : MonoBehaviour
 
     public bool MoveBy(int steps)
     {
-        if (isMoving || steps <= 0)
+        if (isMoving ||
+            steps <= 0 ||
+            IsBankrupt())
         {
             return false;
         }
@@ -93,7 +143,8 @@ public class PlayerPawnMover : MonoBehaviour
         int targetTileIndex,
         Action<PlayerPawnMover> onCompleted)
     {
-        if (isMoving)
+        if (isMoving ||
+            IsBankrupt())
         {
             return false;
         }
@@ -143,6 +194,11 @@ public class PlayerPawnMover : MonoBehaviour
     [ContextMenu("Snap To Current Tile")]
     public void SnapToCurrentTile()
     {
+        if (IsBankrupt())
+        {
+            return;
+        }
+
         EnsureBoardPath();
 
         if (boardPath == null)
@@ -161,6 +217,38 @@ public class PlayerPawnMover : MonoBehaviour
 
         transform.position =
             GetPawnPosition(tile);
+    }
+
+    public void SetPawnVisible(
+        bool visible)
+    {
+        isPawnVisible = visible;
+
+        if (pawnRenderers != null)
+        {
+            foreach (Renderer pawnRenderer
+                     in pawnRenderers)
+            {
+                if (pawnRenderer != null)
+                {
+                    pawnRenderer.enabled =
+                        visible;
+                }
+            }
+        }
+
+        if (pawnColliders != null)
+        {
+            foreach (Collider pawnCollider
+                     in pawnColliders)
+            {
+                if (pawnCollider != null)
+                {
+                    pawnCollider.enabled =
+                        visible;
+                }
+            }
+        }
     }
 
     private IEnumerator MoveStepsRoutine(
@@ -248,6 +336,29 @@ public class PlayerPawnMover : MonoBehaviour
         onCompleted?.Invoke(this);
     }
 
+    private void HandleBankruptcyChanged(
+        PlayerGameState bankruptPlayer)
+    {
+        if (bankruptPlayer == null ||
+            bankruptPlayer != playerState)
+        {
+            return;
+        }
+
+        SetPawnVisible(false);
+
+        Debug.Log(
+            $"{bankruptPlayer.DisplayName}'s pawn " +
+            "was hidden after bankruptcy.",
+            this);
+    }
+
+    private bool IsBankrupt()
+    {
+        return playerState != null &&
+               playerState.IsBankrupt;
+    }
+
     private Vector3 GetPawnPosition(
         BoardTile tile)
     {
@@ -272,8 +383,7 @@ public class PlayerPawnMover : MonoBehaviour
         if (boardPath == null)
         {
             boardPath =
-                FindFirstObjectByType<
-                    BoardPath>();
+                FindAnyObjectByType<BoardPath>();
         }
     }
 }

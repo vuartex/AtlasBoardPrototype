@@ -75,13 +75,45 @@ public class TurnManager : MonoBehaviour
     private int currentTurnOrderIndex;
     private bool waitingForMovement;
     private bool resolvingTurnStart;
+    private bool resolvingManagementAction;
     private bool isMatchFinished;
     private Coroutine beginTurnCoroutine;
 
-    public int CurrentPlayerIndex => currentPlayerIndex;
-    public int CurrentRound => currentRound;
-    public int CompletedTurns => completedTurns;
-    public int LastRoll => lastRoll;
+    private readonly HashSet<int>
+        completedActiveSlotsThisRound =
+            new HashSet<int>();
+
+    public int CurrentPlayerIndex =>
+        currentPlayerIndex;
+
+    public int CurrentRound =>
+        currentRound;
+
+    public int CompletedTurns =>
+        completedTurns;
+
+    public int LastRoll =>
+        lastRoll;
+
+    public PlayerGameState CurrentPlayerState =>
+        GetPlayerState(currentPlayerIndex);
+
+    public bool CanStartManagementAction
+    {
+        get
+        {
+            PlayerGameState activePlayer =
+                CurrentPlayerState;
+
+            return gamePhase == GamePhase.Playing &&
+                   !isMatchFinished &&
+                   !waitingForMovement &&
+                   !resolvingTurnStart &&
+                   !resolvingManagementAction &&
+                   activePlayer != null &&
+                   !activePlayer.IsBankrupt;
+        }
+    }
 
     private void Start()
     {
@@ -102,12 +134,15 @@ public class TurnManager : MonoBehaviour
 
     public void HandleRollButton()
     {
-        if (isMatchFinished || resolvingTurnStart)
+        if (isMatchFinished ||
+            resolvingTurnStart ||
+            resolvingManagementAction)
         {
             return;
         }
 
-        if (gamePhase == GamePhase.DeterminingTurnOrder)
+        if (gamePhase ==
+            GamePhase.DeterminingTurnOrder)
         {
             RollForStartingOrder();
             return;
@@ -119,20 +154,176 @@ public class TurnManager : MonoBehaviour
         }
     }
 
+    public bool TryBeginManagementAction()
+    {
+        if (!CanStartManagementAction)
+        {
+            return false;
+        }
+
+        resolvingManagementAction = true;
+
+        if (rollButton != null)
+        {
+            rollButton.interactable = false;
+        }
+
+        Debug.Log(
+            $"{CurrentPlayerState.DisplayName} opened a " +
+            "management action.",
+            this);
+
+        return true;
+    }
+
+    public void CompleteManagementAction()
+    {
+        if (!resolvingManagementAction)
+        {
+            return;
+        }
+
+        resolvingManagementAction = false;
+
+        if (gamePhase == GamePhase.Playing &&
+            !isMatchFinished)
+        {
+            UpdateTurnUI();
+        }
+    }
+
+    public void NotifyPlayerBankrupt(
+        PlayerGameState player)
+    {
+        if (player == null)
+        {
+            return;
+        }
+
+        completedActiveSlotsThisRound.Remove(
+            player.PlayerSlotIndex);
+
+        Debug.Log(
+            $"{player.DisplayName} [Slot " +
+            $"{player.PlayerSlotIndex}] was removed " +
+            "from active turn participation.",
+            this);
+    }
+
+    public List<PlayerGameState>
+        GetPlayersInTurnOrderFrom(
+            PlayerGameState referencePlayer,
+            bool includeReferencePlayer)
+    {
+        List<PlayerGameState> orderedPlayers =
+            new List<PlayerGameState>();
+
+        if (referencePlayer == null ||
+            players == null ||
+            players.Length == 0)
+        {
+            return orderedPlayers;
+        }
+
+        int[] activeOrder =
+            turnOrder != null &&
+            turnOrder.Length == players.Length
+                ? turnOrder
+                : Enumerable
+                    .Range(0, players.Length)
+                    .ToArray();
+
+        int referenceOrderPosition = -1;
+
+        for (int orderPosition = 0;
+             orderPosition < activeOrder.Length;
+             orderPosition++)
+        {
+            PlayerGameState candidate =
+                GetPlayerState(
+                    activeOrder[orderPosition]);
+
+            if (candidate == null)
+            {
+                continue;
+            }
+
+            if (candidate == referencePlayer ||
+                candidate.PlayerSlotIndex ==
+                referencePlayer.PlayerSlotIndex)
+            {
+                referenceOrderPosition =
+                    orderPosition;
+
+                break;
+            }
+        }
+
+        if (referenceOrderPosition < 0)
+        {
+            Debug.LogWarning(
+                $"{referencePlayer.DisplayName} could not " +
+                "be found in the current turn order.",
+                this);
+
+            return orderedPlayers;
+        }
+
+        int firstOffset =
+            includeReferencePlayer ? 0 : 1;
+
+        int positionsToInspect =
+            includeReferencePlayer
+                ? activeOrder.Length
+                : Mathf.Max(
+                    0,
+                    activeOrder.Length - 1);
+
+        for (int offset = 0;
+             offset < positionsToInspect;
+             offset++)
+        {
+            int orderPosition =
+                (referenceOrderPosition +
+                 firstOffset +
+                 offset) %
+                activeOrder.Length;
+
+            PlayerGameState player =
+                GetPlayerState(
+                    activeOrder[orderPosition]);
+
+            if (player != null &&
+                !player.IsBankrupt)
+            {
+                orderedPlayers.Add(player);
+            }
+        }
+
+        return orderedPlayers;
+    }
+
     private void BeginTurnOrderPhase()
     {
-        gamePhase = GamePhase.DeterminingTurnOrder;
+        gamePhase =
+            GamePhase.DeterminingTurnOrder;
 
-        startingRolls = new int[players.Length];
-        turnOrder = new int[players.Length];
+        startingRolls =
+            new int[players.Length];
+
+        turnOrder =
+            new int[players.Length];
 
         orderRollPlayerIndex = 0;
         currentTurnOrderIndex = 0;
         completedTurns = 0;
         currentRound = 1;
 
+        completedActiveSlotsThisRound.Clear();
+
         waitingForMovement = false;
         resolvingTurnStart = false;
+        resolvingManagementAction = false;
         isMatchFinished = false;
 
         if (rollButton != null)
@@ -145,26 +336,33 @@ public class TurnManager : MonoBehaviour
 
     private void RollForStartingOrder()
     {
-        if (orderRollPlayerIndex >= players.Length)
+        if (orderRollPlayerIndex >=
+            players.Length)
         {
             return;
         }
 
-        int roll = Random.Range(1, 7);
+        int roll =
+            Random.Range(1, 7);
 
-        startingRolls[orderRollPlayerIndex] = roll;
+        startingRolls[
+            orderRollPlayerIndex] = roll;
 
         PlayerGameState rollingPlayer =
-            GetPlayerState(orderRollPlayerIndex);
+            GetPlayerState(
+                orderRollPlayerIndex);
 
         Debug.Log(
-            $"Starting roll — {rollingPlayer.DisplayName} " +
-            $"[Slot {rollingPlayer.PlayerSlotIndex}]: {roll}",
+            $"Starting roll — " +
+            $"{rollingPlayer.DisplayName} " +
+            $"[Slot {rollingPlayer.PlayerSlotIndex}]: " +
+            $"{roll}",
             this);
 
         orderRollPlayerIndex++;
 
-        if (orderRollPlayerIndex < players.Length)
+        if (orderRollPlayerIndex <
+            players.Length)
         {
             UpdateStartingOrderUI();
             return;
@@ -179,10 +377,13 @@ public class TurnManager : MonoBehaviour
             .Range(0, players.Length)
             .OrderByDescending(
                 playerArrayIndex =>
-                    startingRolls[playerArrayIndex])
+                    startingRolls[
+                        playerArrayIndex])
             .ThenBy(
                 playerArrayIndex =>
-                    GetPlayerState(playerArrayIndex).PlayerSlotIndex)
+                    GetPlayerState(
+                        playerArrayIndex)
+                    .PlayerSlotIndex)
             .ToArray();
 
         string orderDescription =
@@ -192,21 +393,29 @@ public class TurnManager : MonoBehaviour
                     playerArrayIndex =>
                     {
                         PlayerGameState player =
-                            GetPlayerState(playerArrayIndex);
+                            GetPlayerState(
+                                playerArrayIndex);
+
+                        int startingRoll =
+                            startingRolls[playerArrayIndex];
 
                         return
                             $"{player.DisplayName} " +
                             $"[Slot {player.PlayerSlotIndex}] " +
-                            $"({startingRolls[playerArrayIndex]})";
+                            $"({startingRoll})";
                     }));
 
         Debug.Log(
             $"Starting order: {orderDescription}",
             this);
 
-        gamePhase = GamePhase.Playing;
+        gamePhase =
+            GamePhase.Playing;
+
         currentTurnOrderIndex = 0;
-        currentPlayerIndex = turnOrder[currentTurnOrderIndex];
+
+        currentPlayerIndex =
+            turnOrder[currentTurnOrderIndex];
 
         BeginCurrentTurn();
     }
@@ -224,10 +433,12 @@ public class TurnManager : MonoBehaviour
             players[currentPlayerIndex];
 
         PlayerGameState activePlayer =
-            GetPlayerState(currentPlayerIndex);
+            GetPlayerState(
+                currentPlayerIndex);
 
         if (activePawn == null ||
             activePlayer == null ||
+            activePlayer.IsBankrupt ||
             activePawn.IsMoving)
         {
             return;
@@ -249,13 +460,14 @@ public class TurnManager : MonoBehaviour
         {
             turnStatusText.text =
                 $"Tur {currentRound}/{roundLimit}\n" +
-                $"{activePlayer.DisplayName} zar attı: {lastRoll}";
+                $"{activePlayer.DisplayName} " +
+                $"zar attı: {lastRoll}";
         }
 
         Debug.Log(
             $"{activePlayer.DisplayName} " +
-            $"[Slot {activePlayer.PlayerSlotIndex}] dice result: " +
-            $"{lastRoll}",
+            $"[Slot {activePlayer.PlayerSlotIndex}] " +
+            $"dice result: {lastRoll}",
             this);
 
         if (!activePawn.MoveBy(lastRoll))
@@ -268,14 +480,16 @@ public class TurnManager : MonoBehaviour
     private void HandleMovementCompleted(
         PlayerPawnMover completedPlayer)
     {
-        if (gamePhase != GamePhase.Playing ||
+        if (gamePhase !=
+                GamePhase.Playing ||
             !waitingForMovement ||
             isMatchFinished)
         {
             return;
         }
 
-        if (completedPlayer != players[currentPlayerIndex])
+        if (completedPlayer !=
+            players[currentPlayerIndex])
         {
             return;
         }
@@ -284,7 +498,8 @@ public class TurnManager : MonoBehaviour
             completedPlayer.GetCurrentTile();
 
         PlayerGameState activePlayerState =
-            completedPlayer.GetComponent<PlayerGameState>();
+            completedPlayer.GetComponent<
+                PlayerGameState>();
 
         if (activePlayerState == null)
         {
@@ -304,8 +519,6 @@ public class TurnManager : MonoBehaviour
                 landedTile,
                 FinishCurrentTurn);
 
-            // Critical: tile resolution completes the turn through
-            // its callback. Do not finish the turn a second time here.
             return;
         }
 
@@ -339,20 +552,48 @@ public class TurnManager : MonoBehaviour
     {
         completedTurns++;
 
-        currentRound = Mathf.Min(
-            completedTurns / players.Length + 1,
-            roundLimit);
+        PlayerGameState completedPlayer =
+            GetPlayerState(
+                currentPlayerIndex);
 
-        int requiredTurnCount =
-            roundLimit * players.Length;
+        if (completedPlayer != null &&
+            !completedPlayer.IsBankrupt)
+        {
+            completedActiveSlotsThisRound.Add(
+                completedPlayer.PlayerSlotIndex);
+        }
 
-        if (completedTurns < requiredTurnCount)
+        List<PlayerGameState> activePlayers =
+            GetActivePlayers();
+
+        if (activePlayers.Count <= 1)
+        {
+            EndMatch();
+            return true;
+        }
+
+        bool allActivePlayersCompleted =
+            activePlayers.All(
+                player =>
+                    completedActiveSlotsThisRound
+                        .Contains(
+                            player.PlayerSlotIndex));
+
+        if (!allActivePlayersCompleted)
         {
             return false;
         }
 
-        EndMatch();
-        return true;
+        if (currentRound >= roundLimit)
+        {
+            EndMatch();
+            return true;
+        }
+
+        currentRound++;
+        completedActiveSlotsThisRound.Clear();
+
+        return false;
     }
 
     private void AdvanceToNextPlayer()
@@ -374,11 +615,13 @@ public class TurnManager : MonoBehaviour
 
         if (beginTurnCoroutine != null)
         {
-            StopCoroutine(beginTurnCoroutine);
+            StopCoroutine(
+                beginTurnCoroutine);
         }
 
         beginTurnCoroutine =
-            StartCoroutine(BeginCurrentTurnRoutine());
+            StartCoroutine(
+                BeginCurrentTurnRoutine());
     }
 
     private IEnumerator BeginCurrentTurnRoutine()
@@ -390,25 +633,34 @@ public class TurnManager : MonoBehaviour
             rollButton.interactable = false;
         }
 
+        if (GetActivePlayers().Count <= 1)
+        {
+            resolvingTurnStart = false;
+            beginTurnCoroutine = null;
+
+            EndMatch();
+            yield break;
+        }
+
         for (int checkedPlayers = 0;
              checkedPlayers < turnOrder.Length;
              checkedPlayers++)
         {
-            if (isMatchFinished)
-            {
-                resolvingTurnStart = false;
-                beginTurnCoroutine = null;
-                yield break;
-            }
-
             currentPlayerIndex =
                 turnOrder[currentTurnOrderIndex];
 
             PlayerGameState playerState =
-                GetPlayerState(currentPlayerIndex);
+                GetPlayerState(
+                    currentPlayerIndex);
+
+            if (playerState == null ||
+                playerState.IsBankrupt)
+            {
+                AdvanceToNextPlayer();
+                continue;
+            }
 
             bool skippedTurn =
-                playerState != null &&
                 playerState.ConsumeSkippedTurn();
 
             if (!skippedTurn)
@@ -421,7 +673,8 @@ public class TurnManager : MonoBehaviour
             }
 
             Debug.Log(
-                $"{playerState.DisplayName} skipped their turn. " +
+                $"{playerState.DisplayName} " +
+                "skipped their turn. " +
                 $"Remaining skipped turns: " +
                 $"{playerState.TurnsToSkip}.",
                 this);
@@ -430,7 +683,8 @@ public class TurnManager : MonoBehaviour
             {
                 turnStatusText.text =
                     $"Tur {currentRound}/{roundLimit}\n" +
-                    $"{playerState.DisplayName} bu turu atlıyor";
+                    $"{playerState.DisplayName} " +
+                    "bu turu atlıyor";
             }
 
             if (skippedTurnMessageDuration > 0f)
@@ -449,21 +703,26 @@ public class TurnManager : MonoBehaviour
             AdvanceToNextPlayer();
         }
 
-        currentPlayerIndex =
-            turnOrder[currentTurnOrderIndex];
-
         resolvingTurnStart = false;
         beginTurnCoroutine = null;
 
-        UpdateTurnUI();
+        EndMatch();
     }
 
     private void EndMatch()
     {
+        if (isMatchFinished)
+        {
+            return;
+        }
+
         isMatchFinished = true;
         waitingForMovement = false;
         resolvingTurnStart = false;
-        gamePhase = GamePhase.Finished;
+        resolvingManagementAction = false;
+
+        gamePhase =
+            GamePhase.Finished;
 
         if (rollButton != null)
         {
@@ -473,11 +732,15 @@ public class TurnManager : MonoBehaviour
         if (turnStatusText != null)
         {
             turnStatusText.text =
-                $"Maç tamamlandı\n{roundLimit} tur";
+                $"Maç tamamlandı\n" +
+                $"Tur {currentRound}";
         }
 
         Debug.Log(
-            $"Match finished after {completedTurns} player turns.",
+            $"Match finished after " +
+            $"{completedTurns} player turns. " +
+            $"Active players remaining: " +
+            $"{GetActivePlayers().Count}.",
             this);
 
         if (matchResultManager != null)
@@ -492,12 +755,45 @@ public class TurnManager : MonoBehaviour
         }
     }
 
+    private List<PlayerGameState>
+        GetActivePlayers()
+    {
+        List<PlayerGameState> activePlayers =
+            new List<PlayerGameState>();
+
+        if (players == null)
+        {
+            return activePlayers;
+        }
+
+        foreach (PlayerPawnMover pawn in players)
+        {
+            if (pawn == null)
+            {
+                continue;
+            }
+
+            PlayerGameState player =
+                pawn.GetComponent<
+                    PlayerGameState>();
+
+            if (player != null &&
+                !player.IsBankrupt)
+            {
+                activePlayers.Add(player);
+            }
+        }
+
+        return activePlayers;
+    }
+
     private PlayerGameState GetPlayerState(
         int playerArrayIndex)
     {
         if (players == null ||
             playerArrayIndex < 0 ||
-            playerArrayIndex >= players.Length)
+            playerArrayIndex >=
+            players.Length)
         {
             return null;
         }
@@ -510,27 +806,32 @@ public class TurnManager : MonoBehaviour
             return null;
         }
 
-        return pawn.GetComponent<PlayerGameState>();
+        return pawn.GetComponent<
+            PlayerGameState>();
     }
 
     private void UpdateStartingOrderUI()
     {
         PlayerGameState player =
-            GetPlayerState(orderRollPlayerIndex);
+            GetPlayerState(
+                orderRollPlayerIndex);
 
         string playerName =
             player != null
                 ? player.DisplayName
-                : $"Oyuncu {orderRollPlayerIndex + 1}";
+                : $"Oyuncu " +
+                  $"{orderRollPlayerIndex + 1}";
 
         if (turnStatusText != null)
         {
             turnStatusText.text =
-                $"Başlangıç sırası: {playerName} zar atsın";
+                $"Başlangıç sırası: " +
+                $"{playerName} zar atsın";
         }
 
         Debug.Log(
-            $"Waiting for starting roll: {playerName}",
+            $"Waiting for starting roll: " +
+            $"{playerName}",
             this);
     }
 
@@ -542,11 +843,20 @@ public class TurnManager : MonoBehaviour
         }
 
         PlayerGameState activePlayer =
-            GetPlayerState(currentPlayerIndex);
+            GetPlayerState(
+                currentPlayerIndex);
+
+        if (activePlayer == null ||
+            activePlayer.IsBankrupt)
+        {
+            BeginCurrentTurn();
+            return;
+        }
 
         if (rollButton != null)
         {
-            rollButton.interactable = true;
+            rollButton.interactable =
+                !resolvingManagementAction;
         }
 
         if (turnStatusText != null)
@@ -557,7 +867,8 @@ public class TurnManager : MonoBehaviour
         }
 
         Debug.Log(
-            $"Turn started: {activePlayer.DisplayName} " +
+            $"Turn started: " +
+            $"{activePlayer.DisplayName} " +
             $"[Slot {activePlayer.PlayerSlotIndex}]. " +
             $"Round: {currentRound}/{roundLimit}.",
             this);
@@ -565,16 +876,19 @@ public class TurnManager : MonoBehaviour
 
     private bool ValidatePlayers()
     {
-        if (players == null || players.Length < 2)
+        if (players == null ||
+            players.Length < 2)
         {
             Debug.LogError(
-                "TurnManager requires at least two players.",
+                "TurnManager requires at least " +
+                "two players.",
                 this);
 
             return false;
         }
 
-        HashSet<int> usedStableSlots = new HashSet<int>();
+        HashSet<int> usedStableSlots =
+            new HashSet<int>();
 
         for (int index = 0;
              index < players.Length;
@@ -590,22 +904,27 @@ public class TurnManager : MonoBehaviour
             }
 
             PlayerGameState playerState =
-                players[index].GetComponent<PlayerGameState>();
+                players[index]
+                    .GetComponent<
+                        PlayerGameState>();
 
             if (playerState == null)
             {
                 Debug.LogError(
-                    $"Player at array index {index} does not have " +
-                    "a PlayerGameState component.",
+                    $"Player at array index {index} " +
+                    "does not have a PlayerGameState " +
+                    "component.",
                     players[index]);
 
                 return false;
             }
 
-            if (!usedStableSlots.Add(playerState.PlayerSlotIndex))
+            if (!usedStableSlots.Add(
+                    playerState.PlayerSlotIndex))
             {
                 Debug.LogError(
-                    $"Duplicate Player Slot Index detected: " +
+                    "Duplicate Player Slot Index " +
+                    $"detected: " +
                     $"{playerState.PlayerSlotIndex}.",
                     playerState);
 
@@ -616,8 +935,8 @@ public class TurnManager : MonoBehaviour
                 playerState.OwnershipMaterial == null)
             {
                 Debug.LogError(
-                    $"{playerState.DisplayName} has an incomplete " +
-                    "visual profile.",
+                    $"{playerState.DisplayName} has an " +
+                    "incomplete visual profile.",
                     playerState);
 
                 return false;
@@ -629,7 +948,8 @@ public class TurnManager : MonoBehaviour
 
     private void SubscribeToPlayers()
     {
-        foreach (PlayerPawnMover player in players)
+        foreach (PlayerPawnMover player
+                 in players)
         {
             player.MovementCompleted +=
                 HandleMovementCompleted;
@@ -643,7 +963,8 @@ public class TurnManager : MonoBehaviour
             return;
         }
 
-        foreach (PlayerPawnMover player in players)
+        foreach (PlayerPawnMover player
+                 in players)
         {
             if (player != null)
             {

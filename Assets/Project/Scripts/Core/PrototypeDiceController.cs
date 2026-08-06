@@ -21,7 +21,7 @@ public class PrototypeDiceController : MonoBehaviour
 
         if (pawn == null)
         {
-            pawn = FindFirstObjectByType<PlayerPawnMover>();
+            pawn = FindAnyObjectByType<PlayerPawnMover>();
         }
 
         if (pawn == null)

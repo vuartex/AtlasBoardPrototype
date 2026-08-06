@@ -7,9 +7,9 @@ using UnityEngine.UI;
 
 public class AuctionManager : MonoBehaviour
 {
-    [Header("Players")]
+    [Header("Turn Order")]
     [SerializeField]
-    private PlayerGameState[] playerStates;
+    private TurnManager turnManager;
 
     [Header("Board")]
     [SerializeField]
@@ -51,6 +51,8 @@ public class AuctionManager : MonoBehaviour
     private float resultDisplayDuration = 1.25f;
 
     private BoardTile auctionProperty;
+
+    private List<PlayerGameState> auctionPlayers;
     private bool[] eligibleBidders;
 
     private int currentBidderIndex = -1;
@@ -68,6 +70,8 @@ public class AuctionManager : MonoBehaviour
         {
             auctionPanel.SetActive(false);
         }
+
+        EnsureTurnManager();
     }
 
     public void BeginAuction(
@@ -82,18 +86,20 @@ public class AuctionManager : MonoBehaviour
         BeginAuctionInternal(
             startingPlayer,
             randomProperty,
+            includeStartingPlayer: true,
             onResolutionCompleted,
             "Auction tile");
     }
 
     public void BeginAuctionForProperty(
-        PlayerGameState startingPlayer,
+        PlayerGameState decliningPlayer,
         BoardTile property,
         Action onResolutionCompleted)
     {
         BeginAuctionInternal(
-            startingPlayer,
+            decliningPlayer,
             property,
+            includeStartingPlayer: false,
             onResolutionCompleted,
             "Declined purchase");
     }
@@ -172,8 +178,9 @@ public class AuctionManager : MonoBehaviour
     }
 
     private void BeginAuctionInternal(
-        PlayerGameState startingPlayer,
+        PlayerGameState referencePlayer,
         BoardTile property,
+        bool includeStartingPlayer,
         Action onResolutionCompleted,
         string source)
     {
@@ -201,14 +208,29 @@ public class AuctionManager : MonoBehaviour
             return;
         }
 
-        int startingBidderArrayIndex =
-            FindPlayerArrayIndex(startingPlayer);
+        EnsureTurnManager();
 
-        if (startingBidderArrayIndex < 0)
+        if (turnManager == null)
         {
-            Debug.LogWarning(
-                "The auction starting player could not be found " +
-                "in Player States.",
+            Debug.LogError(
+                "AuctionManager requires a TurnManager reference.",
+                this);
+
+            CloseAuctionAndComplete();
+            return;
+        }
+
+        auctionPlayers =
+            turnManager.GetPlayersInTurnOrderFrom(
+                referencePlayer,
+                includeStartingPlayer);
+
+        if (auctionPlayers == null ||
+            auctionPlayers.Count == 0)
+        {
+            Debug.Log(
+                "Auction skipped because there are no eligible " +
+                "participants in turn order.",
                 this);
 
             CloseAuctionAndComplete();
@@ -224,14 +246,13 @@ public class AuctionManager : MonoBehaviour
         highestBidderIndex = -1;
 
         currentBidderIndex =
-            FindFirstEligibleBidder(
-                startingBidderArrayIndex);
+            FindFirstEligibleBidder(0);
 
         if (currentBidderIndex < 0)
         {
             Debug.Log(
-                "Auction skipped because no player can afford " +
-                "the minimum bid.",
+                "Auction skipped because no participant can " +
+                "afford the minimum bid.",
                 this);
 
             CloseAuctionAndComplete();
@@ -254,7 +275,8 @@ public class AuctionManager : MonoBehaviour
             $"Auction started for {auctionProperty.DisplayName}. " +
             $"Source: {source}. Starting bidder: " +
             $"{firstBidder.DisplayName} " +
-            $"[Slot {firstBidder.PlayerSlotIndex}].",
+            $"[Slot {firstBidder.PlayerSlotIndex}]. " +
+            $"Participant order: {BuildParticipantOrderText()}.",
             this);
     }
 
@@ -397,8 +419,8 @@ public class AuctionManager : MonoBehaviour
     private void PrepareEligibleBidders()
     {
         int playerCount =
-            playerStates != null
-                ? playerStates.Length
+            auctionPlayers != null
+                ? auctionPlayers.Count
                 : 0;
 
         eligibleBidders =
@@ -409,7 +431,7 @@ public class AuctionManager : MonoBehaviour
              index++)
         {
             PlayerGameState player =
-                playerStates[index];
+                auctionPlayers[index];
 
             eligibleBidders[index] =
                 player != null &&
@@ -460,38 +482,6 @@ public class AuctionManager : MonoBehaviour
                property.TileType == TileType.City &&
                property.Purchasable &&
                !property.IsOwned;
-    }
-
-    private int FindPlayerArrayIndex(
-        PlayerGameState player)
-    {
-        if (playerStates == null ||
-            player == null)
-        {
-            return -1;
-        }
-
-        for (int index = 0;
-             index < playerStates.Length;
-             index++)
-        {
-            PlayerGameState candidate =
-                playerStates[index];
-
-            if (candidate == player)
-            {
-                return index;
-            }
-
-            if (candidate != null &&
-                candidate.PlayerSlotIndex ==
-                player.PlayerSlotIndex)
-            {
-                return index;
-            }
-        }
-
-        return -1;
     }
 
     private int FindFirstEligibleBidder(
@@ -746,6 +736,7 @@ public class AuctionManager : MonoBehaviour
         isAuctionActive = false;
 
         auctionProperty = null;
+        auctionPlayers = null;
         eligibleBidders = null;
 
         currentBidderIndex = -1;
@@ -768,30 +759,39 @@ public class AuctionManager : MonoBehaviour
             return null;
         }
 
-        return playerStates[playerIndex];
+        return auctionPlayers[playerIndex];
     }
 
     private bool IsValidPlayerIndex(
         int playerIndex)
     {
-        return playerStates != null &&
+        return auctionPlayers != null &&
                playerIndex >= 0 &&
-               playerIndex < playerStates.Length;
+               playerIndex < auctionPlayers.Count;
     }
 
     private int WrapPlayerIndex(
         int playerIndex)
     {
-        if (playerStates == null ||
-            playerStates.Length == 0)
+        if (auctionPlayers == null ||
+            auctionPlayers.Count == 0)
         {
             return 0;
         }
 
         return
-            ((playerIndex % playerStates.Length) +
-             playerStates.Length) %
-            playerStates.Length;
+            ((playerIndex % auctionPlayers.Count) +
+             auctionPlayers.Count) %
+            auctionPlayers.Count;
+    }
+
+    private void EnsureTurnManager()
+    {
+        if (turnManager == null)
+        {
+            turnManager =
+                FindAnyObjectByType<TurnManager>();
+        }
     }
 
     private void EnsureBoardPath()
@@ -799,8 +799,29 @@ public class AuctionManager : MonoBehaviour
         if (boardPath == null)
         {
             boardPath =
-                FindFirstObjectByType<BoardPath>();
+                FindAnyObjectByType<BoardPath>();
         }
+    }
+
+    private string BuildParticipantOrderText()
+    {
+        if (auctionPlayers == null ||
+            auctionPlayers.Count == 0)
+        {
+            return "none";
+        }
+
+        List<string> names =
+            new List<string>();
+
+        foreach (PlayerGameState player in auctionPlayers)
+        {
+            names.Add(
+                $"{player.DisplayName} " +
+                $"[Slot {player.PlayerSlotIndex}]");
+        }
+
+        return string.Join(" → ", names);
     }
 
     private string GetProfileId(

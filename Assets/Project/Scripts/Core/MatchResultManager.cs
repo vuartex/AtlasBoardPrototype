@@ -14,6 +14,9 @@ public class MatchResultManager : MonoBehaviour
     [SerializeField]
     private BoardPath boardPath;
 
+    [SerializeField]
+    private PropertyDevelopmentManager propertyDevelopmentManager;
+
     [Header("Result UI")]
     [SerializeField]
     private GameObject resultPanel;
@@ -54,7 +57,25 @@ public class MatchResultManager : MonoBehaviour
             return;
         }
 
-        int highestNetWorth = int.MinValue;
+        List<int> activePlayerIndexes =
+            new List<int>();
+
+        for (int index = 0;
+             index < playerStates.Length;
+             index++)
+        {
+            PlayerGameState player =
+                playerStates[index];
+
+            if (player != null &&
+                !player.IsBankrupt)
+            {
+                activePlayerIndexes.Add(index);
+            }
+        }
+
+        int highestNetWorth =
+            int.MinValue;
 
         List<int> winnerIndexes =
             new List<int>();
@@ -75,25 +96,47 @@ public class MatchResultManager : MonoBehaviour
             }
 
             int propertyCount;
+
             int propertyValue =
                 CalculatePropertyValue(
-                    player.PlayerIndex,
+                    player.PlayerSlotIndex,
                     out propertyCount);
+
+            int developmentValue =
+                propertyDevelopmentManager != null
+                    ? propertyDevelopmentManager
+                        .GetDevelopmentInvestmentValue(
+                            player.PlayerSlotIndex)
+                    : 0;
+
+            int developmentLevels =
+                propertyDevelopmentManager != null
+                    ? propertyDevelopmentManager
+                        .GetTotalDevelopmentLevels(
+                            player.PlayerSlotIndex)
+                    : 0;
 
             int netWorth =
                 player.CurrentMoney +
-                propertyValue;
+                propertyValue +
+                developmentValue;
 
-            if (netWorth > highestNetWorth)
+            if (!player.IsBankrupt)
             {
-                highestNetWorth = netWorth;
+                if (netWorth >
+                    highestNetWorth)
+                {
+                    highestNetWorth =
+                        netWorth;
 
-                winnerIndexes.Clear();
-                winnerIndexes.Add(index);
-            }
-            else if (netWorth == highestNetWorth)
-            {
-                winnerIndexes.Add(index);
+                    winnerIndexes.Clear();
+                    winnerIndexes.Add(index);
+                }
+                else if (netWorth ==
+                         highestNetWorth)
+                {
+                    winnerIndexes.Add(index);
+                }
             }
 
             if (summaryBuilder.Length > 0)
@@ -103,7 +146,9 @@ public class MatchResultManager : MonoBehaviour
             }
 
             summaryBuilder.AppendLine(
-                player.DisplayName);
+                player.IsBankrupt
+                    ? $"{player.DisplayName} — İFLAS"
+                    : player.DisplayName);
 
             summaryBuilder.Append(
                 $"Nakit: {player.CurrentMoney} ₵ | " +
@@ -113,7 +158,46 @@ public class MatchResultManager : MonoBehaviour
             summaryBuilder.AppendLine();
 
             summaryBuilder.Append(
+                $"Geliştirme Seviyesi: " +
+                $"{developmentLevels} | " +
+                $"Geliştirme Değeri: " +
+                $"{developmentValue} ₵");
+
+            summaryBuilder.AppendLine();
+
+            summaryBuilder.Append(
                 $"Net Servet: {netWorth} ₵");
+        }
+
+        if (activePlayerIndexes.Count == 1)
+        {
+            winnerIndexes.Clear();
+
+            winnerIndexes.Add(
+                activePlayerIndexes[0]);
+
+            PlayerGameState soleWinner =
+                playerStates[
+                    activePlayerIndexes[0]];
+
+            int solePropertyCount;
+
+            int solePropertyValue =
+                CalculatePropertyValue(
+                    soleWinner.PlayerSlotIndex,
+                    out solePropertyCount);
+
+            int soleDevelopmentValue =
+                propertyDevelopmentManager != null
+                    ? propertyDevelopmentManager
+                        .GetDevelopmentInvestmentValue(
+                            soleWinner.PlayerSlotIndex)
+                    : 0;
+
+            highestNetWorth =
+                soleWinner.CurrentMoney +
+                solePropertyValue +
+                soleDevelopmentValue;
         }
 
         UpdateResultTitle(
@@ -133,7 +217,8 @@ public class MatchResultManager : MonoBehaviour
 
         Debug.Log(
             $"Match completed. Highest net worth: " +
-            $"{highestNetWorth}.",
+            $"{highestNetWorth}. Active players: " +
+            $"{activePlayerIndexes.Count}.",
             this);
     }
 
@@ -158,7 +243,7 @@ public class MatchResultManager : MonoBehaviour
     }
 
     private int CalculatePropertyValue(
-        int playerIndex,
+        int playerSlotIndex,
         out int propertyCount)
     {
         propertyCount = 0;
@@ -166,7 +251,8 @@ public class MatchResultManager : MonoBehaviour
         if (boardPath == null)
         {
             boardPath =
-                FindFirstObjectByType<BoardPath>();
+                FindAnyObjectByType<
+                    BoardPath>();
         }
 
         if (boardPath == null)
@@ -185,12 +271,14 @@ public class MatchResultManager : MonoBehaviour
 
             if (tile == null ||
                 !tile.IsOwned ||
-                tile.OwnerPlayerIndex != playerIndex)
+                tile.OwnerPlayerIndex !=
+                playerSlotIndex)
             {
                 continue;
             }
 
             propertyCount++;
+
             totalPropertyValue +=
                 tile.PurchasePrice;
         }
@@ -210,17 +298,23 @@ public class MatchResultManager : MonoBehaviour
         if (winnerIndexes.Count == 1)
         {
             PlayerGameState winner =
-                playerStates[winnerIndexes[0]];
+                playerStates[
+                    winnerIndexes[0]];
 
             resultTitleText.text =
                 $"{winner.DisplayName} Kazandı!\n" +
                 $"{highestNetWorth} ₵";
         }
-        else
+        else if (winnerIndexes.Count > 1)
         {
             resultTitleText.text =
                 $"Beraberlik!\n" +
                 $"{highestNetWorth} ₵";
+        }
+        else
+        {
+            resultTitleText.text =
+                "Maç Tamamlandı";
         }
     }
 }

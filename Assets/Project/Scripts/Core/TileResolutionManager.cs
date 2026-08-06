@@ -38,6 +38,12 @@ public class TileResolutionManager : MonoBehaviour
     [SerializeField]
     private AuctionManager auctionManager;
 
+    [SerializeField]
+    private BankruptcyManager bankruptcyManager;
+
+    [SerializeField]
+    private PropertyDevelopmentManager propertyDevelopmentManager;
+
     [Header("Travel")]
     [SerializeField]
     private BoardPath boardPath;
@@ -53,6 +59,19 @@ public class TileResolutionManager : MonoBehaviour
 
     [SerializeField]
     private Button travelStayButton;
+
+    [Header("Development UI")]
+    [SerializeField]
+    private GameObject developmentPanel;
+
+    [SerializeField]
+    private TMP_Text developmentInfoText;
+
+    [SerializeField]
+    private Button developButton;
+
+    [SerializeField]
+    private Button skipDevelopmentButton;
 
     [Header("Prototype Special Tile Values")]
     [SerializeField, Min(0)]
@@ -74,6 +93,9 @@ public class TileResolutionManager : MonoBehaviour
     private PlayerPawnMover pendingTravelPawn;
     private int pendingTravelTargetIndex = -1;
 
+    private PlayerGameState pendingDevelopmentPlayer;
+    private BoardTile pendingDevelopmentTile;
+
     private Action resolutionCompleted;
 
     private void Start()
@@ -94,9 +116,14 @@ public class TileResolutionManager : MonoBehaviour
             travelPanel.SetActive(false);
         }
 
+        if (developmentPanel != null)
+        {
+            developmentPanel.SetActive(false);
+        }
+
         if (boardPath == null)
         {
-            boardPath = FindFirstObjectByType<BoardPath>();
+            boardPath = FindAnyObjectByType<BoardPath>();
         }
 
         SubscribeToMoneyChanges();
@@ -115,7 +142,9 @@ public class TileResolutionManager : MonoBehaviour
     {
         resolutionCompleted = onResolutionCompleted;
 
-        if (player == null || tile == null)
+        if (player == null ||
+            tile == null ||
+            player.IsBankrupt)
         {
             CompleteResolution();
             return;
@@ -233,6 +262,68 @@ public class TileResolutionManager : MonoBehaviour
             CompleteResolution);
     }
 
+    public void DevelopPendingTile()
+    {
+        if (pendingDevelopmentPlayer == null ||
+            pendingDevelopmentTile == null)
+        {
+            Debug.LogWarning(
+                "There is no pending property development.",
+                this);
+
+            return;
+        }
+
+        PlayerGameState developingPlayer =
+            pendingDevelopmentPlayer;
+
+        BoardTile developingTile =
+            pendingDevelopmentTile;
+
+        if (propertyDevelopmentManager == null)
+        {
+            Debug.LogWarning(
+                "PropertyDevelopmentManager is not connected.",
+                this);
+
+            CompleteResolution();
+            return;
+        }
+
+        bool developed =
+            propertyDevelopmentManager.TryDevelop(
+                developingPlayer,
+                developingTile);
+
+        if (!developed)
+        {
+            Debug.LogWarning(
+                $"{developingPlayer.DisplayName} could not " +
+                $"develop {developingTile.DisplayName}.",
+                this);
+
+            RefreshDevelopmentPanel();
+            return;
+        }
+
+        CompleteResolution();
+    }
+
+    public void SkipPendingDevelopment()
+    {
+        if (pendingDevelopmentPlayer != null &&
+            pendingDevelopmentTile != null)
+        {
+            Debug.Log(
+                $"{pendingDevelopmentPlayer.DisplayName} skipped " +
+                $"development on " +
+                $"{pendingDevelopmentTile.DisplayName}.",
+                this);
+        }
+
+        CompleteResolution();
+    }
+
     public void TravelToNextEvent()
     {
         if (pendingTravelPlayer == null ||
@@ -341,6 +432,28 @@ public class TileResolutionManager : MonoBehaviour
                 $"{player.DisplayName} landed on their own city.",
                 this);
 
+            if (propertyDevelopmentManager != null &&
+                propertyDevelopmentManager
+                    .IsEligibleForDevelopment(
+                        player,
+                        tile))
+            {
+                pendingDevelopmentPlayer =
+                    player;
+
+                pendingDevelopmentTile =
+                    tile;
+
+                RefreshDevelopmentPanel();
+
+                if (developmentPanel != null)
+                {
+                    developmentPanel.SetActive(true);
+                }
+
+                return;
+            }
+
             CompleteResolution();
             return;
         }
@@ -359,17 +472,78 @@ public class TileResolutionManager : MonoBehaviour
             return;
         }
 
-        int payableRent =
-            Mathf.Min(tile.BaseRent, player.CurrentMoney);
+        int effectiveRent =
+            propertyDevelopmentManager != null
+                ? propertyDevelopmentManager
+                    .GetEffectiveRent(tile)
+                : tile.BaseRent;
 
-        if (player.TrySpend(payableRent))
+        if (bankruptcyManager == null)
         {
-            owner.AddMoney(payableRent);
+            int payableRent =
+                Mathf.Min(
+                    effectiveRent,
+                    player.CurrentMoney);
 
+            if (player.TrySpend(payableRent))
+            {
+                owner.AddMoney(payableRent);
+
+                Debug.Log(
+                    $"{player.DisplayName} paid " +
+                    $"{payableRent} rent to " +
+                    $"{owner.DisplayName} for " +
+                    $"{tile.DisplayName}.",
+                    this);
+            }
+
+            CompleteResolution();
+            return;
+        }
+
+        BankruptcyManager.PaymentResolution payment =
+            bankruptcyManager.ResolveMandatoryPayment(
+                player,
+                owner,
+                effectiveRent,
+                $"Rent: {tile.DisplayName}");
+
+        if (!payment.DebtorBankrupt)
+        {
             Debug.Log(
-                $"{player.DisplayName} paid {payableRent} rent to " +
-                $"{owner.DisplayName} for {tile.DisplayName}.",
+                $"{player.DisplayName} paid " +
+                $"{payment.AmountPaid} rent to " +
+                $"{owner.DisplayName} for " +
+                $"{tile.DisplayName}.",
                 this);
+
+            CompleteResolution();
+            return;
+        }
+
+        string bankruptcyDescription =
+            $"{player.DisplayName}, " +
+            $"{tile.DisplayName} için gereken " +
+            $"{payment.AmountDue} ₵ kirayı " +
+            "ödeyemedi. Kalan nakit ve mülkler " +
+            $"{owner.DisplayName} hesabına aktarıldı.";
+
+        string bankruptcyResult =
+            $"Ödenen: {payment.AmountPaid} ₵\n" +
+            $"Karşılanamayan: " +
+            $"{payment.UnpaidAmount} ₵\n" +
+            $"Devredilen mülk: " +
+            $"{payment.TransferredPropertyCount}";
+
+        if (specialTileManager != null)
+        {
+            specialTileManager.ShowResultMessage(
+                "İFLAS",
+                bankruptcyDescription,
+                bankruptcyResult,
+                CompleteResolution);
+
+            return;
         }
 
         CompleteResolution();
@@ -531,7 +705,7 @@ public class TileResolutionManager : MonoBehaviour
     {
         if (boardPath == null)
         {
-            boardPath = FindFirstObjectByType<BoardPath>();
+            boardPath = FindAnyObjectByType<BoardPath>();
         }
 
         PlayerPawnMover pawn =
@@ -634,6 +808,67 @@ public class TileResolutionManager : MonoBehaviour
             finalTurnCallback);
     }
 
+    private void RefreshDevelopmentPanel()
+    {
+        if (propertyDevelopmentManager == null ||
+            pendingDevelopmentPlayer == null ||
+            pendingDevelopmentTile == null)
+        {
+            return;
+        }
+
+        int currentLevel =
+            propertyDevelopmentManager
+                .GetDevelopmentLevel(
+                    pendingDevelopmentTile);
+
+        int cost =
+            propertyDevelopmentManager
+                .GetDevelopmentCost(
+                    pendingDevelopmentTile);
+
+        int currentRent =
+            propertyDevelopmentManager
+                .GetEffectiveRent(
+                    pendingDevelopmentTile);
+
+        int nextRent =
+            propertyDevelopmentManager
+                .GetProjectedRentAtNextLevel(
+                    pendingDevelopmentTile);
+
+        string groupName =
+            propertyDevelopmentManager
+                .GetGroupName(
+                    pendingDevelopmentTile);
+
+        bool canAfford =
+            propertyDevelopmentManager
+                .CanAffordDevelopment(
+                    pendingDevelopmentPlayer,
+                    pendingDevelopmentTile);
+
+        if (developmentInfoText != null)
+        {
+            developmentInfoText.text =
+                $"{pendingDevelopmentTile.DisplayName}\n" +
+                $"{groupName} tamamlandı\n" +
+                $"Seviye: {currentLevel}/" +
+                $"{propertyDevelopmentManager.MaximumDevelopmentLevel}\n" +
+                $"Kira: {currentRent} ₵ → " +
+                $"{nextRent} ₵\n" +
+                $"Geliştirme maliyeti: {cost} ₵\n" +
+                $"Bakiye: " +
+                $"{pendingDevelopmentPlayer.CurrentMoney} ₵";
+        }
+
+        if (developButton != null)
+        {
+            developButton.interactable =
+                canAfford;
+        }
+    }
+
     private int FindNextTileOfType(
         int currentTileIndex,
         TileType targetType)
@@ -720,8 +955,16 @@ public class TileResolutionManager : MonoBehaviour
             travelPanel.SetActive(false);
         }
 
+        if (developmentPanel != null)
+        {
+            developmentPanel.SetActive(false);
+        }
+
         pendingPlayer = null;
         pendingTile = null;
+
+        pendingDevelopmentPlayer = null;
+        pendingDevelopmentTile = null;
 
         ClearPendingTravelState();
         RefreshBalancesText();
@@ -761,7 +1004,10 @@ public class TileResolutionManager : MonoBehaviour
             }
 
             builder.Append(
-                $"{player.DisplayName}: {player.CurrentMoney} ₵");
+                player.IsBankrupt
+                    ? $"{player.DisplayName}: İFLAS"
+                    : $"{player.DisplayName}: " +
+                      $"{player.CurrentMoney} ₵");
         }
 
         balancesText.text = builder.ToString();
