@@ -93,9 +93,130 @@ public class TradeManager : MonoBehaviour
 
     private Coroutine closeCoroutine;
 
+    public bool IsTradeClosed =>
+        panelState ==
+        TradePanelState.Closed;
+
+    public bool IsAwaitingResponse =>
+        panelState ==
+        TradePanelState.AwaitingResponse;
+
+    public PlayerGameState TradeInitiator =>
+        initiator;
+
+    public PlayerGameState TradeTarget =>
+        target;
+
+    public BoardTile OfferedProperty =>
+        offeredProperty;
+
+    public BoardTile RequestedProperty =>
+        requestedProperty;
+
+    public int OfferedCash =>
+        offeredCash;
+
+    public int RequestedCash =>
+        requestedCash;
+
+    public bool HasPendingOfferFor(
+        PlayerGameState player)
+    {
+        return IsAwaitingResponse &&
+               player != null &&
+               target != null &&
+               (target == player ||
+                target.PlayerSlotIndex ==
+                player.PlayerSlotIndex);
+    }
+
     private void Start()
     {
         SetPanelActive(false);
+    }
+
+    public bool TryBeginBotOffer(
+        PlayerGameState botInitiator,
+        PlayerGameState targetPlayer,
+        BoardTile propertyOffered,
+        int cashOffered,
+        BoardTile propertyRequested,
+        int cashRequested)
+    {
+        if (panelState != TradePanelState.Closed)
+        {
+            return false;
+        }
+
+        EnsureReferences();
+
+        if (turnManager == null ||
+            botInitiator == null ||
+            targetPlayer == null ||
+            botInitiator == targetPlayer ||
+            botInitiator.IsBankrupt ||
+            targetPlayer.IsBankrupt ||
+            !IsBotPlayer(botInitiator) ||
+            !turnManager.TryBeginBotManagementAction(
+                botInitiator))
+        {
+            return false;
+        }
+
+        initiator = botInitiator;
+        target = targetPlayer;
+
+        offeredProperty = propertyOffered;
+        requestedProperty = propertyRequested;
+
+        offeredCash =
+            Mathf.Max(0, cashOffered);
+
+        requestedCash =
+            Mathf.Max(0, cashRequested);
+
+        if (!ValidateOffer(
+                out string validationMessage))
+        {
+            Debug.LogWarning(
+                $"{botInitiator.DisplayName} [BOT] generated an " +
+                $"invalid trade offer: {validationMessage}",
+                this);
+
+            CloseTradePanel();
+            return false;
+        }
+
+        BuildTargetPlayerList();
+
+        panelState =
+            TradePanelState.AwaitingResponse;
+
+        SetPanelActive(true);
+
+        if (tradeTitleText != null)
+        {
+            tradeTitleText.text =
+                $"TAKAS — {initiator.DisplayName}";
+        }
+
+        SyncCurrentOfferToUI();
+
+        SetSetupControlsInteractable(false);
+        SetResponseButtonsVisible(true);
+        RefreshResponseButtonAvailability();
+
+        SetSummary(
+            BuildOfferSummary(
+                includeResponsePrompt: true));
+
+        Debug.Log(
+            $"{initiator.DisplayName} [BOT] created a trade offer " +
+            $"for {target.DisplayName}: " +
+            $"{BuildCompactOfferDescription()}.",
+            this);
+
+        return true;
     }
 
     public void OpenTradePanel()
@@ -222,6 +343,7 @@ public class TradeManager : MonoBehaviour
 
         SetSetupControlsInteractable(false);
         SetResponseButtonsVisible(true);
+        RefreshResponseButtonAvailability();
 
         SetSummary(
             BuildOfferSummary(
@@ -232,6 +354,30 @@ public class TradeManager : MonoBehaviour
             $"to {target.DisplayName}: " +
             $"{BuildCompactOfferDescription()}.",
             this);
+    }
+
+    public bool TryResolveBotResponse(
+        PlayerGameState respondingPlayer,
+        bool acceptOffer)
+    {
+        if (!HasPendingOfferFor(
+                respondingPlayer) ||
+            !IsBotPlayer(
+                respondingPlayer))
+        {
+            return false;
+        }
+
+        if (acceptOffer)
+        {
+            AcceptTradeOffer();
+        }
+        else
+        {
+            RejectTradeOffer();
+        }
+
+        return true;
     }
 
     public void AcceptTradeOffer()
@@ -471,6 +617,91 @@ public class TradeManager : MonoBehaviour
         dropdown.AddOptions(options);
         dropdown.SetValueWithoutNotify(0);
         dropdown.RefreshShownValue();
+    }
+
+    private void SyncCurrentOfferToUI()
+    {
+        PopulateTargetDropdown();
+
+        if (targetPlayerDropdown != null)
+        {
+            int targetIndex =
+                targetPlayers.IndexOf(target);
+
+            if (targetIndex >= 0)
+            {
+                targetPlayerDropdown
+                    .SetValueWithoutNotify(
+                        targetIndex);
+
+                targetPlayerDropdown
+                    .RefreshShownValue();
+            }
+        }
+
+        BuildPropertyList(
+            initiator,
+            offeredProperties);
+
+        BuildPropertyList(
+            target,
+            requestedProperties);
+
+        PopulatePropertyDropdown(
+            offeredPropertyDropdown,
+            offeredProperties,
+            "Mülk teklif etme");
+
+        PopulatePropertyDropdown(
+            requestedPropertyDropdown,
+            requestedProperties,
+            "Mülk talep etme");
+
+        if (offeredPropertyDropdown != null)
+        {
+            int propertyIndex =
+                offeredProperties.IndexOf(
+                    offeredProperty);
+
+            offeredPropertyDropdown
+                .SetValueWithoutNotify(
+                    Mathf.Max(
+                        0,
+                        propertyIndex));
+
+            offeredPropertyDropdown
+                .RefreshShownValue();
+        }
+
+        if (requestedPropertyDropdown != null)
+        {
+            int propertyIndex =
+                requestedProperties.IndexOf(
+                    requestedProperty);
+
+            requestedPropertyDropdown
+                .SetValueWithoutNotify(
+                    Mathf.Max(
+                        0,
+                        propertyIndex));
+
+            requestedPropertyDropdown
+                .RefreshShownValue();
+        }
+
+        if (offeredCashInput != null)
+        {
+            offeredCashInput
+                .SetTextWithoutNotify(
+                    offeredCash.ToString());
+        }
+
+        if (requestedCashInput != null)
+        {
+            requestedCashInput
+                .SetTextWithoutNotify(
+                    requestedCash.ToString());
+        }
     }
 
     private void ReadCurrentOffer()
@@ -861,6 +1092,42 @@ public class TradeManager : MonoBehaviour
             $"requested cash={requestedCash}";
     }
 
+    private void RefreshResponseButtonAvailability()
+    {
+        bool humanCanRespond =
+            panelState ==
+                TradePanelState.AwaitingResponse &&
+            target != null &&
+            !IsBotPlayer(target);
+
+        if (acceptTradeButton != null)
+        {
+            acceptTradeButton.interactable =
+                humanCanRespond;
+        }
+
+        if (rejectTradeButton != null)
+        {
+            rejectTradeButton.interactable =
+                humanCanRespond;
+        }
+    }
+
+    private bool IsBotPlayer(
+        PlayerGameState player)
+    {
+        if (player == null)
+        {
+            return false;
+        }
+
+        BotPlayerController botController =
+            player.GetComponent<BotPlayerController>();
+
+        return botController != null &&
+               botController.BotEnabled;
+    }
+
     private void SetSetupControlsInteractable(
         bool interactable)
     {
@@ -914,12 +1181,22 @@ public class TradeManager : MonoBehaviour
         {
             acceptTradeButton.gameObject.SetActive(
                 visible);
+
+            if (!visible)
+            {
+                acceptTradeButton.interactable = true;
+            }
         }
 
         if (rejectTradeButton != null)
         {
             rejectTradeButton.gameObject.SetActive(
                 visible);
+
+            if (!visible)
+            {
+                rejectTradeButton.interactable = true;
+            }
         }
     }
 

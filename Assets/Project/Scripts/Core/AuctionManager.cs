@@ -64,6 +64,58 @@ public class AuctionManager : MonoBehaviour
     private Action resolutionCompleted;
     private Coroutine completionCoroutine;
 
+    public bool IsAuctionActive =>
+        isAuctionActive;
+
+    public BoardTile AuctionProperty =>
+        auctionProperty;
+
+    public int CurrentBid =>
+        currentBid;
+
+    public int MinimumBid =>
+        minimumBid;
+
+    public int SmallBidStep =>
+        smallBidStep;
+
+    public int LargeBidStep =>
+        largeBidStep;
+
+    public PlayerGameState CurrentBidder
+    {
+        get
+        {
+            return IsValidPlayerIndex(
+                       currentBidderIndex)
+                ? GetPlayer(currentBidderIndex)
+                : null;
+        }
+    }
+
+    public int NextSmallBidAmount =>
+        Mathf.Max(
+            minimumBid,
+            currentBid + smallBidStep);
+
+    public int NextLargeBidAmount =>
+        Mathf.Max(
+            minimumBid,
+            currentBid + largeBidStep);
+
+    public bool IsCurrentBidder(
+        PlayerGameState player)
+    {
+        PlayerGameState bidder =
+            CurrentBidder;
+
+        return player != null &&
+               bidder != null &&
+               (bidder == player ||
+                bidder.PlayerSlotIndex ==
+                player.PlayerSlotIndex);
+    }
+
     private void Start()
     {
         if (auctionPanel != null)
@@ -102,6 +154,33 @@ public class AuctionManager : MonoBehaviour
             includeStartingPlayer: false,
             onResolutionCompleted,
             "Declined purchase");
+    }
+
+    public bool TryResolveBotAction(
+        PlayerGameState player,
+        BotAuctionAction action)
+    {
+        if (!isAuctionActive ||
+            !IsCurrentBidder(player) ||
+            !IsBotPlayer(player))
+        {
+            return false;
+        }
+
+        if (action == BotAuctionAction.BidLarge)
+        {
+            PlaceLargeBid();
+            return true;
+        }
+
+        if (action == BotAuctionAction.BidSmall)
+        {
+            PlaceSmallBid();
+            return true;
+        }
+
+        PassCurrentBidder();
+        return true;
     }
 
     public void PlaceSmallBid()
@@ -628,10 +707,16 @@ public class AuctionManager : MonoBehaviour
 
         if (auctionStatusText != null)
         {
+            string bidderSuffix =
+                IsBotPlayer(currentBidder)
+                    ? " (BOT)"
+                    : string.Empty;
+
             auctionStatusText.text =
                 $"Mevcut teklif: {currentBid} ₵\n" +
                 $"En yüksek: {highestBidderName}\n" +
-                $"Sıra: {currentBidder.DisplayName}";
+                $"Sıra: {currentBidder.DisplayName}" +
+                bidderSuffix;
         }
 
         RefreshButtonAvailability();
@@ -646,6 +731,10 @@ public class AuctionManager : MonoBehaviour
             isAuctionActive &&
             bidder != null;
 
+        bool humanCanControl =
+            validBidder &&
+            !IsBotPlayer(bidder);
+
         int nextSmallBid =
             Mathf.Max(
                 minimumBid,
@@ -659,27 +748,34 @@ public class AuctionManager : MonoBehaviour
         if (bidSmallButton != null)
         {
             bidSmallButton.interactable =
-                validBidder &&
+                humanCanControl &&
                 bidder.CurrentMoney >= nextSmallBid;
         }
 
         if (bidLargeButton != null)
         {
             bidLargeButton.interactable =
-                validBidder &&
+                humanCanControl &&
                 bidder.CurrentMoney >= nextLargeBid;
         }
 
         if (passButton != null)
         {
             passButton.interactable =
-                validBidder;
+                humanCanControl;
         }
     }
 
     private void FinishAuctionWithMessage(
         string message)
     {
+        // The auction result may remain visible for a short delay,
+        // but gameplay actions must stop immediately. Without this,
+        // bot controllers can submit another bid/pass during the
+        // result-display window and try to award the same property
+        // a second time.
+        isAuctionActive = false;
+
         if (auctionStatusText != null)
         {
             auctionStatusText.text =
@@ -783,6 +879,21 @@ public class AuctionManager : MonoBehaviour
             ((playerIndex % auctionPlayers.Count) +
              auctionPlayers.Count) %
             auctionPlayers.Count;
+    }
+
+    private bool IsBotPlayer(
+        PlayerGameState player)
+    {
+        if (player == null)
+        {
+            return false;
+        }
+
+        BotPlayerController botController =
+            player.GetComponent<BotPlayerController>();
+
+        return botController != null &&
+               botController.BotEnabled;
     }
 
     private void EnsureTurnManager()

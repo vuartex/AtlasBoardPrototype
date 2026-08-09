@@ -33,6 +33,10 @@ public class TurnManager : MonoBehaviour
     [SerializeField]
     private MatchResultManager matchResultManager;
 
+    [Header("Match Startup")]
+    [SerializeField]
+    private bool startMatchAutomatically = true;
+
     [Header("Match Rules")]
     [SerializeField, Min(1)]
     private int roundLimit = 20;
@@ -77,6 +81,7 @@ public class TurnManager : MonoBehaviour
     private bool resolvingTurnStart;
     private bool resolvingManagementAction;
     private bool isMatchFinished;
+    private bool isMatchStarted;
     private Coroutine beginTurnCoroutine;
 
     private readonly HashSet<int>
@@ -95,8 +100,26 @@ public class TurnManager : MonoBehaviour
     public int LastRoll =>
         lastRoll;
 
+    public bool IsMatchStarted =>
+        isMatchStarted;
+
     public PlayerGameState CurrentPlayerState =>
         GetPlayerState(currentPlayerIndex);
+
+    public PlayerGameState StartingOrderPlayerState
+    {
+        get
+        {
+            if (gamePhase != GamePhase.DeterminingTurnOrder ||
+                orderRollPlayerIndex < 0 ||
+                orderRollPlayerIndex >= players.Length)
+            {
+                return null;
+            }
+
+            return GetPlayerState(orderRollPlayerIndex);
+        }
+    }
 
     public bool CanStartManagementAction
     {
@@ -105,13 +128,15 @@ public class TurnManager : MonoBehaviour
             PlayerGameState activePlayer =
                 CurrentPlayerState;
 
-            return gamePhase == GamePhase.Playing &&
+            return isMatchStarted &&
+                   gamePhase == GamePhase.Playing &&
                    !isMatchFinished &&
                    !waitingForMovement &&
                    !resolvingTurnStart &&
                    !resolvingManagementAction &&
                    activePlayer != null &&
-                   !activePlayer.IsBankrupt;
+                   !activePlayer.IsBankrupt &&
+                   !IsBotPlayer(activePlayer);
         }
     }
 
@@ -124,7 +149,15 @@ public class TurnManager : MonoBehaviour
         }
 
         SubscribeToPlayers();
-        BeginTurnOrderPhase();
+
+        if (startMatchAutomatically)
+        {
+            BeginMatch();
+        }
+        else
+        {
+            PrepareForMatchSetup();
+        }
     }
 
     private void OnDestroy()
@@ -132,9 +165,57 @@ public class TurnManager : MonoBehaviour
         UnsubscribeFromPlayers();
     }
 
+    public bool BeginMatch()
+    {
+        if (isMatchStarted)
+        {
+            Debug.LogWarning(
+                "The match has already started.",
+                this);
+
+            return false;
+        }
+
+        if (!ValidatePlayers())
+        {
+            return false;
+        }
+
+        isMatchStarted = true;
+
+        BeginTurnOrderPhase();
+
+        Debug.Log(
+            "Match started from the current player setup.",
+            this);
+
+        return true;
+    }
+
+    private void PrepareForMatchSetup()
+    {
+        isMatchStarted = false;
+        isMatchFinished = false;
+        waitingForMovement = false;
+        resolvingTurnStart = false;
+        resolvingManagementAction = false;
+
+        if (rollButton != null)
+        {
+            rollButton.interactable = false;
+        }
+
+        if (turnStatusText != null)
+        {
+            turnStatusText.text =
+                "Oyuncu ayarları bekleniyor";
+        }
+    }
+
     public void HandleRollButton()
     {
-        if (isMatchFinished ||
+        if (!isMatchStarted ||
+            isMatchFinished ||
             resolvingTurnStart ||
             resolvingManagementAction)
         {
@@ -144,14 +225,132 @@ public class TurnManager : MonoBehaviour
         if (gamePhase ==
             GamePhase.DeterminingTurnOrder)
         {
+            PlayerGameState startingPlayer =
+                StartingOrderPlayerState;
+
+            if (IsBotPlayer(startingPlayer))
+            {
+                return;
+            }
+
             RollForStartingOrder();
             return;
         }
 
         if (gamePhase == GamePhase.Playing)
         {
+            PlayerGameState activePlayer =
+                CurrentPlayerState;
+
+            if (IsBotPlayer(activePlayer))
+            {
+                return;
+            }
+
             RollForActivePlayer();
         }
+    }
+
+    public bool CanPlayerRequestRoll(
+        PlayerGameState player)
+    {
+        if (!isMatchStarted ||
+            player == null ||
+            player.IsBankrupt ||
+            isMatchFinished ||
+            resolvingTurnStart ||
+            resolvingManagementAction ||
+            waitingForMovement)
+        {
+            return false;
+        }
+
+        if (gamePhase ==
+            GamePhase.DeterminingTurnOrder)
+        {
+            return IsSamePlayer(
+                StartingOrderPlayerState,
+                player);
+        }
+
+        if (gamePhase == GamePhase.Playing)
+        {
+            PlayerGameState activePlayer =
+                CurrentPlayerState;
+
+            if (!IsSamePlayer(
+                    activePlayer,
+                    player))
+            {
+                return false;
+            }
+
+            PlayerPawnMover pawn =
+                players[currentPlayerIndex];
+
+            return pawn != null &&
+                   !pawn.IsMoving;
+        }
+
+        return false;
+    }
+
+    public bool TryRequestRoll(
+        PlayerGameState player)
+    {
+        if (!CanPlayerRequestRoll(player))
+        {
+            return false;
+        }
+
+        if (gamePhase ==
+            GamePhase.DeterminingTurnOrder)
+        {
+            RollForStartingOrder();
+            return true;
+        }
+
+        if (gamePhase == GamePhase.Playing)
+        {
+            RollForActivePlayer();
+            return true;
+        }
+
+        return false;
+    }
+
+    public bool TryBeginBotManagementAction(
+        PlayerGameState botPlayer)
+    {
+        if (!isMatchStarted ||
+            botPlayer == null ||
+            !IsBotPlayer(botPlayer) ||
+            gamePhase != GamePhase.Playing ||
+            isMatchFinished ||
+            waitingForMovement ||
+            resolvingTurnStart ||
+            resolvingManagementAction ||
+            botPlayer.IsBankrupt ||
+            !IsSamePlayer(
+                CurrentPlayerState,
+                botPlayer))
+        {
+            return false;
+        }
+
+        resolvingManagementAction = true;
+
+        if (rollButton != null)
+        {
+            rollButton.interactable = false;
+        }
+
+        Debug.Log(
+            $"{botPlayer.DisplayName} [BOT] opened a " +
+            "management action.",
+            this);
+
+        return true;
     }
 
     public bool TryBeginManagementAction()
@@ -822,11 +1021,23 @@ public class TurnManager : MonoBehaviour
                 : $"Oyuncu " +
                   $"{orderRollPlayerIndex + 1}";
 
+        if (rollButton != null)
+        {
+            rollButton.interactable =
+                player != null &&
+                !IsBotPlayer(player);
+        }
+
         if (turnStatusText != null)
         {
+            string controlSuffix =
+                IsBotPlayer(player)
+                    ? " (BOT)"
+                    : string.Empty;
+
             turnStatusText.text =
                 $"Başlangıç sırası: " +
-                $"{playerName} zar atsın";
+                $"{playerName}{controlSuffix} zar atsın";
         }
 
         Debug.Log(
@@ -853,17 +1064,26 @@ public class TurnManager : MonoBehaviour
             return;
         }
 
+        bool isBotTurn =
+            IsBotPlayer(activePlayer);
+
         if (rollButton != null)
         {
             rollButton.interactable =
-                !resolvingManagementAction;
+                !resolvingManagementAction &&
+                !isBotTurn;
         }
 
         if (turnStatusText != null)
         {
+            string controlSuffix =
+                isBotTurn
+                    ? " (BOT)"
+                    : string.Empty;
+
             turnStatusText.text =
                 $"Tur {currentRound}/{roundLimit}\n" +
-                $"{activePlayer.DisplayName} sırası";
+                $"{activePlayer.DisplayName}{controlSuffix} sırası";
         }
 
         Debug.Log(
@@ -872,6 +1092,36 @@ public class TurnManager : MonoBehaviour
             $"[Slot {activePlayer.PlayerSlotIndex}]. " +
             $"Round: {currentRound}/{roundLimit}.",
             this);
+    }
+
+    private bool IsBotPlayer(
+        PlayerGameState player)
+    {
+        if (player == null)
+        {
+            return false;
+        }
+
+        BotPlayerController botController =
+            player.GetComponent<BotPlayerController>();
+
+        return botController != null &&
+               botController.BotEnabled;
+    }
+
+    private bool IsSamePlayer(
+        PlayerGameState first,
+        PlayerGameState second)
+    {
+        if (first == null ||
+            second == null)
+        {
+            return false;
+        }
+
+        return first == second ||
+               first.PlayerSlotIndex ==
+               second.PlayerSlotIndex;
     }
 
     private bool ValidatePlayers()

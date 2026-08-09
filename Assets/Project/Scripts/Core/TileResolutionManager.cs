@@ -98,6 +98,57 @@ public class TileResolutionManager : MonoBehaviour
 
     private Action resolutionCompleted;
 
+    public PlayerGameState PendingPurchasePlayer =>
+        pendingPlayer;
+
+    public BoardTile PendingPurchaseTile =>
+        pendingTile;
+
+    public bool HasPendingPurchaseFor(
+        PlayerGameState player)
+    {
+        return player != null &&
+               pendingPlayer != null &&
+               pendingTile != null &&
+               (pendingPlayer == player ||
+                pendingPlayer.PlayerSlotIndex ==
+                player.PlayerSlotIndex);
+    }
+
+    public PlayerGameState PendingTravelPlayer =>
+        pendingTravelPlayer;
+
+    public int PendingTravelTargetIndex =>
+        pendingTravelTargetIndex;
+
+    public PlayerGameState PendingDevelopmentPlayer =>
+        pendingDevelopmentPlayer;
+
+    public BoardTile PendingDevelopmentTile =>
+        pendingDevelopmentTile;
+
+    public bool HasPendingTravelFor(
+        PlayerGameState player)
+    {
+        return player != null &&
+               pendingTravelPlayer != null &&
+               pendingTravelTargetIndex >= 0 &&
+               (pendingTravelPlayer == player ||
+                pendingTravelPlayer.PlayerSlotIndex ==
+                player.PlayerSlotIndex);
+    }
+
+    public bool HasPendingDevelopmentFor(
+        PlayerGameState player)
+    {
+        return player != null &&
+               pendingDevelopmentPlayer != null &&
+               pendingDevelopmentTile != null &&
+               (pendingDevelopmentPlayer == player ||
+                pendingDevelopmentPlayer.PlayerSlotIndex ==
+                player.PlayerSlotIndex);
+    }
+
     private void Start()
     {
         if (!ValidatePlayerConfiguration())
@@ -111,14 +162,44 @@ public class TileResolutionManager : MonoBehaviour
             purchasePanel.SetActive(false);
         }
 
+        if (buyButton != null)
+        {
+            buyButton.interactable = true;
+        }
+
+        if (skipButton != null)
+        {
+            skipButton.interactable = true;
+        }
+
         if (travelPanel != null)
         {
             travelPanel.SetActive(false);
         }
 
+        if (travelGoButton != null)
+        {
+            travelGoButton.interactable = true;
+        }
+
+        if (travelStayButton != null)
+        {
+            travelStayButton.interactable = true;
+        }
+
         if (developmentPanel != null)
         {
             developmentPanel.SetActive(false);
+        }
+
+        if (developButton != null)
+        {
+            developButton.interactable = true;
+        }
+
+        if (skipDevelopmentButton != null)
+        {
+            skipDevelopmentButton.interactable = true;
         }
 
         if (boardPath == null)
@@ -162,6 +243,37 @@ public class TileResolutionManager : MonoBehaviour
         }
 
         ResolveSpecialTile(player, tile);
+    }
+
+    public bool TryResolveBotPurchase(
+        PlayerGameState player,
+        bool buyProperty)
+    {
+        if (!HasPendingPurchaseFor(player))
+        {
+            return false;
+        }
+
+        if (!IsBotPlayer(player))
+        {
+            Debug.LogWarning(
+                $"{player.DisplayName} tried to use the bot " +
+                "purchase path without an enabled bot controller.",
+                this);
+
+            return false;
+        }
+
+        if (buyProperty)
+        {
+            BuyPendingTile();
+        }
+        else
+        {
+            SkipPendingTile();
+        }
+
+        return true;
     }
 
     public void BuyPendingTile()
@@ -260,6 +372,50 @@ public class TileResolutionManager : MonoBehaviour
             decliningPlayer,
             declinedTile,
             CompleteResolution);
+    }
+
+    public bool TryResolveBotTravel(
+        PlayerGameState player,
+        bool shouldTravel)
+    {
+        if (!HasPendingTravelFor(player) ||
+            !IsBotPlayer(player))
+        {
+            return false;
+        }
+
+        if (shouldTravel)
+        {
+            TravelToNextEvent();
+        }
+        else
+        {
+            StayOnTravelTile();
+        }
+
+        return true;
+    }
+
+    public bool TryResolveBotDevelopment(
+        PlayerGameState player,
+        bool shouldDevelop)
+    {
+        if (!HasPendingDevelopmentFor(player) ||
+            !IsBotPlayer(player))
+        {
+            return false;
+        }
+
+        if (shouldDevelop)
+        {
+            DevelopPendingTile();
+        }
+        else
+        {
+            SkipPendingDevelopment();
+        }
+
+        return true;
     }
 
     public void DevelopPendingTile()
@@ -423,6 +579,8 @@ public class TileResolutionManager : MonoBehaviour
                 purchasePanel.SetActive(true);
             }
 
+            RefreshPurchaseButtonAvailability();
+
             return;
         }
 
@@ -450,6 +608,8 @@ public class TileResolutionManager : MonoBehaviour
                 {
                     developmentPanel.SetActive(true);
                 }
+
+                RefreshDevelopmentButtonAvailability();
 
                 return;
             }
@@ -538,6 +698,7 @@ public class TileResolutionManager : MonoBehaviour
         if (specialTileManager != null)
         {
             specialTileManager.ShowResultMessage(
+                player,
                 "İFLAS",
                 bankruptcyDescription,
                 bankruptcyResult,
@@ -757,6 +918,8 @@ public class TileResolutionManager : MonoBehaviour
         {
             travelPanel.SetActive(true);
         }
+
+        RefreshTravelButtonAvailability();
     }
 
     private void ResolveAuctionTile(PlayerGameState player)
@@ -862,10 +1025,74 @@ public class TileResolutionManager : MonoBehaviour
                 $"{pendingDevelopmentPlayer.CurrentMoney} ₵";
         }
 
+        bool humanCanControl =
+            !IsBotPlayer(
+                pendingDevelopmentPlayer);
+
         if (developButton != null)
         {
             developButton.interactable =
+                humanCanControl &&
                 canAfford;
+        }
+
+        if (skipDevelopmentButton != null)
+        {
+            skipDevelopmentButton.interactable =
+                humanCanControl;
+        }
+    }
+
+    private void RefreshDevelopmentButtonAvailability()
+    {
+        if (pendingDevelopmentPlayer == null)
+        {
+            return;
+        }
+
+        bool humanCanControl =
+            !IsBotPlayer(
+                pendingDevelopmentPlayer);
+
+        bool canAfford =
+            propertyDevelopmentManager != null &&
+            pendingDevelopmentTile != null &&
+            propertyDevelopmentManager
+                .CanAffordDevelopment(
+                    pendingDevelopmentPlayer,
+                    pendingDevelopmentTile);
+
+        if (developButton != null)
+        {
+            developButton.interactable =
+                humanCanControl &&
+                canAfford;
+        }
+
+        if (skipDevelopmentButton != null)
+        {
+            skipDevelopmentButton.interactable =
+                humanCanControl;
+        }
+    }
+
+    private void RefreshTravelButtonAvailability()
+    {
+        bool humanCanControl =
+            pendingTravelPlayer != null &&
+            !IsBotPlayer(
+                pendingTravelPlayer);
+
+        if (travelGoButton != null)
+        {
+            travelGoButton.interactable =
+                humanCanControl;
+        }
+
+        if (travelStayButton != null)
+        {
+            travelStayButton.interactable =
+                humanCanControl;
         }
     }
 
@@ -897,6 +1124,43 @@ public class TileResolutionManager : MonoBehaviour
         }
 
         return -1;
+    }
+
+    private void RefreshPurchaseButtonAvailability()
+    {
+        bool humanCanControl =
+            pendingPlayer != null &&
+            !IsBotPlayer(pendingPlayer);
+
+        if (buyButton != null)
+        {
+            buyButton.interactable =
+                humanCanControl &&
+                pendingTile != null &&
+                pendingPlayer.CurrentMoney >=
+                pendingTile.PurchasePrice;
+        }
+
+        if (skipButton != null)
+        {
+            skipButton.interactable =
+                humanCanControl;
+        }
+    }
+
+    private bool IsBotPlayer(
+        PlayerGameState player)
+    {
+        if (player == null)
+        {
+            return false;
+        }
+
+        BotPlayerController botController =
+            player.GetComponent<BotPlayerController>();
+
+        return botController != null &&
+               botController.BotEnabled;
     }
 
     private void ApplyOwnershipVisual(
@@ -950,14 +1214,44 @@ public class TileResolutionManager : MonoBehaviour
             purchasePanel.SetActive(false);
         }
 
+        if (buyButton != null)
+        {
+            buyButton.interactable = true;
+        }
+
+        if (skipButton != null)
+        {
+            skipButton.interactable = true;
+        }
+
         if (travelPanel != null)
         {
             travelPanel.SetActive(false);
         }
 
+        if (travelGoButton != null)
+        {
+            travelGoButton.interactable = true;
+        }
+
+        if (travelStayButton != null)
+        {
+            travelStayButton.interactable = true;
+        }
+
         if (developmentPanel != null)
         {
             developmentPanel.SetActive(false);
+        }
+
+        if (developButton != null)
+        {
+            developButton.interactable = true;
+        }
+
+        if (skipDevelopmentButton != null)
+        {
+            skipDevelopmentButton.interactable = true;
         }
 
         pendingPlayer = null;

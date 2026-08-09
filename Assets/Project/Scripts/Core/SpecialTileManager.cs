@@ -1,6 +1,7 @@
 using System;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class SpecialTileManager : MonoBehaviour
 {
@@ -21,14 +22,37 @@ public class SpecialTileManager : MonoBehaviour
     [SerializeField]
     private TMP_Text specialResultText;
 
+    [SerializeField]
+    private Button continueButton;
+
     private Action resolutionCompleted;
     private bool isResolvingSpecialTile;
+    private PlayerGameState currentSpecialPlayer;
+
+    public bool IsResolvingSpecialTile =>
+        isResolvingSpecialTile;
+
+    public bool HasPendingSpecialFor(
+        PlayerGameState player)
+    {
+        return isResolvingSpecialTile &&
+               player != null &&
+               currentSpecialPlayer != null &&
+               (currentSpecialPlayer == player ||
+                currentSpecialPlayer.PlayerSlotIndex ==
+                player.PlayerSlotIndex);
+    }
 
     private void Start()
     {
         if (specialPanel != null)
         {
             specialPanel.SetActive(false);
+        }
+
+        if (continueButton != null)
+        {
+            continueButton.interactable = true;
         }
     }
 
@@ -39,7 +63,9 @@ public class SpecialTileManager : MonoBehaviour
         int requestedMoneyChange,
         Action onResolutionCompleted)
     {
-        if (!BeginResolution(onResolutionCompleted))
+        if (!BeginResolution(
+                player,
+                onResolutionCompleted))
         {
             return;
         }
@@ -111,6 +137,8 @@ public class SpecialTileManager : MonoBehaviour
             specialPanel.SetActive(true);
         }
 
+        RefreshContinueButtonAvailability();
+
         Debug.Log(
             $"{player.DisplayName} resolved special tile " +
             $"'{title}'. Money change: {appliedMoneyChange}. " +
@@ -124,7 +152,24 @@ public class SpecialTileManager : MonoBehaviour
         string result,
         Action onResolutionCompleted)
     {
-        if (!BeginResolution(onResolutionCompleted))
+        ShowResultMessage(
+            null,
+            title,
+            description,
+            result,
+            onResolutionCompleted);
+    }
+
+    public void ShowResultMessage(
+        PlayerGameState player,
+        string title,
+        string description,
+        string result,
+        Action onResolutionCompleted)
+    {
+        if (!BeginResolution(
+                player,
+                onResolutionCompleted))
         {
             return;
         }
@@ -149,6 +194,21 @@ public class SpecialTileManager : MonoBehaviour
         {
             specialPanel.SetActive(true);
         }
+
+        RefreshContinueButtonAvailability();
+    }
+
+    public bool TryResolveBotContinue(
+        PlayerGameState player)
+    {
+        if (!HasPendingSpecialFor(player) ||
+            !IsBotPlayer(player))
+        {
+            return false;
+        }
+
+        ContinueAfterSpecialTile();
+        return true;
     }
 
     public void ContinueAfterSpecialTile()
@@ -162,6 +222,7 @@ public class SpecialTileManager : MonoBehaviour
     }
 
     private bool BeginResolution(
+        PlayerGameState player,
         Action onResolutionCompleted)
     {
         if (isResolvingSpecialTile)
@@ -173,6 +234,7 @@ public class SpecialTileManager : MonoBehaviour
             return false;
         }
 
+        currentSpecialPlayer = player;
         resolutionCompleted =
             onResolutionCompleted;
 
@@ -232,6 +294,33 @@ public class SpecialTileManager : MonoBehaviour
         }
     }
 
+    private void RefreshContinueButtonAvailability()
+    {
+        if (continueButton == null)
+        {
+            return;
+        }
+
+        continueButton.interactable =
+            currentSpecialPlayer == null ||
+            !IsBotPlayer(currentSpecialPlayer);
+    }
+
+    private bool IsBotPlayer(
+        PlayerGameState player)
+    {
+        if (player == null)
+        {
+            return false;
+        }
+
+        BotPlayerController botController =
+            player.GetComponent<BotPlayerController>();
+
+        return botController != null &&
+               botController.BotEnabled;
+    }
+
     private void CompleteSpecialTile()
     {
         if (specialPanel != null)
@@ -240,6 +329,12 @@ public class SpecialTileManager : MonoBehaviour
         }
 
         isResolvingSpecialTile = false;
+        currentSpecialPlayer = null;
+
+        if (continueButton != null)
+        {
+            continueButton.interactable = true;
+        }
 
         Action callback =
             resolutionCompleted;

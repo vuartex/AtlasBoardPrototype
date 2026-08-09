@@ -31,12 +31,32 @@ public class EventCardManager : MonoBehaviour
 
     private Action resolutionCompleted;
     private bool isResolvingEvent;
+    private PlayerGameState currentEventPlayer;
+
+    public bool IsResolvingEvent =>
+        isResolvingEvent;
+
+    public bool HasPendingEventFor(
+        PlayerGameState player)
+    {
+        return isResolvingEvent &&
+               player != null &&
+               currentEventPlayer != null &&
+               (currentEventPlayer == player ||
+                currentEventPlayer.PlayerSlotIndex ==
+                player.PlayerSlotIndex);
+    }
 
     private void Start()
     {
         if (eventPanel != null)
         {
             eventPanel.SetActive(false);
+        }
+
+        if (continueButton != null)
+        {
+            continueButton.interactable = true;
         }
     }
 
@@ -76,6 +96,7 @@ public class EventCardManager : MonoBehaviour
         }
 
         isResolvingEvent = true;
+        currentEventPlayer = player;
 
         int appliedMoneyChange;
         bool causedBankruptcy = false;
@@ -142,12 +163,27 @@ public class EventCardManager : MonoBehaviour
             eventPanel.SetActive(true);
         }
 
+        RefreshContinueButtonAvailability();
+
         Debug.Log(
             $"{player.DisplayName} drew event card " +
             $"'{selectedCard.Title}'. Money change: " +
             $"{appliedMoneyChange}. Bankrupt: " +
             $"{causedBankruptcy}.",
             this);
+    }
+
+    public bool TryResolveBotContinue(
+        PlayerGameState player)
+    {
+        if (!HasPendingEventFor(player) ||
+            !IsBotPlayer(player))
+        {
+            return false;
+        }
+
+        ContinueAfterEvent();
+        return true;
     }
 
     public void ContinueAfterEvent()
@@ -261,6 +297,33 @@ public class EventCardManager : MonoBehaviour
         }
     }
 
+    private void RefreshContinueButtonAvailability()
+    {
+        if (continueButton == null)
+        {
+            return;
+        }
+
+        continueButton.interactable =
+            currentEventPlayer == null ||
+            !IsBotPlayer(currentEventPlayer);
+    }
+
+    private bool IsBotPlayer(
+        PlayerGameState player)
+    {
+        if (player == null)
+        {
+            return false;
+        }
+
+        BotPlayerController botController =
+            player.GetComponent<BotPlayerController>();
+
+        return botController != null &&
+               botController.BotEnabled;
+    }
+
     private void CompleteEvent()
     {
         if (eventPanel != null)
@@ -269,6 +332,12 @@ public class EventCardManager : MonoBehaviour
         }
 
         isResolvingEvent = false;
+        currentEventPlayer = null;
+
+        if (continueButton != null)
+        {
+            continueButton.interactable = true;
+        }
 
         Action callback =
             resolutionCompleted;
