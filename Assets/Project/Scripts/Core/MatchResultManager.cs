@@ -68,6 +68,7 @@ public class MatchResultManager : MonoBehaviour
                 playerStates[index];
 
             if (player != null &&
+                player.IsParticipating &&
                 !player.IsBankrupt)
             {
                 activePlayerIndexes.Add(index);
@@ -90,7 +91,8 @@ public class MatchResultManager : MonoBehaviour
             PlayerGameState player =
                 playerStates[index];
 
-            if (player == null)
+            if (player == null ||
+                !player.IsParticipating)
             {
                 continue;
             }

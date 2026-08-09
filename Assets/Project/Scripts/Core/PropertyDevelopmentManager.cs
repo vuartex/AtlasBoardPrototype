@@ -7,6 +7,9 @@ public class PropertyDevelopmentManager : MonoBehaviour
     [SerializeField]
     private BoardPath boardPath;
 
+    [SerializeField]
+    private BoardEconomyProfile economyProfile;
+
     [Header("Prototype Development Rules")]
     [SerializeField, Range(1, 4)]
     private int maximumDevelopmentLevel = 4;
@@ -20,7 +23,83 @@ public class PropertyDevelopmentManager : MonoBehaviour
     [SerializeField]
     private int[] rentMultipliers = { 1, 2, 3, 5, 8 };
 
-    [Header("Prototype Building Visuals")]
+    [Header("Group Development Rule")]
+    [Tooltip(
+        "When enabled, a property may only be developed if it " +
+        "is currently at the minimum development level in its " +
+        "completed group. This keeps group development balanced.")]
+    [SerializeField]
+    private bool requireBalancedGroupDevelopment = true;
+
+    [Header("Development Visuals")]
+    [Tooltip(
+        "Optional prefabs for development levels 1 through 4. " +
+        "The selected level prefab is repeated side-by-side " +
+        "1/2/3/4 times in a Monopoly-style row.")]
+    [SerializeField]
+    private GameObject[] developmentLevelPrefabs =
+        new GameObject[4];
+
+    [Tooltip(
+        "Extra uniform/manual scale applied before automatic " +
+        "fit-to-tile scaling. Keep X/Y/Z equal.")]
+    [SerializeField]
+    private Vector3 developmentPrefabLocalScale =
+        Vector3.one;
+
+    [Header("Monopoly-Style Placement")]
+    [Tooltip(
+        "Places development visuals on the OUTER edge of each " +
+        "property tile instead of the tile center.")]
+    [SerializeField]
+    private bool placeOnOuterTileEdge = true;
+
+    [Tooltip(
+        "Distance from the outside edge of the tile in world units.")]
+    [SerializeField, Min(0f)]
+    private float outerEdgeInset = 0.08f;
+
+    [Tooltip(
+        "Small vertical gap above the tile surface.")]
+    [SerializeField, Min(0f)]
+    private float tileSurfaceGap = 0.015f;
+
+    [Tooltip(
+        "Gap between side-by-side buildings in world units.")]
+    [SerializeField, Min(0f)]
+    private float buildingGap = 0.05f;
+
+    [Tooltip(
+        "Maximum total row width as a fraction of the tile width.")]
+    [SerializeField, Range(0.25f, 0.95f)]
+    private float maximumRowWidthRatio = 0.82f;
+
+    [Tooltip(
+        "Maximum building height as a fraction of the tile world width. " +
+        "Keeps imported city assets small enough for a board game.")]
+    [SerializeField, Range(0.1f, 1.5f)]
+    private float maximumBuildingHeightRatio = 0.38f;
+
+    [Tooltip(
+        "Uses clean board-side rotations (0/90/180/270 degrees) " +
+        "instead of pointing each building diagonally toward center.")]
+    [SerializeField]
+    private bool alignToBoardSide = true;
+
+    [Tooltip(
+        "Use this only if the imported prefab faces the wrong way. " +
+        "Typical values: 0, 90, 180, -90.")]
+    [SerializeField]
+    private float boardSideYawOffset;
+
+    [Tooltip(
+        "Normally leave this OFF so building prefabs keep their " +
+        "original materials. The property tile itself already " +
+        "shows the player's ownership color.")]
+    [SerializeField]
+    private bool applyOwnerMaterialToDevelopmentVisual;
+
+    [Header("Fallback Marker Visuals")]
     [SerializeField]
     private Vector3 markerScale =
         new Vector3(0.16f, 0.22f, 0.16f);
@@ -50,6 +129,21 @@ public class PropertyDevelopmentManager : MonoBehaviour
 
     public int MaximumDevelopmentLevel =>
         maximumDevelopmentLevel;
+
+    public bool RequireBalancedGroupDevelopment =>
+        requireBalancedGroupDevelopment;
+
+    public void SetRequireBalancedGroupDevelopment(
+        bool required)
+    {
+        requireBalancedGroupDevelopment =
+            required;
+
+        Debug.Log(
+            $"Balanced group development rule: " +
+            $"{(required ? "ON" : "OFF")}.",
+            this);
+    }
 
     private void Start()
     {
@@ -91,8 +185,162 @@ public class PropertyDevelopmentManager : MonoBehaviour
         return IsEligibleForDevelopment(
                    player,
                    tile) &&
+               CanDevelopEvenly(
+                   player,
+                   tile) &&
                player.CurrentMoney >=
                GetDevelopmentCost(tile);
+    }
+
+    public bool CanDevelopEvenly(
+        PlayerGameState player,
+        BoardTile tile)
+    {
+        if (!IsEligibleForDevelopment(
+                player,
+                tile))
+        {
+            return false;
+        }
+
+        if (!requireBalancedGroupDevelopment)
+        {
+            return true;
+        }
+
+        int minimumLevel =
+            GetGroupMinimumDevelopmentLevel(
+                GetGroupIndex(tile));
+
+        if (minimumLevel < 0)
+        {
+            return false;
+        }
+
+        return GetDevelopmentLevel(tile) ==
+               minimumLevel;
+    }
+
+    public int GetGroupMinimumDevelopmentLevel(
+        int groupIndex)
+    {
+        EnsureInitialized();
+
+        if (boardPath == null ||
+            groupIndex < 0)
+        {
+            return -1;
+        }
+
+        int minimumLevel =
+            int.MaxValue;
+
+        bool foundCity = false;
+
+        for (int tileIndex = 0;
+             tileIndex < boardPath.TileCount;
+             tileIndex++)
+        {
+            BoardTile groupTile =
+                boardPath.GetTile(tileIndex);
+
+            if (groupTile == null ||
+                groupTile.TileType != TileType.City ||
+                GetGroupIndex(groupTile) !=
+                groupIndex)
+            {
+                continue;
+            }
+
+            foundCity = true;
+
+            minimumLevel =
+                Mathf.Min(
+                    minimumLevel,
+                    GetDevelopmentLevel(
+                        groupTile));
+        }
+
+        return foundCity
+            ? minimumLevel
+            : -1;
+    }
+
+    public string GetGroupDevelopmentSummary(
+        BoardTile tile)
+    {
+        EnsureInitialized();
+
+        if (tile == null ||
+            boardPath == null)
+        {
+            return "-";
+        }
+
+        int groupIndex =
+            GetGroupIndex(tile);
+
+        List<string> levels =
+            new List<string>();
+
+        for (int tileIndex = 0;
+             tileIndex < boardPath.TileCount;
+             tileIndex++)
+        {
+            BoardTile groupTile =
+                boardPath.GetTile(tileIndex);
+
+            if (groupTile == null ||
+                groupTile.TileType != TileType.City ||
+                GetGroupIndex(groupTile) !=
+                groupIndex)
+            {
+                continue;
+            }
+
+            levels.Add(
+                $"L{GetDevelopmentLevel(groupTile)}");
+        }
+
+        return levels.Count > 0
+            ? string.Join(" / ", levels)
+            : "-";
+    }
+
+    public string GetDevelopmentBlockReason(
+        PlayerGameState player,
+        BoardTile tile)
+    {
+        if (!IsEligibleForDevelopment(
+                player,
+                tile))
+        {
+            return string.Empty;
+        }
+
+        if (requireBalancedGroupDevelopment &&
+            !CanDevelopEvenly(
+                player,
+                tile))
+        {
+            int minimumLevel =
+                GetGroupMinimumDevelopmentLevel(
+                    GetGroupIndex(tile));
+
+            return
+                "Dengeli geliştirme kuralı: " +
+                $"Önce bölgedeki Seviye {minimumLevel} " +
+                "mülklerden birini geliştir.";
+        }
+
+        if (player.CurrentMoney <
+            GetDevelopmentCost(tile))
+        {
+            return
+                "Bu geliştirme için bakiye yetersiz.";
+        }
+
+        return string.Empty;
     }
 
     public bool TryDevelop(
@@ -103,6 +351,21 @@ public class PropertyDevelopmentManager : MonoBehaviour
                 player,
                 tile))
         {
+            string blockReason =
+                GetDevelopmentBlockReason(
+                    player,
+                    tile);
+
+            if (!string.IsNullOrEmpty(
+                    blockReason))
+            {
+                Debug.Log(
+                    $"{player?.DisplayName ?? "Player"} could not " +
+                    $"develop {tile?.DisplayName ?? "property"}: " +
+                    $"{blockReason}",
+                    this);
+            }
+
             return false;
         }
 
@@ -158,6 +421,12 @@ public class PropertyDevelopmentManager : MonoBehaviour
             return minimumDevelopmentCost;
         }
 
+        if (tile.DevelopmentCost > 0)
+        {
+            return tile.DevelopmentCost;
+        }
+
+        // Legacy fallback for prototype/old scene data.
         int rawCost =
             Mathf.Max(
                 minimumDevelopmentCost,
@@ -215,12 +484,82 @@ public class PropertyDevelopmentManager : MonoBehaviour
             return -1;
         }
 
+        if (boardPath == null)
+        {
+            boardPath =
+                FindAnyObjectByType<
+                    BoardPath>();
+        }
+
+        if (boardPath != null &&
+            !string.IsNullOrWhiteSpace(
+                tile.GroupId))
+        {
+            List<string> groupIds =
+                new List<string>();
+
+            for (int tileIndex = 0;
+                 tileIndex <
+                 boardPath.TileCount;
+                 tileIndex++)
+            {
+                BoardTile candidate =
+                    boardPath.GetTile(
+                        tileIndex);
+
+                if (candidate == null ||
+                    candidate.TileType !=
+                        TileType.City ||
+                    string.IsNullOrWhiteSpace(
+                        candidate.GroupId))
+                {
+                    continue;
+                }
+
+                if (!groupIds.Contains(
+                        candidate.GroupId))
+                {
+                    groupIds.Add(
+                        candidate.GroupId);
+                }
+
+                if (candidate == tile ||
+                    candidate.TileIndex ==
+                        tile.TileIndex)
+                {
+                    return groupIds.IndexOf(
+                        candidate.GroupId);
+                }
+            }
+
+            int dataGroupIndex =
+                groupIds.IndexOf(
+                    tile.GroupId);
+
+            if (dataGroupIndex >= 0)
+            {
+                return dataGroupIndex;
+            }
+        }
+
+        // Legacy fallback for old prototype boards.
         return tile.TileIndex / 4;
     }
 
     public string GetGroupName(
         BoardTile tile)
     {
+        if (tile == null)
+        {
+            return "Bilinmeyen Bölge";
+        }
+
+        if (!string.IsNullOrWhiteSpace(
+                tile.GroupDisplayName))
+        {
+            return tile.GroupDisplayName;
+        }
+
         int groupIndex =
             GetGroupIndex(tile);
 
@@ -400,9 +739,31 @@ public class PropertyDevelopmentManager : MonoBehaviour
             }
         }
 
+        string debugGroupName =
+            $"Bölge {debugGroupIndex + 1}";
+
+        for (int tileIndex = 0;
+             tileIndex < boardPath.TileCount;
+             tileIndex++)
+        {
+            BoardTile tile =
+                boardPath.GetTile(tileIndex);
+
+            if (tile != null &&
+                tile.TileType == TileType.City &&
+                GetGroupIndex(tile) ==
+                    debugGroupIndex)
+            {
+                debugGroupName =
+                    GetGroupName(tile);
+
+                break;
+            }
+        }
+
         Debug.Log(
             $"{GetDebugOwnerName()} now owns all " +
-            $"cities in Bölge {debugGroupIndex + 1}.",
+            $"properties in {debugGroupName}.",
             this);
     }
 
@@ -421,7 +782,7 @@ public class PropertyDevelopmentManager : MonoBehaviour
         }
 
         Debug.Log(
-            "All prototype development levels were reset.",
+            "All development levels were reset.",
             this);
     }
 
@@ -480,10 +841,21 @@ public class PropertyDevelopmentManager : MonoBehaviour
     private int GetRentMultiplier(
         int level)
     {
+        BoardEconomyProfile activeEconomy =
+            ResolveEconomyProfile();
+
+        if (activeEconomy != null)
+        {
+            return activeEconomy
+                .GetRentMultiplier(level);
+        }
+
         if (rentMultipliers == null ||
             rentMultipliers.Length == 0)
         {
-            return Mathf.Max(1, level + 1);
+            return Mathf.Max(
+                1,
+                level + 1);
         }
 
         int safeIndex =
@@ -495,6 +867,28 @@ public class PropertyDevelopmentManager : MonoBehaviour
         return Mathf.Max(
             1,
             rentMultipliers[safeIndex]);
+    }
+
+    private BoardEconomyProfile
+        ResolveEconomyProfile()
+    {
+        if (economyProfile != null)
+        {
+            return economyProfile;
+        }
+
+        BoardGenerator generator =
+            FindAnyObjectByType<
+                BoardGenerator>();
+
+        if (generator != null &&
+            generator.ActiveEconomyProfile != null)
+        {
+            economyProfile =
+                generator.ActiveEconomyProfile;
+        }
+
+        return economyProfile;
     }
 
     private void RebuildDevelopmentVisual(
@@ -523,6 +917,458 @@ public class PropertyDevelopmentManager : MonoBehaviour
         markerRoots[tile] =
             rootObject.transform;
 
+        GameObject levelPrefab =
+            GetDevelopmentPrefab(level);
+
+        if (levelPrefab != null)
+        {
+            BuildPrefabDevelopmentVisual(
+                tile,
+                rootObject.transform,
+                levelPrefab,
+                level,
+                ownershipMaterial);
+
+            return;
+        }
+
+        BuildFallbackMarkerVisuals(
+            rootObject.transform,
+            level,
+            ownershipMaterial);
+    }
+
+    private GameObject GetDevelopmentPrefab(
+        int level)
+    {
+        if (developmentLevelPrefabs == null ||
+            developmentLevelPrefabs.Length == 0)
+        {
+            return null;
+        }
+
+        int prefabIndex =
+            level - 1;
+
+        if (prefabIndex < 0 ||
+            prefabIndex >=
+                developmentLevelPrefabs.Length)
+        {
+            return null;
+        }
+
+        return developmentLevelPrefabs[
+            prefabIndex];
+    }
+
+    private void BuildPrefabDevelopmentVisual(
+        BoardTile tile,
+        Transform visualRoot,
+        GameObject levelPrefab,
+        int level,
+        Material ownershipMaterial)
+    {
+        int buildingCount =
+            Mathf.Clamp(
+                level,
+                1,
+                maximumDevelopmentLevel);
+
+        Renderer tileRenderer =
+            tile.GetComponent<Renderer>();
+
+        if (tileRenderer == null)
+        {
+            BuildFallbackMarkerVisuals(
+                visualRoot,
+                level,
+                ownershipMaterial);
+
+            return;
+        }
+
+        List<GameObject> instances =
+            new List<GameObject>();
+
+        for (int index = 0;
+             index < buildingCount;
+             index++)
+        {
+            GameObject instance =
+                Instantiate(
+                    levelPrefab,
+                    visualRoot);
+
+            instance.name =
+                $"Development_Level_{level}_{index + 1}";
+
+            DisableDevelopmentColliders(
+                instance);
+
+            if (applyOwnerMaterialToDevelopmentVisual &&
+                ownershipMaterial != null)
+            {
+                ApplyMaterialToDevelopmentVisual(
+                    instance,
+                    ownershipMaterial);
+            }
+
+            instances.Add(instance);
+        }
+
+        Quaternion worldRotation =
+            GetDevelopmentWorldRotation(
+                tile);
+
+        foreach (GameObject instance
+                 in instances)
+        {
+            Transform instanceTransform =
+                instance.transform;
+
+            Vector3 authoredPrefabScale =
+                instanceTransform.localScale;
+
+            Vector3 desiredWorldScale =
+                Vector3.Scale(
+                    authoredPrefabScale,
+                    developmentPrefabLocalScale);
+
+            Vector3 parentLossyScale =
+                visualRoot.lossyScale;
+
+            instanceTransform.localScale =
+                new Vector3(
+                    SafeScaleDivide(
+                        desiredWorldScale.x,
+                        parentLossyScale.x),
+                    SafeScaleDivide(
+                        desiredWorldScale.y,
+                        parentLossyScale.y),
+                    SafeScaleDivide(
+                        desiredWorldScale.z,
+                        parentLossyScale.z));
+
+            instanceTransform.rotation =
+                worldRotation;
+        }
+
+        Bounds firstBounds =
+            GetCombinedRendererBounds(
+                instances[0]);
+
+        if (firstBounds.size.sqrMagnitude <=
+            0.000001f)
+        {
+            BuildFallbackMarkerVisuals(
+                visualRoot,
+                level,
+                ownershipMaterial);
+
+            foreach (GameObject instance
+                     in instances)
+            {
+                Destroy(instance);
+            }
+
+            return;
+        }
+
+        bool rowRunsAlongWorldX =
+            IsRowAlongWorldX(
+                tile.TileIndex);
+
+        float tileRowWidth =
+            rowRunsAlongWorldX
+                ? tileRenderer.bounds.size.x
+                : tileRenderer.bounds.size.z;
+
+        float tileDepth =
+            rowRunsAlongWorldX
+                ? tileRenderer.bounds.size.z
+                : tileRenderer.bounds.size.x;
+
+        float buildingRowWidth =
+            rowRunsAlongWorldX
+                ? firstBounds.size.x
+                : firstBounds.size.z;
+
+        float buildingDepth =
+            rowRunsAlongWorldX
+                ? firstBounds.size.z
+                : firstBounds.size.x;
+
+        float maximumRowWidth =
+            tileRowWidth *
+            maximumRowWidthRatio;
+
+        float currentRowWidth =
+            buildingRowWidth *
+            buildingCount +
+            buildingGap *
+            Mathf.Max(
+                0,
+                buildingCount - 1);
+
+        float maximumBuildingHeight =
+            tileRowWidth *
+            maximumBuildingHeightRatio;
+
+        float scaleForRow =
+            currentRowWidth > 0.0001f
+                ? maximumRowWidth /
+                  currentRowWidth
+                : 1f;
+
+        float scaleForHeight =
+            firstBounds.size.y > 0.0001f
+                ? maximumBuildingHeight /
+                  firstBounds.size.y
+                : 1f;
+
+        // Never enlarge imported models automatically. Only shrink
+        // them enough to fit the board-game tile.
+        float autoScale =
+            Mathf.Min(
+                1f,
+                scaleForRow,
+                scaleForHeight);
+
+        foreach (GameObject instance
+                 in instances)
+        {
+            instance.transform.localScale *=
+                autoScale;
+        }
+
+        // Recalculate bounds after auto-fit scaling.
+        firstBounds =
+            GetCombinedRendererBounds(
+                instances[0]);
+
+        buildingRowWidth =
+            rowRunsAlongWorldX
+                ? firstBounds.size.x
+                : firstBounds.size.z;
+
+        buildingDepth =
+            rowRunsAlongWorldX
+                ? firstBounds.size.z
+                : firstBounds.size.x;
+
+        Vector3 outwardDirection =
+            GetTileOutwardDirection(
+                tile.TileIndex);
+
+        Vector3 rowDirection =
+            GetTileRowDirection(
+                tile.TileIndex);
+
+        float outerHalfDepth =
+            rowRunsAlongWorldX
+                ? tileRenderer.bounds.extents.z
+                : tileRenderer.bounds.extents.x;
+
+        float rowStartOffset =
+            -0.5f *
+            ((buildingCount - 1) *
+             (buildingRowWidth +
+              buildingGap));
+
+        Vector3 tileCenter =
+            tileRenderer.bounds.center;
+
+        Vector3 rowBaseCenter =
+            tileCenter;
+
+        if (placeOnOuterTileEdge)
+        {
+            rowBaseCenter +=
+                outwardDirection *
+                (outerHalfDepth -
+                 outerEdgeInset -
+                 buildingDepth * 0.5f);
+        }
+
+        float tileTopY =
+            tileRenderer.bounds.max.y;
+
+        for (int index = 0;
+             index < instances.Count;
+             index++)
+        {
+            GameObject instance =
+                instances[index];
+
+            Bounds bounds =
+                GetCombinedRendererBounds(
+                    instance);
+
+            float rowOffset =
+                rowStartOffset +
+                index *
+                (buildingRowWidth +
+                 buildingGap);
+
+            Vector3 targetPosition =
+                rowBaseCenter +
+                rowDirection *
+                rowOffset;
+
+            // First place horizontally, then lift the model so its
+            // renderer bottom sits exactly on the tile surface.
+            Vector3 currentPosition =
+                instance.transform.position;
+
+            instance.transform.position =
+                new Vector3(
+                    targetPosition.x,
+                    currentPosition.y,
+                    targetPosition.z);
+
+            bounds =
+                GetCombinedRendererBounds(
+                    instance);
+
+            float verticalCorrection =
+                tileTopY +
+                tileSurfaceGap -
+                bounds.min.y;
+
+            instance.transform.position +=
+                Vector3.up *
+                verticalCorrection;
+        }
+    }
+
+    private Quaternion GetDevelopmentWorldRotation(
+        BoardTile tile)
+    {
+        if (tile == null)
+        {
+            return Quaternion.identity;
+        }
+
+        if (!alignToBoardSide)
+        {
+            return Quaternion.Euler(
+                0f,
+                boardSideYawOffset,
+                0f);
+        }
+
+        float baseYaw =
+            GetBoardSideYaw(
+                tile.TileIndex);
+
+        return Quaternion.Euler(
+            0f,
+            baseYaw +
+            boardSideYawOffset,
+            0f);
+    }
+
+    private float GetBoardSideYaw(
+        int tileIndex)
+    {
+        // Clean cardinal rotations:
+        // bottom faces center (+Z),
+        // right faces center (-X),
+        // top faces center (-Z),
+        // left faces center (+X).
+        if (tileIndex <= 8)
+        {
+            return 0f;
+        }
+
+        if (tileIndex <= 16)
+        {
+            return -90f;
+        }
+
+        if (tileIndex <= 24)
+        {
+            return 180f;
+        }
+
+        return 90f;
+    }
+
+    private bool IsRowAlongWorldX(
+        int tileIndex)
+    {
+        return tileIndex <= 8 ||
+               (tileIndex >= 16 &&
+                tileIndex <= 24);
+    }
+
+    private Vector3 GetTileOutwardDirection(
+        int tileIndex)
+    {
+        if (tileIndex <= 8)
+        {
+            return Vector3.back;
+        }
+
+        if (tileIndex <= 16)
+        {
+            return Vector3.right;
+        }
+
+        if (tileIndex <= 24)
+        {
+            return Vector3.forward;
+        }
+
+        return Vector3.left;
+    }
+
+    private Vector3 GetTileRowDirection(
+        int tileIndex)
+    {
+        if (IsRowAlongWorldX(
+                tileIndex))
+        {
+            return Vector3.right;
+        }
+
+        return Vector3.forward;
+    }
+
+    private Bounds GetCombinedRendererBounds(
+        GameObject visualRoot)
+    {
+        Renderer[] renderers =
+            visualRoot.GetComponentsInChildren<
+                Renderer>(true);
+
+        if (renderers == null ||
+            renderers.Length == 0)
+        {
+            return new Bounds(
+                visualRoot.transform.position,
+                Vector3.zero);
+        }
+
+        Bounds bounds =
+            renderers[0].bounds;
+
+        for (int index = 1;
+             index < renderers.Length;
+             index++)
+        {
+            bounds.Encapsulate(
+                renderers[index].bounds);
+        }
+
+        return bounds;
+    }
+
+    private void BuildFallbackMarkerVisuals(
+        Transform visualRoot,
+        int level,
+        Material ownershipMaterial)
+    {
         float totalWidth =
             (level - 1) * markerSpacing;
 
@@ -538,7 +1384,7 @@ public class PropertyDevelopmentManager : MonoBehaviour
                 $"Development_{markerIndex + 1}";
 
             marker.transform.SetParent(
-                rootObject.transform,
+                visualRoot,
                 false);
 
             marker.transform.localScale =
@@ -551,23 +1397,8 @@ public class PropertyDevelopmentManager : MonoBehaviour
                     markerHeight,
                     0f);
 
-            Collider markerCollider =
-                marker.GetComponent<Collider>();
-
-            if (markerCollider != null)
-            {
-                markerCollider.enabled = false;
-
-                if (Application.isPlaying)
-                {
-                    Destroy(markerCollider);
-                }
-                else
-                {
-                    DestroyImmediate(
-                        markerCollider);
-                }
-            }
+            DisableDevelopmentColliders(
+                marker);
 
             Renderer markerRenderer =
                 marker.GetComponent<Renderer>();
@@ -578,6 +1409,81 @@ public class PropertyDevelopmentManager : MonoBehaviour
                 markerRenderer.sharedMaterial =
                     ownershipMaterial;
             }
+        }
+    }
+
+    private float SafeScaleDivide(
+        float value,
+        float divisor)
+    {
+        if (Mathf.Abs(divisor) <
+            0.0001f)
+        {
+            return value;
+        }
+
+        return value / divisor;
+    }
+
+    private void DisableDevelopmentColliders(
+        GameObject visualRoot)
+    {
+        if (visualRoot == null)
+        {
+            return;
+        }
+
+        Collider[] colliders =
+            visualRoot.GetComponentsInChildren<
+                Collider>(true);
+
+        foreach (Collider visualCollider
+                 in colliders)
+        {
+            if (visualCollider == null)
+            {
+                continue;
+            }
+
+            visualCollider.enabled = false;
+        }
+    }
+
+    private void ApplyMaterialToDevelopmentVisual(
+        GameObject visualRoot,
+        Material ownershipMaterial)
+    {
+        if (visualRoot == null ||
+            ownershipMaterial == null)
+        {
+            return;
+        }
+
+        Renderer[] renderers =
+            visualRoot.GetComponentsInChildren<
+                Renderer>(true);
+
+        foreach (Renderer visualRenderer
+                 in renderers)
+        {
+            if (visualRenderer == null)
+            {
+                continue;
+            }
+
+            Material[] materials =
+                visualRenderer.sharedMaterials;
+
+            for (int materialIndex = 0;
+                 materialIndex < materials.Length;
+                 materialIndex++)
+            {
+                materials[materialIndex] =
+                    ownershipMaterial;
+            }
+
+            visualRenderer.sharedMaterials =
+                materials;
         }
     }
 

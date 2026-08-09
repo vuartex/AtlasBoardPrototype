@@ -15,6 +15,9 @@ public class AuctionManager : MonoBehaviour
     [SerializeField]
     private BoardPath boardPath;
 
+    [SerializeField]
+    private BoardEconomyProfile economyProfile;
+
     [Header("Auction UI")]
     [SerializeField]
     private GameObject auctionPanel;
@@ -124,12 +127,14 @@ public class AuctionManager : MonoBehaviour
         }
 
         EnsureTurnManager();
+        ApplyEconomyProfileRules();
     }
 
     public void BeginAuction(
         PlayerGameState startingPlayer,
         Action onResolutionCompleted)
     {
+        ApplyEconomyProfileRules();
         EnsureBoardPath();
 
         BoardTile randomProperty =
@@ -148,6 +153,8 @@ public class AuctionManager : MonoBehaviour
         BoardTile property,
         Action onResolutionCompleted)
     {
+        ApplyEconomyProfileRules();
+
         BeginAuctionInternal(
             decliningPlayer,
             property,
@@ -894,6 +901,53 @@ public class AuctionManager : MonoBehaviour
 
         return botController != null &&
                botController.BotEnabled;
+    }
+
+    private void ApplyEconomyProfileRules()
+    {
+        BoardEconomyProfile profile =
+            ResolveEconomyProfile();
+
+        if (profile == null)
+        {
+            return;
+        }
+
+        minimumBid =
+            Mathf.Max(
+                1,
+                profile.AuctionMinimumBid);
+
+        smallBidStep =
+            Mathf.Max(
+                1,
+                profile.AuctionSmallBidStep);
+
+        largeBidStep =
+            Mathf.Max(
+                1,
+                profile.AuctionLargeBidStep);
+    }
+
+    private BoardEconomyProfile
+        ResolveEconomyProfile()
+    {
+        if (economyProfile != null)
+        {
+            return economyProfile;
+        }
+
+        BoardGenerator generator =
+            FindAnyObjectByType<
+                BoardGenerator>();
+
+        if (generator != null)
+        {
+            economyProfile =
+                generator.ActiveEconomyProfile;
+        }
+
+        return economyProfile;
     }
 
     private void EnsureTurnManager()

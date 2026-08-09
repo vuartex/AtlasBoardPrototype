@@ -8,6 +8,9 @@ public class StartRewardManager : MonoBehaviour
     private PlayerPawnMover[] playerPawns;
 
     [Header("Start Reward")]
+    [SerializeField]
+    private BoardEconomyProfile economyProfile;
+
     [SerializeField, Min(0)]
     private int startPassReward = 200;
 
@@ -48,12 +51,38 @@ public class StartRewardManager : MonoBehaviour
             return;
         }
 
-        player.AddMoney(startPassReward);
+        int reward =
+            ResolveEconomyProfile()
+                ?.StartPassReward ??
+            startPassReward;
+
+        player.AddMoney(reward);
 
         Debug.Log(
             $"{player.DisplayName} [Slot {player.PlayerSlotIndex}] " +
-            $"passed Start and received {startPassReward}.",
+            $"passed Start and received {reward}.",
             this);
+    }
+
+    private BoardEconomyProfile
+        ResolveEconomyProfile()
+    {
+        if (economyProfile != null)
+        {
+            return economyProfile;
+        }
+
+        BoardGenerator generator =
+            FindAnyObjectByType<
+                BoardGenerator>();
+
+        if (generator != null)
+        {
+            economyProfile =
+                generator.ActiveEconomyProfile;
+        }
+
+        return economyProfile;
     }
 
     private bool ValidateConfiguration()

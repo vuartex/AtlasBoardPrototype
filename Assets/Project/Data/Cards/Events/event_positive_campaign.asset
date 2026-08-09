@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1fdafee4c8b7a3408b43ba536ff1885, type: 3}
+  m_Name: event_positive_campaign
+  m_EditorClassIdentifier: Assembly-CSharp::EventCardDefinition
+  cardId: event_positive_campaign
+  category: 0
+  enabledCard: 1
+  weight: 9
+  title: "Kampanya Ba\u015Far\u0131s\u0131"
+  description: "Yapt\u0131\u011F\u0131n kampanya g\xFC\xE7l\xFC bir geri d\xF6n\xFC\u015F
+    sa\u011Flad\u0131."
+  requiredMapId: 
+  effectType: 0
+  effectAmount: 150
+  targetTileType: 8

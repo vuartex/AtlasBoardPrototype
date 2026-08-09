@@ -26,6 +26,10 @@ public class PlayerGameState : MonoBehaviour
     [SerializeField, Min(0)]
     private int turnsToSkip;
 
+    [Header("Match Participation")]
+    [SerializeField]
+    private bool isParticipating = true;
+
     [Header("Elimination")]
     [SerializeField]
     private bool isBankrupt;
@@ -48,6 +52,7 @@ public class PlayerGameState : MonoBehaviour
     public int CurrentMoney => currentMoney;
     public int TurnsToSkip => turnsToSkip;
     public bool HasTurnsToSkip => turnsToSkip > 0;
+    public bool IsParticipating => isParticipating;
     public bool IsBankrupt => isBankrupt;
 
     public event Action<PlayerGameState> MoneyChanged;
@@ -61,6 +66,12 @@ public class PlayerGameState : MonoBehaviour
         isBankrupt = false;
 
         ValidateStableIdentity();
+    }
+
+    public void SetParticipating(
+        bool participating)
+    {
+        isParticipating = participating;
     }
 
     public bool TrySpend(int amount)

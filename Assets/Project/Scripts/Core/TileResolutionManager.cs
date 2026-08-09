@@ -49,6 +49,9 @@ public class TileResolutionManager : MonoBehaviour
     private BoardPath boardPath;
 
     [SerializeField]
+    private BoardEconomyProfile economyProfile;
+
+    [SerializeField]
     private GameObject travelPanel;
 
     [SerializeField]
@@ -92,6 +95,7 @@ public class TileResolutionManager : MonoBehaviour
     private PlayerGameState pendingTravelPlayer;
     private PlayerPawnMover pendingTravelPawn;
     private int pendingTravelTargetIndex = -1;
+    private int pendingTravelFee;
 
     private PlayerGameState pendingDevelopmentPlayer;
     private BoardTile pendingDevelopmentTile;
@@ -493,9 +497,30 @@ public class TileResolutionManager : MonoBehaviour
             return;
         }
 
-        PlayerGameState travellingPlayer = pendingTravelPlayer;
-        PlayerPawnMover travellingPawn = pendingTravelPawn;
-        int targetTileIndex = pendingTravelTargetIndex;
+        PlayerGameState travellingPlayer =
+            pendingTravelPlayer;
+
+        PlayerPawnMover travellingPawn =
+            pendingTravelPawn;
+
+        int targetTileIndex =
+            pendingTravelTargetIndex;
+
+        int travelFee =
+            pendingTravelFee;
+
+        if (travelFee > 0 &&
+            !travellingPlayer.TrySpend(
+                travelFee))
+        {
+            Debug.Log(
+                $"{travellingPlayer.DisplayName} could not " +
+                $"afford the {travelFee} ₵ travel fee.",
+                this);
+
+            StayOnTravelTile();
+            return;
+        }
 
         ClearPendingTravelState();
 
@@ -792,11 +817,18 @@ public class TileResolutionManager : MonoBehaviour
             return;
         }
 
+        int amount =
+            GetSpecialTileValue(
+                pendingTile,
+                ResolveEconomyProfile()?.TaxAmount ??
+                taxAmount);
+
         specialTileManager.ResolveMoneyEffect(
             player,
             "Vergi Ödemesi",
-            "Yerel işletme ve şehir vergilerini ödemen gerekiyor.",
-            -taxAmount,
+            "İşletme giderleri ve yerel vergileri " +
+            "ödemen gerekiyor.",
+            -amount,
             CompleteResolution);
     }
 
@@ -812,17 +844,35 @@ public class TileResolutionManager : MonoBehaviour
             return;
         }
 
+        int amount =
+            GetSpecialTileValue(
+                pendingTile,
+                ResolveEconomyProfile()?.BonusAmount ??
+                bonusAmount);
+
         specialTileManager.ResolveMoneyEffect(
             player,
-            "Şehir Bonusu",
-            "Bölgesel ticaret desteği kazandın.",
-            bonusAmount,
+            "Bölge Bonusu",
+            "Yerel ticaret desteğinden bonus kazandın.",
+            amount,
             CompleteResolution);
     }
 
     private void ResolveRestAreaTile(PlayerGameState player)
     {
-        player.AddTurnsToSkip(restAreaTurnsToSkip);
+        int turnsToSkip =
+            GetSpecialTileValue(
+                pendingTile,
+                ResolveEconomyProfile()
+                    ?.RestAreaTurnsToSkip ??
+                restAreaTurnsToSkip);
+
+        turnsToSkip =
+            Mathf.Max(
+                1,
+                turnsToSkip);
+
+        player.AddTurnsToSkip(turnsToSkip);
 
         if (specialTileManager == null)
         {
@@ -837,7 +887,7 @@ public class TileResolutionManager : MonoBehaviour
         specialTileManager.ResolveMoneyEffect(
             player,
             "Dinlenme Alanı",
-            $"Bir sonraki {restAreaTurnsToSkip} turunu atlayacaksın.",
+            $"Bir sonraki {turnsToSkip} turunu atlayacaksın.",
             0,
             CompleteResolution);
     }
@@ -854,11 +904,18 @@ public class TileResolutionManager : MonoBehaviour
             return;
         }
 
+        int amount =
+            GetSpecialTileValue(
+                pendingTile,
+                ResolveEconomyProfile()
+                    ?.VacationBonusAmount ??
+                vacationBonusAmount);
+
         specialTileManager.ResolveMoneyEffect(
             player,
             "Tatil Bölgesi",
-            "Turizm etkinliğinden küçük bir gelir kazandın.",
-            vacationBonusAmount,
+            "Tatil etkinliğinden ek gelir kazandın.",
+            amount,
             CompleteResolution);
     }
 
@@ -905,13 +962,41 @@ public class TileResolutionManager : MonoBehaviour
         pendingTravelPawn = pawn;
         pendingTravelTargetIndex = targetTileIndex;
 
+        BoardEconomyProfile activeEconomy =
+            ResolveEconomyProfile();
+
+        pendingTravelFee =
+            GetSpecialTileValue(
+                pendingTile,
+                activeEconomy?.TravelFee ?? 0);
+
+        int startReward =
+            activeEconomy?.StartPassReward ?? 200;
+
         if (travelInfoText != null)
         {
+            string feeLine =
+                pendingTravelFee > 0
+                    ? $"Seyahat ücreti: " +
+                      $"{pendingTravelFee} ₵\n"
+                    : "Seyahat ücreti: Ücretsiz\n";
+
+            string affordabilityLine =
+                pendingTravelFee > 0 &&
+                player.CurrentMoney <
+                    pendingTravelFee
+                    ? "\nBakiye yetersiz: " +
+                      "seyahat edemezsin."
+                    : string.Empty;
+
             travelInfoText.text =
                 "SEYAHAT MERKEZİ\n\n" +
                 "En yakın Etkinlik karesine gitmek ister misin?\n" +
-                $"Hedef: {targetTile.DisplayName}\n\n" +
-                "Başlangıçtan geçersen +200 ₵ kazanırsın.";
+                $"Hedef: {targetTile.DisplayName}\n" +
+                $"{feeLine}\n" +
+                $"Başlangıçtan geçersen +" +
+                $"{startReward} ₵ kazanırsın." +
+                $"{affordabilityLine}";
         }
 
         if (travelPanel != null)
@@ -1011,18 +1096,48 @@ public class TileResolutionManager : MonoBehaviour
                     pendingDevelopmentPlayer,
                     pendingDevelopmentTile);
 
+        bool canDevelopEvenly =
+            propertyDevelopmentManager
+                .CanDevelopEvenly(
+                    pendingDevelopmentPlayer,
+                    pendingDevelopmentTile);
+
+        string groupLevels =
+            propertyDevelopmentManager
+                .GetGroupDevelopmentSummary(
+                    pendingDevelopmentTile);
+
+        string blockReason =
+            propertyDevelopmentManager
+                .GetDevelopmentBlockReason(
+                    pendingDevelopmentPlayer,
+                    pendingDevelopmentTile);
+
         if (developmentInfoText != null)
         {
+            string ruleLine =
+                propertyDevelopmentManager
+                    .RequireBalancedGroupDevelopment
+                    ? $"Bölge seviyeleri: {groupLevels}\n"
+                    : string.Empty;
+
+            string reasonLine =
+                !string.IsNullOrEmpty(blockReason)
+                    ? $"\n{blockReason}"
+                    : string.Empty;
+
             developmentInfoText.text =
                 $"{pendingDevelopmentTile.DisplayName}\n" +
                 $"{groupName} tamamlandı\n" +
                 $"Seviye: {currentLevel}/" +
                 $"{propertyDevelopmentManager.MaximumDevelopmentLevel}\n" +
+                $"{ruleLine}" +
                 $"Kira: {currentRent} ₵ → " +
                 $"{nextRent} ₵\n" +
                 $"Geliştirme maliyeti: {cost} ₵\n" +
                 $"Bakiye: " +
-                $"{pendingDevelopmentPlayer.CurrentMoney} ₵";
+                $"{pendingDevelopmentPlayer.CurrentMoney} ₵" +
+                $"{reasonLine}";
         }
 
         bool humanCanControl =
@@ -1033,6 +1148,7 @@ public class TileResolutionManager : MonoBehaviour
         {
             developButton.interactable =
                 humanCanControl &&
+                canDevelopEvenly &&
                 canAfford;
         }
 
@@ -1083,10 +1199,17 @@ public class TileResolutionManager : MonoBehaviour
             !IsBotPlayer(
                 pendingTravelPlayer);
 
+        bool canAffordTravel =
+            pendingTravelPlayer != null &&
+            (pendingTravelFee <= 0 ||
+             pendingTravelPlayer.CurrentMoney >=
+                pendingTravelFee);
+
         if (travelGoButton != null)
         {
             travelGoButton.interactable =
-                humanCanControl;
+                humanCanControl &&
+                canAffordTravel;
         }
 
         if (travelStayButton != null)
@@ -1269,11 +1392,49 @@ public class TileResolutionManager : MonoBehaviour
         callback?.Invoke();
     }
 
+    private BoardEconomyProfile
+        ResolveEconomyProfile()
+    {
+        if (economyProfile != null)
+        {
+            return economyProfile;
+        }
+
+        BoardGenerator generator =
+            FindAnyObjectByType<
+                BoardGenerator>();
+
+        if (generator != null)
+        {
+            economyProfile =
+                generator.ActiveEconomyProfile;
+        }
+
+        return economyProfile;
+    }
+
+    private int GetSpecialTileValue(
+        BoardTile tile,
+        int profileValue)
+    {
+        if (tile != null &&
+            tile.SpecialValueOverride != 0)
+        {
+            return Mathf.Abs(
+                tile.SpecialValueOverride);
+        }
+
+        return Mathf.Max(
+            0,
+            profileValue);
+    }
+
     private void ClearPendingTravelState()
     {
         pendingTravelPlayer = null;
         pendingTravelPawn = null;
         pendingTravelTargetIndex = -1;
+        pendingTravelFee = 0;
     }
 
     private void RefreshBalancesText()
@@ -1287,7 +1448,8 @@ public class TileResolutionManager : MonoBehaviour
 
         foreach (PlayerGameState player in playerStates)
         {
-            if (player == null)
+            if (player == null ||
+                !player.IsParticipating)
             {
                 continue;
             }

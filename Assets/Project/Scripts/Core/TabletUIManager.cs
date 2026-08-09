@@ -30,6 +30,9 @@ public class TabletUIManager : MonoBehaviour
     private GameObject specialResultPanel;
 
     [SerializeField]
+    private GameObject doublesPenaltyPanel;
+
+    [SerializeField]
     private GameObject travelPanel;
 
     [SerializeField]
@@ -91,6 +94,11 @@ public class TabletUIManager : MonoBehaviour
         if (IsPanelRequested(specialResultPanel))
         {
             return specialResultPanel;
+        }
+
+        if (IsPanelRequested(doublesPenaltyPanel))
+        {
+            return doublesPenaltyPanel;
         }
 
         if (IsPanelRequested(travelPanel))
@@ -183,6 +191,12 @@ public class TabletUIManager : MonoBehaviour
         if (panel == specialResultPanel)
         {
             tabletTitleText.text = "SONUÇ";
+            return;
+        }
+
+        if (panel == doublesPenaltyPanel)
+        {
+            tabletTitleText.text = "CEZA";
             return;
         }
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,9 +10,15 @@ public class EventCardManager : MonoBehaviour
     [SerializeField]
     private BankruptcyManager bankruptcyManager;
 
-    [Header("Card Pool")]
     [SerializeField]
-    private EventCardData[] eventCards;
+    private BoardPath boardPath;
+
+    [SerializeField]
+    private BoardGenerator boardGenerator;
+
+    [Header("Event Deck")]
+    [SerializeField]
+    private EventDeckDefinition eventDeck;
 
     [Header("Event Card UI")]
     [SerializeField]
@@ -29,12 +36,40 @@ public class EventCardManager : MonoBehaviour
     [SerializeField]
     private Button continueButton;
 
+    [Header("Debug")]
+    [Tooltip(
+        "Optional. When assigned, every Event draw uses this " +
+        "card. Clear it for normal weighted draws.")]
+    [SerializeField]
+    private EventCardDefinition debugForcedCard;
+
     private Action resolutionCompleted;
     private bool isResolvingEvent;
+    private bool effectExecutionCompleted;
     private PlayerGameState currentEventPlayer;
+    private EventCardDefinition currentCard;
 
     public bool IsResolvingEvent =>
         isResolvingEvent;
+
+    public EventDeckDefinition EventDeck =>
+        eventDeck;
+
+    public void SetEventDeck(
+        EventDeckDefinition deck)
+    {
+        if (isResolvingEvent)
+        {
+            Debug.LogWarning(
+                "Event deck cannot be changed while an event " +
+                "is being resolved.",
+                this);
+
+            return;
+        }
+
+        eventDeck = deck;
+    }
 
     public bool HasPendingEventFor(
         PlayerGameState player)
@@ -49,6 +84,8 @@ public class EventCardManager : MonoBehaviour
 
     private void Start()
     {
+        EnsureReferences();
+
         if (eventPanel != null)
         {
             eventPanel.SetActive(false);
@@ -82,13 +119,16 @@ public class EventCardManager : MonoBehaviour
             return;
         }
 
-        EventCardData selectedCard =
+        EnsureReferences();
+
+        EventCardDefinition selectedCard =
             SelectWeightedRandomCard();
 
         if (selectedCard == null)
         {
             Debug.LogWarning(
-                "No valid event cards are configured.",
+                "No valid event cards are available for the " +
+                "active map.",
                 this);
 
             CompleteEvent();
@@ -96,34 +136,137 @@ public class EventCardManager : MonoBehaviour
         }
 
         isResolvingEvent = true;
+        effectExecutionCompleted = false;
         currentEventPlayer = player;
+        currentCard = selectedCard;
 
-        int appliedMoneyChange;
+        if (eventTitleText != null)
+        {
+            eventTitleText.text =
+                selectedCard.Title;
+        }
+
+        if (eventDescriptionText != null)
+        {
+            eventDescriptionText.text =
+                selectedCard.Description;
+        }
+
+        if (eventResultText != null)
+        {
+            eventResultText.text =
+                "Kart uygulanıyor...";
+        }
+
+        if (eventPanel != null)
+        {
+            eventPanel.SetActive(true);
+        }
+
+        RefreshContinueButtonAvailability();
+
+        ApplyCardEffect(
+            selectedCard,
+            player);
+    }
+
+    public bool TryResolveBotContinue(
+        PlayerGameState player)
+    {
+        if (!HasPendingEventFor(player) ||
+            !IsBotPlayer(player) ||
+            !effectExecutionCompleted)
+        {
+            return false;
+        }
+
+        ContinueAfterEvent();
+        return true;
+    }
+
+    public void ContinueAfterEvent()
+    {
+        if (!isResolvingEvent ||
+            !effectExecutionCompleted)
+        {
+            return;
+        }
+
+        CompleteEvent();
+    }
+
+    private void ApplyCardEffect(
+        EventCardDefinition card,
+        PlayerGameState player)
+    {
+        switch (card.EffectType)
+        {
+            case EventCardEffectType.Money:
+                ApplyMoneyEffect(
+                    card,
+                    player);
+                break;
+
+            case EventCardEffectType.SkipTurns:
+                ApplySkipTurnEffect(
+                    card,
+                    player);
+                break;
+
+            case EventCardEffectType.MoveForwardSpaces:
+                ApplyMoveForwardEffect(
+                    card,
+                    player);
+                break;
+
+            case EventCardEffectType.MoveToNextTileType:
+                ApplyMoveToTileTypeEffect(
+                    card,
+                    player);
+                break;
+
+            default:
+                FinishEffectExecution(
+                    "Etki uygulanmadı.");
+                break;
+        }
+    }
+
+    private void ApplyMoneyEffect(
+        EventCardDefinition card,
+        PlayerGameState player)
+    {
+        int requestedChange =
+            card.EffectAmount;
+
+        int appliedMoneyChange = 0;
         bool causedBankruptcy = false;
         int transferredProperties = 0;
 
-        if (selectedCard.MoneyChange > 0)
+        if (requestedChange > 0)
         {
             player.AddMoney(
-                selectedCard.MoneyChange);
+                requestedChange);
 
             appliedMoneyChange =
-                selectedCard.MoneyChange;
+                requestedChange;
         }
-        else if (selectedCard.MoneyChange < 0)
+        else if (requestedChange < 0)
         {
             int requestedLoss =
                 Mathf.Abs(
-                    selectedCard.MoneyChange);
+                    requestedChange);
 
             if (bankruptcyManager != null)
             {
-                BankruptcyManager.PaymentResolution result =
-                    bankruptcyManager.ResolveMandatoryPayment(
-                        player,
-                        null,
-                        requestedLoss,
-                        $"Event card: {selectedCard.Title}");
+                BankruptcyManager.PaymentResolution
+                    result =
+                        bankruptcyManager
+                            .ResolveMandatoryPayment(
+                                player,
+                                null,
+                                requestedLoss,
+                                $"Event card: {card.Title}");
 
                 appliedMoneyChange =
                     -result.AmountPaid;
@@ -141,81 +284,306 @@ public class EventCardManager : MonoBehaviour
                         requestedLoss,
                         player.CurrentMoney);
 
-                player.TrySpend(actualLoss);
+                player.TrySpend(
+                    actualLoss);
 
                 appliedMoneyChange =
                     -actualLoss;
             }
         }
+
+        string resultText;
+
+        if (causedBankruptcy)
+        {
+            resultText =
+                "İFLAS\n" +
+                $"Ödenen: " +
+                $"{Mathf.Abs(appliedMoneyChange)} ₵\n" +
+                $"Devredilen/boşa çıkan mülk: " +
+                $"{transferredProperties}";
+        }
+        else if (appliedMoneyChange > 0)
+        {
+            resultText =
+                $"+{appliedMoneyChange} ₵";
+        }
+        else if (appliedMoneyChange < 0)
+        {
+            resultText =
+                $"{appliedMoneyChange} ₵";
+        }
         else
         {
-            appliedMoneyChange = 0;
+            resultText =
+                "Para değişmedi";
         }
-
-        UpdateEventUI(
-            selectedCard,
-            appliedMoneyChange,
-            causedBankruptcy,
-            transferredProperties);
-
-        if (eventPanel != null)
-        {
-            eventPanel.SetActive(true);
-        }
-
-        RefreshContinueButtonAvailability();
 
         Debug.Log(
             $"{player.DisplayName} drew event card " +
-            $"'{selectedCard.Title}'. Money change: " +
+            $"'{card.Title}'. Money change: " +
             $"{appliedMoneyChange}. Bankrupt: " +
             $"{causedBankruptcy}.",
             this);
+
+        FinishEffectExecution(
+            resultText);
     }
 
-    public bool TryResolveBotContinue(
+    private void ApplySkipTurnEffect(
+        EventCardDefinition card,
         PlayerGameState player)
     {
-        if (!HasPendingEventFor(player) ||
-            !IsBotPlayer(player))
-        {
-            return false;
-        }
+        int turns =
+            Mathf.Max(
+                1,
+                Mathf.Abs(
+                    card.EffectAmount));
 
-        ContinueAfterEvent();
-        return true;
+        player.AddTurnsToSkip(
+            turns);
+
+        Debug.Log(
+            $"{player.DisplayName} drew event card " +
+            $"'{card.Title}' and will skip " +
+            $"{turns} turn(s).",
+            this);
+
+        FinishEffectExecution(
+            turns == 1
+                ? "Sonraki turunu atlayacaksın."
+                : $"Sonraki {turns} turunu " +
+                  "atlayacaksın.");
     }
 
-    public void ContinueAfterEvent()
+    private void ApplyMoveForwardEffect(
+        EventCardDefinition card,
+        PlayerGameState player)
     {
-        if (!isResolvingEvent)
+        int spaces =
+            Mathf.Max(
+                1,
+                Mathf.Abs(
+                    card.EffectAmount));
+
+        PlayerPawnMover pawn =
+            player.GetComponent<
+                PlayerPawnMover>();
+
+        EnsureReferences();
+
+        if (pawn == null ||
+            boardPath == null ||
+            boardPath.TileCount == 0)
         {
+            FinishEffectExecution(
+                "Hareket uygulanamadı.");
             return;
         }
 
-        CompleteEvent();
+        int targetIndex =
+            (pawn.CurrentTileIndex +
+             spaces) %
+            boardPath.TileCount;
+
+        BoardTile targetTile =
+            boardPath.GetTile(
+                targetIndex);
+
+        if (eventResultText != null)
+        {
+            eventResultText.text =
+                $"{spaces} kare ilerliyorsun" +
+                (targetTile != null
+                    ? $": {targetTile.DisplayName}"
+                    : string.Empty);
+        }
+
+        bool started =
+            pawn.MoveForwardToTile(
+                targetIndex,
+                completedPawn =>
+                {
+                    BoardTile landedTile =
+                        completedPawn
+                            .GetCurrentTile();
+
+                    string result =
+                        landedTile != null
+                            ? $"{spaces} kare ilerledin: " +
+                              $"{landedTile.DisplayName}"
+                            : $"{spaces} kare ilerledin.";
+
+                    Debug.Log(
+                        $"{player.DisplayName} drew event card " +
+                        $"'{card.Title}' and moved forward " +
+                        $"{spaces} spaces.",
+                        this);
+
+                    FinishEffectExecution(
+                        result);
+                });
+
+        if (!started)
+        {
+            FinishEffectExecution(
+                "Hareket uygulanamadı.");
+        }
     }
 
-    private EventCardData SelectWeightedRandomCard()
+    private void ApplyMoveToTileTypeEffect(
+        EventCardDefinition card,
+        PlayerGameState player)
     {
-        if (eventCards == null ||
-            eventCards.Length == 0)
+        PlayerPawnMover pawn =
+            player.GetComponent<
+                PlayerPawnMover>();
+
+        EnsureReferences();
+
+        if (pawn == null ||
+            boardPath == null ||
+            boardPath.TileCount == 0)
+        {
+            FinishEffectExecution(
+                "Hareket uygulanamadı.");
+            return;
+        }
+
+        int targetIndex =
+            FindNextTileIndexOfType(
+                pawn.CurrentTileIndex,
+                card.TargetTileType);
+
+        if (targetIndex < 0)
+        {
+            FinishEffectExecution(
+                "Uygun hedef bulunamadı.");
+            return;
+        }
+
+        BoardTile targetTile =
+            boardPath.GetTile(
+                targetIndex);
+
+        if (eventResultText != null)
+        {
+            eventResultText.text =
+                targetTile != null
+                    ? $"{targetTile.DisplayName} konumuna " +
+                      "ilerliyorsun."
+                    : "Hedef konuma ilerliyorsun.";
+        }
+
+        bool started =
+            pawn.MoveForwardToTile(
+                targetIndex,
+                completedPawn =>
+                {
+                    BoardTile landedTile =
+                        completedPawn
+                            .GetCurrentTile();
+
+                    string result =
+                        landedTile != null
+                            ? $"{landedTile.DisplayName} " +
+                              "konumuna ilerledin."
+                            : "Hedef konuma ilerledin.";
+
+                    Debug.Log(
+                        $"{player.DisplayName} drew event card " +
+                        $"'{card.Title}' and moved to the next " +
+                        $"{card.TargetTileType} tile.",
+                        this);
+
+                    FinishEffectExecution(
+                        result);
+                });
+
+        if (!started)
+        {
+            FinishEffectExecution(
+                "Hareket uygulanamadı.");
+        }
+    }
+
+    private int FindNextTileIndexOfType(
+        int currentIndex,
+        TileType targetType)
+    {
+        if (boardPath == null ||
+            boardPath.TileCount <= 1)
+        {
+            return -1;
+        }
+
+        for (int offset = 1;
+             offset < boardPath.TileCount;
+             offset++)
+        {
+            int candidateIndex =
+                (currentIndex + offset) %
+                boardPath.TileCount;
+
+            BoardTile tile =
+                boardPath.GetTile(
+                    candidateIndex);
+
+            if (tile != null &&
+                tile.TileType == targetType)
+            {
+                return candidateIndex;
+            }
+        }
+
+        return -1;
+    }
+
+    private EventCardDefinition
+        SelectWeightedRandomCard()
+    {
+        if (debugForcedCard != null &&
+            debugForcedCard.EnabledCard)
+        {
+            return debugForcedCard;
+        }
+
+        if (eventDeck == null ||
+            eventDeck.Cards == null ||
+            eventDeck.Cards.Count == 0)
         {
             return null;
         }
 
+        string activeMapId =
+            boardGenerator != null &&
+            boardGenerator.ActiveMapDefinition != null
+                ? boardGenerator
+                    .ActiveMapDefinition
+                    .MapId
+                : string.Empty;
+
+        List<EventCardDefinition> validCards =
+            new List<EventCardDefinition>();
+
         int totalWeight = 0;
 
-        foreach (EventCardData card in eventCards)
+        foreach (EventCardDefinition card
+                 in eventDeck.Cards)
         {
-            if (card != null)
+            if (card == null ||
+                !card.IsAvailableForMap(
+                    activeMapId))
             {
-                totalWeight +=
-                    Mathf.Max(1, card.Weight);
+                continue;
             }
+
+            validCards.Add(card);
+            totalWeight += card.Weight;
         }
 
-        if (totalWeight <= 0)
+        if (validCards.Count == 0 ||
+            totalWeight <= 0)
         {
             return null;
         }
@@ -227,74 +595,35 @@ public class EventCardManager : MonoBehaviour
 
         int cumulativeWeight = 0;
 
-        foreach (EventCardData card in eventCards)
+        foreach (EventCardDefinition card
+                 in validCards)
         {
-            if (card == null)
-            {
-                continue;
-            }
-
             cumulativeWeight +=
-                Mathf.Max(1, card.Weight);
+                card.Weight;
 
-            if (randomValue < cumulativeWeight)
+            if (randomValue <
+                cumulativeWeight)
             {
                 return card;
             }
         }
 
-        return null;
+        return validCards[
+            validCards.Count - 1];
     }
 
-    private void UpdateEventUI(
-        EventCardData card,
-        int appliedMoneyChange,
-        bool causedBankruptcy,
-        int transferredProperties)
+    private void FinishEffectExecution(
+        string resultText)
     {
-        if (eventTitleText != null)
-        {
-            eventTitleText.text =
-                card.Title;
-        }
+        effectExecutionCompleted = true;
 
-        if (eventDescriptionText != null)
-        {
-            eventDescriptionText.text =
-                card.Description;
-        }
-
-        if (eventResultText == null)
-        {
-            return;
-        }
-
-        if (causedBankruptcy)
+        if (eventResultText != null)
         {
             eventResultText.text =
-                "İFLAS\n" +
-                $"Ödenen: {Mathf.Abs(appliedMoneyChange)} ₵\n" +
-                $"Devredilen/boşa çıkan mülk: " +
-                $"{transferredProperties}";
-
-            return;
+                resultText;
         }
 
-        if (appliedMoneyChange > 0)
-        {
-            eventResultText.text =
-                $"+{appliedMoneyChange} ₵";
-        }
-        else if (appliedMoneyChange < 0)
-        {
-            eventResultText.text =
-                $"{appliedMoneyChange} ₵";
-        }
-        else
-        {
-            eventResultText.text =
-                "Para değişmedi";
-        }
+        RefreshContinueButtonAvailability();
     }
 
     private void RefreshContinueButtonAvailability()
@@ -305,8 +634,27 @@ public class EventCardManager : MonoBehaviour
         }
 
         continueButton.interactable =
-            currentEventPlayer == null ||
-            !IsBotPlayer(currentEventPlayer);
+            effectExecutionCompleted &&
+            (currentEventPlayer == null ||
+             !IsBotPlayer(
+                currentEventPlayer));
+    }
+
+    private void EnsureReferences()
+    {
+        if (boardPath == null)
+        {
+            boardPath =
+                FindAnyObjectByType<
+                    BoardPath>();
+        }
+
+        if (boardGenerator == null)
+        {
+            boardGenerator =
+                FindAnyObjectByType<
+                    BoardGenerator>();
+        }
     }
 
     private bool IsBotPlayer(
@@ -318,7 +666,8 @@ public class EventCardManager : MonoBehaviour
         }
 
         BotPlayerController botController =
-            player.GetComponent<BotPlayerController>();
+            player.GetComponent<
+                BotPlayerController>();
 
         return botController != null &&
                botController.BotEnabled;
@@ -332,11 +681,14 @@ public class EventCardManager : MonoBehaviour
         }
 
         isResolvingEvent = false;
+        effectExecutionCompleted = false;
         currentEventPlayer = null;
+        currentCard = null;
 
         if (continueButton != null)
         {
-            continueButton.interactable = true;
+            continueButton.interactable =
+                true;
         }
 
         Action callback =

@@ -1,0 +1,372 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b90d357ead17a7c468d7c46ff580af8d, type: 3}
+  m_Name: map_usa
+  m_EditorClassIdentifier: Assembly-CSharp::BoardMapDefinition
+  mapId: map_usa
+  displayName: AMERIKA
+  propertyNoun: Konum
+  groupNoun: "B\xF6lge"
+  economyProfile: {fileID: 11400000, guid: c29dc5234503f074591d22256d33590f, type: 2}
+  tiles:
+  - tileIndex: 0
+    tileType: 0
+    displayName: "Ba\u015Flang\u0131\xE7"
+    description: 
+    propertyId: 
+    groupId: 
+    groupDisplayName: 
+    purchasePrice: 0
+    baseRent: 0
+    developmentCost: 0
+    specialValueOverride: 0
+  - tileIndex: 1
+    tileType: 1
+    displayName: Maine
+    description: 
+    propertyId: property_01
+    groupId: group_01
+    groupDisplayName: "B\xF6lge 1"
+    purchasePrice: 100
+    baseRent: 10
+    developmentCost: 50
+    specialValueOverride: 0
+  - tileIndex: 2
+    tileType: 1
+    displayName: Vermont
+    description: 
+    propertyId: property_02
+    groupId: group_01
+    groupDisplayName: "B\xF6lge 1"
+    purchasePrice: 110
+    baseRent: 12
+    developmentCost: 50
+    specialValueOverride: 0
+  - tileIndex: 3
+    tileType: 1
+    displayName: New Hampshire
+    description: 
+    propertyId: property_03
+    groupId: group_01
+    groupDisplayName: "B\xF6lge 1"
+    purchasePrice: 120
+    baseRent: 14
+    developmentCost: 50
+    specialValueOverride: 0
+  - tileIndex: 4
+    tileType: 2
+    displayName: Etkinlik
+    description: 
+    propertyId: 
+    groupId: 
+    groupDisplayName: 
+    purchasePrice: 0
+    baseRent: 0
+    developmentCost: 0
+    specialValueOverride: 0
+  - tileIndex: 5
+    tileType: 1
+    displayName: Massachusetts
+    description: 
+    propertyId: property_04
+    groupId: group_02
+    groupDisplayName: "B\xF6lge 2"
+    purchasePrice: 140
+    baseRent: 14
+    developmentCost: 60
+    specialValueOverride: 0
+  - tileIndex: 6
+    tileType: 1
+    displayName: Pennsylvania
+    description: 
+    propertyId: property_05
+    groupId: group_02
+    groupDisplayName: "B\xF6lge 2"
+    purchasePrice: 150
+    baseRent: 16
+    developmentCost: 60
+    specialValueOverride: 0
+  - tileIndex: 7
+    tileType: 1
+    displayName: Virginia
+    description: 
+    propertyId: property_06
+    groupId: group_02
+    groupDisplayName: "B\xF6lge 2"
+    purchasePrice: 160
+    baseRent: 18
+    developmentCost: 60
+    specialValueOverride: 0
+  - tileIndex: 8
+    tileType: 4
+    displayName: "A\xE7\u0131k Art\u0131rma"
+    description: 
+    propertyId: 
+    groupId: 
+    groupDisplayName: 
+    purchasePrice: 0
+    baseRent: 0
+    developmentCost: 0
+    specialValueOverride: 0
+  - tileIndex: 9
+    tileType: 1
+    displayName: North Carolina
+    description: 
+    propertyId: property_07
+    groupId: group_03
+    groupDisplayName: "B\xF6lge 3"
+    purchasePrice: 180
+    baseRent: 18
+    developmentCost: 70
+    specialValueOverride: 0
+  - tileIndex: 10
+    tileType: 1
+    displayName: Georgia
+    description: 
+    propertyId: property_08
+    groupId: group_03
+    groupDisplayName: "B\xF6lge 3"
+    purchasePrice: 190
+    baseRent: 20
+    developmentCost: 70
+    specialValueOverride: 0
+  - tileIndex: 11
+    tileType: 1
+    displayName: Florida
+    description: 
+    propertyId: property_09
+    groupId: group_03
+    groupDisplayName: "B\xF6lge 3"
+    purchasePrice: 200
+    baseRent: 22
+    developmentCost: 70
+    specialValueOverride: 0
+  - tileIndex: 12
+    tileType: 3
+    displayName: Vergi
+    description: 
+    propertyId: 
+    groupId: 
+    groupDisplayName: 
+    purchasePrice: 0
+    baseRent: 0
+    developmentCost: 0
+    specialValueOverride: 0
+  - tileIndex: 13
+    tileType: 1
+    displayName: Ohio
+    description: 
+    propertyId: property_10
+    groupId: group_04
+    groupDisplayName: "B\xF6lge 4"
+    purchasePrice: 220
+    baseRent: 22
+    developmentCost: 80
+    specialValueOverride: 0
+  - tileIndex: 14
+    tileType: 1
+    displayName: Michigan
+    description: 
+    propertyId: property_11
+    groupId: group_04
+    groupDisplayName: "B\xF6lge 4"
+    purchasePrice: 230
+    baseRent: 24
+    developmentCost: 80
+    specialValueOverride: 0
+  - tileIndex: 15
+    tileType: 1
+    displayName: Illinois
+    description: 
+    propertyId: property_12
+    groupId: group_04
+    groupDisplayName: "B\xF6lge 4"
+    purchasePrice: 240
+    baseRent: 26
+    developmentCost: 80
+    specialValueOverride: 0
+  - tileIndex: 16
+    tileType: 7
+    displayName: Dinlenme
+    description: 
+    propertyId: 
+    groupId: 
+    groupDisplayName: 
+    purchasePrice: 0
+    baseRent: 0
+    developmentCost: 0
+    specialValueOverride: 0
+  - tileIndex: 17
+    tileType: 1
+    displayName: Oklahoma
+    description: 
+    propertyId: property_13
+    groupId: group_05
+    groupDisplayName: "B\xF6lge 5"
+    purchasePrice: 260
+    baseRent: 27
+    developmentCost: 100
+    specialValueOverride: 0
+  - tileIndex: 18
+    tileType: 1
+    displayName: Louisiana
+    description: 
+    propertyId: property_14
+    groupId: group_05
+    groupDisplayName: "B\xF6lge 5"
+    purchasePrice: 275
+    baseRent: 30
+    developmentCost: 100
+    specialValueOverride: 0
+  - tileIndex: 19
+    tileType: 1
+    displayName: Texas
+    description: 
+    propertyId: property_15
+    groupId: group_05
+    groupDisplayName: "B\xF6lge 5"
+    purchasePrice: 290
+    baseRent: 33
+    developmentCost: 100
+    specialValueOverride: 0
+  - tileIndex: 20
+    tileType: 5
+    displayName: Seyahat
+    description: 
+    propertyId: 
+    groupId: 
+    groupDisplayName: 
+    purchasePrice: 0
+    baseRent: 0
+    developmentCost: 0
+    specialValueOverride: 0
+  - tileIndex: 21
+    tileType: 1
+    displayName: Arizona
+    description: 
+    propertyId: property_16
+    groupId: group_06
+    groupDisplayName: "B\xF6lge 6"
+    purchasePrice: 310
+    baseRent: 34
+    developmentCost: 120
+    specialValueOverride: 0
+  - tileIndex: 22
+    tileType: 1
+    displayName: Utah
+    description: 
+    propertyId: property_17
+    groupId: group_06
+    groupDisplayName: "B\xF6lge 6"
+    purchasePrice: 325
+    baseRent: 37
+    developmentCost: 120
+    specialValueOverride: 0
+  - tileIndex: 23
+    tileType: 1
+    displayName: Colorado
+    description: 
+    propertyId: property_18
+    groupId: group_06
+    groupDisplayName: "B\xF6lge 6"
+    purchasePrice: 340
+    baseRent: 40
+    developmentCost: 120
+    specialValueOverride: 0
+  - tileIndex: 24
+    tileType: 6
+    displayName: Tatil
+    description: 
+    propertyId: 
+    groupId: 
+    groupDisplayName: 
+    purchasePrice: 0
+    baseRent: 0
+    developmentCost: 0
+    specialValueOverride: 0
+  - tileIndex: 25
+    tileType: 1
+    displayName: Oregon
+    description: 
+    propertyId: property_19
+    groupId: group_07
+    groupDisplayName: "B\xF6lge 7"
+    purchasePrice: 360
+    baseRent: 42
+    developmentCost: 150
+    specialValueOverride: 0
+  - tileIndex: 26
+    tileType: 1
+    displayName: Washington
+    description: 
+    propertyId: property_20
+    groupId: group_07
+    groupDisplayName: "B\xF6lge 7"
+    purchasePrice: 380
+    baseRent: 46
+    developmentCost: 150
+    specialValueOverride: 0
+  - tileIndex: 27
+    tileType: 1
+    displayName: Nevada
+    description: 
+    propertyId: property_21
+    groupId: group_07
+    groupDisplayName: "B\xF6lge 7"
+    purchasePrice: 400
+    baseRent: 50
+    developmentCost: 150
+    specialValueOverride: 0
+  - tileIndex: 28
+    tileType: 8
+    displayName: Bonus
+    description: 
+    propertyId: 
+    groupId: 
+    groupDisplayName: 
+    purchasePrice: 0
+    baseRent: 0
+    developmentCost: 0
+    specialValueOverride: 0
+  - tileIndex: 29
+    tileType: 1
+    displayName: Alaska
+    description: 
+    propertyId: property_22
+    groupId: group_08
+    groupDisplayName: "B\xF6lge 8"
+    purchasePrice: 420
+    baseRent: 52
+    developmentCost: 180
+    specialValueOverride: 0
+  - tileIndex: 30
+    tileType: 1
+    displayName: Hawaii
+    description: 
+    propertyId: property_23
+    groupId: group_08
+    groupDisplayName: "B\xF6lge 8"
+    purchasePrice: 450
+    baseRent: 58
+    developmentCost: 180
+    specialValueOverride: 0
+  - tileIndex: 31
+    tileType: 1
+    displayName: California
+    description: 
+    propertyId: property_24
+    groupId: group_08
+    groupDisplayName: "B\xF6lge 8"
+    purchasePrice: 480
+    baseRent: 64
+    developmentCost: 180
+    specialValueOverride: 0

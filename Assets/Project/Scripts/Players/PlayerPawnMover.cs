@@ -74,7 +74,8 @@ public class PlayerPawnMover : MonoBehaviour
 
         bool shouldBeVisible =
             playerState == null ||
-            !playerState.IsBankrupt;
+            (playerState.IsParticipating &&
+             !playerState.IsBankrupt);
 
         SetPawnVisible(
             shouldBeVisible);
@@ -111,7 +112,7 @@ public class PlayerPawnMover : MonoBehaviour
     {
         if (isMoving ||
             steps <= 0 ||
-            IsBankrupt())
+            IsUnavailable())
         {
             return false;
         }
@@ -144,7 +145,7 @@ public class PlayerPawnMover : MonoBehaviour
         Action<PlayerPawnMover> onCompleted)
     {
         if (isMoving ||
-            IsBankrupt())
+            IsUnavailable())
         {
             return false;
         }
@@ -194,7 +195,7 @@ public class PlayerPawnMover : MonoBehaviour
     [ContextMenu("Snap To Current Tile")]
     public void SnapToCurrentTile()
     {
-        if (IsBankrupt())
+        if (IsUnavailable())
         {
             return;
         }
@@ -351,6 +352,13 @@ public class PlayerPawnMover : MonoBehaviour
             $"{bankruptPlayer.DisplayName}'s pawn " +
             "was hidden after bankruptcy.",
             this);
+    }
+
+    private bool IsUnavailable()
+    {
+        return playerState != null &&
+               (!playerState.IsParticipating ||
+                playerState.IsBankrupt);
     }
 
     private bool IsBankrupt()
