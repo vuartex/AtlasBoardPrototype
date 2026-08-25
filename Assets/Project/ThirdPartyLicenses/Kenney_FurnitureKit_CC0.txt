@@ -1,0 +1,12 @@
+ASSET RECORD — Kenney Furniture Kit
+Creator / Publisher: Kenney
+Project use: Pavilion / lounge decorative furniture
+Downloaded package observed: kenney_furniture-kit.zip
+Official source: https://kenney.nl/assets/furniture-kit
+Official page version: 1.0
+License: Creative Commons CC0 1.0 Universal
+Commercial use: Yes
+Attribution required: No
+Modification allowed: Yes
+License reference: https://creativecommons.org/publicdomain/zero/1.0/
+Verified from official Kenney page on 2026-08-25.

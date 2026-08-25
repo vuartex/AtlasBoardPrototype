@@ -1,0 +1,18 @@
+ASSET RECORD — Forest birds - ambient seamless loop
+
+Author: Magnesus
+Source: https://freesound.org/people/Magnesus/sounds/723913/
+Downloaded filename observed:
+723913__magnesus__forest-birds-ambient-seamless-loop
+
+License: Creative Commons 0 (CC0)
+Commercial use: Yes
+Attribution required: No
+
+AtlasBoard project use:
+Garden theme ambience.
+
+Suggested canonical Unity filename:
+AB_Theme_Garden.wav
+
+Reviewed: 2026-08-25.

@@ -1,10 +1,12 @@
-Asset: Nature Kit
-Provider / Author: Kenney
-Source: https://kenney.nl/assets/nature-kit
-License: Creative Commons CC0
+ASSET RECORD — Kenney Nature Kit
+Creator / Publisher: Kenney
+Project use: Garden and Pavilion decorative props
+Downloaded package observed: kenney_nature-kit.zip
+Official source: https://kenney.nl/assets/nature-kit
+Official page version: 1.0
+License: Creative Commons CC0 1.0 Universal
 Commercial use: Yes
-Modification: Yes
 Attribution required: No
-Downloaded: 2026-08-24
-Intended AtlasBoard use: Theme_Garden miniature/tabletop environment props
-Official page metadata at download time: 3D, 330 files, version 1.0
+Modification allowed: Yes
+License reference: https://creativecommons.org/publicdomain/zero/1.0/
+Verified from official Kenney page on 2026-08-25.

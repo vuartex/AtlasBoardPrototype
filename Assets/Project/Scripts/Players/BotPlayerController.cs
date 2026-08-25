@@ -441,7 +441,8 @@ public class BotPlayerController : MonoBehaviour
         if (rollDecisionDelay > 0f)
         {
             yield return new WaitForSeconds(
-                rollDecisionDelay);
+                AtlasBoardUserSettingsRuntime.ScaleBotDelay(
+                    rollDecisionDelay));
         }
 
         EnsureReferences();
@@ -470,7 +471,8 @@ public class BotPlayerController : MonoBehaviour
         if (purchaseDecisionDelay > 0f)
         {
             yield return new WaitForSeconds(
-                purchaseDecisionDelay);
+                AtlasBoardUserSettingsRuntime.ScaleBotDelay(
+                    purchaseDecisionDelay));
         }
 
         EnsureReferences();
@@ -508,7 +510,8 @@ public class BotPlayerController : MonoBehaviour
         if (auctionDecisionDelay > 0f)
         {
             yield return new WaitForSeconds(
-                auctionDecisionDelay);
+                AtlasBoardUserSettingsRuntime.ScaleBotDelay(
+                    auctionDecisionDelay));
         }
 
         EnsureReferences();
@@ -544,7 +547,8 @@ public class BotPlayerController : MonoBehaviour
         if (travelDecisionDelay > 0f)
         {
             yield return new WaitForSeconds(
-                travelDecisionDelay);
+                AtlasBoardUserSettingsRuntime.ScaleBotDelay(
+                    travelDecisionDelay));
         }
 
         EnsureReferences();
@@ -578,7 +582,8 @@ public class BotPlayerController : MonoBehaviour
         if (developmentDecisionDelay > 0f)
         {
             yield return new WaitForSeconds(
-                developmentDecisionDelay);
+                AtlasBoardUserSettingsRuntime.ScaleBotDelay(
+                    developmentDecisionDelay));
         }
 
         EnsureReferences();
@@ -619,7 +624,8 @@ public class BotPlayerController : MonoBehaviour
         if (ownTradeDecisionDelay > 0f)
         {
             yield return new WaitForSeconds(
-                ownTradeDecisionDelay);
+                AtlasBoardUserSettingsRuntime.ScaleBotDelay(
+                    ownTradeDecisionDelay));
         }
 
         EnsureReferences();
@@ -662,7 +668,8 @@ public class BotPlayerController : MonoBehaviour
         if (tradeResponseDelay > 0f)
         {
             yield return new WaitForSeconds(
-                tradeResponseDelay);
+                AtlasBoardUserSettingsRuntime.ScaleBotDelay(
+                    tradeResponseDelay));
         }
 
         EnsureReferences();
@@ -716,7 +723,8 @@ public class BotPlayerController : MonoBehaviour
         if (resultContinueDelay > 0f)
         {
             yield return new WaitForSeconds(
-                resultContinueDelay);
+                AtlasBoardUserSettingsRuntime.ScaleBotDelay(
+                    resultContinueDelay));
         }
 
         EnsureReferences();
@@ -742,7 +750,8 @@ public class BotPlayerController : MonoBehaviour
         if (resultContinueDelay > 0f)
         {
             yield return new WaitForSeconds(
-                resultContinueDelay);
+                AtlasBoardUserSettingsRuntime.ScaleBotDelay(
+                    resultContinueDelay));
         }
 
         EnsureReferences();

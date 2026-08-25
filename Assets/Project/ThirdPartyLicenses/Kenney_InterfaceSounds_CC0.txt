@@ -1,0 +1,20 @@
+ASSET RECORD — Kenney Interface Sounds
+
+Creator / Publisher: Kenney
+Official source: https://kenney.nl/assets/interface-sounds
+License: Creative Commons CC0 1.0 Universal
+Commercial use: Yes
+Attribution required: No
+
+AtlasBoard selected files:
+- select_001.ogg -> dropdown / selection
+- open_002.ogg -> opening a settings/panel
+- switch_001.ogg -> toggle / checkbox changes
+- click_003.ogg -> normal UI button clicks
+- error_001.ogg -> unavailable / invalid action
+
+Project use:
+UI feedback across Main Menu, Lobby, Settings and gameplay UI.
+
+Official Kenney page lists Interface Sounds as CC0.
+Reviewed: 2026-08-25.

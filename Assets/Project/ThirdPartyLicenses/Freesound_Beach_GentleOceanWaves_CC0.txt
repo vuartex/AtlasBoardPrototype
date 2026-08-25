@@ -1,0 +1,18 @@
+ASSET RECORD — Gentle Ocean Waves Loop
+
+Author: kkenny101
+Source: https://freesound.org/people/kkenny101/sounds/852826/
+Downloaded filename observed:
+852826__kkenny101__gentle-ocean-waves-loop
+
+License: Creative Commons 0 (CC0)
+Commercial use: Yes
+Attribution required: No
+
+AtlasBoard project use:
+Beach theme ambience.
+
+Suggested canonical Unity filename:
+AB_Theme_Beach.wav
+
+Reviewed: 2026-08-25.

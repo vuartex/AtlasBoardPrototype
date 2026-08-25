@@ -79,6 +79,13 @@ public class BoardCameraController : MonoBehaviour
 
     private bool initialized;
 
+    // User settings are multipliers over the tuned Inspector values.
+    // The player never sees the raw AtlasBoard sensitivity numbers.
+    private float userRotationMultiplier = 1f;
+    private float userZoomMultiplier = 1f;
+    private float userPanMultiplier = 1f;
+    private bool reduceCameraMotion;
+
     private void Awake()
     {
         EnsureOrbitTarget();
@@ -268,7 +275,8 @@ public class BoardCameraController : MonoBehaviour
 
         targetDistance -=
             scroll *
-            zoomSensitivity;
+            zoomSensitivity *
+            userZoomMultiplier;
 
         targetDistance =
             Mathf.Clamp(
@@ -303,7 +311,8 @@ public class BoardCameraController : MonoBehaviour
         {
             targetYaw +=
                 mouseDelta.x *
-                rotationSensitivity;
+                rotationSensitivity *
+                userRotationMultiplier;
 
             if (logInputActivity &&
                 Mathf.Abs(mouseDelta.x) >
@@ -353,7 +362,8 @@ public class BoardCameraController : MonoBehaviour
              mouseDelta.x -
              cameraForward *
              mouseDelta.y) *
-            panSensitivity;
+            panSensitivity *
+            userPanMultiplier;
 
         targetPanOffset +=
             movement;
@@ -384,7 +394,8 @@ public class BoardCameraController : MonoBehaviour
                 currentYaw,
                 targetYaw,
                 ref yawVelocity,
-                rotationSmoothTime,
+                GetMotionSmoothTime(
+                    rotationSmoothTime),
                 Mathf.Infinity,
                 Time.unscaledDeltaTime);
 
@@ -393,7 +404,8 @@ public class BoardCameraController : MonoBehaviour
                 currentDistance,
                 targetDistance,
                 ref distanceVelocity,
-                zoomSmoothTime,
+                GetMotionSmoothTime(
+                    zoomSmoothTime),
                 Mathf.Infinity,
                 Time.unscaledDeltaTime);
 
@@ -402,9 +414,50 @@ public class BoardCameraController : MonoBehaviour
                 currentPanOffset,
                 targetPanOffset,
                 ref panVelocity,
-                panSmoothTime,
+                GetMotionSmoothTime(
+                    panSmoothTime),
                 Mathf.Infinity,
                 Time.unscaledDeltaTime);
+    }
+
+    public void ApplyUserSettings(
+        float rotationMultiplier,
+        float zoomMultiplier,
+        float panMultiplier,
+        bool newReduceCameraMotion)
+    {
+        userRotationMultiplier =
+            Mathf.Max(
+                0.05f,
+                rotationMultiplier);
+
+        userZoomMultiplier =
+            Mathf.Max(
+                0.05f,
+                zoomMultiplier);
+
+        userPanMultiplier =
+            Mathf.Max(
+                0.05f,
+                panMultiplier);
+
+        reduceCameraMotion =
+            newReduceCameraMotion;
+    }
+
+    private float GetMotionSmoothTime(
+        float baseline)
+    {
+        if (!reduceCameraMotion)
+        {
+            return baseline;
+        }
+
+        // Reduced camera motion means less lingering/inertial travel.
+        // It does not alter the user's chosen sensitivity multiplier.
+        return Mathf.Max(
+            0.01f,
+            baseline * 0.35f);
     }
 
     private void ApplyCameraTransform()

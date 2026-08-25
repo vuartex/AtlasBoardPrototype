@@ -1,10 +1,8 @@
-Asset: Palermo Sidewalk HDRI
-Provider: Poly Haven
-Author: Andreas Mischok
-Source: https://polyhaven.com/a/palermo_sidewalk
-License: Creative Commons CC0 1.0 / Public Domain Dedication
+ASSET RECORD — Poly Haven Palermo Sidewalk
+Project use: Street environment HDRI / skybox
+Official source: https://polyhaven.com/a/palermo_sidewalk
+License: Creative Commons CC0 1.0 Universal
 Commercial use: Yes
-Modification: Yes
 Attribution required: No
-Downloaded: 2026-08-24
-Intended AtlasBoard use: Theme_Street skybox / environment lighting
+Official license: https://polyhaven.com/license
+Reviewed: 2026-08-25.

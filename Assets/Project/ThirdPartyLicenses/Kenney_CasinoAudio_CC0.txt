@@ -1,0 +1,16 @@
+ASSET RECORD — Kenney Casino Audio
+
+Creator / Publisher: Kenney
+Official source: https://kenney.nl/assets/casino-audio
+License: Creative Commons CC0 1.0 Universal
+Commercial use: Yes
+Attribution required: No
+
+AtlasBoard selected file:
+- die-throw-2.ogg -> dice roll
+
+Project use:
+Dice rolling sound.
+
+Official Kenney page lists Casino Audio as CC0.
+Reviewed: 2026-08-25.

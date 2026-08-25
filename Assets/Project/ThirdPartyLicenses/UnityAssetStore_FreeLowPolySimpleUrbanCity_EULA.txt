@@ -1,0 +1,28 @@
+ASSET RECORD — Free Low Poly Simple Urban City 3D Asset Pack
+Publisher: Draftpunk Studios
+Unity Asset Store ID: 239474
+Project use: Board development visuals and/or decorative urban props
+Observed project folder: Assets/Low Poly Simple Urban City 3D Asset Pack
+
+Official page:
+https://assetstore.unity.com/packages/3d/environments/urban/free-low-poly-simple-urban-city-3d-asset-pack-239474
+
+Current store license information reviewed 2026-08-25:
+- License agreement: Standard Unity Asset Store EULA
+- License type shown: Extension Asset
+- Price shown: Free
+- Latest version shown: 1.0.0
+- Original Unity version shown: 2021.3.15
+
+IMPORTANT:
+This asset is NOT CC0.
+The current Unity product page labels it as an Extension Asset. Unity's current
+EULA treats Extension Assets as per-seat licenses. Re-check seat requirements if
+additional developers or contractors work with the asset.
+Do not redistribute the raw asset/package as a standalone asset collection.
+
+Official EULA:
+https://unity.com/legal/as-terms
+
+This is an internal compliance summary, not legal advice and not a substitute for
+the actual Unity EULA.

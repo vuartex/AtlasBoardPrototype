@@ -1,0 +1,16 @@
+OPTIONAL / NOT YET USED — Public Domain Jump Sound
+
+Author: qubodup
+Source: https://freesound.org/people/qubodup/sounds/331381/
+License: Creative Commons 0 (CC0)
+Duration: 0.300 seconds
+Mono, 44.1 kHz
+
+Potential AtlasBoard use:
+Pawn hop / tile-to-tile movement sound.
+
+Suggested canonical name:
+AB_Pawn_Hop.wav
+
+Do NOT move this record to the active ThirdPartyLicenses register until downloaded.
+Reviewed: 2026-08-25.

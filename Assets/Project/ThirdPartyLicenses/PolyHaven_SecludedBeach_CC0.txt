@@ -1,11 +1,8 @@
-Asset: Secluded Beach HDRI
-Provider: Poly Haven
-Authors: Greg Zaal; Rico Cilliers (Backplates)
-Source: https://polyhaven.com/a/secluded_beach
-License: Creative Commons CC0 1.0 / Public Domain Dedication
+ASSET RECORD — Poly Haven Secluded Beach
+Project use: Beach environment HDRI / skybox
+Official source: https://polyhaven.com/a/secluded_beach
+License: Creative Commons CC0 1.0 Universal
 Commercial use: Yes
-Modification: Yes
 Attribution required: No
-Downloaded: 2026-08-24
-Intended AtlasBoard use: Theme_Beach skybox / environment lighting
-Notes: AtlasBoard uses the HDRI panorama, not the optional photographic backplates unless separately documented.
+Official license: https://polyhaven.com/license
+Reviewed: 2026-08-25.

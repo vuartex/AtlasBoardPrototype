@@ -1,0 +1,12 @@
+ASSET RECORD — Kenney Watercraft Kit
+Creator / Publisher: Kenney
+Project use: Beach theme boats / watercraft decoration
+Downloaded package observed: kenney_watercraft-pack.zip
+Official source: https://kenney.nl/assets/watercraft-kit
+Official page version: 2.1
+License: Creative Commons CC0 1.0 Universal
+Commercial use: Yes
+Attribution required: No
+Modification allowed: Yes
+License reference: https://creativecommons.org/publicdomain/zero/1.0/
+Verified from official Kenney page on 2026-08-25.

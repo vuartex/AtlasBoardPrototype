@@ -1,49 +1,39 @@
-ATLASBOARD — THIRD-PARTY LICENSE RECORDS
-Date created: 2026-08-24
+ATLASBOARD — THIRD-PARTY ASSET LICENSE REGISTER
+Updated: 2026-08-25
 
-Recommended project folder:
-Assets/Project/ThirdPartyLicenses/
+KENNEY — CC0
+- Kenney_CityKitCommercial_CC0.txt
+- Kenney_NatureKit_CC0.txt
+- Kenney_FurnitureKit_CC0.txt
+- Kenney_MiniCharacters_CC0.txt
+- Kenney_MiniDungeon_CC0.txt
+- Kenney_UIPack_CC0.txt
+- Kenney_WatercraftKit_CC0.txt
 
-Keep one text file per external asset/package.
+POLY HAVEN — CC0
+- PolyHaven_SuburbanGarden_CC0.txt
+- PolyHaven_SecludedBeach_CC0.txt
+- PolyHaven_Boma_CC0.txt
+- PolyHaven_PalermoSidewalk_CC0.txt
 
-For every future external asset record:
-Asset:
-Provider / Author:
-Source:
-License:
-Commercial use:
-Modification:
-Attribution required:
-Downloaded:
-Intended AtlasBoard use:
-Notes:
+UNITY ASSET STORE — STANDARD UNITY ASSET STORE EULA
+- UnityAssetStore_FreeLowPolySimpleUrbanCity_EULA.txt
 
-Policy:
-1. Prefer CC0 assets.
-2. Do not use assets labeled personal-use-only, editorial-only, non-commercial, or with unclear licensing.
-3. Keep the source page and license information recorded even when attribution is not required.
-4. For public repositories, confirm that the license also permits redistribution of the raw source asset. CC0 is suitable for this; other asset-store licenses may not be.
-5. Keep original download/license evidence outside the build as an archive when practical.
-6. This record is project compliance documentation, not legal advice.
+PROJECT-AUTHORED / NO THIRD-PARTY WATER LICENSE REQUIRED
+- AtlasBoard water shader
+- MAT_Water_Beach setup
+- generated water mesh
+- water animation / bob scripts
 
-Current planned theme mapping:
-Theme_ClassicTable
-- Current AtlasBoard-created table materials
-- No external HDRI required
-- Optional future CC0 tabletop props
+NOTES
+1. Kenney packs above are recorded from official pages as CC0.
+2. Poly Haven HDRIs are CC0.
+3. Low Poly Simple Urban City is NOT CC0; current Unity listing shows Standard
+   Unity Asset Store EULA and license type "Extension Asset".
+4. Keep Unity Asset Store acquisition evidence in your Unity account/library.
+5. Keeping records for assets later removed from the game is fine.
+6. Do not place downloaded ZIP archives in Assets or commit them to Git unless needed.
+7. Unity will create .meta files automatically when these .txt files are copied into
+   Assets/Project/ThirdPartyLicenses/.
 
-Theme_Garden
-- Poly Haven: Suburban Garden HDRI
-- Kenney: Nature Kit
-
-Theme_Beach
-- Poly Haven: Secluded Beach HDRI
-- Suggested future props: Kenney Watercraft Kit and/or Pirate Kit (document separately if used)
-
-Theme_Pavilion
-- Poly Haven: Boma HDRI
-- Optional future props: Kenney Furniture Kit / Food Kit (document separately if used)
-
-Theme_Street
-- Poly Haven: Palermo Sidewalk HDRI
-- Kenney: City Kit (Commercial)
+Internal compliance aid only; not legal advice.

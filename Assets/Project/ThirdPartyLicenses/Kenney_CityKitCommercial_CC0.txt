@@ -1,10 +1,12 @@
-Asset: City Kit (Commercial)
-Provider / Author: Kenney
-Source: https://kenney.nl/assets/city-kit-commercial
-License: Creative Commons CC0
+ASSET RECORD — Kenney City Kit (Commercial)
+Creator / Publisher: Kenney
+Project use: Street theme decorative buildings / city props
+Downloaded package observed: kenney_city-kit-commercial_2.1.zip
+Official source: https://kenney.nl/assets/city-kit-commercial
+Official page version: 2.1
+License: Creative Commons CC0 1.0 Universal
 Commercial use: Yes
-Modification: Yes
 Attribution required: No
-Downloaded: 2026-08-24
-Intended AtlasBoard use: Theme_Street miniature/tabletop environment props
-Official page metadata at download time: 3D City kit, 50 files, version 2.1
+Modification allowed: Yes
+License reference: https://creativecommons.org/publicdomain/zero/1.0/
+Verified from official Kenney page on 2026-08-25.

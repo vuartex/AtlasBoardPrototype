@@ -1,0 +1,18 @@
+Two Simple Game Music Loops
+
+Author: qubodup
+Source: https://opengameart.org/content/two-simple-game-music-loops
+License: CC0
+Attribution required: No (optional/welcome)
+
+AtlasBoard current use:
+- menumusicloop-tiggo.ogg -> Main Menu music
+
+Not currently used:
+- levelmusicloop-tigrun.ogg -> gameplay music remains optional
+
+Suggested canonical Unity filename:
+AB_MainMenu_Music.ogg
+
+This record is now active because the Main Menu loop has been downloaded/selected.
+Reviewed: 2026-08-25.

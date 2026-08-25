@@ -1,0 +1,12 @@
+ASSET RECORD — Kenney UI Pack
+Creator / Publisher: Kenney
+Project use: Main Menu / Lobby buttons, panels and interface visuals
+Downloaded package observed: kenney_ui-pack.zip
+Official source: https://kenney.nl/assets/ui-pack
+Official page version: 2.0
+License: Creative Commons CC0 1.0 Universal
+Commercial use: Yes
+Attribution required: No
+Modification allowed: Yes
+License reference: https://creativecommons.org/publicdomain/zero/1.0/
+Verified from official Kenney page on 2026-08-25.

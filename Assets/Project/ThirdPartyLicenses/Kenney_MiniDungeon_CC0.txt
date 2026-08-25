@@ -1,0 +1,12 @@
+ASSET RECORD — Kenney Mini Dungeon
+Creator / Publisher: Kenney
+Project use: Optional themed miniature environment decoration
+Downloaded package observed: kenney_mini-dungeon.zip
+Official source: https://kenney.nl/assets/mini-dungeon
+Official page version: 2.0
+License: Creative Commons CC0 1.0 Universal
+Commercial use: Yes
+Attribution required: No
+Modification allowed: Yes
+License reference: https://creativecommons.org/publicdomain/zero/1.0/
+Verified from official Kenney page on 2026-08-25.
