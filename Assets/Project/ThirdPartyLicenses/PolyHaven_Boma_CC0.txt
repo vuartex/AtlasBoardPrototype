@@ -1,0 +1,11 @@
+Asset: Boma HDRI
+Provider: Poly Haven
+Authors: Greg Zaal (Photography); Jarod Guest (Processing)
+Source: https://polyhaven.com/a/boma
+License: Creative Commons CC0 1.0 / Public Domain Dedication
+Commercial use: Yes
+Modification: Yes
+Attribution required: No
+Downloaded: 2026-08-24
+Intended AtlasBoard use: Theme_Pavilion skybox / environment lighting
+Notes: Poly Haven categorizes Boma under Interiors / Dining & Hospitality / Cafes & Coffee Shops.

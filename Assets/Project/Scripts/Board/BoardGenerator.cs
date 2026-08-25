@@ -131,6 +131,9 @@ public class BoardGenerator : MonoBehaviour
                     .GetTileDefinition(
                         tile.TileIndex);
 
+            ApplyPresentationLayout(
+                tile);
+
             tile.Configure(
                 definition);
 
@@ -371,6 +374,57 @@ public class BoardGenerator : MonoBehaviour
             x,
             tileHeight,
             z);
+    }
+
+    private void ApplyPresentationLayout(
+        BoardTile tile)
+    {
+        if (tile == null)
+        {
+            return;
+        }
+
+        // Restore the stable prototype board proportions.
+        // Readability work must not change the physical gameplay board.
+        tile.transform.localPosition =
+            GetTilePosition(
+                tile.TileIndex);
+
+        tile.transform.localRotation =
+            Quaternion.identity;
+
+        tile.transform.localScale =
+            tileScale;
+    }
+
+    [ContextMenu("Restore Classic Tile Layout")]
+    private void RestoreClassicTileLayout()
+    {
+        FindOrCreateTilesParent();
+
+        BoardTile[] existingTiles =
+            tilesParent.GetComponentsInChildren<
+                BoardTile>(true);
+
+        foreach (BoardTile tile
+                 in existingTiles)
+        {
+            ApplyPresentationLayout(
+                tile);
+
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                EditorUtility.SetDirty(tile);
+            }
+#endif
+        }
+
+        RefreshBoardPath();
+
+        Debug.Log(
+            "Restored classic Atlas Board tile layout.",
+            this);
     }
 
     private Material GetTileMaterial(

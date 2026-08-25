@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ccf909de29a6f948a4daabb4c86dccd, type: 3}
+  m_Name: Theme_Garden
+  m_EditorClassIdentifier: Assembly-CSharp::EnvironmentThemeProfile
+  themeId: garden
+  displayName: Garden
+  description: Suburban Garden HDRI with tabletop nature decoration.
+  tableSurfaceMaterial: {fileID: 2100000, guid: 64c8aa4a26126b24d86bc3f3c4ad748c, type: 2}
+  tableUnderlayMaterial: {fileID: 2100000, guid: 0894ec9241344f5418b47e258d81539b, type: 2}
+  skyboxMaterial: {fileID: 2100000, guid: f5a3c3278edb45b4f95834f4e82312c9, type: 2}
+  scenePropsRootName: PF_Theme_Garden_Props
+  sceneBackgroundRootName: 
+  backgroundPrefab: {fileID: 0}
+  propsPrefab: {fileID: 0}
+  overrideDirectionalLight: 1
+  directionalLightColor: {r: 1, g: 1, b: 1, a: 1}
+  directionalLightIntensity: 1.5
+  directionalLightEuler: {x: 50.000004, y: 325, z: -0.0000013282358}
+  overrideAmbientLight: 0
+  ambientLightColor: {r: 0.55, g: 0.55, b: 0.55, a: 1}

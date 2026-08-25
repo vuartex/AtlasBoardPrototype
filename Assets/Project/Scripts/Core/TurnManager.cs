@@ -194,6 +194,11 @@ public class TurnManager : MonoBehaviour
     public bool IsMatchStarted =>
         isMatchStarted;
 
+    public bool IsPlayingPhase =>
+        isMatchStarted &&
+        gamePhase == GamePhase.Playing &&
+        !isMatchFinished;
+
     public PlayerGameState CurrentPlayerState =>
         GetPlayerState(currentPlayerIndex);
 
@@ -602,10 +607,14 @@ public class TurnManager : MonoBehaviour
         }
 
         int[] activeOrder =
+            gamePhase == GamePhase.Playing &&
             turnOrder != null &&
             turnOrder.Length > 0
                 ? turnOrder
-                : GetParticipatingPlayerIndexes();
+                : participatingPlayerIndexes != null &&
+                  participatingPlayerIndexes.Length > 0
+                    ? participatingPlayerIndexes
+                    : GetParticipatingPlayerIndexes();
 
         int referenceOrderPosition = -1;
 

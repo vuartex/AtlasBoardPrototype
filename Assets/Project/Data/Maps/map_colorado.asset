@@ -21,10 +21,12 @@ MonoBehaviour:
   - tileIndex: 0
     tileType: 0
     displayName: "Ba\u015Flang\u0131\xE7"
+    boardDisplayName: "Ba\u015Flang\u0131\xE7"
     description: 
     propertyId: 
     groupId: 
     groupDisplayName: 
+    groupColor: {r: 0, g: 0, b: 0, a: 0}
     purchasePrice: 0
     baseRent: 0
     developmentCost: 0
@@ -32,43 +34,51 @@ MonoBehaviour:
   - tileIndex: 1
     tileType: 1
     displayName: Sterling
+    boardDisplayName: Sterling
     description: 
     propertyId: property_01
     groupId: group_01
     groupDisplayName: "B\xF6lge 1"
+    groupColor: {r: 0.48, g: 0.25, b: 0.15, a: 1}
     purchasePrice: 100
-    baseRent: 10
+    baseRent: 8
     developmentCost: 50
     specialValueOverride: 0
   - tileIndex: 2
     tileType: 1
     displayName: Fort Morgan
+    boardDisplayName: Ft. Morgan
     description: 
     propertyId: property_02
     groupId: group_01
     groupDisplayName: "B\xF6lge 1"
+    groupColor: {r: 0.48, g: 0.25, b: 0.15, a: 1}
     purchasePrice: 110
-    baseRent: 12
+    baseRent: 9
     developmentCost: 50
     specialValueOverride: 0
   - tileIndex: 3
     tileType: 1
     displayName: Greeley
+    boardDisplayName: Greeley
     description: 
     propertyId: property_03
     groupId: group_01
     groupDisplayName: "B\xF6lge 1"
+    groupColor: {r: 0.48, g: 0.25, b: 0.15, a: 1}
     purchasePrice: 120
-    baseRent: 14
+    baseRent: 10
     developmentCost: 50
     specialValueOverride: 0
   - tileIndex: 4
     tileType: 2
     displayName: Etkinlik
+    boardDisplayName: Etkinlik
     description: 
     propertyId: 
     groupId: 
     groupDisplayName: 
+    groupColor: {r: 0, g: 0, b: 0, a: 0}
     purchasePrice: 0
     baseRent: 0
     developmentCost: 0
@@ -76,43 +86,51 @@ MonoBehaviour:
   - tileIndex: 5
     tileType: 1
     displayName: Loveland
+    boardDisplayName: Loveland
     description: 
     propertyId: property_04
     groupId: group_02
     groupDisplayName: "B\xF6lge 2"
-    purchasePrice: 140
-    baseRent: 14
+    groupColor: {r: 0.35, g: 0.74, b: 0.94, a: 1}
+    purchasePrice: 130
+    baseRent: 10
     developmentCost: 60
     specialValueOverride: 0
   - tileIndex: 6
     tileType: 1
     displayName: Longmont
+    boardDisplayName: Longmont
     description: 
     propertyId: property_05
     groupId: group_02
     groupDisplayName: "B\xF6lge 2"
-    purchasePrice: 150
-    baseRent: 16
+    groupColor: {r: 0.35, g: 0.74, b: 0.94, a: 1}
+    purchasePrice: 140
+    baseRent: 11
     developmentCost: 60
     specialValueOverride: 0
   - tileIndex: 7
     tileType: 1
     displayName: Fort Collins
+    boardDisplayName: Ft. Collins
     description: 
     propertyId: property_06
     groupId: group_02
     groupDisplayName: "B\xF6lge 2"
-    purchasePrice: 160
-    baseRent: 18
+    groupColor: {r: 0.35, g: 0.74, b: 0.94, a: 1}
+    purchasePrice: 150
+    baseRent: 12
     developmentCost: 60
     specialValueOverride: 0
   - tileIndex: 8
     tileType: 4
     displayName: "A\xE7\u0131k Art\u0131rma"
+    boardDisplayName: "A\xE7\u0131k Art\u0131rma"
     description: 
     propertyId: 
     groupId: 
     groupDisplayName: 
+    groupColor: {r: 0, g: 0, b: 0, a: 0}
     purchasePrice: 0
     baseRent: 0
     developmentCost: 0
@@ -120,43 +138,51 @@ MonoBehaviour:
   - tileIndex: 9
     tileType: 1
     displayName: Boulder
+    boardDisplayName: Boulder
     description: 
     propertyId: property_07
     groupId: group_03
     groupDisplayName: "B\xF6lge 3"
-    purchasePrice: 180
-    baseRent: 18
+    groupColor: {r: 0.84, g: 0.24, b: 0.62, a: 1}
+    purchasePrice: 160
+    baseRent: 13
     developmentCost: 70
     specialValueOverride: 0
   - tileIndex: 10
     tileType: 1
     displayName: Lakewood
+    boardDisplayName: Lakewood
     description: 
     propertyId: property_08
     groupId: group_03
     groupDisplayName: "B\xF6lge 3"
-    purchasePrice: 190
-    baseRent: 20
+    groupColor: {r: 0.84, g: 0.24, b: 0.62, a: 1}
+    purchasePrice: 175
+    baseRent: 14
     developmentCost: 70
     specialValueOverride: 0
   - tileIndex: 11
     tileType: 1
     displayName: Golden
+    boardDisplayName: Golden
     description: 
     propertyId: property_09
     groupId: group_03
     groupDisplayName: "B\xF6lge 3"
-    purchasePrice: 200
-    baseRent: 22
+    groupColor: {r: 0.84, g: 0.24, b: 0.62, a: 1}
+    purchasePrice: 190
+    baseRent: 15
     developmentCost: 70
     specialValueOverride: 0
   - tileIndex: 12
     tileType: 3
     displayName: Vergi
+    boardDisplayName: Vergi
     description: 
     propertyId: 
     groupId: 
     groupDisplayName: 
+    groupColor: {r: 0, g: 0, b: 0, a: 0}
     purchasePrice: 0
     baseRent: 0
     developmentCost: 0
@@ -164,43 +190,51 @@ MonoBehaviour:
   - tileIndex: 13
     tileType: 1
     displayName: Aurora
+    boardDisplayName: Aurora
     description: 
     propertyId: property_10
     groupId: group_04
     groupDisplayName: "B\xF6lge 4"
-    purchasePrice: 220
-    baseRent: 22
+    groupColor: {r: 0.95, g: 0.45, b: 0.1, a: 1}
+    purchasePrice: 205
+    baseRent: 16
     developmentCost: 80
     specialValueOverride: 0
   - tileIndex: 14
     tileType: 1
     displayName: Denver
+    boardDisplayName: Denver
     description: 
     propertyId: property_11
     groupId: group_04
     groupDisplayName: "B\xF6lge 4"
-    purchasePrice: 230
-    baseRent: 24
+    groupColor: {r: 0.95, g: 0.45, b: 0.1, a: 1}
+    purchasePrice: 220
+    baseRent: 17
     developmentCost: 80
     specialValueOverride: 0
   - tileIndex: 15
     tileType: 1
     displayName: Colorado Springs
+    boardDisplayName: C. Springs
     description: 
     propertyId: property_12
     groupId: group_04
     groupDisplayName: "B\xF6lge 4"
-    purchasePrice: 240
-    baseRent: 26
+    groupColor: {r: 0.95, g: 0.45, b: 0.1, a: 1}
+    purchasePrice: 235
+    baseRent: 18
     developmentCost: 80
     specialValueOverride: 0
   - tileIndex: 16
     tileType: 7
     displayName: Dinlenme
+    boardDisplayName: Dinlenme
     description: 
     propertyId: 
     groupId: 
     groupDisplayName: 
+    groupColor: {r: 0, g: 0, b: 0, a: 0}
     purchasePrice: 0
     baseRent: 0
     developmentCost: 0
@@ -208,43 +242,51 @@ MonoBehaviour:
   - tileIndex: 17
     tileType: 1
     displayName: Pueblo
+    boardDisplayName: Pueblo
     description: 
     propertyId: property_13
     groupId: group_05
     groupDisplayName: "B\xF6lge 5"
-    purchasePrice: 260
-    baseRent: 27
+    groupColor: {r: 0.9, g: 0.14, b: 0.15, a: 1}
+    purchasePrice: 250
+    baseRent: 20
     developmentCost: 100
     specialValueOverride: 0
   - tileIndex: 18
     tileType: 1
     displayName: Canon City
+    boardDisplayName: Canon City
     description: 
     propertyId: property_14
     groupId: group_05
     groupDisplayName: "B\xF6lge 5"
-    purchasePrice: 275
-    baseRent: 30
+    groupColor: {r: 0.9, g: 0.14, b: 0.15, a: 1}
+    purchasePrice: 265
+    baseRent: 21
     developmentCost: 100
     specialValueOverride: 0
   - tileIndex: 19
     tileType: 1
     displayName: Trinidad
+    boardDisplayName: Trinidad
     description: 
     propertyId: property_15
     groupId: group_05
     groupDisplayName: "B\xF6lge 5"
-    purchasePrice: 290
-    baseRent: 33
+    groupColor: {r: 0.9, g: 0.14, b: 0.15, a: 1}
+    purchasePrice: 280
+    baseRent: 22
     developmentCost: 100
     specialValueOverride: 0
   - tileIndex: 20
     tileType: 5
     displayName: Seyahat
+    boardDisplayName: Seyahat
     description: 
     propertyId: 
     groupId: 
     groupDisplayName: 
+    groupColor: {r: 0, g: 0, b: 0, a: 0}
     purchasePrice: 0
     baseRent: 0
     developmentCost: 0
@@ -252,43 +294,51 @@ MonoBehaviour:
   - tileIndex: 21
     tileType: 1
     displayName: Grand Junction
+    boardDisplayName: G. Junction
     description: 
     propertyId: property_16
     groupId: group_06
     groupDisplayName: "B\xF6lge 6"
-    purchasePrice: 310
-    baseRent: 34
+    groupColor: {r: 0.96, g: 0.84, b: 0.1, a: 1}
+    purchasePrice: 295
+    baseRent: 24
     developmentCost: 120
     specialValueOverride: 0
   - tileIndex: 22
     tileType: 1
     displayName: Montrose
+    boardDisplayName: Montrose
     description: 
     propertyId: property_17
     groupId: group_06
     groupDisplayName: "B\xF6lge 6"
-    purchasePrice: 325
-    baseRent: 37
+    groupColor: {r: 0.96, g: 0.84, b: 0.1, a: 1}
+    purchasePrice: 310
+    baseRent: 25
     developmentCost: 120
     specialValueOverride: 0
   - tileIndex: 23
     tileType: 1
     displayName: Durango
+    boardDisplayName: Durango
     description: 
     propertyId: property_18
     groupId: group_06
     groupDisplayName: "B\xF6lge 6"
-    purchasePrice: 340
-    baseRent: 40
+    groupColor: {r: 0.96, g: 0.84, b: 0.1, a: 1}
+    purchasePrice: 325
+    baseRent: 26
     developmentCost: 120
     specialValueOverride: 0
   - tileIndex: 24
     tileType: 6
     displayName: Tatil
+    boardDisplayName: Tatil
     description: 
     propertyId: 
     groupId: 
     groupDisplayName: 
+    groupColor: {r: 0, g: 0, b: 0, a: 0}
     purchasePrice: 0
     baseRent: 0
     developmentCost: 0
@@ -296,43 +346,51 @@ MonoBehaviour:
   - tileIndex: 25
     tileType: 1
     displayName: Glenwood Springs
+    boardDisplayName: Glenwood
     description: 
     propertyId: property_19
     groupId: group_07
     groupDisplayName: "B\xF6lge 7"
-    purchasePrice: 360
-    baseRent: 42
-    developmentCost: 150
+    groupColor: {r: 0.14, g: 0.64, b: 0.29, a: 1}
+    purchasePrice: 340
+    baseRent: 28
+    developmentCost: 140
     specialValueOverride: 0
   - tileIndex: 26
     tileType: 1
     displayName: Steamboat Springs
+    boardDisplayName: Steamboat
     description: 
     propertyId: property_20
     groupId: group_07
     groupDisplayName: "B\xF6lge 7"
-    purchasePrice: 380
-    baseRent: 46
-    developmentCost: 150
+    groupColor: {r: 0.14, g: 0.64, b: 0.29, a: 1}
+    purchasePrice: 360
+    baseRent: 30
+    developmentCost: 140
     specialValueOverride: 0
   - tileIndex: 27
     tileType: 1
     displayName: Breckenridge
+    boardDisplayName: Breckenridge
     description: 
     propertyId: property_21
     groupId: group_07
     groupDisplayName: "B\xF6lge 7"
-    purchasePrice: 400
-    baseRent: 50
-    developmentCost: 150
+    groupColor: {r: 0.14, g: 0.64, b: 0.29, a: 1}
+    purchasePrice: 380
+    baseRent: 32
+    developmentCost: 140
     specialValueOverride: 0
   - tileIndex: 28
     tileType: 8
     displayName: Bonus
+    boardDisplayName: Bonus
     description: 
     propertyId: 
     groupId: 
     groupDisplayName: 
+    groupColor: {r: 0, g: 0, b: 0, a: 0}
     purchasePrice: 0
     baseRent: 0
     developmentCost: 0
@@ -340,33 +398,39 @@ MonoBehaviour:
   - tileIndex: 29
     tileType: 1
     displayName: Vail
+    boardDisplayName: Vail
     description: 
     propertyId: property_22
     groupId: group_08
     groupDisplayName: "B\xF6lge 8"
-    purchasePrice: 420
-    baseRent: 52
-    developmentCost: 180
+    groupColor: {r: 0.08, g: 0.29, b: 0.82, a: 1}
+    purchasePrice: 400
+    baseRent: 34
+    developmentCost: 160
     specialValueOverride: 0
   - tileIndex: 30
     tileType: 1
     displayName: Aspen
+    boardDisplayName: Aspen
     description: 
     propertyId: property_23
     groupId: group_08
     groupDisplayName: "B\xF6lge 8"
-    purchasePrice: 450
-    baseRent: 58
-    developmentCost: 180
+    groupColor: {r: 0.08, g: 0.29, b: 0.82, a: 1}
+    purchasePrice: 425
+    baseRent: 37
+    developmentCost: 160
     specialValueOverride: 0
   - tileIndex: 31
     tileType: 1
     displayName: Estes Park
+    boardDisplayName: Estes Park
     description: 
     propertyId: property_24
     groupId: group_08
     groupDisplayName: "B\xF6lge 8"
-    purchasePrice: 480
-    baseRent: 64
-    developmentCost: 180
+    groupColor: {r: 0.08, g: 0.29, b: 0.82, a: 1}
+    purchasePrice: 450
+    baseRent: 40
+    developmentCost: 160
     specialValueOverride: 0

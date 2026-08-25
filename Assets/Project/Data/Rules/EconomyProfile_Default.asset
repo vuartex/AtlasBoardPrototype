@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e175a7370552c6b4bb6705fd6ca078d6, type: 3}
   m_Name: EconomyProfile_Default
   m_EditorClassIdentifier: Assembly-CSharp::BoardEconomyProfile
+  balanceVersion: economy_v1
   startingMoney: 1500
   startPassReward: 200
   taxAmount: 180
@@ -23,3 +24,87 @@ MonoBehaviour:
   auctionSmallBidStep: 10
   auctionLargeBidStep: 50
   rentMultipliers: 0100000002000000030000000500000008000000
+  propertyGroupTiers:
+  - groupId: group_01
+    propertyOnePrice: 100
+    propertyTwoPrice: 110
+    propertyThreePrice: 120
+    propertyOneRent: 8
+    propertyTwoRent: 9
+    propertyThreeRent: 10
+    developmentCost: 50
+  - groupId: group_02
+    propertyOnePrice: 130
+    propertyTwoPrice: 140
+    propertyThreePrice: 150
+    propertyOneRent: 10
+    propertyTwoRent: 11
+    propertyThreeRent: 12
+    developmentCost: 60
+  - groupId: group_03
+    propertyOnePrice: 160
+    propertyTwoPrice: 175
+    propertyThreePrice: 190
+    propertyOneRent: 13
+    propertyTwoRent: 14
+    propertyThreeRent: 15
+    developmentCost: 70
+  - groupId: group_04
+    propertyOnePrice: 205
+    propertyTwoPrice: 220
+    propertyThreePrice: 235
+    propertyOneRent: 16
+    propertyTwoRent: 17
+    propertyThreeRent: 18
+    developmentCost: 80
+  - groupId: group_05
+    propertyOnePrice: 250
+    propertyTwoPrice: 265
+    propertyThreePrice: 280
+    propertyOneRent: 20
+    propertyTwoRent: 21
+    propertyThreeRent: 22
+    developmentCost: 100
+  - groupId: group_06
+    propertyOnePrice: 295
+    propertyTwoPrice: 310
+    propertyThreePrice: 325
+    propertyOneRent: 24
+    propertyTwoRent: 25
+    propertyThreeRent: 26
+    developmentCost: 120
+  - groupId: group_07
+    propertyOnePrice: 340
+    propertyTwoPrice: 360
+    propertyThreePrice: 380
+    propertyOneRent: 28
+    propertyTwoRent: 30
+    propertyThreeRent: 32
+    developmentCost: 140
+  - groupId: group_08
+    propertyOnePrice: 400
+    propertyTwoPrice: 425
+    propertyThreePrice: 450
+    propertyOneRent: 34
+    propertyTwoRent: 37
+    propertyThreeRent: 40
+    developmentCost: 160
+  botSafeCashReserve: 250
+  botGroupCompletionCashReserve: 150
+  botDevelopmentCashReserve: 300
+  botMaximumPurchaseCashRatio: 0.55
+  botGroupInterestPurchaseBonus: 0.1
+  botGroupCompletionPurchaseBonus: 0.2
+  botAuctionNormalValueMultiplier: 0.9
+  botAuctionGroupInterestValueMultiplier: 1
+  botAuctionGroupCompletionValueMultiplier: 1.3
+  botLargeBidSafetyMargin: 30
+  botMaximumDevelopmentCashRatio: 0.3
+  botTradeAttemptChance: 0.11
+  botMinimumTradeValueRatio: 0.95
+  botGeneralPropertyOfferMultiplier: 1
+  botGroupCompletionOfferMultiplier: 1.25
+  botIncomingGroupCompletionValueMultiplier: 1.3
+  botCompleteGroupProtectionValueMultiplier: 1.4
+  botOpponentGroupCompletionProtectionValueMultiplier: 1.3
+  botTravelChanceWithoutStartReward: 0.6

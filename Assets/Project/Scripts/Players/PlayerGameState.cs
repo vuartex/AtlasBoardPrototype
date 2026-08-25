@@ -16,19 +16,22 @@ public class PlayerGameState : MonoBehaviour
     private PlayerVisualProfile visualProfile;
 
     [Header("Economy")]
+    [Tooltip(
+        "Scene fallback only. MatchSetupManager replaces this from " +
+        "the active BoardEconomyProfile when the match starts.")]
     [SerializeField, Min(0)]
     private int startingMoney = 1500;
 
     [SerializeField, Min(0)]
     private int currentMoney;
 
+    [Header("Participation")]
+    [SerializeField]
+    private bool isParticipating = true;
+
     [Header("Turn Status")]
     [SerializeField, Min(0)]
     private int turnsToSkip;
-
-    [Header("Match Participation")]
-    [SerializeField]
-    private bool isParticipating = true;
 
     [Header("Elimination")]
     [SerializeField]
@@ -49,15 +52,17 @@ public class PlayerGameState : MonoBehaviour
             ? visualProfile.UIColor
             : Color.white;
 
+    public int StartingMoney => startingMoney;
     public int CurrentMoney => currentMoney;
+    public bool IsParticipating => isParticipating;
     public int TurnsToSkip => turnsToSkip;
     public bool HasTurnsToSkip => turnsToSkip > 0;
-    public bool IsParticipating => isParticipating;
     public bool IsBankrupt => isBankrupt;
 
     public event Action<PlayerGameState> MoneyChanged;
     public event Action<PlayerGameState> TurnStatusChanged;
     public event Action<PlayerGameState> BankruptcyChanged;
+    public event Action<PlayerGameState> ParticipationChanged;
 
     private void Awake()
     {
@@ -68,15 +73,45 @@ public class PlayerGameState : MonoBehaviour
         ValidateStableIdentity();
     }
 
+    public void PrepareForMatch(
+        int matchStartingMoney,
+        bool participating)
+    {
+        startingMoney =
+            Mathf.Max(0, matchStartingMoney);
+
+        currentMoney = startingMoney;
+        turnsToSkip = 0;
+        isBankrupt = false;
+        isParticipating = participating;
+
+        MoneyChanged?.Invoke(this);
+        TurnStatusChanged?.Invoke(this);
+        BankruptcyChanged?.Invoke(this);
+        ParticipationChanged?.Invoke(this);
+
+        Debug.Log(
+            $"{displayName} [Slot {playerSlotIndex}] prepared for match. " +
+            $"Participating: {isParticipating}, money: {currentMoney}.",
+            this);
+    }
+
     public void SetParticipating(
         bool participating)
     {
+        if (isParticipating == participating)
+        {
+            return;
+        }
+
         isParticipating = participating;
+        ParticipationChanged?.Invoke(this);
     }
 
     public bool TrySpend(int amount)
     {
-        if (isBankrupt ||
+        if (!isParticipating ||
+            isBankrupt ||
             amount < 0 ||
             currentMoney < amount)
         {
@@ -91,7 +126,9 @@ public class PlayerGameState : MonoBehaviour
 
     public void AddMoney(int amount)
     {
-        if (isBankrupt || amount <= 0)
+        if (!isParticipating ||
+            isBankrupt ||
+            amount <= 0)
         {
             return;
         }
@@ -117,7 +154,9 @@ public class PlayerGameState : MonoBehaviour
 
     public void AddTurnsToSkip(int amount)
     {
-        if (isBankrupt || amount <= 0)
+        if (!isParticipating ||
+            isBankrupt ||
+            amount <= 0)
         {
             return;
         }
@@ -132,7 +171,9 @@ public class PlayerGameState : MonoBehaviour
 
     public bool ConsumeSkippedTurn()
     {
-        if (isBankrupt || turnsToSkip <= 0)
+        if (!isParticipating ||
+            isBankrupt ||
+            turnsToSkip <= 0)
         {
             return false;
         }

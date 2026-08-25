@@ -32,6 +32,18 @@ public class BotPlayerController : MonoBehaviour
     [SerializeField, Min(0f)]
     private float ownTradeDecisionDelay = 0.9f;
 
+    [Header("Strategy Profiles")]
+    [Tooltip(
+        "Per-bot character. Safe/Aggressive/Adaptive/Balanced profiles " +
+        "are created by the Economy Balance editor tool.")]
+    [SerializeField]
+    private BotPersonalityProfile personalityProfile;
+
+    [Tooltip(
+        "Normally resolved automatically from the active map.")]
+    [SerializeField]
+    private BoardEconomyProfile economyProfile;
+
     [Header("Trade Strategy")]
     [Tooltip(
         "The bot accepts when the value it receives is at " +
@@ -55,7 +67,7 @@ public class BotPlayerController : MonoBehaviour
         "Chance that the bot considers creating one trade " +
         "offer before rolling on its turn.")]
     [SerializeField, Range(0f, 1f)]
-    private float ownTradeAttemptChance = 0.35f;
+    private float ownTradeAttemptChance = 0.11f;
 
     [Tooltip(
         "Cash premium over list value when the requested " +
@@ -71,14 +83,14 @@ public class BotPlayerController : MonoBehaviour
 
     [Header("Purchase Strategy")]
     [SerializeField, Min(0)]
-    private int minimumCashReserve = 350;
+    private int minimumCashReserve = 250;
 
     [SerializeField, Range(0.1f, 1f)]
     private float maximumPurchaseCashRatio = 0.45f;
 
     [Header("Auction Strategy")]
     [SerializeField, Range(0.5f, 2f)]
-    private float auctionValueMultiplier = 1.10f;
+    private float auctionValueMultiplier = 0.90f;
 
     [SerializeField, Min(0)]
     private int largeBidSafetyMargin = 30;
@@ -130,6 +142,25 @@ public class BotPlayerController : MonoBehaviour
 
     public bool BotEnabled =>
         botEnabled;
+
+    public BotPersonalityProfile PersonalityProfile =>
+        personalityProfile;
+
+    public string PersonalityId =>
+        personalityProfile != null
+            ? personalityProfile.PersonalityId
+            : "legacy_fallback";
+
+    public void SetPersonalityProfile(
+        BotPersonalityProfile profile)
+    {
+        personalityProfile = profile;
+
+        Debug.Log(
+            $"{name} bot personality = " +
+            $"{(personalityProfile != null ? personalityProfile.DisplayName : "Legacy Fallback")}.",
+            this);
+    }
 
     public void SetBotEnabled(
         bool enabledValue)
@@ -347,6 +378,7 @@ public class BotPlayerController : MonoBehaviour
     {
         if (tradeManager == null ||
             turnManager == null ||
+            !turnManager.IsPlayingPhase ||
             !tradeManager.IsTradeClosed ||
             !turnManager.CanPlayerRequestRoll(
                 playerState))
@@ -367,7 +399,7 @@ public class BotPlayerController : MonoBehaviour
             currentTurnToken;
 
         if (Random.value >
-            ownTradeAttemptChance)
+            GetTradeAttemptChance())
         {
             return false;
         }
@@ -655,14 +687,14 @@ public class BotPlayerController : MonoBehaviour
             tradeManager.RequestedCash <= 0 ||
             playerState.CurrentMoney -
             tradeManager.RequestedCash >=
-            minimumCashReserve;
+            GetPurchaseCashReserve(false);
 
         bool accept =
             cashReserveSafe &&
             receivedValue >=
             Mathf.RoundToInt(
                 givenValue *
-                minimumTradeValueRatio);
+                GetMinimumTradeValueRatio());
 
         Debug.Log(
             $"{playerState.DisplayName} [BOT] trade response: " +
@@ -750,14 +782,58 @@ public class BotPlayerController : MonoBehaviour
             return false;
         }
 
+        bool completesGroup =
+            WouldCompleteGroupWith(property);
+
+        bool hasGroupInterest =
+            completesGroup ||
+            OwnsAnotherPropertyInGroup(property);
+
+        int requiredReserve =
+            GetPurchaseCashReserve(
+                completesGroup);
+
         int moneyAfterPurchase =
             playerState.CurrentMoney - price;
 
         if (moneyAfterPurchase <
-            minimumCashReserve)
+            requiredReserve)
         {
             return false;
         }
+
+        BoardEconomyProfile economy =
+            ResolveEconomyProfile();
+
+        float maxRatio =
+            economy != null
+                ? economy.BotMaximumPurchaseCashRatio
+                : maximumPurchaseCashRatio;
+
+        if (economy != null)
+        {
+            if (completesGroup)
+            {
+                maxRatio +=
+                    economy.BotGroupCompletionPurchaseBonus *
+                    GetGroupCompletionFocus();
+            }
+            else if (hasGroupInterest)
+            {
+                maxRatio +=
+                    economy.BotGroupInterestPurchaseBonus *
+                    GetGroupCompletionFocus();
+            }
+        }
+
+        maxRatio *=
+            GetPurchaseWillingness();
+
+        maxRatio =
+            Mathf.Clamp(
+                maxRatio,
+                0.10f,
+                0.95f);
 
         float priceToCashRatio =
             price /
@@ -766,7 +842,7 @@ public class BotPlayerController : MonoBehaviour
                 playerState.CurrentMoney);
 
         return priceToCashRatio <=
-               maximumPurchaseCashRatio;
+               maxRatio;
     }
 
     private BotAuctionAction ChooseAuctionAction()
@@ -779,16 +855,63 @@ public class BotPlayerController : MonoBehaviour
             return BotAuctionAction.Pass;
         }
 
+        bool completesGroup =
+            WouldCompleteGroupWith(property);
+
+        bool groupInterest =
+            completesGroup ||
+            OwnsAnotherPropertyInGroup(property);
+
+        BoardEconomyProfile economy =
+            ResolveEconomyProfile();
+
+        int reserve =
+            GetPurchaseCashReserve(
+                completesGroup);
+
         int cashBudget =
             Mathf.Max(
                 0,
                 playerState.CurrentMoney -
-                minimumCashReserve);
+                reserve);
+
+        float valueMultiplier;
+
+        if (economy != null)
+        {
+            valueMultiplier =
+                completesGroup
+                    ? economy
+                        .BotAuctionGroupCompletionValueMultiplier
+                    : groupInterest
+                        ? economy
+                            .BotAuctionGroupInterestValueMultiplier
+                        : economy
+                            .BotAuctionNormalValueMultiplier;
+        }
+        else
+        {
+            valueMultiplier =
+                auctionValueMultiplier;
+        }
+
+        if (completesGroup)
+        {
+            valueMultiplier =
+                1f +
+                (valueMultiplier - 1f) *
+                GetGroupCompletionFocus();
+        }
+
+        valueMultiplier *=
+            GetAuctionWillingness();
 
         int valueBudget =
             Mathf.RoundToInt(
                 property.PurchasePrice *
-                auctionValueMultiplier);
+                Mathf.Max(
+                    0.1f,
+                    valueMultiplier));
 
         int maximumBid =
             Mathf.Min(
@@ -807,11 +930,16 @@ public class BotPlayerController : MonoBehaviour
         int largeBid =
             auctionManager.NextLargeBidAmount;
 
+        int safetyMargin =
+            economy != null
+                ? economy.BotLargeBidSafetyMargin
+                : largeBidSafetyMargin;
+
         bool canBidLarge =
             largeBid <= maximumBid &&
             largeBid <= playerState.CurrentMoney &&
             maximumBid - largeBid >=
-            largeBidSafetyMargin;
+            safetyMargin;
 
         return canBidLarge
             ? BotAuctionAction.BidLarge
@@ -842,8 +970,21 @@ public class BotPlayerController : MonoBehaviour
             return true;
         }
 
-        return Random.value <=
-               travelChanceWithoutStartReward;
+        BoardEconomyProfile economy =
+            ResolveEconomyProfile();
+
+        float baseChance =
+            economy != null
+                ? economy
+                    .BotTravelChanceWithoutStartReward
+                : travelChanceWithoutStartReward;
+
+        float chance =
+            Mathf.Clamp01(
+                baseChance *
+                GetTravelWillingness());
+
+        return Random.value <= chance;
     }
 
     private bool ShouldDevelop(
@@ -866,11 +1007,32 @@ public class BotPlayerController : MonoBehaviour
         int moneyAfterDevelopment =
             playerState.CurrentMoney - cost;
 
+        int requiredReserve =
+            GetDevelopmentCashReserve();
+
         if (moneyAfterDevelopment <
-            minimumCashReserve)
+            requiredReserve)
         {
             return false;
         }
+
+        BoardEconomyProfile economy =
+            ResolveEconomyProfile();
+
+        float maxRatio =
+            economy != null
+                ? economy
+                    .BotMaximumDevelopmentCashRatio
+                : maximumDevelopmentCashRatio;
+
+        maxRatio *=
+            GetDevelopmentWillingness();
+
+        maxRatio =
+            Mathf.Clamp(
+                maxRatio,
+                0.05f,
+                0.90f);
 
         float costToCashRatio =
             cost /
@@ -879,7 +1041,7 @@ public class BotPlayerController : MonoBehaviour
                 playerState.CurrentMoney);
 
         return costToCashRatio <=
-               maximumDevelopmentCashRatio;
+               maxRatio;
     }
 
     private bool TryBuildOwnTradeOffer(
@@ -904,7 +1066,7 @@ public class BotPlayerController : MonoBehaviour
             Mathf.Max(
                 0,
                 playerState.CurrentMoney -
-                minimumCashReserve);
+                GetPurchaseCashReserve(false));
 
         if (availableCash <= 0)
         {
@@ -952,10 +1114,8 @@ public class BotPlayerController : MonoBehaviour
                         property);
 
                 float offerMultiplier =
-                    completesGroup
-                        ? 1f +
-                          groupCompletionOfferPremium
-                        : generalPropertyOfferMultiplier;
+                    GetOutgoingTradeOfferMultiplier(
+                        completesGroup);
 
                 int offer =
                     RoundCashOffer(
@@ -1113,8 +1273,19 @@ public class BotPlayerController : MonoBehaviour
 
             if (WouldCompleteGroupWith(property))
             {
+                BoardEconomyProfile economy =
+                    ResolveEconomyProfile();
+
+                float multiplier =
+                    economy != null
+                        ? economy
+                            .BotIncomingGroupCompletionValueMultiplier
+                        : 1f + groupCompletionBonus;
+
                 propertyValue *=
-                    1f + groupCompletionBonus;
+                    1f +
+                    (multiplier - 1f) *
+                    GetGroupCompletionFocus();
             }
 
             value +=
@@ -1145,6 +1316,9 @@ public class BotPlayerController : MonoBehaviour
             float propertyValue =
                 property.PurchasePrice;
 
+            BoardEconomyProfile economy =
+                ResolveEconomyProfile();
+
             if (propertyDevelopmentManager != null &&
                 propertyDevelopmentManager
                     .HasCompleteGroup(
@@ -1152,9 +1326,35 @@ public class BotPlayerController : MonoBehaviour
                         propertyDevelopmentManager
                             .GetGroupIndex(property)))
             {
+                float protectionMultiplier =
+                    economy != null
+                        ? economy
+                            .BotCompleteGroupProtectionValueMultiplier
+                        : 1f +
+                          completeGroupProtectionPremium;
+
+                propertyValue *=
+                    protectionMultiplier;
+            }
+
+            PlayerGameState receivingPlayer =
+                tradeManager.TradeInitiator;
+
+            if (receivingPlayer != null &&
+                WouldCompleteGroupFor(
+                    receivingPlayer,
+                    property))
+            {
+                float opponentCompletionMultiplier =
+                    economy != null
+                        ? economy
+                            .BotOpponentGroupCompletionProtectionValueMultiplier
+                        : 1.30f;
+
                 propertyValue *=
                     1f +
-                    completeGroupProtectionPremium;
+                    (opponentCompletionMultiplier - 1f) *
+                    GetGroupCompletionFocus();
             }
 
             value +=
@@ -1168,7 +1368,17 @@ public class BotPlayerController : MonoBehaviour
     private bool WouldCompleteGroupWith(
         BoardTile candidateProperty)
     {
-        if (candidateProperty == null ||
+        return WouldCompleteGroupFor(
+            playerState,
+            candidateProperty);
+    }
+
+    private bool WouldCompleteGroupFor(
+        PlayerGameState player,
+        BoardTile candidateProperty)
+    {
+        if (player == null ||
+            candidateProperty == null ||
             propertyDevelopmentManager == null)
         {
             return false;
@@ -1213,13 +1423,419 @@ public class BotPlayerController : MonoBehaviour
 
             if (!tile.IsOwned ||
                 tile.OwnerPlayerIndex !=
-                playerState.PlayerSlotIndex)
+                player.PlayerSlotIndex)
             {
                 return false;
             }
         }
 
         return groupCityCount >= 2;
+    }
+
+    private BoardEconomyProfile ResolveEconomyProfile()
+    {
+        if (economyProfile != null)
+        {
+            return economyProfile;
+        }
+
+        BoardGenerator generator =
+            FindAnyObjectByType<BoardGenerator>();
+
+        if (generator != null)
+        {
+            economyProfile =
+                generator.ActiveEconomyProfile;
+        }
+
+        return economyProfile;
+    }
+
+    private float GetAdaptiveAggressionFactor()
+    {
+        if (personalityProfile == null ||
+            personalityProfile.AdaptiveStrength <= 0f ||
+            playerState == null)
+        {
+            return 1f;
+        }
+
+        BoardEconomyProfile economy =
+            ResolveEconomyProfile();
+
+        int startingCash =
+            economy != null
+                ? economy.StartingMoney
+                : 1500;
+
+        float factor = 1f;
+
+        float cashRatio =
+            playerState.CurrentMoney /
+            Mathf.Max(
+                1f,
+                startingCash);
+
+        if (cashRatio < 0.45f)
+        {
+            factor *= 0.82f;
+        }
+        else if (cashRatio > 1.15f)
+        {
+            factor *= 1.10f;
+        }
+
+        float opponentAverage =
+            GetOpponentAverageNetWorth();
+
+        if (opponentAverage > 0f)
+        {
+            float ownNetWorth =
+                GetApproximateNetWorth(
+                    playerState);
+
+            if (ownNetWorth <
+                opponentAverage * 0.85f)
+            {
+                factor *= 1.12f;
+            }
+            else if (ownNetWorth >
+                     opponentAverage * 1.20f)
+            {
+                factor *= 0.90f;
+            }
+        }
+
+        return Mathf.Lerp(
+            1f,
+            Mathf.Clamp(
+                factor,
+                0.70f,
+                1.30f),
+            personalityProfile.AdaptiveStrength);
+    }
+
+    private float GetOpponentAverageNetWorth()
+    {
+        if (turnManager == null ||
+            playerState == null)
+        {
+            return 0f;
+        }
+
+        var opponents =
+            turnManager.GetPlayersInTurnOrderFrom(
+                playerState,
+                includeReferencePlayer: false);
+
+        if (opponents == null ||
+            opponents.Count == 0)
+        {
+            return 0f;
+        }
+
+        float total = 0f;
+        int count = 0;
+
+        foreach (PlayerGameState opponent
+                 in opponents)
+        {
+            if (opponent == null ||
+                opponent.IsBankrupt)
+            {
+                continue;
+            }
+
+            total +=
+                GetApproximateNetWorth(
+                    opponent);
+
+            count++;
+        }
+
+        return count > 0
+            ? total / count
+            : 0f;
+    }
+
+    private float GetApproximateNetWorth(
+        PlayerGameState player)
+    {
+        if (player == null)
+        {
+            return 0f;
+        }
+
+        float total =
+            player.CurrentMoney;
+
+        if (boardPath != null)
+        {
+            for (int tileIndex = 0;
+                 tileIndex < boardPath.TileCount;
+                 tileIndex++)
+            {
+                BoardTile tile =
+                    boardPath.GetTile(tileIndex);
+
+                if (tile == null ||
+                    !tile.IsOwned ||
+                    tile.OwnerPlayerIndex !=
+                    player.PlayerSlotIndex)
+                {
+                    continue;
+                }
+
+                total +=
+                    tile.PurchasePrice;
+            }
+        }
+
+        if (propertyDevelopmentManager != null)
+        {
+            total +=
+                propertyDevelopmentManager
+                    .GetDevelopmentInvestmentValue(
+                        player.PlayerSlotIndex);
+        }
+
+        return total;
+    }
+
+    private float GetCashReserveMultiplier()
+    {
+        float personalityMultiplier =
+            personalityProfile != null
+                ? personalityProfile
+                    .CashReserveMultiplier
+                : 1f;
+
+        float adaptive =
+            GetAdaptiveAggressionFactor();
+
+        return Mathf.Clamp(
+            personalityMultiplier /
+            Mathf.Max(0.5f, adaptive),
+            0.40f,
+            1.80f);
+    }
+
+    private int GetPurchaseCashReserve(
+        bool groupCompletion)
+    {
+        BoardEconomyProfile economy =
+            ResolveEconomyProfile();
+
+        int baseReserve;
+
+        if (economy != null)
+        {
+            baseReserve =
+                groupCompletion
+                    ? economy
+                        .BotGroupCompletionCashReserve
+                    : economy
+                        .BotSafeCashReserve;
+        }
+        else
+        {
+            baseReserve =
+                minimumCashReserve;
+        }
+
+        return Mathf.Max(
+            0,
+            Mathf.RoundToInt(
+                baseReserve *
+                GetCashReserveMultiplier()));
+    }
+
+    private int GetDevelopmentCashReserve()
+    {
+        BoardEconomyProfile economy =
+            ResolveEconomyProfile();
+
+        int baseReserve =
+            economy != null
+                ? economy
+                    .BotDevelopmentCashReserve
+                : minimumCashReserve;
+
+        float developmentWillingness =
+            GetDevelopmentWillingness();
+
+        return Mathf.Max(
+            0,
+            Mathf.RoundToInt(
+                baseReserve *
+                GetCashReserveMultiplier() /
+                Mathf.Max(
+                    0.5f,
+                    developmentWillingness)));
+    }
+
+    private float GetPurchaseWillingness()
+    {
+        float personality =
+            personalityProfile != null
+                ? personalityProfile
+                    .PurchaseWillingness
+                : 1f;
+
+        return Mathf.Clamp(
+            personality *
+            GetAdaptiveAggressionFactor(),
+            0.50f,
+            1.50f);
+    }
+
+    private float GetAuctionWillingness()
+    {
+        float personality =
+            personalityProfile != null
+                ? personalityProfile
+                    .AuctionWillingness
+                : 1f;
+
+        return Mathf.Clamp(
+            personality *
+            GetAdaptiveAggressionFactor(),
+            0.50f,
+            1.60f);
+    }
+
+    private float GetDevelopmentWillingness()
+    {
+        float personality =
+            personalityProfile != null
+                ? personalityProfile
+                    .DevelopmentWillingness
+                : 1f;
+
+        return Mathf.Clamp(
+            personality *
+            GetAdaptiveAggressionFactor(),
+            0.50f,
+            1.60f);
+    }
+
+    private float GetTradeAttemptChance()
+    {
+        BoardEconomyProfile economy =
+            ResolveEconomyProfile();
+
+        float baseChance =
+            economy != null
+                ? economy.BotTradeAttemptChance
+                : ownTradeAttemptChance;
+
+        float personality =
+            personalityProfile != null
+                ? personalityProfile
+                    .TradeFrequencyMultiplier
+                : 1f;
+
+        return Mathf.Clamp01(
+            baseChance *
+            personality *
+            GetAdaptiveAggressionFactor());
+    }
+
+    private float GetMinimumTradeValueRatio()
+    {
+        BoardEconomyProfile economy =
+            ResolveEconomyProfile();
+
+        float baseRatio =
+            economy != null
+                ? economy.BotMinimumTradeValueRatio
+                : minimumTradeValueRatio;
+
+        float personality =
+            personalityProfile != null
+                ? personalityProfile
+                    .TradeAcceptanceRatioMultiplier
+                : 1f;
+
+        float adaptive =
+            GetAdaptiveAggressionFactor();
+
+        return Mathf.Clamp(
+            baseRatio *
+            personality /
+            Mathf.Sqrt(
+                Mathf.Max(0.5f, adaptive)),
+            0.65f,
+            1.40f);
+    }
+
+    private float GetGroupCompletionFocus()
+    {
+        return personalityProfile != null
+            ? personalityProfile.GroupCompletionFocus
+            : 1f;
+    }
+
+    private float GetOutgoingTradeOfferMultiplier(
+        bool completesGroup)
+    {
+        BoardEconomyProfile economy =
+            ResolveEconomyProfile();
+
+        float baseMultiplier;
+
+        if (economy != null)
+        {
+            baseMultiplier =
+                completesGroup
+                    ? economy
+                        .BotGroupCompletionOfferMultiplier
+                    : economy
+                        .BotGeneralPropertyOfferMultiplier;
+        }
+        else
+        {
+            baseMultiplier =
+                completesGroup
+                    ? 1f +
+                      groupCompletionOfferPremium
+                    : generalPropertyOfferMultiplier;
+        }
+
+        if (completesGroup)
+        {
+            baseMultiplier =
+                1f +
+                (baseMultiplier - 1f) *
+                GetGroupCompletionFocus();
+        }
+
+        return Mathf.Clamp(
+            baseMultiplier *
+            Mathf.Lerp(
+                1f,
+                GetPurchaseWillingness(),
+                0.35f),
+            0.50f,
+            1.75f);
+    }
+
+    private float GetTravelWillingness()
+    {
+        float personality =
+            personalityProfile != null
+                ? personalityProfile
+                    .TravelWillingness
+                : 1f;
+
+        return Mathf.Clamp(
+            personality *
+            Mathf.Lerp(
+                1f,
+                GetAdaptiveAggressionFactor(),
+                0.35f),
+            0.50f,
+            1.50f);
     }
 
     private bool CanStillPlay()

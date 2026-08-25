@@ -1,0 +1,11 @@
+Asset: Suburban Garden HDRI
+Provider: Poly Haven
+Authors: Dimitrios Savva (Photography); Jarod Guest (Processing)
+Source: https://polyhaven.com/a/suburban_garden
+License: Creative Commons CC0 1.0 / Public Domain Dedication
+Commercial use: Yes
+Modification: Yes
+Attribution required: No
+Downloaded: 2026-08-24
+Intended AtlasBoard use: Theme_Garden skybox / environment lighting
+Notes: Keep a copy of this record with the project. Poly Haven states that its assets are CC0 and may be used commercially without attribution.

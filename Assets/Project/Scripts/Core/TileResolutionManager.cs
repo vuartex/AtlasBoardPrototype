@@ -754,23 +754,23 @@ public class TileResolutionManager : MonoBehaviour
                 return;
 
             case TileType.Tax:
-                ResolveTaxTile(player);
+                ResolveTaxTile(player, tile);
                 return;
 
             case TileType.Bonus:
-                ResolveBonusTile(player);
+                ResolveBonusTile(player, tile);
                 return;
 
             case TileType.RestArea:
-                ResolveRestAreaTile(player);
+                ResolveRestAreaTile(player, tile);
                 return;
 
             case TileType.Vacation:
-                ResolveVacationTile(player);
+                ResolveVacationTile(player, tile);
                 return;
 
             case TileType.Travel:
-                ResolveTravelTile(player);
+                ResolveTravelTile(player, tile);
                 return;
 
             case TileType.Auction:
@@ -805,7 +805,9 @@ public class TileResolutionManager : MonoBehaviour
             CompleteResolution);
     }
 
-    private void ResolveTaxTile(PlayerGameState player)
+    private void ResolveTaxTile(
+        PlayerGameState player,
+        BoardTile tile)
     {
         if (specialTileManager == null)
         {
@@ -819,7 +821,7 @@ public class TileResolutionManager : MonoBehaviour
 
         int amount =
             GetSpecialTileValue(
-                pendingTile,
+                tile,
                 ResolveEconomyProfile()?.TaxAmount ??
                 taxAmount);
 
@@ -832,7 +834,9 @@ public class TileResolutionManager : MonoBehaviour
             CompleteResolution);
     }
 
-    private void ResolveBonusTile(PlayerGameState player)
+    private void ResolveBonusTile(
+        PlayerGameState player,
+        BoardTile tile)
     {
         if (specialTileManager == null)
         {
@@ -846,7 +850,7 @@ public class TileResolutionManager : MonoBehaviour
 
         int amount =
             GetSpecialTileValue(
-                pendingTile,
+                tile,
                 ResolveEconomyProfile()?.BonusAmount ??
                 bonusAmount);
 
@@ -858,11 +862,13 @@ public class TileResolutionManager : MonoBehaviour
             CompleteResolution);
     }
 
-    private void ResolveRestAreaTile(PlayerGameState player)
+    private void ResolveRestAreaTile(
+        PlayerGameState player,
+        BoardTile tile)
     {
         int turnsToSkip =
             GetSpecialTileValue(
-                pendingTile,
+                tile,
                 ResolveEconomyProfile()
                     ?.RestAreaTurnsToSkip ??
                 restAreaTurnsToSkip);
@@ -892,7 +898,9 @@ public class TileResolutionManager : MonoBehaviour
             CompleteResolution);
     }
 
-    private void ResolveVacationTile(PlayerGameState player)
+    private void ResolveVacationTile(
+        PlayerGameState player,
+        BoardTile tile)
     {
         if (specialTileManager == null)
         {
@@ -906,7 +914,7 @@ public class TileResolutionManager : MonoBehaviour
 
         int amount =
             GetSpecialTileValue(
-                pendingTile,
+                tile,
                 ResolveEconomyProfile()
                     ?.VacationBonusAmount ??
                 vacationBonusAmount);
@@ -919,7 +927,9 @@ public class TileResolutionManager : MonoBehaviour
             CompleteResolution);
     }
 
-    private void ResolveTravelTile(PlayerGameState player)
+    private void ResolveTravelTile(
+        PlayerGameState player,
+        BoardTile tile)
     {
         if (boardPath == null)
         {
@@ -967,7 +977,7 @@ public class TileResolutionManager : MonoBehaviour
 
         pendingTravelFee =
             GetSpecialTileValue(
-                pendingTile,
+                tile,
                 activeEconomy?.TravelFee ?? 0);
 
         int startReward =

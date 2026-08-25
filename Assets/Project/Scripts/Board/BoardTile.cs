@@ -12,6 +12,9 @@ public class BoardTile : MonoBehaviour
     [SerializeField]
     private string displayName;
 
+    [SerializeField]
+    private string boardDisplayName;
+
     [Header("Map Data")]
     [SerializeField]
     private string description;
@@ -24,6 +27,9 @@ public class BoardTile : MonoBehaviour
 
     [SerializeField]
     private string groupDisplayName;
+
+    [SerializeField]
+    private Color groupColor = Color.clear;
 
     [SerializeField]
     private int specialValueOverride;
@@ -55,11 +61,18 @@ public class BoardTile : MonoBehaviour
     public int TileIndex => tileIndex;
     public TileType TileType => tileType;
     public string DisplayName => displayName;
+    public string BoardDisplayName =>
+        string.IsNullOrWhiteSpace(
+            boardDisplayName)
+            ? displayName
+            : boardDisplayName;
     public string Description => description;
     public string PropertyId => propertyId;
     public string GroupId => groupId;
     public string GroupDisplayName =>
         groupDisplayName;
+    public Color GroupColor =>
+        groupColor;
     public int SpecialValueOverride =>
         specialValueOverride;
 
@@ -109,6 +122,9 @@ public class BoardTile : MonoBehaviour
         displayName =
             definition.DisplayName;
 
+        boardDisplayName =
+            definition.BoardDisplayName;
+
         description =
             definition.Description;
 
@@ -120,6 +136,9 @@ public class BoardTile : MonoBehaviour
 
         groupDisplayName =
             definition.GroupDisplayName;
+
+        groupColor =
+            definition.GroupColor;
 
         purchasable =
             definition.IsProperty;
@@ -143,6 +162,8 @@ public class BoardTile : MonoBehaviour
             definition.SpecialValueOverride;
 
         ownerPlayerIndex = -1;
+
+        RefreshVisualPresentation();
     }
 
     // Legacy-compatible overload. Existing scripts that still call
@@ -162,11 +183,13 @@ public class BoardTile : MonoBehaviour
         tileIndex = index;
         tileType = type;
         displayName = newDisplayName;
+        boardDisplayName = newDisplayName;
 
         description = string.Empty;
         propertyId = string.Empty;
         groupId = string.Empty;
         groupDisplayName = string.Empty;
+        groupColor = Color.clear;
         specialValueOverride = 0;
 
         purchasable = canBePurchased;
@@ -183,6 +206,24 @@ public class BoardTile : MonoBehaviour
 
         developmentCost = 0;
         ownerPlayerIndex = -1;
+
+        RefreshVisualPresentation();
+    }
+
+    public void RefreshVisualPresentation()
+    {
+        BoardTileVisualPresenter presenter =
+            GetComponent<
+                BoardTileVisualPresenter>();
+
+        if (presenter == null)
+        {
+            presenter =
+                gameObject.AddComponent<
+                    BoardTileVisualPresenter>();
+        }
+
+        presenter.RefreshVisuals();
     }
 
     public bool TrySetOwner(
