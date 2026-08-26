@@ -328,16 +328,17 @@ public class PropertyDevelopmentManager : MonoBehaviour
                     GetGroupIndex(tile));
 
             return
-                "Dengeli geliştirme kuralı: " +
-                $"Önce bölgedeki Seviye {minimumLevel} " +
-                "mülklerden birini geliştir.";
+                AtlasBoardL.T(
+                    "development.balanced_rule",
+                    minimumLevel);
         }
 
         if (player.CurrentMoney <
             GetDevelopmentCost(tile))
         {
             return
-                "Bu geliştirme için bakiye yetersiz.";
+                AtlasBoardL.T(
+                    "development.insufficient_balance");
         }
 
         return string.Empty;
@@ -551,7 +552,8 @@ public class PropertyDevelopmentManager : MonoBehaviour
     {
         if (tile == null)
         {
-            return "Bilinmeyen Bölge";
+            return AtlasBoardL.T(
+                "development.unknown_group");
         }
 
         if (!string.IsNullOrWhiteSpace(
@@ -564,8 +566,11 @@ public class PropertyDevelopmentManager : MonoBehaviour
             GetGroupIndex(tile);
 
         return groupIndex >= 0
-            ? $"Bölge {groupIndex + 1}"
-            : "Bilinmeyen Bölge";
+            ? AtlasBoardL.T(
+                "development.group_number",
+                groupIndex + 1)
+            : AtlasBoardL.T(
+                "development.unknown_group");
     }
 
     public bool HasCompleteGroup(

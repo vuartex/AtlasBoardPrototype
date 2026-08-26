@@ -45,7 +45,25 @@ public class TabletUIManager : MonoBehaviour
 
     private void Awake()
     {
+        AtlasBoardLocalizationManager.LanguageChanged +=
+            HandleLanguageChanged;
+
         HideTabletShell();
+    }
+
+    private void OnDestroy()
+    {
+        AtlasBoardLocalizationManager.LanguageChanged -=
+            HandleLanguageChanged;
+    }
+
+    private void HandleLanguageChanged()
+    {
+        if (currentPanel != null)
+        {
+            UpdateTabletTitle(
+                currentPanel);
+        }
     }
 
     private void LateUpdate()
@@ -63,8 +81,12 @@ public class TabletUIManager : MonoBehaviour
         if (currentPanel != requestedPanel)
         {
             currentPanel = requestedPanel;
-            UpdateTabletTitle(currentPanel);
         }
+
+        // Several gameplay managers still write to panel/header text.
+        // Re-assert the localized tablet title every frame while a panel is open.
+        UpdateTabletTitle(
+            currentPanel);
 
         ShowTabletShell();
     }
@@ -166,55 +188,55 @@ public class TabletUIManager : MonoBehaviour
 
         if (panel == purchasePanel)
         {
-            tabletTitleText.text = "MÜLK";
+            tabletTitleText.text = AtlasBoardL.T("tablet.property");
             return;
         }
 
         if (panel == auctionPanel)
         {
-            tabletTitleText.text = "AÇIK ARTIRMA";
+            tabletTitleText.text = AtlasBoardL.T("tablet.auction");
             return;
         }
 
         if (panel == tradePanel)
         {
-            tabletTitleText.text = "TAKAS";
+            tabletTitleText.text = AtlasBoardL.T("tablet.trade");
             return;
         }
 
         if (panel == eventPanel)
         {
-            tabletTitleText.text = "ETKİNLİK";
+            tabletTitleText.text = AtlasBoardL.T("tablet.event");
             return;
         }
 
         if (panel == specialResultPanel)
         {
-            tabletTitleText.text = "SONUÇ";
+            tabletTitleText.text = AtlasBoardL.T("tablet.result");
             return;
         }
 
         if (panel == doublesPenaltyPanel)
         {
-            tabletTitleText.text = "CEZA";
+            tabletTitleText.text = AtlasBoardL.T("tablet.penalty");
             return;
         }
 
         if (panel == travelPanel)
         {
-            tabletTitleText.text = "SEYAHAT";
+            tabletTitleText.text = AtlasBoardL.T("tablet.travel");
             return;
         }
 
         if (panel == developmentPanel)
         {
-            tabletTitleText.text = "GELİŞTİRME";
+            tabletTitleText.text = AtlasBoardL.T("tablet.development");
             return;
         }
 
         if (panel == matchResultPanel)
         {
-            tabletTitleText.text = "MAÇ SONUCU";
+            tabletTitleText.text = AtlasBoardL.T("tablet.match_result");
             return;
         }
 

@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1fdafee4c8b7a3408b43ba536ff1885, type: 3}
+  m_Name: event_negative_refunds
+  m_EditorClassIdentifier: Assembly-CSharp::EventCardDefinition
+  cardId: event_negative_refunds
+  category: 1
+  enabledCard: 1
+  weight: 8
+  title: "\u0130ade Dalgas\u0131"
+  description: "Ayn\u0131 anda birka\xE7 geri \xF6deme yapmak zorunda kald\u0131n."
+  requiredMapId: 
+  effectType: 0
+  effectAmount: -160
+  targetTileType: 8

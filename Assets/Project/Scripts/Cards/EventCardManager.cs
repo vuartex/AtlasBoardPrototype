@@ -84,6 +84,9 @@ public class EventCardManager : MonoBehaviour
 
     private void Start()
     {
+        AtlasBoardLocalizationManager.LanguageChanged +=
+            HandleLanguageChanged;
+
         EnsureReferences();
 
         if (eventPanel != null)
@@ -94,6 +97,33 @@ public class EventCardManager : MonoBehaviour
         if (continueButton != null)
         {
             continueButton.interactable = true;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        AtlasBoardLocalizationManager.LanguageChanged -=
+            HandleLanguageChanged;
+    }
+
+    private void HandleLanguageChanged()
+    {
+        if (!isResolvingEvent ||
+            currentCard == null)
+        {
+            return;
+        }
+
+        if (eventTitleText != null)
+        {
+            eventTitleText.text =
+                currentCard.Title;
+        }
+
+        if (eventDescriptionText != null)
+        {
+            eventDescriptionText.text =
+                currentCard.Description;
         }
     }
 
@@ -155,7 +185,8 @@ public class EventCardManager : MonoBehaviour
         if (eventResultText != null)
         {
             eventResultText.text =
-                "Kart uygulanıyor...";
+                AtlasBoardL.T(
+                    "event.applying");
         }
 
         if (eventPanel != null)
@@ -227,7 +258,8 @@ public class EventCardManager : MonoBehaviour
 
             default:
                 FinishEffectExecution(
-                    "Etki uygulanmadı.");
+                    AtlasBoardL.T(
+                        "event.effect_none"));
                 break;
         }
     }
@@ -266,7 +298,7 @@ public class EventCardManager : MonoBehaviour
                                 player,
                                 null,
                                 requestedLoss,
-                                $"Event card: {card.Title}");
+                                $"Event card: {card.CardId}");
 
                 appliedMoneyChange =
                     -result.AmountPaid;
@@ -297,11 +329,11 @@ public class EventCardManager : MonoBehaviour
         if (causedBankruptcy)
         {
             resultText =
-                "İFLAS\n" +
-                $"Ödenen: " +
-                $"{Mathf.Abs(appliedMoneyChange)} ₵\n" +
-                $"Devredilen/boşa çıkan mülk: " +
-                $"{transferredProperties}";
+                AtlasBoardL.T(
+                    "event.bankrupt_result",
+                    Mathf.Abs(
+                        appliedMoneyChange),
+                    transferredProperties);
         }
         else if (appliedMoneyChange > 0)
         {
@@ -316,7 +348,8 @@ public class EventCardManager : MonoBehaviour
         else
         {
             resultText =
-                "Para değişmedi";
+                AtlasBoardL.T(
+                    "event.money_no_change");
         }
 
         Debug.Log(
@@ -351,9 +384,11 @@ public class EventCardManager : MonoBehaviour
 
         FinishEffectExecution(
             turns == 1
-                ? "Sonraki turunu atlayacaksın."
-                : $"Sonraki {turns} turunu " +
-                  "atlayacaksın.");
+                ? AtlasBoardL.T(
+                    "event.skip_one")
+                : AtlasBoardL.T(
+                    "event.skip_many",
+                    turns));
     }
 
     private void ApplyMoveForwardEffect(
@@ -377,7 +412,8 @@ public class EventCardManager : MonoBehaviour
             boardPath.TileCount == 0)
         {
             FinishEffectExecution(
-                "Hareket uygulanamadı.");
+                AtlasBoardL.T(
+                    "event.move_failed"));
             return;
         }
 
@@ -392,11 +428,20 @@ public class EventCardManager : MonoBehaviour
 
         if (eventResultText != null)
         {
+            string targetSuffix =
+                targetTile != null
+                    ? AtlasBoardL.T(
+                        "event.move_target_suffix",
+                        AtlasBoardL.TileName(
+                            targetTile.TileType,
+                            targetTile.DisplayName))
+                    : string.Empty;
+
             eventResultText.text =
-                $"{spaces} kare ilerliyorsun" +
-                (targetTile != null
-                    ? $": {targetTile.DisplayName}"
-                    : string.Empty);
+                AtlasBoardL.T(
+                    "event.move_progress",
+                    spaces,
+                    targetSuffix);
         }
 
         bool started =
@@ -410,9 +455,15 @@ public class EventCardManager : MonoBehaviour
 
                     string result =
                         landedTile != null
-                            ? $"{spaces} kare ilerledin: " +
-                              $"{landedTile.DisplayName}"
-                            : $"{spaces} kare ilerledin.";
+                            ? AtlasBoardL.T(
+                                "event.move_done_tile",
+                                spaces,
+                                AtlasBoardL.TileName(
+                                    landedTile.TileType,
+                                    landedTile.DisplayName))
+                            : AtlasBoardL.T(
+                                "event.move_done",
+                                spaces);
 
                     Debug.Log(
                         $"{player.DisplayName} drew event card " +
@@ -427,7 +478,8 @@ public class EventCardManager : MonoBehaviour
         if (!started)
         {
             FinishEffectExecution(
-                "Hareket uygulanamadı.");
+                AtlasBoardL.T(
+                    "event.move_failed"));
         }
     }
 
@@ -446,7 +498,8 @@ public class EventCardManager : MonoBehaviour
             boardPath.TileCount == 0)
         {
             FinishEffectExecution(
-                "Hareket uygulanamadı.");
+                AtlasBoardL.T(
+                    "event.move_failed"));
             return;
         }
 
@@ -458,7 +511,8 @@ public class EventCardManager : MonoBehaviour
         if (targetIndex < 0)
         {
             FinishEffectExecution(
-                "Uygun hedef bulunamadı.");
+                AtlasBoardL.T(
+                    "event.target_not_found"));
             return;
         }
 
@@ -470,9 +524,13 @@ public class EventCardManager : MonoBehaviour
         {
             eventResultText.text =
                 targetTile != null
-                    ? $"{targetTile.DisplayName} konumuna " +
-                      "ilerliyorsun."
-                    : "Hedef konuma ilerliyorsun.";
+                    ? AtlasBoardL.T(
+                        "event.target_moving_tile",
+                        AtlasBoardL.TileName(
+                            targetTile.TileType,
+                            targetTile.DisplayName))
+                    : AtlasBoardL.T(
+                        "event.target_moving");
         }
 
         bool started =
@@ -486,9 +544,13 @@ public class EventCardManager : MonoBehaviour
 
                     string result =
                         landedTile != null
-                            ? $"{landedTile.DisplayName} " +
-                              "konumuna ilerledin."
-                            : "Hedef konuma ilerledin.";
+                            ? AtlasBoardL.T(
+                                "event.target_done_tile",
+                                AtlasBoardL.TileName(
+                                    landedTile.TileType,
+                                    landedTile.DisplayName))
+                            : AtlasBoardL.T(
+                                "event.target_done");
 
                     Debug.Log(
                         $"{player.DisplayName} drew event card " +
@@ -503,7 +565,8 @@ public class EventCardManager : MonoBehaviour
         if (!started)
         {
             FinishEffectExecution(
-                "Hareket uygulanamadı.");
+                AtlasBoardL.T(
+                    "event.move_failed"));
         }
     }
 

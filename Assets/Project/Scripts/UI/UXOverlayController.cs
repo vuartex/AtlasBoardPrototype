@@ -440,7 +440,9 @@ public class UXOverlayController : MonoBehaviour
             turnManager.CurrentPlayerState != null)
         {
             source =
-                $"{turnManager.CurrentPlayerState.DisplayName} oynuyor";
+                AtlasBoardL.T(
+                    "turn.playing",
+                    turnManager.CurrentPlayerState.DisplayName);
         }
 
         if (force ||

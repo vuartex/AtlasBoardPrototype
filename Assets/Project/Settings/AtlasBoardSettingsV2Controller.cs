@@ -44,6 +44,8 @@ public class AtlasBoardSettingsV2Controller : MonoBehaviour
 
     private Toggle muteToggle;
 
+    private TMP_Dropdown languageDropdown;
+
     private Slider cameraSlider;
     private Slider zoomSlider;
     private Slider panSlider;
@@ -114,9 +116,6 @@ public class AtlasBoardSettingsV2Controller : MonoBehaviour
         ResolveReferences();
         HookControls();
         BuildResolutionOptions();
-
-        AtlasBoardAudioManager.Instance
-            ?.PlayUiOpen();
 
         savedUserSettings =
             AtlasBoardUserSettingsStore.Load();
@@ -203,6 +202,9 @@ public class AtlasBoardSettingsV2Controller : MonoBehaviour
         HookControls();
         BuildResolutionOptions();
 
+        AtlasBoardAudioManager.Instance
+            ?.PlayUiOpen();
+
         savedUserSettings =
             AtlasBoardUserSettingsStore.Load();
 
@@ -248,6 +250,10 @@ public class AtlasBoardSettingsV2Controller : MonoBehaviour
         AtlasBoardUserSettingsRuntime.SetCurrent(
             user);
 
+        AtlasBoardLocalizationManager.Instance
+            ?.SetLanguage(
+                user.LanguageCode);
+
         ApplyAudioSettings(
             audio,
             user.AudioMuted);
@@ -265,6 +271,10 @@ public class AtlasBoardSettingsV2Controller : MonoBehaviour
             savedAudioSettings,
             savedUserSettings.AudioMuted);
 
+        AtlasBoardLocalizationManager.Instance
+            ?.SetLanguage(
+                savedUserSettings.LanguageCode);
+
         CloseInternal();
     }
 
@@ -279,6 +289,10 @@ public class AtlasBoardSettingsV2Controller : MonoBehaviour
         PopulateUi(
             userDefaults,
             audioDefaults);
+
+        AtlasBoardLocalizationManager.Instance
+            ?.SetLanguage(
+                userDefaults.LanguageCode);
 
         ApplyAudioSettings(
             audioDefaults,
@@ -412,6 +426,10 @@ public class AtlasBoardSettingsV2Controller : MonoBehaviour
         muteToggle =
             FindToggle(
                 "Toggle_Mute");
+
+        languageDropdown =
+            FindDropdown(
+                "Dropdown_Language");
 
         cameraSlider =
             FindSlider(
@@ -600,6 +618,12 @@ public class AtlasBoardSettingsV2Controller : MonoBehaviour
                 });
         }
 
+        if (languageDropdown != null)
+        {
+            languageDropdown.onValueChanged.AddListener(
+                OnLanguageDropdownChanged);
+        }
+
         AddPercentRefreshListener(
             cameraSlider,
             cameraValueText);
@@ -706,6 +730,9 @@ public class AtlasBoardSettingsV2Controller : MonoBehaviour
             muteToggle.SetIsOnWithoutNotify(
                 user.AudioMuted);
         }
+
+        SetLanguageDropdown(
+            user.LanguageCode);
 
         SetPercentSlider(
             cameraSlider,
@@ -870,6 +897,10 @@ public class AtlasBoardSettingsV2Controller : MonoBehaviour
             ReadToggle(
                 showFpsToggle,
                 values.Graphics.ShowFps);
+
+        values.LanguageCode =
+            GetSelectedLanguageCode(
+                values.LanguageCode);
 
         values.Gameplay.CameraSensitivity =
             ReadPercent(
@@ -1229,6 +1260,63 @@ public class AtlasBoardSettingsV2Controller : MonoBehaviour
             .RefreshShownValue();
     }
 
+    private void OnLanguageDropdownChanged(
+        int index)
+    {
+        string code =
+            AtlasBoardLocalizationLanguages.Codes[
+                Mathf.Clamp(
+                    index,
+                    0,
+                    AtlasBoardLocalizationLanguages.Codes.Length - 1)];
+
+        AtlasBoardLocalizationManager.Instance
+            ?.SetLanguage(
+                code);
+
+        RefreshCurrentResolutionLabel();
+    }
+
+    private void SetLanguageDropdown(
+        string languageCode)
+    {
+        if (languageDropdown == null)
+        {
+            return;
+        }
+
+        languageDropdown.ClearOptions();
+
+        languageDropdown.AddOptions(
+            new List<string>(
+                AtlasBoardLocalizationLanguages.NativeNames));
+
+        languageDropdown.SetValueWithoutNotify(
+            AtlasBoardLocalizationLanguages.IndexOf(
+                languageCode));
+
+        languageDropdown.RefreshShownValue();
+    }
+
+    private string GetSelectedLanguageCode(
+        string fallback)
+    {
+        if (languageDropdown == null)
+        {
+            return AtlasBoardLocalizationLanguages.Normalize(
+                fallback);
+        }
+
+        int index =
+            Mathf.Clamp(
+                languageDropdown.value,
+                0,
+                AtlasBoardLocalizationLanguages.Codes.Length - 1);
+
+        return AtlasBoardLocalizationLanguages.Codes[
+            index];
+    }
+
     private void SetFpsDropdown(
         int fps)
     {
@@ -1337,8 +1425,18 @@ public class AtlasBoardSettingsV2Controller : MonoBehaviour
 
         currentResolutionText.text =
             Application.isEditor
-                ? $"Current Game View: {Screen.width} x {Screen.height}  •  Display {current.width} x {current.height} @ {hz} Hz"
-                : $"Current: {Screen.width} x {Screen.height} @ {hz} Hz";
+                ? AtlasBoardL.T(
+                    "settings.current_editor",
+                    Screen.width,
+                    Screen.height,
+                    current.width,
+                    current.height,
+                    hz)
+                : AtlasBoardL.T(
+                    "settings.current_build",
+                    Screen.width,
+                    Screen.height,
+                    hz);
     }
 
     private void RefreshAudioValueLabels()

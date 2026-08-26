@@ -155,6 +155,9 @@ public class TileResolutionManager : MonoBehaviour
 
     private void Start()
     {
+        AtlasBoardLocalizationManager.LanguageChanged +=
+            HandleLanguageChanged;
+
         if (!ValidatePlayerConfiguration())
         {
             enabled = false;
@@ -217,7 +220,35 @@ public class TileResolutionManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        AtlasBoardLocalizationManager.LanguageChanged -=
+            HandleLanguageChanged;
+
         UnsubscribeFromMoneyChanges();
+    }
+
+    private void HandleLanguageChanged()
+    {
+        if (purchasePanel != null &&
+            purchasePanel.activeSelf &&
+            pendingTile != null)
+        {
+            RefreshPendingPurchaseText();
+        }
+    }
+
+    private void RefreshPendingPurchaseText()
+    {
+        if (purchaseInfoText == null ||
+            pendingTile == null)
+        {
+            return;
+        }
+
+        purchaseInfoText.text =
+            AtlasBoardL.T(
+                "purchase.prompt",
+                pendingTile.DisplayName,
+                pendingTile.PurchasePrice);
     }
 
     public void ResolveTile(
@@ -594,9 +625,10 @@ public class TileResolutionManager : MonoBehaviour
             if (purchaseInfoText != null)
             {
                 purchaseInfoText.text =
-                    $"{tile.DisplayName}\n" +
-                    $"Fiyat: {tile.PurchasePrice} ₵\n" +
-                    "Satın almak istiyor musun?";
+                    AtlasBoardL.T(
+                        "purchase.prompt",
+                        tile.DisplayName,
+                        tile.PurchasePrice);
             }
 
             if (purchasePanel != null)
@@ -707,24 +739,28 @@ public class TileResolutionManager : MonoBehaviour
         }
 
         string bankruptcyDescription =
-            $"{player.DisplayName}, " +
-            $"{tile.DisplayName} için gereken " +
-            $"{payment.AmountDue} ₵ kirayı " +
-            "ödeyemedi. Kalan nakit ve mülkler " +
-            $"{owner.DisplayName} hesabına aktarıldı.";
+            AtlasBoardL.T(
+                "rent.bankrupt.description",
+                AtlasBoardL.PlayerName(
+                    player),
+                tile.DisplayName,
+                payment.AmountDue,
+                AtlasBoardL.PlayerName(
+                    owner));
 
         string bankruptcyResult =
-            $"Ödenen: {payment.AmountPaid} ₵\n" +
-            $"Karşılanamayan: " +
-            $"{payment.UnpaidAmount} ₵\n" +
-            $"Devredilen mülk: " +
-            $"{payment.TransferredPropertyCount}";
+            AtlasBoardL.T(
+                "rent.bankrupt.result",
+                payment.AmountPaid,
+                payment.UnpaidAmount,
+                payment.TransferredPropertyCount);
 
         if (specialTileManager != null)
         {
             specialTileManager.ShowResultMessage(
                 player,
-                "İFLAS",
+                AtlasBoardL.T(
+                    "rent.bankrupt.title"),
                 bankruptcyDescription,
                 bankruptcyResult,
                 CompleteResolution);
@@ -754,23 +790,23 @@ public class TileResolutionManager : MonoBehaviour
                 return;
 
             case TileType.Tax:
-                ResolveTaxTile(player, tile);
+                ResolveTaxTile(player);
                 return;
 
             case TileType.Bonus:
-                ResolveBonusTile(player, tile);
+                ResolveBonusTile(player);
                 return;
 
             case TileType.RestArea:
-                ResolveRestAreaTile(player, tile);
+                ResolveRestAreaTile(player);
                 return;
 
             case TileType.Vacation:
-                ResolveVacationTile(player, tile);
+                ResolveVacationTile(player);
                 return;
 
             case TileType.Travel:
-                ResolveTravelTile(player, tile);
+                ResolveTravelTile(player);
                 return;
 
             case TileType.Auction:
@@ -805,9 +841,7 @@ public class TileResolutionManager : MonoBehaviour
             CompleteResolution);
     }
 
-    private void ResolveTaxTile(
-        PlayerGameState player,
-        BoardTile tile)
+    private void ResolveTaxTile(PlayerGameState player)
     {
         if (specialTileManager == null)
         {
@@ -821,22 +855,21 @@ public class TileResolutionManager : MonoBehaviour
 
         int amount =
             GetSpecialTileValue(
-                tile,
+                pendingTile,
                 ResolveEconomyProfile()?.TaxAmount ??
                 taxAmount);
 
         specialTileManager.ResolveMoneyEffect(
             player,
-            "Vergi Ödemesi",
-            "İşletme giderleri ve yerel vergileri " +
-            "ödemen gerekiyor.",
+            AtlasBoardL.T(
+                "special.tax.title"),
+            AtlasBoardL.T(
+                "special.tax.description"),
             -amount,
             CompleteResolution);
     }
 
-    private void ResolveBonusTile(
-        PlayerGameState player,
-        BoardTile tile)
+    private void ResolveBonusTile(PlayerGameState player)
     {
         if (specialTileManager == null)
         {
@@ -850,25 +883,25 @@ public class TileResolutionManager : MonoBehaviour
 
         int amount =
             GetSpecialTileValue(
-                tile,
+                pendingTile,
                 ResolveEconomyProfile()?.BonusAmount ??
                 bonusAmount);
 
         specialTileManager.ResolveMoneyEffect(
             player,
-            "Bölge Bonusu",
-            "Yerel ticaret desteğinden bonus kazandın.",
+            AtlasBoardL.T(
+                "special.bonus.title"),
+            AtlasBoardL.T(
+                "special.bonus.description"),
             amount,
             CompleteResolution);
     }
 
-    private void ResolveRestAreaTile(
-        PlayerGameState player,
-        BoardTile tile)
+    private void ResolveRestAreaTile(PlayerGameState player)
     {
         int turnsToSkip =
             GetSpecialTileValue(
-                tile,
+                pendingTile,
                 ResolveEconomyProfile()
                     ?.RestAreaTurnsToSkip ??
                 restAreaTurnsToSkip);
@@ -892,15 +925,19 @@ public class TileResolutionManager : MonoBehaviour
 
         specialTileManager.ResolveMoneyEffect(
             player,
-            "Dinlenme Alanı",
-            $"Bir sonraki {turnsToSkip} turunu atlayacaksın.",
+            AtlasBoardL.T(
+                "special.rest.title"),
+            turnsToSkip == 1
+                ? AtlasBoardL.T(
+                    "special.rest.skip_one")
+                : AtlasBoardL.T(
+                    "special.rest.skip_many",
+                    turnsToSkip),
             0,
             CompleteResolution);
     }
 
-    private void ResolveVacationTile(
-        PlayerGameState player,
-        BoardTile tile)
+    private void ResolveVacationTile(PlayerGameState player)
     {
         if (specialTileManager == null)
         {
@@ -914,22 +951,22 @@ public class TileResolutionManager : MonoBehaviour
 
         int amount =
             GetSpecialTileValue(
-                tile,
+                pendingTile,
                 ResolveEconomyProfile()
                     ?.VacationBonusAmount ??
                 vacationBonusAmount);
 
         specialTileManager.ResolveMoneyEffect(
             player,
-            "Tatil Bölgesi",
-            "Tatil etkinliğinden ek gelir kazandın.",
+            AtlasBoardL.T(
+                "special.vacation.title"),
+            AtlasBoardL.T(
+                "special.vacation.description"),
             amount,
             CompleteResolution);
     }
 
-    private void ResolveTravelTile(
-        PlayerGameState player,
-        BoardTile tile)
+    private void ResolveTravelTile(PlayerGameState player)
     {
         if (boardPath == null)
         {
@@ -977,7 +1014,7 @@ public class TileResolutionManager : MonoBehaviour
 
         pendingTravelFee =
             GetSpecialTileValue(
-                tile,
+                pendingTile,
                 activeEconomy?.TravelFee ?? 0);
 
         int startReward =
@@ -987,26 +1024,43 @@ public class TileResolutionManager : MonoBehaviour
         {
             string feeLine =
                 pendingTravelFee > 0
-                    ? $"Seyahat ücreti: " +
-                      $"{pendingTravelFee} ₵\n"
-                    : "Seyahat ücreti: Ücretsiz\n";
+                    ? AtlasBoardL.T(
+                        "special.travel.fee",
+                        pendingTravelFee)
+                    : AtlasBoardL.T(
+                        "special.travel.free");
 
             string affordabilityLine =
                 pendingTravelFee > 0 &&
                 player.CurrentMoney <
                     pendingTravelFee
-                    ? "\nBakiye yetersiz: " +
-                      "seyahat edemezsin."
+                    ? "\n\n" +
+                      AtlasBoardL.T(
+                          "special.travel.insufficient")
                     : string.Empty;
 
+            string targetName =
+                AtlasBoardL.TileName(
+                    targetTile.TileType,
+                    targetTile.DisplayName);
+
             travelInfoText.text =
-                "SEYAHAT MERKEZİ\n\n" +
-                "En yakın Etkinlik karesine gitmek ister misin?\n" +
-                $"Hedef: {targetTile.DisplayName}\n" +
-                $"{feeLine}\n" +
-                $"Başlangıçtan geçersen +" +
-                $"{startReward} ₵ kazanırsın." +
-                $"{affordabilityLine}";
+                AtlasBoardL.T(
+                    "special.travel.center") +
+                "\n\n" +
+                AtlasBoardL.T(
+                    "special.travel.question") +
+                "\n" +
+                AtlasBoardL.T(
+                    "special.travel.target",
+                    targetName) +
+                "\n" +
+                feeLine +
+                "\n\n" +
+                AtlasBoardL.T(
+                    "special.travel.start_reward",
+                    startReward) +
+                affordabilityLine;
         }
 
         if (travelPanel != null)
@@ -1128,26 +1182,46 @@ public class TileResolutionManager : MonoBehaviour
             string ruleLine =
                 propertyDevelopmentManager
                     .RequireBalancedGroupDevelopment
-                    ? $"Bölge seviyeleri: {groupLevels}\n"
+                    ? AtlasBoardL.T(
+                        "development.group_levels",
+                        groupLevels) +
+                      "\n"
                     : string.Empty;
 
             string reasonLine =
                 !string.IsNullOrEmpty(blockReason)
-                    ? $"\n{blockReason}"
+                    ? "\n" +
+                      blockReason
                     : string.Empty;
 
             developmentInfoText.text =
-                $"{pendingDevelopmentTile.DisplayName}\n" +
-                $"{groupName} tamamlandı\n" +
-                $"Seviye: {currentLevel}/" +
-                $"{propertyDevelopmentManager.MaximumDevelopmentLevel}\n" +
-                $"{ruleLine}" +
-                $"Kira: {currentRent} ₵ → " +
-                $"{nextRent} ₵\n" +
-                $"Geliştirme maliyeti: {cost} ₵\n" +
-                $"Bakiye: " +
-                $"{pendingDevelopmentPlayer.CurrentMoney} ₵" +
-                $"{reasonLine}";
+                pendingDevelopmentTile.DisplayName +
+                "\n" +
+                AtlasBoardL.T(
+                    "development.group_complete",
+                    groupName) +
+                "\n" +
+                AtlasBoardL.T(
+                    "development.level",
+                    currentLevel,
+                    propertyDevelopmentManager
+                        .MaximumDevelopmentLevel) +
+                "\n" +
+                ruleLine +
+                AtlasBoardL.T(
+                    "development.rent",
+                    currentRent,
+                    nextRent) +
+                "\n" +
+                AtlasBoardL.T(
+                    "development.cost",
+                    cost) +
+                "\n" +
+                AtlasBoardL.T(
+                    "development.balance",
+                    pendingDevelopmentPlayer
+                        .CurrentMoney) +
+                reasonLine;
         }
 
         bool humanCanControl =
@@ -1469,10 +1543,18 @@ public class TileResolutionManager : MonoBehaviour
                 builder.AppendLine();
             }
 
+            string playerName =
+                AtlasBoardL.PlayerName(
+                    player);
+
             builder.Append(
                 player.IsBankrupt
-                    ? $"{player.DisplayName}: İFLAS"
-                    : $"{player.DisplayName}: " +
+                    ? playerName +
+                      ": " +
+                      AtlasBoardL.T(
+                          "hud.bankrupt")
+                    : playerName +
+                      ": " +
                       $"{player.CurrentMoney} ₵");
         }
 

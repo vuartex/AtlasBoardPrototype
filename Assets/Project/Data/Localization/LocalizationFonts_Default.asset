@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8b8f92c5263dc034bbbf0d646c183f87, type: 3}
+  m_Name: LocalizationFonts_Default
+  m_EditorClassIdentifier: Assembly-CSharp::AtlasBoardLocalizationFontProfile
+  latinCyrillicFont: {fileID: 11400000, guid: 5aac894ed5ad52e49b5fba41510fcaf6, type: 2}
+  koreanFont: {fileID: 11400000, guid: e71e4f0afe31f954d9d3c28dc78d610a, type: 2}
+  latinCyrillicLegacyFont: {fileID: 12800000, guid: 57ef1599969ac584ba934242667a108f, type: 3}
+  koreanLegacyFont: {fileID: 12800000, guid: 3b7be3e82424534428a4403ada625134, type: 3}

@@ -78,7 +78,7 @@ public static class AtlasBoardSettingsV2Setup
             255);
 
     [MenuItem(
-        "Atlas Board/Settings/Build Settings + Quality v2.0.3")]
+        "Atlas Board/Settings/Build Settings + Localization v2.1")]
     public static void Build()
     {
         if (EditorApplication.isPlaying)
@@ -104,13 +104,16 @@ public static class AtlasBoardSettingsV2Setup
         BuildSettingsCanvas();
         InstallOverlayHelpers();
 
+        AtlasBoardLocalizationV1Setup
+            .BuildOrRefresh();
+
         AssetDatabase.SaveAssets();
 
         EditorSceneManager.MarkAllScenesDirty();
 
         Debug.Log(
-            "AtlasBoard Settings + Quality v2.0.3 built. " +
-            "Audio preferences were preserved; Localization is intentionally deferred.");
+            "AtlasBoard Settings + Localization v2.1 built. " +
+            "Audio preferences were preserved and Localization Foundation v1.1 was refreshed.");
     }
 
     private static void BuildSettingsCanvas()
@@ -395,49 +398,56 @@ public static class AtlasBoardSettingsV2Setup
             panel.transform,
             "GAMEPLAY SETTINGS");
 
+        CreateDropdownRow(
+            panel.transform,
+            "Language",
+            "Language",
+            220f,
+            AtlasBoardLocalizationLanguages.NativeNames);
+
         CreatePercentSliderRow(
             panel.transform,
             "Camera",
             "Camera Sensitivity",
-            200f);
+            145f);
 
         CreatePercentSliderRow(
             panel.transform,
             "Zoom",
             "Camera Zoom Sensitivity",
-            115f);
+            75f);
 
         CreatePercentSliderRow(
             panel.transform,
             "Pan",
             "Camera Pan Sensitivity",
-            30f);
+            5f);
 
         CreatePercentSliderRow(
             panel.transform,
             "BotSpeed",
             "Bot Turn Speed",
-            -55f);
+            -65f);
 
         CreateToggleRow(
             panel.transform,
             "ReduceMotion",
             "Reduce Camera Motion",
-            -140f,
+            -135f,
             false);
 
         CreateToggleRow(
             panel.transform,
             "UIHints",
             "UI Hints",
-            -215f,
+            -205f,
             true);
 
         CreateToggleRow(
             panel.transform,
             "Confirmations",
             "Gameplay Confirmations",
-            -290f,
+            -275f,
             true);
 
     }

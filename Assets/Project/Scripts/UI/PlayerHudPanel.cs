@@ -44,6 +44,7 @@ public class PlayerHudPanel : MonoBehaviour
     private PlayerGameState player;
     private BotPlayerController botController;
     private bool subscribed;
+    private bool lastIsCurrentTurn;
 
     public RectTransform PanelRect =>
         panelRect != null
@@ -52,6 +53,27 @@ public class PlayerHudPanel : MonoBehaviour
 
     public PlayerGameState Player =>
         player;
+
+    private void OnEnable()
+    {
+        AtlasBoardLocalizationManager.LanguageChanged +=
+            HandleLanguageChanged;
+    }
+
+    private void OnDisable()
+    {
+        AtlasBoardLocalizationManager.LanguageChanged -=
+            HandleLanguageChanged;
+    }
+
+    private void HandleLanguageChanged()
+    {
+        if (player != null)
+        {
+            Refresh(
+                lastIsCurrentTurn);
+        }
+    }
 
     public void Bind(
         PlayerGameState playerState)
@@ -73,6 +95,9 @@ public class PlayerHudPanel : MonoBehaviour
     public void Refresh(
         bool isCurrentTurn)
     {
+        lastIsCurrentTurn =
+            isCurrentTurn;
+
         if (player == null)
         {
             gameObject.SetActive(false);
@@ -121,14 +146,16 @@ public class PlayerHudPanel : MonoBehaviour
         if (playerNameText != null)
         {
             playerNameText.text =
-                player.DisplayName;
+                GetLocalizedPlayerName(
+                    player);
         }
 
         if (moneyText != null)
         {
             moneyText.text =
                 player.IsBankrupt
-                    ? "İFLAS"
+                    ? AtlasBoardL.T(
+                        "hud.bankrupt")
                     : $"{player.CurrentMoney} ₵";
         }
 
@@ -141,20 +168,25 @@ public class PlayerHudPanel : MonoBehaviour
             if (!isBot)
             {
                 controlTypeText.text =
-                    "İNSAN";
+                    AtlasBoardL.T(
+                        "common.human")
+                        .ToUpperInvariant();
             }
             else
             {
                 string personality =
                     botController
                         .PersonalityProfile != null
-                        ? botController
-                            .PersonalityProfile
-                            .DisplayName
-                        : "BOT";
+                        ? LocalizePersonality(
+                            botController
+                                .PersonalityProfile
+                                .DisplayName)
+                        : AtlasBoardL.T(
+                            "common.bot");
 
                 controlTypeText.text =
-                    $"BOT • {personality}";
+                    $"{AtlasBoardL.T("common.bot").ToUpperInvariant()} • " +
+                    $"{personality}";
             }
         }
 
@@ -178,7 +210,9 @@ public class PlayerHudPanel : MonoBehaviour
         if (turnBadgeText != null)
         {
             turnBadgeText.text =
-                "SIRA";
+                AtlasBoardL.T(
+                    "hud.turn")
+                    .ToUpperInvariant();
         }
 
         if (panelOutline != null)
@@ -226,6 +260,71 @@ public class PlayerHudPanel : MonoBehaviour
     private void OnDestroy()
     {
         Unsubscribe();
+    }
+
+    private static string GetLocalizedPlayerName(
+        PlayerGameState state)
+    {
+        if (state == null)
+        {
+            return AtlasBoardL.T(
+                "common.player");
+        }
+
+        string raw =
+            state.DisplayName ??
+            string.Empty;
+
+        bool looksDefault =
+            raw.StartsWith(
+                "Oyuncu ",
+                System.StringComparison.OrdinalIgnoreCase) ||
+            raw.StartsWith(
+                "Player ",
+                System.StringComparison.OrdinalIgnoreCase);
+
+        if (!looksDefault)
+        {
+            return raw;
+        }
+
+        return $"{AtlasBoardL.T("common.player")} " +
+               $"{state.PlayerSlotIndex + 1}";
+    }
+
+    private static string LocalizePersonality(
+        string displayName)
+    {
+        if (string.IsNullOrWhiteSpace(
+                displayName))
+        {
+            return AtlasBoardL.T(
+                "common.bot");
+        }
+
+        string normalized =
+            displayName.Trim().ToLowerInvariant();
+
+        return normalized switch
+        {
+            "balanced" =>
+                AtlasBoardL.T(
+                    "bot.balanced"),
+
+            "safe" =>
+                AtlasBoardL.T(
+                    "bot.safe"),
+
+            "aggressive" =>
+                AtlasBoardL.T(
+                    "bot.aggressive"),
+
+            "adaptive" =>
+                AtlasBoardL.T(
+                    "bot.adaptive"),
+
+            _ => displayName
+        };
     }
 
     private void Subscribe()

@@ -52,7 +52,7 @@ public class AtlasBoardMatchSetupBridge : MonoBehaviour
             FindRoundDropdown(firstPass);
 
         bool mapMapped =
-            SetOption(
+            SetMapOption(
                 mapDropdown,
                 selection.MapId);
 
@@ -102,7 +102,7 @@ public class AtlasBoardMatchSetupBridge : MonoBehaviour
             existingMatchSetupCanvas.SetActive(false);
 
             Debug.LogWarning(
-                "Main Menu v1.3.5 could not auto-start legacy setup. " +
+                "Main Menu v1.3.6 could not auto-start legacy setup. " +
                 $"Map={mapMapped}, " +
                 $"PlayerCount={playerCountMapped}, " +
                 $"Round={roundMapped}, " +
@@ -129,7 +129,7 @@ public class AtlasBoardMatchSetupBridge : MonoBehaviour
         }
 
         Debug.Log(
-            "Main Menu v1.3.5 mapped lobby settings and started the match.");
+            "Main Menu v1.3.6 mapped lobby settings and started the match.");
 
         return true;
     }
@@ -492,7 +492,18 @@ public class AtlasBoardMatchSetupBridge : MonoBehaviour
             bool hasUsa =
                 HasOption(
                     dropdown,
-                    "usa");
+                    "usa",
+                    "united states",
+                    "united states of america",
+                    "america",
+                    "abd",
+                    "amerika",
+                    "estados unidos",
+                    "ee. uu.",
+                    "etats unis",
+                    "vereinigte staaten",
+                    "미국",
+                    "сша");
 
             if (hasTurkey &&
                 (hasColorado || hasUsa))
@@ -739,6 +750,168 @@ public class AtlasBoardMatchSetupBridge : MonoBehaviour
                     selection.TripleDoublePenaltyEnabled;
             }
         }
+    }
+
+    private static bool SetMapOption(
+        TMP_Dropdown dropdown,
+        string mapId)
+    {
+        if (dropdown == null ||
+            dropdown.options == null ||
+            dropdown.options.Count == 0 ||
+            string.IsNullOrWhiteSpace(
+                mapId))
+        {
+            return false;
+        }
+
+        string canonicalMapId =
+            Canonicalize(
+                mapId);
+
+        string[] aliases;
+
+        int fallbackIndex;
+
+        switch (canonicalMapId)
+        {
+            case "turkey":
+                aliases =
+                    new[]
+                    {
+                        "Turkey",
+                        "Türkiye",
+                        "Turkiye"
+                    };
+
+                fallbackIndex = 0;
+                break;
+
+            case "colorado":
+                aliases =
+                    new[]
+                    {
+                        "Colorado"
+                    };
+
+                fallbackIndex = 1;
+                break;
+
+            case "usa":
+            case "united states":
+            case "united states of america":
+            case "america":
+            case "abd":
+            case "amerika":
+                aliases =
+                    new[]
+                    {
+                        "USA",
+                        "U.S.A.",
+                        "United States",
+                        "United States of America",
+                        "America",
+                        "ABD",
+                        "Amerika",
+                        "Estados Unidos",
+                        "EE. UU.",
+                        "États-Unis",
+                        "Etats-Unis",
+                        "Vereinigte Staaten",
+                        "미국",
+                        "США"
+                    };
+
+                fallbackIndex = 2;
+                break;
+
+            default:
+                aliases =
+                    new[]
+                    {
+                        mapId
+                    };
+
+                fallbackIndex = -1;
+                break;
+        }
+
+        foreach (string alias
+                 in aliases)
+        {
+            if (SetOption(
+                    dropdown,
+                    alias))
+            {
+                return true;
+            }
+        }
+
+        // Final fallback for the three stable AtlasBoard map slots.
+        // This is only used if the legacy BoardMapDefinition display
+        // name is customized to something outside the alias list.
+        if (fallbackIndex >= 0 &&
+            fallbackIndex <
+                dropdown.options.Count)
+        {
+            dropdown.value =
+                fallbackIndex;
+
+            dropdown.RefreshShownValue();
+
+            dropdown.onValueChanged.Invoke(
+                fallbackIndex);
+
+            Debug.LogWarning(
+                "Legacy map label did not match a known alias. " +
+                $"Mapped stable MapId='{mapId}' by slot index " +
+                $"{fallbackIndex}. Legacy option='" +
+                $"{dropdown.options[fallbackIndex].text}'.");
+
+            return true;
+        }
+
+        LogMapDiagnostics(
+            dropdown,
+            mapId);
+
+        return false;
+    }
+
+    private static void LogMapDiagnostics(
+        TMP_Dropdown dropdown,
+        string mapId)
+    {
+        if (dropdown == null)
+        {
+            Debug.LogWarning(
+                $"Map mapping failed for '{mapId}': " +
+                "legacy map dropdown was not found.");
+
+            return;
+        }
+
+        StringBuilder options =
+            new StringBuilder();
+
+        for (int i = 0;
+             i < dropdown.options.Count;
+             i++)
+        {
+            if (i > 0)
+            {
+                options.Append(
+                    " | ");
+            }
+
+            options.Append(
+                $"[{i}] " +
+                dropdown.options[i].text);
+        }
+
+        Debug.LogWarning(
+            $"Map mapping failed for stable MapId='{mapId}'. " +
+            $"Legacy options: {options}");
     }
 
     private static bool SetOption(

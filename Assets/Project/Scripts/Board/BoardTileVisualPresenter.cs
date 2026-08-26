@@ -70,6 +70,28 @@ public class BoardTileVisualPresenter : MonoBehaviour
     private Renderer tileRenderer;
     private Transform visualRoot;
 
+    private void OnEnable()
+    {
+        if (!Application.isPlaying)
+        {
+            return;
+        }
+
+        AtlasBoardLocalizationManager.LanguageChanged +=
+            HandleLanguageChanged;
+    }
+
+    private void OnDisable()
+    {
+        AtlasBoardLocalizationManager.LanguageChanged -=
+            HandleLanguageChanged;
+    }
+
+    private void HandleLanguageChanged()
+    {
+        RefreshVisuals();
+    }
+
     public void RefreshVisuals()
     {
         ResolveReferences();
@@ -226,10 +248,23 @@ public class BoardTileVisualPresenter : MonoBehaviour
             textObject
                 .GetComponent<TextMeshProUGUI>();
 
-        if (TMP_Settings.defaultFontAsset != null)
+        TMP_FontAsset resolvedFont =
+            TMP_Settings.defaultFontAsset;
+
+        AtlasBoardLocalizationManager localization =
+            AtlasBoardLocalizationManager.Instance;
+
+        if (localization != null)
+        {
+            resolvedFont =
+                localization.ResolveFont(
+                    resolvedFont);
+        }
+
+        if (resolvedFont != null)
         {
             text.font =
-                TMP_Settings.defaultFontAsset;
+                resolvedFont;
         }
 
         text.text =
@@ -394,36 +429,13 @@ public class BoardTileVisualPresenter : MonoBehaviour
             return string.Empty;
         }
 
-        // Special tiles should read as large, simple board labels.
-        switch (type)
-        {
-            case TileType.Start:
-                return "BAŞLANGIÇ";
-
-            case TileType.Event:
-                return "ETKİNLİK";
-
-            case TileType.Tax:
-                return "VERGİ";
-
-            case TileType.Auction:
-                return "AÇIK\nARTIRMA";
-
-            case TileType.Travel:
-                return "SEYAHAT";
-
-            case TileType.Vacation:
-                return "TATİL";
-
-            case TileType.RestArea:
-                return "DİNLENME";
-
-            case TileType.Bonus:
-                return "BONUS";
-        }
-
         string normalized =
-            rawName.Trim();
+            type == TileType.City
+                ? rawName.Trim()
+                : AtlasBoardL.TileName(
+                    type,
+                    rawName)
+                    .Trim();
 
         // For long board-only labels, split near the middle at a
         // whitespace so the font stays large instead of shrinking.

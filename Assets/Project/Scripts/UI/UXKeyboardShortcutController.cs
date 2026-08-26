@@ -283,7 +283,7 @@ public class UXKeyboardShortcutController : MonoBehaviour
                 .activeInHierarchy)
         {
             CurrentHint =
-                "SPACE / ENTER  Devam";
+                AtlasBoardL.T("hint.continue");
 
             return;
         }
@@ -293,7 +293,7 @@ public class UXKeyboardShortcutController : MonoBehaviour
                 .HasPendingEventFor(player))
         {
             CurrentHint =
-                "SPACE / ENTER  Devam";
+                AtlasBoardL.T("hint.continue");
 
             return;
         }
@@ -303,7 +303,7 @@ public class UXKeyboardShortcutController : MonoBehaviour
                 .HasPendingSpecialFor(player))
         {
             CurrentHint =
-                "SPACE / ENTER  Devam";
+                AtlasBoardL.T("hint.continue");
 
             return;
         }
@@ -313,7 +313,7 @@ public class UXKeyboardShortcutController : MonoBehaviour
                 .HasPendingOfferFor(player))
         {
             CurrentHint =
-                "SPACE  Kabul Et   •   ESC  Reddet";
+                AtlasBoardL.T("hint.trade_offer");
 
             return;
         }
@@ -323,7 +323,7 @@ public class UXKeyboardShortcutController : MonoBehaviour
                 .HasPendingPurchaseFor(player))
         {
             CurrentHint =
-                "SPACE  Satın Al   •   ESC  Geç";
+                AtlasBoardL.T("hint.purchase");
 
             return;
         }
@@ -333,7 +333,7 @@ public class UXKeyboardShortcutController : MonoBehaviour
                 .HasPendingTravelFor(player))
         {
             CurrentHint =
-                "SPACE  Seyahat Et   •   ESC  Kal";
+                AtlasBoardL.T("hint.travel");
 
             return;
         }
@@ -343,7 +343,7 @@ public class UXKeyboardShortcutController : MonoBehaviour
                 .HasPendingDevelopmentFor(player))
         {
             CurrentHint =
-                "SPACE  Geliştir   •   ESC  Geç";
+                AtlasBoardL.T("hint.develop");
 
             return;
         }
@@ -354,7 +354,7 @@ public class UXKeyboardShortcutController : MonoBehaviour
                 .IsCurrentBidder(player))
         {
             CurrentHint =
-                "SPACE  +Küçük Teklif   •   SHIFT+SPACE  +Büyük Teklif   •   ESC  Pas";
+                AtlasBoardL.T("hint.auction");
 
             return;
         }
@@ -364,7 +364,7 @@ public class UXKeyboardShortcutController : MonoBehaviour
             tradeManager.IsTradeClosed)
         {
             CurrentHint =
-                "SPACE  Zar At   •   T  Takas";
+                AtlasBoardL.T("hint.roll_trade");
 
             return;
         }
@@ -373,7 +373,7 @@ public class UXKeyboardShortcutController : MonoBehaviour
                 .CanPlayerRequestRoll(player))
         {
             CurrentHint =
-                "SPACE  Zar At";
+                AtlasBoardL.T("hint.roll");
         }
     }
 

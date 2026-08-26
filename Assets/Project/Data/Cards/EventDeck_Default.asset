@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: EventDeck_Default
   m_EditorClassIdentifier: Assembly-CSharp::EventDeckDefinition
   deckId: event_deck_default
-  displayName: "Varsay\u0131lan Etkinlik Destesi"
+  displayName: Event Deck
   cards:
   - {fileID: 11400000, guid: 04491d5b3d585e84a9eb32637c358202, type: 2}
   - {fileID: 11400000, guid: 709f9c0e98975634b92c5d8fdf273517, type: 2}
@@ -21,15 +21,33 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 9e781868478cb47419458a270d984eac, type: 2}
   - {fileID: 11400000, guid: bf8db15f2f8462d48a51cf6fea88b08b, type: 2}
   - {fileID: 11400000, guid: 30ac4eb5d843bf44b8723a8abfc812d0, type: 2}
+  - {fileID: 11400000, guid: cf96b4a4e39c49748b68c8064c039a74, type: 2}
+  - {fileID: 11400000, guid: 24696cfa5c468364c9b2681a77d6e240, type: 2}
+  - {fileID: 11400000, guid: 19cab960750e8e84b9bd33b3ae56cddf, type: 2}
+  - {fileID: 11400000, guid: 174c6e65d0f431f4f86db56c9411514e, type: 2}
+  - {fileID: 11400000, guid: 6271f8dc70b35ea4ea5cdad02fa00442, type: 2}
+  - {fileID: 11400000, guid: de45c5012428d5645a75207d736b2e5e, type: 2}
   - {fileID: 11400000, guid: c63dd1f3e76f73b4093a58daec29d965, type: 2}
   - {fileID: 11400000, guid: 75e40394774338f4ba394163f29a246a, type: 2}
   - {fileID: 11400000, guid: 3e7efca73070f6f4a8f02b60bea736eb, type: 2}
   - {fileID: 11400000, guid: e91ea08000a3cd7428996af84abd588e, type: 2}
   - {fileID: 11400000, guid: 2b123a3ab28dc304695790f64d4afff1, type: 2}
   - {fileID: 11400000, guid: bf1fdade9ba6eab4b90081a7646e90cc, type: 2}
+  - {fileID: 11400000, guid: f13e6d224ea06724e9d67481f41beb43, type: 2}
+  - {fileID: 11400000, guid: 2671a03fdfd0dae469087ab44a574126, type: 2}
+  - {fileID: 11400000, guid: 97ef8598647cfdd448d3067c4a47519c, type: 2}
+  - {fileID: 11400000, guid: 54739123b7d6a8f429381f7a4c3b1299, type: 2}
+  - {fileID: 11400000, guid: 928ff46c43fd9d24e997c5f57e2aaeac, type: 2}
+  - {fileID: 11400000, guid: f0d71486e5fef9c4687a055c5d46c047, type: 2}
   - {fileID: 11400000, guid: c5ea3806ad783614b993d8bb855ea21b, type: 2}
   - {fileID: 11400000, guid: 85a7fff1ea0c2c142b92578f9bc579cc, type: 2}
   - {fileID: 11400000, guid: d343a68eead2baf4daf0ccec8380cc9e, type: 2}
   - {fileID: 11400000, guid: 2a8791e43e8f98c4981a8c8f7c83549d, type: 2}
   - {fileID: 11400000, guid: 0560905405116bb438618d16b619b0e1, type: 2}
   - {fileID: 11400000, guid: e3df6f43dd6fead4aa2f3672f8bf3a72, type: 2}
+  - {fileID: 11400000, guid: 2094f655ca5104b4ab75e7c36ab0c8c7, type: 2}
+  - {fileID: 11400000, guid: 330b146d489ce74479b08c96e2191941, type: 2}
+  - {fileID: 11400000, guid: 2b198c59d5faa874887ae1ae0b549e6e, type: 2}
+  - {fileID: 11400000, guid: 74ca731dbded88c4297c2d2c8c45e15e, type: 2}
+  - {fileID: 11400000, guid: 7dfea73a5661b844aa866978fef73356, type: 2}
+  - {fileID: 11400000, guid: d8304ea1f65d7e74aa5bc75b62d98aba, type: 2}

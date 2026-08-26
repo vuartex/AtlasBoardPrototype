@@ -147,28 +147,38 @@ public class MatchResultManager : MonoBehaviour
                 summaryBuilder.AppendLine();
             }
 
+            string playerName =
+                AtlasBoardL.PlayerName(
+                    player);
+
             summaryBuilder.AppendLine(
                 player.IsBankrupt
-                    ? $"{player.DisplayName} — İFLAS"
-                    : player.DisplayName);
+                    ? AtlasBoardL.T(
+                        "match.player_bankrupt",
+                        playerName)
+                    : playerName);
 
             summaryBuilder.Append(
-                $"Nakit: {player.CurrentMoney} ₵ | " +
-                $"Mülk: {propertyCount} | " +
-                $"Mülk Değeri: {propertyValue} ₵");
+                AtlasBoardL.T(
+                    "match.cash_properties",
+                    player.CurrentMoney,
+                    propertyCount,
+                    propertyValue));
 
             summaryBuilder.AppendLine();
 
             summaryBuilder.Append(
-                $"Geliştirme Seviyesi: " +
-                $"{developmentLevels} | " +
-                $"Geliştirme Değeri: " +
-                $"{developmentValue} ₵");
+                AtlasBoardL.T(
+                    "match.development",
+                    developmentLevels,
+                    developmentValue));
 
             summaryBuilder.AppendLine();
 
             summaryBuilder.Append(
-                $"Net Servet: {netWorth} ₵");
+                AtlasBoardL.T(
+                    "match.net_worth",
+                    netWorth));
         }
 
         if (activePlayerIndexes.Count == 1)
@@ -304,19 +314,24 @@ public class MatchResultManager : MonoBehaviour
                     winnerIndexes[0]];
 
             resultTitleText.text =
-                $"{winner.DisplayName} Kazandı!\n" +
-                $"{highestNetWorth} ₵";
+                AtlasBoardL.T(
+                    "match.winner",
+                    AtlasBoardL.PlayerName(
+                        winner),
+                    highestNetWorth);
         }
         else if (winnerIndexes.Count > 1)
         {
             resultTitleText.text =
-                $"Beraberlik!\n" +
-                $"{highestNetWorth} ₵";
+                AtlasBoardL.T(
+                    "match.tie",
+                    highestNetWorth);
         }
         else
         {
             resultTitleText.text =
-                "Maç Tamamlandı";
+                AtlasBoardL.T(
+                    "match.complete");
         }
     }
 }

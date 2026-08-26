@@ -121,6 +121,9 @@ public class AuctionManager : MonoBehaviour
 
     private void Start()
     {
+        AtlasBoardLocalizationManager.LanguageChanged +=
+            HandleLanguageChanged;
+
         if (auctionPanel != null)
         {
             auctionPanel.SetActive(false);
@@ -128,6 +131,22 @@ public class AuctionManager : MonoBehaviour
 
         EnsureTurnManager();
         ApplyEconomyProfileRules();
+    }
+
+    private void OnDestroy()
+    {
+        AtlasBoardLocalizationManager.LanguageChanged -=
+            HandleLanguageChanged;
+    }
+
+    private void HandleLanguageChanged()
+    {
+        if (auctionPanel != null &&
+            auctionPanel.activeSelf &&
+            isAuctionActive)
+        {
+            RefreshAuctionUI();
+        }
     }
 
     public void BeginAuction(
@@ -246,8 +265,8 @@ public class AuctionManager : MonoBehaviour
         if (nextWithoutBid < 0)
         {
             FinishAuctionWithMessage(
-                "Kimse teklif vermedi.\n" +
-                "Şehir satılmadı.");
+                AtlasBoardL.T(
+                    "auction.no_bids"));
 
             Debug.Log(
                 $"Auction ended without a sale: " +
@@ -387,9 +406,12 @@ public class AuctionManager : MonoBehaviour
             if (auctionStatusText != null)
             {
                 auctionStatusText.text =
-                    $"{bidder.DisplayName} için yetersiz bakiye.\n" +
-                    $"Gerekli: {proposedBid} ₵ | " +
-                    $"Mevcut: {bidder.CurrentMoney} ₵";
+                    AtlasBoardL.T(
+                        "auction.insufficient_balance",
+                        AtlasBoardL.PlayerName(
+                            bidder),
+                        proposedBid,
+                        bidder.CurrentMoney);
             }
 
             RefreshButtonAvailability();
@@ -430,8 +452,8 @@ public class AuctionManager : MonoBehaviour
             auctionProperty == null)
         {
             FinishAuctionWithMessage(
-                "Geçerli teklif bulunamadı.\n" +
-                "Şehir satılmadı.");
+                AtlasBoardL.T(
+                    "auction.no_valid_bid"));
 
             return;
         }
@@ -447,8 +469,8 @@ public class AuctionManager : MonoBehaviour
                 this);
 
             FinishAuctionWithMessage(
-                "Kazanan teklif ödenemedi.\n" +
-                "Şehir satılmadı.");
+                AtlasBoardL.T(
+                    "auction.winner_cannot_pay"));
 
             return;
         }
@@ -467,8 +489,8 @@ public class AuctionManager : MonoBehaviour
                 this);
 
             FinishAuctionWithMessage(
-                "Mülkiyet aktarılamadı.\n" +
-                "Teklif iade edildi.");
+                AtlasBoardL.T(
+                    "auction.ownership_failed"));
 
             return;
         }
@@ -497,9 +519,12 @@ public class AuctionManager : MonoBehaviour
             this);
 
         FinishAuctionWithMessage(
-            $"{winner.DisplayName} kazandı!\n" +
-            $"{auctionProperty.DisplayName}\n" +
-            $"Kazanan teklif: {currentBid} ₵");
+            AtlasBoardL.T(
+                "auction.winner_result",
+                AtlasBoardL.PlayerName(
+                    winner),
+                auctionProperty.DisplayName,
+                currentBid));
     }
 
     private void PrepareEligibleBidders()
@@ -694,36 +719,45 @@ public class AuctionManager : MonoBehaviour
 
         string highestBidderName =
             highestBidderIndex >= 0
-                ? GetPlayer(highestBidderIndex).DisplayName
-                : "Yok";
+                ? AtlasBoardL.PlayerName(
+                    GetPlayer(
+                        highestBidderIndex))
+                : AtlasBoardL.T(
+                    "auction.none");
 
         if (auctionTitleText != null)
         {
             auctionTitleText.text =
-                "AÇIK ARTIRMA";
+                AtlasBoardL.T(
+                    "auction.title");
         }
 
         if (auctionPropertyText != null)
         {
             auctionPropertyText.text =
-                $"{auctionProperty.DisplayName}\n" +
-                $"Liste Değeri: " +
-                $"{auctionProperty.PurchasePrice} ₵ | " +
-                $"Kira: {auctionProperty.BaseRent} ₵";
+                AtlasBoardL.T(
+                    "auction.property_info",
+                    auctionProperty.DisplayName,
+                    auctionProperty.PurchasePrice,
+                    auctionProperty.BaseRent);
         }
 
         if (auctionStatusText != null)
         {
             string bidderSuffix =
                 IsBotPlayer(currentBidder)
-                    ? " (BOT)"
+                    ? AtlasBoardL.T(
+                        "common.bot_suffix")
                     : string.Empty;
 
             auctionStatusText.text =
-                $"Mevcut teklif: {currentBid} ₵\n" +
-                $"En yüksek: {highestBidderName}\n" +
-                $"Sıra: {currentBidder.DisplayName}" +
-                bidderSuffix;
+                AtlasBoardL.T(
+                    "auction.status",
+                    currentBid,
+                    highestBidderName,
+                    AtlasBoardL.PlayerName(
+                        currentBidder),
+                    bidderSuffix);
         }
 
         RefreshButtonAvailability();

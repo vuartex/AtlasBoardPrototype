@@ -1,0 +1,32 @@
+THIRD-PARTY FONT RECORD — Noto Fonts
+=========================================
+
+Status:
+Add this record to Assets/Project/ThirdPartyLicenses after Noto font files are
+actually imported into AtlasBoard.
+
+Family:
+Noto Sans
+Noto Sans KR
+
+Project use:
+Multilingual TextMeshPro UI support for:
+Latin Extended, Cyrillic and Korean scripts.
+
+Publisher / project:
+Google / Noto Fonts
+
+License:
+SIL Open Font License (OFL) 1.1
+
+Official references:
+https://fonts.google.com/noto/specimen/Noto+Sans
+https://fonts.google.com/noto/specimen/Noto+Sans+KR
+https://github.com/google/fonts/tree/main/ofl/notosans
+https://github.com/notofonts/noto-cjk
+
+AtlasBoard does not redistribute the font as a standalone product.
+The font is bundled only as part of the game's UI/runtime assets.
+
+Reviewed for project planning:
+2026-08-25

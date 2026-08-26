@@ -244,6 +244,9 @@ public class TurnManager : MonoBehaviour
 
     private void Start()
     {
+        AtlasBoardLocalizationManager.LanguageChanged +=
+            HandleLanguageChanged;
+
         ResetTripleDoublePenaltyUI();
 
         if (!ValidatePlayers())
@@ -266,7 +269,53 @@ public class TurnManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        AtlasBoardLocalizationManager.LanguageChanged -=
+            HandleLanguageChanged;
+
         UnsubscribeFromPlayers();
+    }
+
+    private void HandleLanguageChanged()
+    {
+        if (tripleDoublePenaltyPanel != null &&
+            tripleDoublePenaltyPanel.activeSelf &&
+            tripleDoublePenaltyPlayer != null &&
+            tripleDoublePenaltyText != null)
+        {
+            tripleDoublePenaltyText.text =
+                AtlasBoardL.T(
+                    "turn.triple_double_penalty",
+                    AtlasBoardL.PlayerName(
+                        tripleDoublePenaltyPlayer));
+        }
+
+        if (isMatchFinished)
+        {
+            if (turnStatusText != null)
+            {
+                turnStatusText.text =
+                    AtlasBoardL.T(
+                        "turn.match_complete",
+                        currentRound);
+            }
+
+            return;
+        }
+
+        if (gamePhase ==
+            GamePhase.DeterminingTurnOrder)
+        {
+            UpdateStartingOrderUI();
+            return;
+        }
+
+        if (gamePhase ==
+            GamePhase.Playing &&
+            !resolvingDiceVisual &&
+            !waitingForMovement)
+        {
+            UpdateTurnUI();
+        }
     }
 
     public void SetRoundLimit(
@@ -385,7 +434,8 @@ public class TurnManager : MonoBehaviour
         if (turnStatusText != null)
         {
             turnStatusText.text =
-                "Oyuncu ayarları bekleniyor";
+                AtlasBoardL.T(
+                    "turn.waiting_player_settings");
         }
     }
 
@@ -806,10 +856,13 @@ public class TurnManager : MonoBehaviour
                 GetPlayerState(
                     playerArrayIndex)
                 ?.DisplayName ??
-                "Oyuncu";
+                AtlasBoardL.T(
+                    "common.player");
 
             turnStatusText.text =
-                $"{playerName} zar atıyor...";
+                AtlasBoardL.T(
+                    "turn.starting_rolling",
+                    playerName);
         }
 
         PlayDiceVisual(
@@ -1191,8 +1244,12 @@ public class TurnManager : MonoBehaviour
         if (turnStatusText != null)
         {
             turnStatusText.text =
-                $"Tur {currentRound}/{roundLimit}\n" +
-                $"{activePlayer.DisplayName} zar atıyor...";
+                AtlasBoardL.T(
+                    "turn.active_rolling",
+                    currentRound,
+                    roundLimit,
+                    AtlasBoardL.PlayerName(
+                        activePlayer));
         }
 
         int resolvedDieOne =
@@ -1247,9 +1304,13 @@ public class TurnManager : MonoBehaviour
                       $"{lastRoll}";
 
             turnStatusText.text =
-                $"Tur {currentRound}/{roundLimit}\n" +
-                $"{activePlayer.DisplayName} zar attı: " +
-                $"{diceText}";
+                AtlasBoardL.T(
+                    "turn.active_result",
+                    currentRound,
+                    roundLimit,
+                    AtlasBoardL.PlayerName(
+                        activePlayer),
+                    diceText);
         }
 
         string debugDiceDescription =
@@ -1406,10 +1467,10 @@ public class TurnManager : MonoBehaviour
         if (tripleDoublePenaltyText != null)
         {
             tripleDoublePenaltyText.text =
-                $"{activePlayer.DisplayName}, " +
-                "3 kez üst üste çift attı!\n\n" +
-                "Bu üçüncü atışta hareket yok.\n" +
-                "Bir sonraki turunda zar atamazsın.";
+                AtlasBoardL.T(
+                    "turn.triple_double_penalty",
+                    AtlasBoardL.PlayerName(
+                        activePlayer));
         }
 
         if (tripleDoublePenaltyPanel != null)
@@ -1597,10 +1658,14 @@ public class TurnManager : MonoBehaviour
         if (turnStatusText != null)
         {
             turnStatusText.text =
-                $"Tur {currentRound}/{roundLimit}\n" +
-                $"{activePlayer.DisplayName}: " +
-                $"çift zar ({lastDieOne}+{lastDieTwo}) — " +
-                "tekrar zar at!";
+                AtlasBoardL.T(
+                    "turn.extra_roll",
+                    currentRound,
+                    roundLimit,
+                    AtlasBoardL.PlayerName(
+                        activePlayer),
+                    lastDieOne,
+                    lastDieTwo);
         }
 
         Debug.Log(
@@ -1769,9 +1834,12 @@ public class TurnManager : MonoBehaviour
             if (turnStatusText != null)
             {
                 turnStatusText.text =
-                    $"Tur {currentRound}/{roundLimit}\n" +
-                    $"{playerState.DisplayName} " +
-                    "bu turu atlıyor";
+                    AtlasBoardL.T(
+                        "turn.skipping",
+                        currentRound,
+                        roundLimit,
+                        AtlasBoardL.PlayerName(
+                            playerState));
             }
 
             if (skippedTurnMessageDuration > 0f)
@@ -1832,8 +1900,9 @@ public class TurnManager : MonoBehaviour
         if (turnStatusText != null)
         {
             turnStatusText.text =
-                $"Maç tamamlandı\n" +
-                $"Tur {currentRound}";
+                AtlasBoardL.T(
+                    "turn.match_complete",
+                    currentRound);
         }
 
         Debug.Log(
@@ -1950,8 +2019,10 @@ public class TurnManager : MonoBehaviour
 
         string playerName =
             player != null
-                ? player.DisplayName
-                : "Oyuncu";
+                ? AtlasBoardL.PlayerName(
+                    player)
+                : AtlasBoardL.T(
+                    "common.player");
 
         if (rollButton != null)
         {
@@ -1964,15 +2035,20 @@ public class TurnManager : MonoBehaviour
         {
             string controlSuffix =
                 IsBotPlayer(player)
-                    ? " (BOT)"
+                    ? AtlasBoardL.T(
+                        "common.bot_suffix")
                     : string.Empty;
 
             turnStatusText.text =
                 resolvingStartingOrderTie
-                    ? $"Eşitlik: {playerName}" +
-                      $"{controlSuffix} tekrar zar atsın"
-                    : $"Başlangıç sırası: " +
-                      $"{playerName}{controlSuffix} zar atsın";
+                    ? AtlasBoardL.T(
+                        "turn.starting_tie",
+                        playerName,
+                        controlSuffix)
+                    : AtlasBoardL.T(
+                        "turn.starting_order",
+                        playerName,
+                        controlSuffix);
         }
 
         Debug.Log(
@@ -2017,12 +2093,18 @@ public class TurnManager : MonoBehaviour
         {
             string controlSuffix =
                 isBotTurn
-                    ? " (BOT)"
+                    ? AtlasBoardL.T(
+                        "common.bot_suffix")
                     : string.Empty;
 
             turnStatusText.text =
-                $"Tur {currentRound}/{roundLimit}\n" +
-                $"{activePlayer.DisplayName}{controlSuffix} sırası";
+                AtlasBoardL.T(
+                    "turn.current",
+                    currentRound,
+                    roundLimit,
+                    AtlasBoardL.PlayerName(
+                        activePlayer),
+                    controlSuffix);
         }
 
         Debug.Log(

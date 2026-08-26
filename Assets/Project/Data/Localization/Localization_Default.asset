@@ -1,0 +1,2852 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3704d32342bfcb4e8cdc2a62056a66c, type: 3}
+  m_Name: Localization_Default
+  m_EditorClassIdentifier: Assembly-CSharp::AtlasBoardLocalizationDatabase
+  entries:
+  - key: common.player
+    en: Player
+    tr: Oyuncu
+    es: Jugador
+    fr: Joueur
+    de: Spieler
+    ko: "\uD50C\uB808\uC774\uC5B4"
+    ru: "\u0418\u0433\u0440\u043E\u043A"
+  - key: common.bot_suffix
+    en: ' (BOT)'
+    tr: ' (BOT)'
+    es: ' (BOT)'
+    fr: ' (BOT)'
+    de: ' (BOT)'
+    ko: " (\uBD07)"
+    ru: " (\u0411\u041E\u0422)"
+  - key: common.ready
+    en: Ready
+    tr: "Haz\u0131r"
+    es: Listo
+    fr: "Pr\xEAt"
+    de: Bereit
+    ko: "\uC900\uBE44"
+    ru: "\u0413\u043E\u0442\u043E\u0432"
+  - key: common.human
+    en: Human
+    tr: "\u0130nsan"
+    es: Humano
+    fr: Humain
+    de: Mensch
+    ko: "\uC0AC\uB78C"
+    ru: "\u0427\u0435\u043B\u043E\u0432\u0435\u043A"
+  - key: common.bot
+    en: Bot
+    tr: Bot
+    es: Bot
+    fr: Bot
+    de: Bot
+    ko: "\uBD07"
+    ru: "\u0411\u043E\u0442"
+  - key: common.cancel
+    en: Cancel
+    tr: "\u0130ptal"
+    es: Cancelar
+    fr: Annuler
+    de: Abbrechen
+    ko: "\uCDE8\uC18C"
+    ru: "\u041E\u0442\u043C\u0435\u043D\u0430"
+  - key: common.apply
+    en: Apply
+    tr: Uygula
+    es: Aplicar
+    fr: Appliquer
+    de: Anwenden
+    ko: "\uC801\uC6A9"
+    ru: "\u041F\u0440\u0438\u043C\u0435\u043D\u0438\u0442\u044C"
+  - key: common.reset_defaults
+    en: Reset Defaults
+    tr: "Varsay\u0131lanlara D\xF6n"
+    es: Restablecer
+    fr: "R\xE9initialiser"
+    de: "Zur\xFCcksetzen"
+    ko: "\uAE30\uBCF8\uAC12 \uBCF5\uC6D0"
+    ru: "\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C"
+  - key: common.off
+    en: Off
+    tr: "Kapal\u0131"
+    es: Desactivado
+    fr: "D\xE9sactiv\xE9"
+    de: Aus
+    ko: "\uB054"
+    ru: "\u0412\u044B\u043A\u043B."
+  - key: common.unlimited
+    en: Unlimited
+    tr: "S\u0131n\u0131rs\u0131z"
+    es: "Sin l\xEDmite"
+    fr: "Illimit\xE9"
+    de: Unbegrenzt
+    ko: "\uBB34\uC81C\uD55C"
+    ru: "\u0411\u0435\u0437 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u0439"
+  - key: menu.player
+    en: PLAYER
+    tr: OYUNCU
+    es: JUGADOR
+    fr: JOUEUR
+    de: SPIELER
+    ko: "\uD50C\uB808\uC774\uC5B4"
+    ru: "\u0418\u0413\u0420\u041E\u041A"
+  - key: menu.private_table
+    en: PRIVATE TABLE
+    tr: "\xD6ZEL MASA"
+    es: MESA PRIVADA
+    fr: "TABLE PRIV\xC9E"
+    de: PRIVATER TISCH
+    ko: "\uBE44\uACF5\uAC1C \uD14C\uC774\uBE14"
+    ru: "\u041F\u0420\u0418\u0412\u0410\u0422\u041D\u042B\u0419 \u0421\u0422\u041E\u041B"
+  - key: menu.local_private
+    en: LOCAL / PRIVATE
+    tr: "YEREL / \xD6ZEL"
+    es: LOCAL / PRIVADA
+    fr: "LOCAL / PRIV\xC9"
+    de: LOKAL / PRIVAT
+    ko: "\uB85C\uCEEC / \uBE44\uACF5\uAC1C"
+    ru: "\u041B\u041E\u041A\u0410\u041B\u042C\u041D\u041E / \u041F\u0420\u0418\u0412\u0410\u0422\u041D\u041E"
+  - key: menu.play
+    en: PLAY
+    tr: OYNA
+    es: JUGAR
+    fr: JOUER
+    de: SPIELEN
+    ko: "\uD50C\uB808\uC774"
+    ru: "\u0418\u0413\u0420\u0410\u0422\u042C"
+  - key: menu.solo_bots
+    en: SOLO / BOTS
+    tr: TEK / BOTLAR
+    es: SOLO / BOTS
+    fr: SOLO / BOTS
+    de: SOLO / BOTS
+    ko: "\uC194\uB85C / \uBD07"
+    ru: "\u0421\u041E\u041B\u041E / \u0411\u041E\u0422\u042B"
+  - key: menu.shop
+    en: SHOP
+    tr: "MA\u011EAZA"
+    es: TIENDA
+    fr: BOUTIQUE
+    de: SHOP
+    ko: "\uC0C1\uC810"
+    ru: "\u041C\u0410\u0413\u0410\u0417\u0418\u041D"
+  - key: menu.cosmetics_items
+    en: COSMETICS / ITEMS
+    tr: "KOZMET\u0130K / E\u015EYA"
+    es: "COSM\xC9TICOS / OBJETOS"
+    fr: "COSM\xC9TIQUES / OBJETS"
+    de: KOSMETIK / OBJEKTE
+    ko: "\uAFB8\uBBF8\uAE30 / \uC544\uC774\uD15C"
+    ru: "\u041A\u041E\u0421\u041C\u0415\u0422\u0418\u041A\u0410 / \u041F\u0420\u0415\u0414\u041C\u0415\u0422\u042B"
+  - key: menu.shop_body
+    en: 'Shop foundation is ready.
+
+      Items, cosmetics and progression can be
+      added later.'
+    tr: "Ma\u011Faza altyap\u0131s\u0131 haz\u0131r.\nE\u015Fyalar, kozmetikler ve
+      ilerleme sistemi daha sonra eklenebilir."
+    es: "La base de la tienda est\xE1 lista.\nLos objetos, cosm\xE9ticos y la progresi\xF3n
+      se a\xF1adir\xE1n m\xE1s adelante."
+    fr: "La base de la boutique est pr\xEAte.\nLes objets, cosm\xE9tiques et la progression
+      pourront \xEAtre ajout\xE9s plus tard."
+    de: "Die Shop-Grundlage ist bereit.\nGegenst\xE4nde, Kosmetik und Fortschritt
+      k\xF6nnen sp\xE4ter erg\xE4nzt werden."
+    ko: "\uC0C1\uC810 \uAE30\uBC18\uC774 \uC900\uBE44\uB418\uC5C8\uC2B5\uB2C8\uB2E4.\n\uC544\uC774\uD15C,
+      \uAFB8\uBBF8\uAE30 \uC694\uC18C\uC640 \uC9C4\uD589 \uC2DC\uC2A4\uD15C\uC740
+      \uB098\uC911\uC5D0 \uCD94\uAC00\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4."
+    ru: "\u041E\u0441\u043D\u043E\u0432\u0430 \u043C\u0430\u0433\u0430\u0437\u0438\u043D\u0430
+      \u0433\u043E\u0442\u043E\u0432\u0430.\n\u041F\u0440\u0435\u0434\u043C\u0435\u0442\u044B,
+      \u043A\u043E\u0441\u043C\u0435\u0442\u0438\u043A\u0443 \u0438 \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0441\u0438\u044E
+      \u043C\u043E\u0436\u043D\u043E \u0434\u043E\u0431\u0430\u0432\u0438\u0442\u044C
+      \u043F\u043E\u0437\u0436\u0435."
+  - key: menu.profile
+    en: PROFILE
+    tr: "PROF\u0130L"
+    es: PERFIL
+    fr: PROFIL
+    de: PROFIL
+    ko: "\uD504\uB85C\uD544"
+    ru: "\u041F\u0420\u041E\u0424\u0418\u041B\u042C"
+  - key: menu.profile_body
+    en: '{0}
+
+      Cash: {1:N0}
+
+      Gold: {2:N0}'
+    tr: "{0}\nPara: {1:N0}\nAlt\u0131n: {2:N0}"
+    es: '{0}
+
+      Dinero: {1:N0}
+
+      Oro: {2:N0}'
+    fr: '{0}
+
+      Argent : {1:N0}
+
+      Or : {2:N0}'
+    de: '{0}
+
+      Geld: {1:N0}
+
+      Gold: {2:N0}'
+    ko: "{0}\n\uD604\uAE08: {1:N0}\n\uACE8\uB4DC: {2:N0}"
+    ru: "{0}\n\u0414\u0435\u043D\u044C\u0433\u0438: {1:N0}\n\u0417\u043E\u043B\u043E\u0442\u043E:
+      {2:N0}"
+  - key: menu.start_match_error_title
+    en: START MATCH
+    tr: "MA\xC7I BA\u015ELAT"
+    es: INICIAR PARTIDA
+    fr: LANCER LA PARTIE
+    de: SPIEL STARTEN
+    ko: "\uAC8C\uC784 \uC2DC\uC791"
+    ru: "\u041D\u0410\u0427\u0410\u0422\u042C \u041C\u0410\u0422\u0427"
+  - key: menu.start_match_error_body
+    en: 'The new lobby could not start the match automatically.
+
+      The legacy
+      setup screen was kept hidden.
+
+      Check the Console mapping message.'
+    tr: "Yeni lobi ma\xE7\u0131 otomatik olarak ba\u015Flatamad\u0131.\nEski kurulum
+      ekran\u0131 gizli tutuldu.\nConsole e\u015Fleme mesaj\u0131n\u0131 kontrol
+      et."
+    es: "El nuevo lobby no pudo iniciar la partida autom\xE1ticamente.\nLa pantalla
+      de configuraci\xF3n anterior permaneci\xF3 oculta.\nRevisa el mensaje de asignaci\xF3n
+      en la consola."
+    fr: "Le nouveau lobby n'a pas pu lancer la partie automatiquement.\nL'ancien
+      \xE9cran de configuration est rest\xE9 masqu\xE9.\nV\xE9rifiez le message de
+      correspondance dans la console."
+    de: "Die neue Lobby konnte das Spiel nicht automatisch starten.\nDer alte Einrichtungsbildschirm
+      blieb ausgeblendet.\nPr\xFCfe die Zuordnungsmeldung in der Konsole."
+    ko: "\uC0C8 \uB85C\uBE44\uC5D0\uC11C \uAC8C\uC784\uC744 \uC790\uB3D9\uC73C\uB85C
+      \uC2DC\uC791\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.\n\uAE30\uC874 \uC124\uC815
+      \uD654\uBA74\uC740 \uC228\uAE40 \uC0C1\uD0DC\uB85C \uC720\uC9C0\uB418\uC5C8\uC2B5\uB2C8\uB2E4.\n\uCF58\uC194\uC758
+      \uB9E4\uD551 \uBA54\uC2DC\uC9C0\uB97C \uD655\uC778\uD558\uC138\uC694."
+    ru: "\u041D\u043E\u0432\u0430\u044F \u043B\u043E\u0431\u0431\u0438-\u0441\u0438\u0441\u0442\u0435\u043C\u0430
+      \u043D\u0435 \u0441\u043C\u043E\u0433\u043B\u0430 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438
+      \u043D\u0430\u0447\u0430\u0442\u044C \u043C\u0430\u0442\u0447.\n\u0421\u0442\u0430\u0440\u044B\u0439
+      \u044D\u043A\u0440\u0430\u043D \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438
+      \u043E\u0441\u0442\u0430\u043B\u0441\u044F \u0441\u043A\u0440\u044B\u0442.\n\u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435
+      \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u0441\u043E\u043F\u043E\u0441\u0442\u0430\u0432\u043B\u0435\u043D\u0438\u044F
+      \u0432 \u043A\u043E\u043D\u0441\u043E\u043B\u0438."
+  - key: lobby.game_lobby
+    en: GAME LOBBY
+    tr: "OYUN LOB\u0130S\u0130"
+    es: SALA DE JUEGO
+    fr: SALON DE JEU
+    de: SPIELLOBBY
+    ko: "\uAC8C\uC784 \uB85C\uBE44"
+    ru: "\u0418\u0413\u0420\u041E\u0412\u041E\u0415 \u041B\u041E\u0411\u0411\u0418"
+  - key: lobby.game_settings
+    en: GAME SETTINGS
+    tr: OYUN AYARLARI
+    es: AJUSTES DE PARTIDA
+    fr: "PARAM\xC8TRES DE PARTIE"
+    de: SPIELEINSTELLUNGEN
+    ko: "\uAC8C\uC784 \uC124\uC815"
+    ru: "\u041D\u0410\u0421\u0422\u0420\u041E\u0419\u041A\u0418 \u041C\u0410\u0422\u0427\u0410"
+  - key: lobby.map
+    en: Map
+    tr: Harita
+    es: Mapa
+    fr: Carte
+    de: Karte
+    ko: "\uB9F5"
+    ru: "\u041A\u0430\u0440\u0442\u0430"
+  - key: lobby.player_count
+    en: Player Count
+    tr: "Oyuncu Say\u0131s\u0131"
+    es: "N\xFAmero de jugadores"
+    fr: Nombre de joueurs
+    de: Spieleranzahl
+    ko: "\uD50C\uB808\uC774\uC5B4 \uC218"
+    ru: "\u041A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E \u0438\u0433\u0440\u043E\u043A\u043E\u0432"
+  - key: lobby.round_limit
+    en: Round Limit
+    tr: "Tur Say\u0131s\u0131"
+    es: "L\xEDmite de rondas"
+    fr: Limite de tours
+    de: Rundenlimit
+    ko: "\uB77C\uC6B4\uB4DC \uC81C\uD55C"
+    ru: "\u041B\u0438\u043C\u0438\u0442 \u0440\u0430\u0443\u043D\u0434\u043E\u0432"
+  - key: lobby.environment_theme
+    en: Environment Theme
+    tr: "Ortam Temas\u0131"
+    es: Tema del entorno
+    fr: "Th\xE8me de l'environnement"
+    de: Umgebungsthema
+    ko: "\uD658\uACBD \uD14C\uB9C8"
+    ru: "\u0422\u0435\u043C\u0430 \u043E\u043A\u0440\u0443\u0436\u0435\u043D\u0438\u044F"
+  - key: lobby.balanced_development
+    en: Balanced Development
+    tr: "Dengeli Geli\u015Ftirme"
+    es: Desarrollo equilibrado
+    fr: "D\xE9veloppement \xE9quilibr\xE9"
+    de: Ausgeglichene Entwicklung
+    ko: "\uADE0\uD615 \uAC1C\uBC1C"
+    ru: "\u0421\u0431\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u043E\u0435
+      \u0440\u0430\u0437\u0432\u0438\u0442\u0438\u0435"
+  - key: lobby.doubles
+    en: Doubles
+    tr: "\xC7ift Zar"
+    es: Dobles
+    fr: Doubles
+    de: Pasch
+    ko: "\uB354\uBE14"
+    ru: "\u0414\u0443\u0431\u043B\u0438"
+  - key: lobby.triple_double_penalty
+    en: Triple Double Penalty
+    tr: "3 \xC7ift \xDCst \xDCste Ceza"
+    es: "Penalizaci\xF3n por triple doble"
+    fr: "P\xE9nalit\xE9 de triple double"
+    de: Strafe bei drei Paschen
+    ko: "3\uC5F0\uC18D \uB354\uBE14 \uD398\uB110\uD2F0"
+    ru: "\u0428\u0442\u0440\u0430\u0444 \u0437\u0430 \u0442\u0440\u0438 \u0434\u0443\u0431\u043B\u044F"
+  - key: lobby.players
+    en: PLAYERS
+    tr: OYUNCULAR
+    es: JUGADORES
+    fr: JOUEURS
+    de: SPIELER
+    ko: "\uD50C\uB808\uC774\uC5B4"
+    ru: "\u0418\u0413\u0420\u041E\u041A\u0418"
+  - key: lobby.local_player
+    en: LOCAL PLAYER
+    tr: YEREL OYUNCU
+    es: JUGADOR LOCAL
+    fr: JOUEUR LOCAL
+    de: LOKALER SPIELER
+    ko: "\uB85C\uCEEC \uD50C\uB808\uC774\uC5B4"
+    ru: "\u041B\u041E\u041A\u0410\u041B\u042C\u041D\u042B\u0419 \u0418\u0413\u0420\u041E\u041A"
+  - key: lobby.start_match
+    en: START MATCH
+    tr: "MA\xC7I BA\u015ELAT"
+    es: INICIAR PARTIDA
+    fr: LANCER LA PARTIE
+    de: SPIEL STARTEN
+    ko: "\uAC8C\uC784 \uC2DC\uC791"
+    ru: "\u041D\u0410\u0427\u0410\u0422\u042C \u041C\u0410\u0422\u0427"
+  - key: lobby.player_1
+    en: PLAYER 1
+    tr: OYUNCU 1
+    es: JUGADOR 1
+    fr: JOUEUR 1
+    de: SPIELER 1
+    ko: "\uD50C\uB808\uC774\uC5B4 1"
+    ru: "\u0418\u0413\u0420\u041E\u041A 1"
+  - key: lobby.player_2
+    en: PLAYER 2
+    tr: OYUNCU 2
+    es: JUGADOR 2
+    fr: JOUEUR 2
+    de: SPIELER 2
+    ko: "\uD50C\uB808\uC774\uC5B4 2"
+    ru: "\u0418\u0413\u0420\u041E\u041A 2"
+  - key: lobby.player_3
+    en: PLAYER 3
+    tr: OYUNCU 3
+    es: JUGADOR 3
+    fr: JOUEUR 3
+    de: SPIELER 3
+    ko: "\uD50C\uB808\uC774\uC5B4 3"
+    ru: "\u0418\u0413\u0420\u041E\u041A 3"
+  - key: lobby.player_4
+    en: PLAYER 4
+    tr: OYUNCU 4
+    es: JUGADOR 4
+    fr: JOUEUR 4
+    de: SPIELER 4
+    ko: "\uD50C\uB808\uC774\uC5B4 4"
+    ru: "\u0418\u0413\u0420\u041E\u041A 4"
+  - key: map.turkey
+    en: Turkey
+    tr: "T\xFCrkiye"
+    es: "Turqu\xEDa"
+    fr: Turquie
+    de: "T\xFCrkei"
+    ko: "\uD280\uB974\uD0A4\uC608"
+    ru: "\u0422\u0443\u0440\u0446\u0438\u044F"
+  - key: map.colorado
+    en: Colorado
+    tr: Colorado
+    es: Colorado
+    fr: Colorado
+    de: Colorado
+    ko: "\uCF5C\uB85C\uB77C\uB3C4"
+    ru: "\u041A\u043E\u043B\u043E\u0440\u0430\u0434\u043E"
+  - key: map.usa
+    en: USA
+    tr: ABD
+    es: EE. UU.
+    fr: "\xC9tats-Unis"
+    de: USA
+    ko: "\uBBF8\uAD6D"
+    ru: "\u0421\u0428\u0410"
+  - key: theme.classic_table
+    en: Classic Table
+    tr: Klasik Masa
+    es: "Mesa cl\xE1sica"
+    fr: Table classique
+    de: Klassischer Tisch
+    ko: "\uD074\uB798\uC2DD \uD14C\uC774\uBE14"
+    ru: "\u041A\u043B\u0430\u0441\u0441\u0438\u0447\u0435\u0441\u043A\u0438\u0439
+      \u0441\u0442\u043E\u043B"
+  - key: theme.garden
+    en: Garden
+    tr: "Bah\xE7e"
+    es: "Jard\xEDn"
+    fr: Jardin
+    de: Garten
+    ko: "\uC815\uC6D0"
+    ru: "\u0421\u0430\u0434"
+  - key: theme.beach
+    en: Beach
+    tr: Sahil
+    es: Playa
+    fr: Plage
+    de: Strand
+    ko: "\uD574\uBCC0"
+    ru: "\u041F\u043B\u044F\u0436"
+  - key: theme.pavilion
+    en: Pavilion
+    tr: Pavyon
+    es: "Pabell\xF3n"
+    fr: Pavillon
+    de: Pavillon
+    ko: "\uD30C\uBE4C\uB9AC\uC628"
+    ru: "\u041F\u0430\u0432\u0438\u043B\u044C\u043E\u043D"
+  - key: theme.street
+    en: Street
+    tr: Sokak
+    es: Calle
+    fr: Rue
+    de: "Stra\xDFe"
+    ko: "\uAC70\uB9AC"
+    ru: "\u0423\u043B\u0438\u0446\u0430"
+  - key: settings.title
+    en: SETTINGS
+    tr: AYARLAR
+    es: AJUSTES
+    fr: "PARAM\xC8TRES"
+    de: EINSTELLUNGEN
+    ko: "\uC124\uC815"
+    ru: "\u041D\u0410\u0421\u0422\u0420\u041E\u0419\u041A\u0418"
+  - key: settings.tab.audio
+    en: AUDIO
+    tr: SES
+    es: AUDIO
+    fr: AUDIO
+    de: AUDIO
+    ko: "\uC624\uB514\uC624"
+    ru: "\u0417\u0412\u0423\u041A"
+  - key: settings.tab.gameplay
+    en: GAMEPLAY
+    tr: OYUN
+    es: JUGABILIDAD
+    fr: JEU
+    de: GAMEPLAY
+    ko: "\uAC8C\uC784\uD50C\uB808\uC774"
+    ru: "\u0418\u0413\u0420\u0410"
+  - key: settings.tab.graphics
+    en: GRAPHICS
+    tr: "GRAF\u0130K"
+    es: "GR\xC1FICOS"
+    fr: GRAPHISMES
+    de: GRAFIK
+    ko: "\uADF8\uB798\uD53D"
+    ru: "\u0413\u0420\u0410\u0424\u0418\u041A\u0410"
+  - key: settings.tab.controls
+    en: CONTROLS
+    tr: KONTROLLER
+    es: CONTROLES
+    fr: COMMANDES
+    de: STEUERUNG
+    ko: "\uC870\uC791"
+    ru: "\u0423\u041F\u0420\u0410\u0412\u041B\u0415\u041D\u0418\u0415"
+  - key: settings.audio_title
+    en: AUDIO SETTINGS
+    tr: SES AYARLARI
+    es: AJUSTES DE AUDIO
+    fr: "PARAM\xC8TRES AUDIO"
+    de: AUDIOEINSTELLUNGEN
+    ko: "\uC624\uB514\uC624 \uC124\uC815"
+    ru: "\u041D\u0410\u0421\u0422\u0420\u041E\u0419\u041A\u0418 \u0417\u0412\u0423\u041A\u0410"
+  - key: settings.mute_all
+    en: Mute All Audio
+    tr: "T\xFCm Sesi Kapat"
+    es: Silenciar todo
+    fr: Couper tout le son
+    de: Gesamten Ton stummschalten
+    ko: "\uBAA8\uB4E0 \uC18C\uB9AC \uC74C\uC18C\uAC70"
+    ru: "\u041E\u0442\u043A\u043B\u044E\u0447\u0438\u0442\u044C \u0432\u0435\u0441\u044C
+      \u0437\u0432\u0443\u043A"
+  - key: settings.master_volume
+    en: Master Volume
+    tr: Genel Ses
+    es: Volumen general
+    fr: "Volume g\xE9n\xE9ral"
+    de: "Gesamtlautst\xE4rke"
+    ko: "\uC804\uCCB4 \uC74C\uB7C9"
+    ru: "\u041E\u0431\u0449\u0430\u044F \u0433\u0440\u043E\u043C\u043A\u043E\u0441\u0442\u044C"
+  - key: settings.main_music
+    en: Main Music
+    tr: "Ana M\xFCzik"
+    es: "M\xFAsica principal"
+    fr: Musique principale
+    de: Hauptmusik
+    ko: "\uBA54\uC778 \uC74C\uC545"
+    ru: "\u041E\u0441\u043D\u043E\u0432\u043D\u0430\u044F \u043C\u0443\u0437\u044B\u043A\u0430"
+  - key: settings.theme_ambience
+    en: Theme / Ambience
+    tr: Tema / Ortam Sesi
+    es: Tema / Ambiente
+    fr: "Th\xE8me / Ambiance"
+    de: Thema / Ambiente
+    ko: "\uD14C\uB9C8 / \uD658\uACBD\uC74C"
+    ru: "\u0422\u0435\u043C\u0430 / \u0410\u0442\u043C\u043E\u0441\u0444\u0435\u0440\u0430"
+  - key: settings.dice
+    en: Dice
+    tr: Zar
+    es: Dados
+    fr: "D\xE9s"
+    de: "W\xFCrfel"
+    ko: "\uC8FC\uC0AC\uC704"
+    ru: "\u041A\u043E\u0441\u0442\u0438"
+  - key: settings.effects_ui_pawn
+    en: Effects / UI / Pawn
+    tr: "Efekt / Aray\xFCz / Piyon"
+    es: Efectos / UI / Ficha
+    fr: Effets / UI / Pion
+    de: Effekte / UI / Figur
+    ko: "\uD6A8\uACFC / UI / \uB9D0"
+    ru: "\u042D\u0444\u0444\u0435\u043A\u0442\u044B / UI / \u0424\u0438\u0448\u043A\u0430"
+  - key: settings.gameplay_title
+    en: GAMEPLAY SETTINGS
+    tr: OYUN AYARLARI
+    es: AJUSTES DE JUGABILIDAD
+    fr: "PARAM\xC8TRES DE JEU"
+    de: GAMEPLAY-EINSTELLUNGEN
+    ko: "\uAC8C\uC784\uD50C\uB808\uC774 \uC124\uC815"
+    ru: "\u041D\u0410\u0421\u0422\u0420\u041E\u0419\u041A\u0418 \u0418\u0413\u0420\u042B"
+  - key: settings.language
+    en: Language
+    tr: Dil
+    es: Idioma
+    fr: Langue
+    de: Sprache
+    ko: "\uC5B8\uC5B4"
+    ru: "\u042F\u0437\u044B\u043A"
+  - key: settings.camera_sensitivity
+    en: Camera Sensitivity
+    tr: Kamera Hassasiyeti
+    es: "Sensibilidad de c\xE1mara"
+    fr: "Sensibilit\xE9 de la cam\xE9ra"
+    de: Kameraempfindlichkeit
+    ko: "\uCE74\uBA54\uB77C \uAC10\uB3C4"
+    ru: "\u0427\u0443\u0432\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u044C\u043D\u043E\u0441\u0442\u044C
+      \u043A\u0430\u043C\u0435\u0440\u044B"
+  - key: settings.zoom_sensitivity
+    en: Camera Zoom Sensitivity
+    tr: "Kamera Yak\u0131nla\u015Ft\u0131rma Hassasiyeti"
+    es: Sensibilidad de zoom
+    fr: "Sensibilit\xE9 du zoom"
+    de: Zoom-Empfindlichkeit
+    ko: "\uCE74\uBA54\uB77C \uC90C \uAC10\uB3C4"
+    ru: "\u0427\u0443\u0432\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u044C\u043D\u043E\u0441\u0442\u044C
+      \u0437\u0443\u043C\u0430"
+  - key: settings.pan_sensitivity
+    en: Camera Pan Sensitivity
+    tr: "Kamera Kayd\u0131rma Hassasiyeti"
+    es: Sensibilidad de desplazamiento
+    fr: "Sensibilit\xE9 du d\xE9placement"
+    de: Schwenk-Empfindlichkeit
+    ko: "\uCE74\uBA54\uB77C \uC774\uB3D9 \uAC10\uB3C4"
+    ru: "\u0427\u0443\u0432\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u044C\u043D\u043E\u0441\u0442\u044C
+      \u043F\u0430\u043D\u043E\u0440\u0430\u043C\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u044F"
+  - key: settings.bot_turn_speed
+    en: Bot Turn Speed
+    tr: "Bot Tur H\u0131z\u0131"
+    es: Velocidad de turno del bot
+    fr: Vitesse des bots
+    de: Bot-Zuggeschwindigkeit
+    ko: "\uBD07 \uD134 \uC18D\uB3C4"
+    ru: "\u0421\u043A\u043E\u0440\u043E\u0441\u0442\u044C \u0445\u043E\u0434\u0430
+      \u0431\u043E\u0442\u043E\u0432"
+  - key: settings.reduce_camera_motion
+    en: Reduce Camera Motion
+    tr: Kamera Hareketini Azalt
+    es: "Reducir movimiento de c\xE1mara"
+    fr: "R\xE9duire les mouvements de cam\xE9ra"
+    de: Kamerabewegung reduzieren
+    ko: "\uCE74\uBA54\uB77C \uC6C0\uC9C1\uC784 \uC904\uC774\uAE30"
+    ru: "\u0423\u043C\u0435\u043D\u044C\u0448\u0438\u0442\u044C \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u0435
+      \u043A\u0430\u043C\u0435\u0440\u044B"
+  - key: settings.ui_hints
+    en: UI Hints
+    tr: "Aray\xFCz \u0130pu\xE7lar\u0131"
+    es: Ayudas de interfaz
+    fr: Aides d'interface
+    de: UI-Hinweise
+    ko: "UI \uD78C\uD2B8"
+    ru: "\u041F\u043E\u0434\u0441\u043A\u0430\u0437\u043A\u0438 \u0438\u043D\u0442\u0435\u0440\u0444\u0435\u0439\u0441\u0430"
+  - key: settings.gameplay_confirmations
+    en: Gameplay Confirmations
+    tr: "Oyun Onaylar\u0131"
+    es: Confirmaciones de juego
+    fr: Confirmations de jeu
+    de: "Spielbest\xE4tigungen"
+    ko: "\uAC8C\uC784 \uD655\uC778"
+    ru: "\u041F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u0438\u044F
+      \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0439"
+  - key: settings.graphics_title
+    en: GRAPHICS SETTINGS
+    tr: "GRAF\u0130K AYARLARI"
+    es: "AJUSTES GR\xC1FICOS"
+    fr: "PARAM\xC8TRES GRAPHIQUES"
+    de: GRAFIKEINSTELLUNGEN
+    ko: "\uADF8\uB798\uD53D \uC124\uC815"
+    ru: "\u041D\u0410\u0421\u0422\u0420\u041E\u0419\u041A\u0418 \u0413\u0420\u0410\u0424\u0418\u041A\u0418"
+  - key: settings.resolution
+    en: Resolution
+    tr: "\xC7\xF6z\xFCn\xFCrl\xFCk"
+    es: "Resoluci\xF3n"
+    fr: "R\xE9solution"
+    de: "Aufl\xF6sung"
+    ko: "\uD574\uC0C1\uB3C4"
+    ru: "\u0420\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438\u0435"
+  - key: settings.display_mode
+    en: Display Mode
+    tr: Ekran Modu
+    es: Modo de pantalla
+    fr: Mode d'affichage
+    de: Anzeigemodus
+    ko: "\uD654\uBA74 \uBAA8\uB4DC"
+    ru: "\u0420\u0435\u0436\u0438\u043C \u044D\u043A\u0440\u0430\u043D\u0430"
+  - key: settings.quality
+    en: Quality
+    tr: Kalite
+    es: Calidad
+    fr: "Qualit\xE9"
+    de: "Qualit\xE4t"
+    ko: "\uD488\uC9C8"
+    ru: "\u041A\u0430\u0447\u0435\u0441\u0442\u0432\u043E"
+  - key: settings.vsync
+    en: VSync
+    tr: VSync
+    es: VSync
+    fr: VSync
+    de: VSync
+    ko: VSync
+    ru: VSync
+  - key: settings.fps_limit
+    en: FPS Limit
+    tr: "FPS S\u0131n\u0131r\u0131"
+    es: "L\xEDmite de FPS"
+    fr: Limite FPS
+    de: FPS-Limit
+    ko: "FPS \uC81C\uD55C"
+    ru: "\u041B\u0438\u043C\u0438\u0442 FPS"
+  - key: settings.shadow_quality
+    en: Shadow Quality
+    tr: "G\xF6lge Kalitesi"
+    es: Calidad de sombras
+    fr: "Qualit\xE9 des ombres"
+    de: "Schattenqualit\xE4t"
+    ko: "\uADF8\uB9BC\uC790 \uD488\uC9C8"
+    ru: "\u041A\u0430\u0447\u0435\u0441\u0442\u0432\u043E \u0442\u0435\u043D\u0435\u0439"
+  - key: settings.anti_aliasing
+    en: Anti-Aliasing
+    tr: "Kenar Yumu\u015Fatma"
+    es: Antialiasing
+    fr: "Anticr\xE9nelage"
+    de: "Kantengl\xE4ttung"
+    ko: "\uC548\uD2F0\uC568\uB9AC\uC5B4\uC2F1"
+    ru: "\u0421\u0433\u043B\u0430\u0436\u0438\u0432\u0430\u043D\u0438\u0435"
+  - key: settings.show_fps
+    en: Show FPS
+    tr: "FPS G\xF6ster"
+    es: Mostrar FPS
+    fr: Afficher les FPS
+    de: FPS anzeigen
+    ko: "FPS \uD45C\uC2DC"
+    ru: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C FPS"
+  - key: settings.graphics_note
+    en: VSync can override the effective FPS limit. Display-mode/resolution changes
+      are applied in the standalone build.
+    tr: "VSync etkin FPS s\u0131n\u0131r\u0131n\u0131 ge\xE7ersiz k\u0131labilir.
+      Ekran modu/\xE7\xF6z\xFCn\xFCrl\xFCk de\u011Fi\u015Fiklikleri ba\u011F\u0131ms\u0131z
+      s\xFCr\xFCmde uygulan\u0131r."
+    es: "VSync puede anular el l\xEDmite efectivo de FPS. Los cambios de modo y resoluci\xF3n
+      se aplican en la versi\xF3n ejecutable."
+    fr: "La VSync peut remplacer la limite FPS effective. Les changements de mode
+      et de r\xE9solution s'appliquent dans la version autonome."
+    de: "VSync kann das effektive FPS-Limit \xFCberschreiben. Anzeige- und Aufl\xF6sungs\xE4nderungen
+      werden im Standalone-Build angewendet."
+    ko: "VSync\uB294 \uC2E4\uC81C FPS \uC81C\uD55C\uBCF4\uB2E4 \uC6B0\uC120\uD560
+      \uC218 \uC788\uC2B5\uB2C8\uB2E4. \uD654\uBA74 \uBAA8\uB4DC\uC640 \uD574\uC0C1\uB3C4
+      \uBCC0\uACBD\uC740 \uB3C5\uB9BD \uC2E4\uD589 \uBE4C\uB4DC\uC5D0 \uC801\uC6A9\uB429\uB2C8\uB2E4."
+    ru: "VSync \u043C\u043E\u0436\u0435\u0442 \u043F\u0435\u0440\u0435\u043E\u043F\u0440\u0435\u0434\u0435\u043B\u044F\u0442\u044C
+      \u0444\u0430\u043A\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0439 \u043B\u0438\u043C\u0438\u0442
+      FPS. \u0420\u0435\u0436\u0438\u043C \u044D\u043A\u0440\u0430\u043D\u0430 \u0438
+      \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438\u0435 \u043F\u0440\u0438\u043C\u0435\u043D\u044F\u044E\u0442\u0441\u044F
+      \u0432 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u043E\u0439 \u0441\u0431\u043E\u0440\u043A\u0435."
+  - key: settings.current_editor
+    en: "Current Game View: {0} x {1}  \u2022  Display {2} x {3} @ {4} Hz"
+    tr: "Ge\xE7erli Oyun G\xF6r\xFCn\xFCm\xFC: {0} x {1}  \u2022  Ekran {2} x {3}
+      @ {4} Hz"
+    es: "Vista actual: {0} x {1}  \u2022  Pantalla {2} x {3} @ {4} Hz"
+    fr: "Vue actuelle : {0} x {1}  \u2022  \xC9cran {2} x {3} @ {4} Hz"
+    de: "Aktuelle Spielansicht: {0} x {1}  \u2022  Anzeige {2} x {3} @ {4} Hz"
+    ko: "\uD604\uC7AC \uAC8C\uC784 \uD654\uBA74: {0} x {1}  \u2022  \uB514\uC2A4\uD50C\uB808\uC774
+      {2} x {3} @ {4} Hz"
+    ru: "\u0422\u0435\u043A\u0443\u0449\u0435\u0435 \u043E\u043A\u043D\u043E \u0438\u0433\u0440\u044B:
+      {0} x {1}  \u2022  \u042D\u043A\u0440\u0430\u043D {2} x {3} @ {4} \u0413\u0446"
+  - key: settings.current_build
+    en: 'Current: {0} x {1} @ {2} Hz'
+    tr: "Ge\xE7erli: {0} x {1} @ {2} Hz"
+    es: 'Actual: {0} x {1} @ {2} Hz'
+    fr: 'Actuel : {0} x {1} @ {2} Hz'
+    de: 'Aktuell: {0} x {1} @ {2} Hz'
+    ko: "\uD604\uC7AC: {0} x {1} @ {2} Hz"
+    ru: "\u0422\u0435\u043A\u0443\u0449\u0435\u0435: {0} x {1} @ {2} \u0413\u0446"
+  - key: display.exclusive_fullscreen
+    en: Exclusive Fullscreen
+    tr: Tam Ekran
+    es: Pantalla completa exclusiva
+    fr: "Plein \xE9cran exclusif"
+    de: Exklusives Vollbild
+    ko: "\uC804\uC6A9 \uC804\uCCB4 \uD654\uBA74"
+    ru: "\u042D\u043A\u0441\u043A\u043B\u044E\u0437\u0438\u0432\u043D\u044B\u0439
+      \u043F\u043E\u043B\u043D\u044B\u0439 \u044D\u043A\u0440\u0430\u043D"
+  - key: display.borderless_fullscreen
+    en: Borderless Fullscreen
+    tr: "\xC7er\xE7evesiz Tam Ekran"
+    es: Pantalla completa sin bordes
+    fr: "Plein \xE9cran sans bordure"
+    de: Randloses Vollbild
+    ko: "\uD14C\uB450\uB9AC \uC5C6\uB294 \uC804\uCCB4 \uD654\uBA74"
+    ru: "\u041F\u043E\u043B\u043D\u043E\u044D\u043A\u0440\u0430\u043D\u043D\u044B\u0439
+      \u0431\u0435\u0437 \u0440\u0430\u043C\u043A\u0438"
+  - key: display.windowed
+    en: Windowed
+    tr: Pencereli
+    es: Ventana
+    fr: "Fen\xEAtr\xE9"
+    de: Fenster
+    ko: "\uCC3D \uBAA8\uB4DC"
+    ru: "\u041E\u043A\u043E\u043D\u043D\u044B\u0439"
+  - key: quality.low
+    en: Low
+    tr: "D\xFC\u015F\xFCk"
+    es: Baja
+    fr: Faible
+    de: Niedrig
+    ko: "\uB0AE\uC74C"
+    ru: "\u041D\u0438\u0437\u043A\u043E\u0435"
+  - key: quality.medium
+    en: Medium
+    tr: Orta
+    es: Media
+    fr: Moyenne
+    de: Mittel
+    ko: "\uC911\uAC04"
+    ru: "\u0421\u0440\u0435\u0434\u043D\u0435\u0435"
+  - key: quality.high
+    en: High
+    tr: "Y\xFCksek"
+    es: Alta
+    fr: "\xC9lev\xE9e"
+    de: Hoch
+    ko: "\uB192\uC74C"
+    ru: "\u0412\u044B\u0441\u043E\u043A\u043E\u0435"
+  - key: quality.very_high
+    en: Very High
+    tr: "\xC7ok Y\xFCksek"
+    es: Muy alta
+    fr: "Tr\xE8s \xE9lev\xE9e"
+    de: Sehr hoch
+    ko: "\uB9E4\uC6B0 \uB192\uC74C"
+    ru: "\u041E\u0447\u0435\u043D\u044C \u0432\u044B\u0441\u043E\u043A\u043E\u0435"
+  - key: settings.controls_title
+    en: CONTROLS
+    tr: KONTROLLER
+    es: CONTROLES
+    fr: COMMANDES
+    de: STEUERUNG
+    ko: "\uC870\uC791"
+    ru: "\u0423\u041F\u0420\u0410\u0412\u041B\u0415\u041D\u0418\u0415"
+  - key: controls.camera
+    en: CAMERA
+    tr: KAMERA
+    es: "C\xC1MARA"
+    fr: "CAM\xC9RA"
+    de: KAMERA
+    ko: "\uCE74\uBA54\uB77C"
+    ru: "\u041A\u0410\u041C\u0415\u0420\u0410"
+  - key: controls.gameplay
+    en: GAMEPLAY
+    tr: OYUN
+    es: JUGABILIDAD
+    fr: JEU
+    de: GAMEPLAY
+    ko: "\uAC8C\uC784\uD50C\uB808\uC774"
+    ru: "\u0418\u0413\u0420\u0410"
+  - key: controls.rotate_camera
+    en: Rotate Camera
+    tr: "Kameray\u0131 D\xF6nd\xFCr"
+    es: "Girar c\xE1mara"
+    fr: "Faire pivoter la cam\xE9ra"
+    de: Kamera drehen
+    ko: "\uCE74\uBA54\uB77C \uD68C\uC804"
+    ru: "\u0412\u0440\u0430\u0449\u0430\u0442\u044C \u043A\u0430\u043C\u0435\u0440\u0443"
+  - key: controls.pan_camera
+    en: Pan Camera
+    tr: "Kameray\u0131 Kayd\u0131r"
+    es: "Desplazar c\xE1mara"
+    fr: "D\xE9placer la cam\xE9ra"
+    de: Kamera schwenken
+    ko: "\uCE74\uBA54\uB77C \uC774\uB3D9"
+    ru: "\u041F\u0435\u0440\u0435\u043C\u0435\u0449\u0430\u0442\u044C \u043A\u0430\u043C\u0435\u0440\u0443"
+  - key: controls.zoom
+    en: Zoom
+    tr: "Yak\u0131nla\u015Ft\u0131r"
+    es: Zoom
+    fr: Zoom
+    de: Zoom
+    ko: "\uC90C"
+    ru: "\u041C\u0430\u0441\u0448\u0442\u0430\u0431"
+  - key: controls.reset_camera
+    en: Reset Camera
+    tr: "Kameray\u0131 S\u0131f\u0131rla"
+    es: "Restablecer c\xE1mara"
+    fr: "R\xE9initialiser la cam\xE9ra"
+    de: "Kamera zur\xFCcksetzen"
+    ko: "\uCE74\uBA54\uB77C \uCD08\uAE30\uD654"
+    ru: "\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u043A\u0430\u043C\u0435\u0440\u0443"
+  - key: controls.roll_primary
+    en: Roll / Primary Action
+    tr: Zar At / Ana Eylem
+    es: "Tirar / Acci\xF3n principal"
+    fr: Lancer / Action principale
+    de: "W\xFCrfeln / Hauptaktion"
+    ko: "\uAD74\uB9AC\uAE30 / \uAE30\uBCF8 \uB3D9\uC791"
+    ru: "\u0411\u0440\u043E\u0441\u043E\u043A / \u041E\u0441\u043D\u043E\u0432\u043D\u043E\u0435
+      \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435"
+  - key: controls.large_auction_bid
+    en: Large Auction Bid
+    tr: "B\xFCy\xFCk A\xE7\u0131k Art\u0131rma Teklifi"
+    es: Puja grande
+    fr: "Grande ench\xE8re"
+    de: "Gro\xDFes Auktionsgebot"
+    ko: "\uD070 \uACBD\uB9E4 \uC785\uCC30"
+    ru: "\u041A\u0440\u0443\u043F\u043D\u0430\u044F \u0441\u0442\u0430\u0432\u043A\u0430"
+  - key: controls.trade
+    en: Trade
+    tr: Takas
+    es: Intercambiar
+    fr: "\xC9changer"
+    de: Handeln
+    ko: "\uAC70\uB798"
+    ru: "\u041E\u0431\u043C\u0435\u043D"
+  - key: controls.close_back_settings
+    en: Close / Back / Settings
+    tr: Kapat / Geri / Ayarlar
+    es: "Cerrar / Atr\xE1s / Ajustes"
+    fr: "Fermer / Retour / Param\xE8tres"
+    de: "Schlie\xDFen / Zur\xFCck / Einstellungen"
+    ko: "\uB2EB\uAE30 / \uB4A4\uB85C / \uC124\uC815"
+    ru: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C / \u041D\u0430\u0437\u0430\u0434
+      / \u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438"
+  - key: controls.context_note
+    en: 'Primary Action is contextual: Roll, Buy, Continue, Travel, Develop, Trade
+      Accept, Auction Bid and similar actions.'
+    tr: "Ana Eylem duruma g\xF6re de\u011Fi\u015Fir: Zar At, Sat\u0131n Al, Devam
+      Et, Seyahat, Geli\u015Ftir, Takas\u0131 Kabul Et, Teklif Ver ve benzeri."
+    es: "La acci\xF3n principal depende del contexto: tirar, comprar, continuar,
+      viajar, desarrollar, aceptar intercambio, pujar y acciones similares."
+    fr: "L'action principale d\xE9pend du contexte : lancer, acheter, continuer,
+      voyager, d\xE9velopper, accepter un \xE9change, ench\xE9rir, etc."
+    de: "Die Hauptaktion ist kontextabh\xE4ngig: W\xFCrfeln, Kaufen, Weiter, Reisen,
+      Entwickeln, Handel annehmen, Bieten und \xE4hnliche Aktionen."
+    ko: "\uAE30\uBCF8 \uB3D9\uC791\uC740 \uC0C1\uD669\uC5D0 \uB530\uB77C \uB2EC\uB77C\uC9D1\uB2C8\uB2E4:
+      \uC8FC\uC0AC\uC704 \uAD74\uB9AC\uAE30, \uAD6C\uB9E4, \uACC4\uC18D, \uC774\uB3D9,
+      \uAC1C\uBC1C, \uAC70\uB798 \uC218\uB77D, \uACBD\uB9E4 \uC785\uCC30 \uB4F1."
+    ru: "\u041E\u0441\u043D\u043E\u0432\u043D\u043E\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435
+      \u0437\u0430\u0432\u0438\u0441\u0438\u0442 \u043E\u0442 \u043A\u043E\u043D\u0442\u0435\u043A\u0441\u0442\u0430:
+      \u0431\u0440\u043E\u0441\u043E\u043A, \u043F\u043E\u043A\u0443\u043F\u043A\u0430,
+      \u043F\u0440\u043E\u0434\u043E\u043B\u0436\u0438\u0442\u044C, \u043F\u0443\u0442\u0435\u0448\u0435\u0441\u0442\u0432\u0438\u0435,
+      \u0440\u0430\u0437\u0432\u0438\u0442\u0438\u0435, \u043F\u0440\u0438\u043D\u044F\u0442\u044C
+      \u043E\u0431\u043C\u0435\u043D, \u0441\u0442\u0430\u0432\u043A\u0430 \u0438
+      \u0442. \u043F."
+  - key: game.roll_dice
+    en: ROLL DICE
+    tr: ZAR AT
+    es: TIRAR DADOS
+    fr: "LANCER LES D\xC9S"
+    de: "W\xDCRFELN"
+    ko: "\uC8FC\uC0AC\uC704 \uAD74\uB9AC\uAE30"
+    ru: "\u0411\u0420\u041E\u0421\u0418\u0422\u042C \u041A\u041E\u0421\u0422\u0418"
+  - key: game.trade
+    en: TRADE
+    tr: TAKAS
+    es: INTERCAMBIO
+    fr: "\xC9CHANGE"
+    de: HANDEL
+    ko: "\uAC70\uB798"
+    ru: "\u041E\u0411\u041C\u0415\u041D"
+  - key: tablet.property
+    en: PROPERTY
+    tr: "M\xDCLK"
+    es: PROPIEDAD
+    fr: "PROPRI\xC9T\xC9"
+    de: "GRUNDST\xDCCK"
+    ko: "\uBD80\uB3D9\uC0B0"
+    ru: "\u0421\u041E\u0411\u0421\u0422\u0412\u0415\u041D\u041D\u041E\u0421\u0422\u042C"
+  - key: tablet.auction
+    en: AUCTION
+    tr: "A\xC7IK ARTIRMA"
+    es: SUBASTA
+    fr: "ENCH\xC8RE"
+    de: AUKTION
+    ko: "\uACBD\uB9E4"
+    ru: "\u0410\u0423\u041A\u0426\u0418\u041E\u041D"
+  - key: tablet.trade
+    en: TRADE
+    tr: TAKAS
+    es: INTERCAMBIO
+    fr: "\xC9CHANGE"
+    de: HANDEL
+    ko: "\uAC70\uB798"
+    ru: "\u041E\u0411\u041C\u0415\u041D"
+  - key: tablet.event
+    en: EVENT
+    tr: "ETK\u0130NL\u0130K"
+    es: EVENTO
+    fr: "\xC9V\xC9NEMENT"
+    de: EREIGNIS
+    ko: "\uC774\uBCA4\uD2B8"
+    ru: "\u0421\u041E\u0411\u042B\u0422\u0418\u0415"
+  - key: tablet.result
+    en: RESULT
+    tr: "SONU\xC7"
+    es: RESULTADO
+    fr: "R\xC9SULTAT"
+    de: ERGEBNIS
+    ko: "\uACB0\uACFC"
+    ru: "\u0420\u0415\u0417\u0423\u041B\u042C\u0422\u0410\u0422"
+  - key: tablet.travel
+    en: TRAVEL
+    tr: SEYAHAT
+    es: VIAJE
+    fr: VOYAGE
+    de: REISE
+    ko: "\uC5EC\uD589"
+    ru: "\u041F\u0423\u0422\u0415\u0428\u0415\u0421\u0422\u0412\u0418\u0415"
+  - key: tablet.development
+    en: DEVELOPMENT
+    tr: "GEL\u0130\u015ET\u0130RME"
+    es: DESARROLLO
+    fr: "D\xC9VELOPPEMENT"
+    de: ENTWICKLUNG
+    ko: "\uAC1C\uBC1C"
+    ru: "\u0420\u0410\u0417\u0412\u0418\u0422\u0418\u0415"
+  - key: tablet.match_result
+    en: MATCH RESULT
+    tr: "MA\xC7 SONUCU"
+    es: RESULTADO
+    fr: "R\xC9SULTAT DU MATCH"
+    de: SPIELERGEBNIS
+    ko: "\uAC8C\uC784 \uACB0\uACFC"
+    ru: "\u0420\u0415\u0417\u0423\u041B\u042C\u0422\u0410\u0422 \u041C\u0410\u0422\u0427\u0410"
+  - key: turn.waiting_player_settings
+    en: Waiting for player setup
+    tr: "Oyuncu ayarlar\u0131 bekleniyor"
+    es: "Esperando la configuraci\xF3n"
+    fr: En attente de la configuration
+    de: Warte auf Spielereinstellungen
+    ko: "\uD50C\uB808\uC774\uC5B4 \uC124\uC815 \uB300\uAE30 \uC911"
+    ru: "\u041E\u0436\u0438\u0434\u0430\u043D\u0438\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438
+      \u0438\u0433\u0440\u043E\u043A\u043E\u0432"
+  - key: turn.starting_rolling
+    en: '{0} is rolling...'
+    tr: "{0} zar at\u0131yor..."
+    es: "{0} est\xE1 tirando..."
+    fr: "{0} lance les d\xE9s..."
+    de: "{0} w\xFCrfelt..."
+    ko: "{0} \uC8FC\uC0AC\uC704\uB97C \uAD74\uB9AC\uB294 \uC911..."
+    ru: "{0} \u0431\u0440\u043E\u0441\u0430\u0435\u0442 \u043A\u043E\u0441\u0442\u0438..."
+  - key: turn.active_rolling
+    en: 'Round {0}/{1}
+
+      {2} is rolling...'
+    tr: "Tur {0}/{1}\n{2} zar at\u0131yor..."
+    es: "Ronda {0}/{1}\n{2} est\xE1 tirando..."
+    fr: "Tour {0}/{1}\n{2} lance les d\xE9s..."
+    de: "Runde {0}/{1}\n{2} w\xFCrfelt..."
+    ko: "\uB77C\uC6B4\uB4DC {0}/{1}\n{2} \uC8FC\uC0AC\uC704\uB97C \uAD74\uB9AC\uB294
+      \uC911..."
+    ru: "\u0420\u0430\u0443\u043D\u0434 {0}/{1}\n{2} \u0431\u0440\u043E\u0441\u0430\u0435\u0442
+      \u043A\u043E\u0441\u0442\u0438..."
+  - key: turn.active_result
+    en: 'Round {0}/{1}
+
+      {2} rolled: {3}'
+    tr: "Tur {0}/{1}\n{2} zar att\u0131: {3}"
+    es: "Ronda {0}/{1}\n{2} sac\xF3: {3}"
+    fr: 'Tour {0}/{1}
+
+      {2} a obtenu : {3}'
+    de: "Runde {0}/{1}\n{2} w\xFCrfelte: {3}"
+    ko: "\uB77C\uC6B4\uB4DC {0}/{1}\n{2} \uACB0\uACFC: {3}"
+    ru: "\u0420\u0430\u0443\u043D\u0434 {0}/{1}\n{2} \u0432\u044B\u0431\u0440\u043E\u0441\u0438\u043B:
+      {3}"
+  - key: turn.triple_double_penalty
+    en: '{0} rolled doubles three times in a row!
+
+
+      No movement on this third
+      roll.
+
+      You cannot roll on your next turn.'
+    tr: "{0}, 3 kez \xFCst \xFCste \xE7ift att\u0131!\n\nBu \xFC\xE7\xFCnc\xFC at\u0131\u015Fta
+      hareket yok.\nBir sonraki turunda zar atamazs\u0131n."
+    es: "\xA1{0} sac\xF3 dobles tres veces seguidas!\n\nNo hay movimiento en esta
+      tercera tirada.\nNo podr\xE1s tirar en tu pr\xF3ximo turno."
+    fr: "{0} a fait trois doubles de suite !\n\nAucun d\xE9placement sur ce troisi\xE8me
+      lancer.\nImpossible de lancer au prochain tour."
+    de: "{0} hat dreimal hintereinander einen Pasch gew\xFCrfelt!\n\nBeim dritten
+      Wurf gibt es keine Bewegung.\nIm n\xE4chsten Zug darf nicht gew\xFCrfelt werden."
+    ko: "{0}\uB2D8\uC774 3\uBC88 \uC5F0\uC18D \uB354\uBE14\uC744 \uAD74\uB838\uC2B5\uB2C8\uB2E4!\n\n\uC138
+      \uBC88\uC9F8 \uAD74\uB9BC\uC5D0\uB294 \uC774\uB3D9\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.\n\uB2E4\uC74C
+      \uD134\uC5D0\uB294 \uC8FC\uC0AC\uC704\uB97C \uAD74\uB9B4 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4."
+    ru: "{0} \u0432\u044B\u0431\u0440\u043E\u0441\u0438\u043B \u0434\u0443\u0431\u043B\u044C
+      \u0442\u0440\u0438 \u0440\u0430\u0437\u0430 \u043F\u043E\u0434\u0440\u044F\u0434!\n\n\u041D\u0430
+      \u0442\u0440\u0435\u0442\u044C\u0435\u043C \u0431\u0440\u043E\u0441\u043A\u0435
+      \u0434\u0432\u0438\u0436\u0435\u043D\u0438\u044F \u043D\u0435\u0442.\n\u0412
+      \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0438\u0439 \u0445\u043E\u0434 \u0431\u0440\u043E\u0441\u043E\u043A
+      \u043F\u0440\u043E\u043F\u0443\u0441\u043A\u0430\u0435\u0442\u0441\u044F."
+  - key: turn.extra_roll
+    en: "Round {0}/{1}\n{2}: doubles ({3}+{4}) \u2014 roll again!"
+    tr: "Tur {0}/{1}\n{2}: \xE7ift zar ({3}+{4}) \u2014 tekrar zar at!"
+    es: "Ronda {0}/{1}\n{2}: dobles ({3}+{4}) \u2014 \xA1tira otra vez!"
+    fr: "Tour {0}/{1}\n{2} : double ({3}+{4}) \u2014 relancez !"
+    de: "Runde {0}/{1}\n{2}: Pasch ({3}+{4}) \u2014 noch einmal w\xFCrfeln!"
+    ko: "\uB77C\uC6B4\uB4DC {0}/{1}\n{2}: \uB354\uBE14 ({3}+{4}) \u2014 \uB2E4\uC2DC
+      \uAD74\uB9AC\uC138\uC694!"
+    ru: "\u0420\u0430\u0443\u043D\u0434 {0}/{1}\n{2}: \u0434\u0443\u0431\u043B\u044C
+      ({3}+{4}) \u2014 \u0431\u0440\u043E\u0441\u0430\u0439\u0442\u0435 \u0441\u043D\u043E\u0432\u0430!"
+  - key: turn.skipping
+    en: 'Round {0}/{1}
+
+      {2} skips this turn'
+    tr: "Tur {0}/{1}\n{2} bu turu atl\u0131yor"
+    es: 'Ronda {0}/{1}
+
+      {2} pierde este turno'
+    fr: 'Tour {0}/{1}
+
+      {2} passe ce tour'
+    de: 'Runde {0}/{1}
+
+      {2} setzt diesen Zug aus'
+    ko: "\uB77C\uC6B4\uB4DC {0}/{1}\n{2} \uC774\uBC88 \uD134\uC744 \uC27D\uB2C8\uB2E4"
+    ru: "\u0420\u0430\u0443\u043D\u0434 {0}/{1}\n{2} \u043F\u0440\u043E\u043F\u0443\u0441\u043A\u0430\u0435\u0442
+      \u0445\u043E\u0434"
+  - key: turn.match_complete
+    en: 'Match complete
+
+      Round {0}'
+    tr: "Ma\xE7 tamamland\u0131\nTur {0}"
+    es: 'Partida terminada
+
+      Ronda {0}'
+    fr: "Partie termin\xE9e\nTour {0}"
+    de: 'Spiel beendet
+
+      Runde {0}'
+    ko: "\uAC8C\uC784 \uC885\uB8CC\n\uB77C\uC6B4\uB4DC {0}"
+    ru: "\u041C\u0430\u0442\u0447 \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043D\n\u0420\u0430\u0443\u043D\u0434
+      {0}"
+  - key: turn.starting_tie
+    en: 'Tie: {0}{1} roll again'
+    tr: "E\u015Fitlik: {0}{1} tekrar zar ats\u0131n"
+    es: 'Empate: {0}{1} tira de nuevo'
+    fr: "\xC9galit\xE9 : {0}{1} relance"
+    de: "Gleichstand: {0}{1} w\xFCrfelt erneut"
+    ko: "\uB3D9\uC810: {0}{1} \uB2E4\uC2DC \uAD74\uB9AC\uC138\uC694"
+    ru: "\u041D\u0438\u0447\u044C\u044F: {0}{1} \u0431\u0440\u043E\u0441\u0430\u0435\u0442
+      \u0441\u043D\u043E\u0432\u0430"
+  - key: turn.starting_order
+    en: 'Starting order: {0}{1} roll'
+    tr: "Ba\u015Flang\u0131\xE7 s\u0131ras\u0131: {0}{1} zar ats\u0131n"
+    es: 'Orden inicial: {0}{1} tira'
+    fr: "Ordre de d\xE9part : {0}{1} lance"
+    de: "Startreihenfolge: {0}{1} w\xFCrfelt"
+    ko: "\uC2DC\uC791 \uC21C\uC11C: {0}{1} \uAD74\uB9AC\uC138\uC694"
+    ru: "\u041F\u043E\u0440\u044F\u0434\u043E\u043A \u0441\u0442\u0430\u0440\u0442\u0430:
+      {0}{1} \u0431\u0440\u043E\u0441\u0430\u0435\u0442"
+  - key: turn.current
+    en: 'Round {0}/{1}
+
+      Turn: {2}{3}'
+    tr: "Tur {0}/{1}\nS\u0131ra: {2}{3}"
+    es: 'Ronda {0}/{1}
+
+      Turno: {2}{3}'
+    fr: "Tour {0}/{1}\n\xC0 {2}{3}"
+    de: 'Runde {0}/{1}
+
+      Am Zug: {2}{3}'
+    ko: "\uB77C\uC6B4\uB4DC {0}/{1}\n\uCC28\uB840: {2}{3}"
+    ru: "\u0420\u0430\u0443\u043D\u0434 {0}/{1}\n\u0425\u043E\u0434: {2}{3}"
+  - key: hud.bankrupt
+    en: BANKRUPT
+    tr: "\u0130FLAS"
+    es: BANCARROTA
+    fr: FAILLITE
+    de: INSOLVENT
+    ko: "\uD30C\uC0B0"
+    ru: "\u0411\u0410\u041D\u041A\u0420\u041E\u0422"
+  - key: hud.turn
+    en: TURN
+    tr: SIRA
+    es: TURNO
+    fr: TOUR
+    de: ZUG
+    ko: "\uCC28\uB840"
+    ru: "\u0425\u041E\u0414"
+  - key: bot.balanced
+    en: Balanced
+    tr: Dengeli
+    es: Equilibrado
+    fr: "\xC9quilibr\xE9"
+    de: Ausgeglichen
+    ko: "\uADE0\uD615\uD615"
+    ru: "\u0421\u0431\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u044B\u0439"
+  - key: bot.safe
+    en: Safe
+    tr: Temkinli
+    es: Prudente
+    fr: Prudent
+    de: Vorsichtig
+    ko: "\uC548\uC804\uD615"
+    ru: "\u041E\u0441\u0442\u043E\u0440\u043E\u0436\u043D\u044B\u0439"
+  - key: bot.aggressive
+    en: Aggressive
+    tr: Agresif
+    es: Agresivo
+    fr: Agressif
+    de: Aggressiv
+    ko: "\uACF5\uACA9\uD615"
+    ru: "\u0410\u0433\u0440\u0435\u0441\u0441\u0438\u0432\u043D\u044B\u0439"
+  - key: bot.adaptive
+    en: Adaptive
+    tr: Uyarlanabilir
+    es: Adaptativo
+    fr: Adaptatif
+    de: Adaptiv
+    ko: "\uC801\uC751\uD615"
+    ru: "\u0410\u0434\u0430\u043F\u0442\u0438\u0432\u043D\u044B\u0439"
+  - key: turn.playing
+    en: '{0} is playing'
+    tr: '{0} oynuyor'
+    es: "{0} est\xE1 jugando"
+    fr: '{0} joue'
+    de: '{0} spielt'
+    ko: "{0} \uD50C\uB808\uC774 \uC911"
+    ru: "{0} \u0438\u0433\u0440\u0430\u0435\u0442"
+  - key: hint.continue
+    en: SPACE / ENTER  Continue
+    tr: SPACE / ENTER  Devam
+    es: SPACE / ENTER  Continuar
+    fr: SPACE / ENTER  Continuer
+    de: SPACE / ENTER  Weiter
+    ko: "SPACE / ENTER  \uACC4\uC18D"
+    ru: "SPACE / ENTER  \u041F\u0440\u043E\u0434\u043E\u043B\u0436\u0438\u0442\u044C"
+  - key: hint.trade_offer
+    en: "SPACE  Accept   \u2022   ESC  Reject"
+    tr: "SPACE  Kabul Et   \u2022   ESC  Reddet"
+    es: "SPACE  Aceptar   \u2022   ESC  Rechazar"
+    fr: "SPACE  Accepter   \u2022   ESC  Refuser"
+    de: "SPACE  Annehmen   \u2022   ESC  Ablehnen"
+    ko: "SPACE  \uC218\uB77D   \u2022   ESC  \uAC70\uC808"
+    ru: "SPACE  \u041F\u0440\u0438\u043D\u044F\u0442\u044C   \u2022   ESC  \u041E\u0442\u043A\u043B\u043E\u043D\u0438\u0442\u044C"
+  - key: hint.purchase
+    en: "SPACE  Buy   \u2022   ESC  Pass"
+    tr: "SPACE  Sat\u0131n Al   \u2022   ESC  Ge\xE7"
+    es: "SPACE  Comprar   \u2022   ESC  Pasar"
+    fr: "SPACE  Acheter   \u2022   ESC  Passer"
+    de: "SPACE  Kaufen   \u2022   ESC  Passen"
+    ko: "SPACE  \uAD6C\uB9E4   \u2022   ESC  \uD328\uC2A4"
+    ru: "SPACE  \u041A\u0443\u043F\u0438\u0442\u044C   \u2022   ESC  \u041F\u0440\u043E\u043F\u0443\u0441\u0442\u0438\u0442\u044C"
+  - key: hint.travel
+    en: "SPACE  Travel   \u2022   ESC  Stay"
+    tr: "SPACE  Seyahat Et   \u2022   ESC  Kal"
+    es: "SPACE  Viajar   \u2022   ESC  Quedarse"
+    fr: "SPACE  Voyager   \u2022   ESC  Rester"
+    de: "SPACE  Reisen   \u2022   ESC  Bleiben"
+    ko: "SPACE  \uC774\uB3D9   \u2022   ESC  \uBA38\uBB34\uB974\uAE30"
+    ru: "SPACE  \u041F\u043E\u0435\u0445\u0430\u0442\u044C   \u2022   ESC  \u041E\u0441\u0442\u0430\u0442\u044C\u0441\u044F"
+  - key: hint.develop
+    en: "SPACE  Develop   \u2022   ESC  Pass"
+    tr: "SPACE  Geli\u015Ftir   \u2022   ESC  Ge\xE7"
+    es: "SPACE  Desarrollar   \u2022   ESC  Pasar"
+    fr: "SPACE  D\xE9velopper   \u2022   ESC  Passer"
+    de: "SPACE  Entwickeln   \u2022   ESC  Passen"
+    ko: "SPACE  \uAC1C\uBC1C   \u2022   ESC  \uD328\uC2A4"
+    ru: "SPACE  \u0420\u0430\u0437\u0432\u0438\u0442\u044C   \u2022   ESC  \u041F\u0440\u043E\u043F\u0443\u0441\u0442\u0438\u0442\u044C"
+  - key: hint.auction
+    en: "SPACE  +Small Bid   \u2022   SHIFT+SPACE  +Large Bid   \u2022   ESC  Pass"
+    tr: "SPACE  +K\xFC\xE7\xFCk Teklif   \u2022   SHIFT+SPACE  +B\xFCy\xFCk Teklif  
+      \u2022   ESC  Pas"
+    es: "SPACE  +Puja peque\xF1a   \u2022   SHIFT+SPACE  +Puja grande   \u2022  
+      ESC  Pasar"
+    fr: "SPACE  +Petite ench\xE8re   \u2022   SHIFT+SPACE  +Grande ench\xE8re   \u2022  
+      ESC  Passer"
+    de: "SPACE  +Kleines Gebot   \u2022   SHIFT+SPACE  +Gro\xDFes Gebot   \u2022  
+      ESC  Passen"
+    ko: "SPACE  +\uC18C\uC561 \uC785\uCC30   \u2022   SHIFT+SPACE  +\uD070 \uC785\uCC30  
+      \u2022   ESC  \uD328\uC2A4"
+    ru: "SPACE  +\u041C\u0430\u043B\u0430\u044F \u0441\u0442\u0430\u0432\u043A\u0430  
+      \u2022   SHIFT+SPACE  +\u0411\u043E\u043B\u044C\u0448\u0430\u044F \u0441\u0442\u0430\u0432\u043A\u0430  
+      \u2022   ESC  \u041F\u0430\u0441"
+  - key: hint.roll_trade
+    en: "SPACE  Roll Dice   \u2022   T  Trade"
+    tr: "SPACE  Zar At   \u2022   T  Takas"
+    es: "SPACE  Tirar   \u2022   T  Intercambio"
+    fr: "SPACE  Lancer   \u2022   T  \xC9change"
+    de: "SPACE  W\xFCrfeln   \u2022   T  Handel"
+    ko: "SPACE  \uC8FC\uC0AC\uC704   \u2022   T  \uAC70\uB798"
+    ru: "SPACE  \u0411\u0440\u043E\u0441\u043E\u043A   \u2022   T  \u041E\u0431\u043C\u0435\u043D"
+  - key: hint.roll
+    en: SPACE  Roll Dice
+    tr: SPACE  Zar At
+    es: SPACE  Tirar dados
+    fr: "SPACE  Lancer les d\xE9s"
+    de: "SPACE  W\xFCrfeln"
+    ko: "SPACE  \uC8FC\uC0AC\uC704 \uAD74\uB9AC\uAE30"
+    ru: "SPACE  \u0411\u0440\u043E\u0441\u0438\u0442\u044C \u043A\u043E\u0441\u0442\u0438"
+  - key: tablet.penalty
+    en: PENALTY
+    tr: CEZA
+    es: "PENALIZACI\xD3N"
+    fr: "P\xC9NALIT\xC9"
+    de: STRAFE
+    ko: "\uD398\uB110\uD2F0"
+    ru: "\u0428\u0422\u0420\u0410\u0424"
+  - key: action.buy
+    en: BUY
+    tr: SATIN AL
+    es: COMPRAR
+    fr: ACHETER
+    de: KAUFEN
+    ko: "\uAD6C\uB9E4"
+    ru: "\u041A\u0423\u041F\u0418\u0422\u042C"
+  - key: action.pass
+    en: PASS
+    tr: "GE\xC7"
+    es: PASAR
+    fr: PASSER
+    de: PASSEN
+    ko: "\uD328\uC2A4"
+    ru: "\u041F\u0410\u0421"
+  - key: action.accept
+    en: ACCEPT
+    tr: KABUL ET
+    es: ACEPTAR
+    fr: ACCEPTER
+    de: ANNEHMEN
+    ko: "\uC218\uB77D"
+    ru: "\u041F\u0420\u0418\u041D\u042F\u0422\u042C"
+  - key: action.reject
+    en: REJECT
+    tr: REDDET
+    es: RECHAZAR
+    fr: REFUSER
+    de: ABLEHNEN
+    ko: "\uAC70\uC808"
+    ru: "\u041E\u0422\u041A\u041B\u041E\u041D\u0418\u0422\u042C"
+  - key: action.send_offer
+    en: SEND OFFER
+    tr: "TEKL\u0130F G\xD6NDER"
+    es: ENVIAR OFERTA
+    fr: ENVOYER L'OFFRE
+    de: ANGEBOT SENDEN
+    ko: "\uC81C\uC548 \uBCF4\uB0B4\uAE30"
+    ru: "\u041E\u0422\u041F\u0420\u0410\u0412\u0418\u0422\u042C \u041F\u0420\u0415\u0414\u041B\u041E\u0416\u0415\u041D\u0418\u0415"
+  - key: action.travel
+    en: TRAVEL
+    tr: SEYAHAT ET
+    es: VIAJAR
+    fr: VOYAGER
+    de: REISEN
+    ko: "\uC774\uB3D9"
+    ru: "\u041F\u041E\u0415\u0425\u0410\u0422\u042C"
+  - key: action.stay
+    en: STAY
+    tr: KAL
+    es: QUEDARSE
+    fr: RESTER
+    de: BLEIBEN
+    ko: "\uBA38\uBB34\uB974\uAE30"
+    ru: "\u041E\u0421\u0422\u0410\u0422\u042C\u0421\u042F"
+  - key: action.develop
+    en: DEVELOP
+    tr: "GEL\u0130\u015ET\u0130R"
+    es: DESARROLLAR
+    fr: "D\xC9VELOPPER"
+    de: ENTWICKELN
+    ko: "\uAC1C\uBC1C"
+    ru: "\u0420\u0410\u0417\u0412\u0418\u0422\u042C"
+  - key: action.continue
+    en: CONTINUE
+    tr: DEVAM
+    es: CONTINUAR
+    fr: CONTINUER
+    de: WEITER
+    ko: "\uACC4\uC18D"
+    ru: "\u041F\u0420\u041E\u0414\u041E\u041B\u0416\u0418\u0422\u042C"
+  - key: auction.title
+    en: AUCTION
+    tr: "A\xC7IK ARTIRMA"
+    es: SUBASTA
+    fr: "ENCH\xC8RE"
+    de: AUKTION
+    ko: "\uACBD\uB9E4"
+    ru: "\u0410\u0423\u041A\u0426\u0418\u041E\u041D"
+  - key: auction.none
+    en: None
+    tr: Yok
+    es: Ninguno
+    fr: Aucun
+    de: Keiner
+    ko: "\uC5C6\uC74C"
+    ru: "\u041D\u0435\u0442"
+  - key: auction.property_info
+    en: "{0}\nList Value: {1} \u20B5 | Rent: {2} \u20B5"
+    tr: "{0}\nListe De\u011Feri: {1} \u20B5 | Kira: {2} \u20B5"
+    es: "{0}\nValor: {1} \u20B5 | Alquiler: {2} \u20B5"
+    fr: "{0}\nValeur : {1} \u20B5 | Loyer : {2} \u20B5"
+    de: "{0}\nListenwert: {1} \u20B5 | Miete: {2} \u20B5"
+    ko: "{0}\n\uAC00\uACA9: {1} \u20B5 | \uC784\uB300\uB8CC: {2} \u20B5"
+    ru: "{0}\n\u0421\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C: {1} \u20B5
+      | \u0420\u0435\u043D\u0442\u0430: {2} \u20B5"
+  - key: auction.status
+    en: "Current bid: {0} \u20B5\nHighest: {1}\nTurn: {2}{3}"
+    tr: "Mevcut teklif: {0} \u20B5\nEn y\xFCksek: {1}\nS\u0131ra: {2}{3}"
+    es: "Oferta actual: {0} \u20B5\nMayor: {1}\nTurno: {2}{3}"
+    fr: "Offre actuelle : {0} \u20B5\nMeilleure : {1}\nTour : {2}{3}"
+    de: "Aktuelles Gebot: {0} \u20B5\nH\xF6chstes: {1}\nZug: {2}{3}"
+    ko: "\uD604\uC7AC \uC785\uCC30: {0} \u20B5\n\uCD5C\uACE0: {1}\n\uCC28\uB840:
+      {2}{3}"
+    ru: "\u0422\u0435\u043A\u0443\u0449\u0430\u044F \u0441\u0442\u0430\u0432\u043A\u0430:
+      {0} \u20B5\n\u041B\u0438\u0434\u0435\u0440: {1}\n\u0425\u043E\u0434: {2}{3}"
+  - key: auction.required_available
+    en: "Required: {0} \u20B5 | Available: {1} \u20B5"
+    tr: "Gerekli: {0} \u20B5 | Mevcut: {1} \u20B5"
+    es: "Necesario: {0} \u20B5 | Disponible: {1} \u20B5"
+    fr: "Requis : {0} \u20B5 | Disponible : {1} \u20B5"
+    de: "Ben\xF6tigt: {0} \u20B5 | Verf\xFCgbar: {1} \u20B5"
+    ko: "\uD544\uC694: {0} \u20B5 | \uBCF4\uC720: {1} \u20B5"
+    ru: "\u041D\u0443\u0436\u043D\u043E: {0} \u20B5 | \u0414\u043E\u0441\u0442\u0443\u043F\u043D\u043E:
+      {1} \u20B5"
+  - key: auction.unsold
+    en: Property was not sold.
+    tr: "M\xFClk sat\u0131lmad\u0131."
+    es: "La propiedad no se vendi\xF3."
+    fr: "La propri\xE9t\xE9 n'a pas \xE9t\xE9 vendue."
+    de: "Das Grundst\xFCck wurde nicht verkauft."
+    ko: "\uBD80\uB3D9\uC0B0\uC774 \uD310\uB9E4\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4."
+    ru: "\u0421\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0441\u0442\u044C
+      \u043D\u0435 \u043F\u0440\u043E\u0434\u0430\u043D\u0430."
+  - key: auction.refunded
+    en: Bid refunded.
+    tr: Teklif iade edildi.
+    es: Oferta reembolsada.
+    fr: "Offre rembours\xE9e."
+    de: Gebot erstattet.
+    ko: "\uC785\uCC30\uAE08\uC774 \uD658\uBD88\uB418\uC5C8\uC2B5\uB2C8\uB2E4."
+    ru: "\u0421\u0442\u0430\u0432\u043A\u0430 \u0432\u043E\u0437\u0432\u0440\u0430\u0449\u0435\u043D\u0430."
+  - key: auction.winning_bid
+    en: "Winning bid: {0} \u20B5"
+    tr: "Kazanan teklif: {0} \u20B5"
+    es: "Oferta ganadora: {0} \u20B5"
+    fr: "Offre gagnante : {0} \u20B5"
+    de: "Siegergebot: {0} \u20B5"
+    ko: "\uB099\uCC30\uAC00: {0} \u20B5"
+    ru: "\u041F\u043E\u0431\u0435\u0434\u043D\u0430\u044F \u0441\u0442\u0430\u0432\u043A\u0430:
+      {0} \u20B5"
+  - key: purchase.prompt
+    en: "{0}\nPrice: {1} \u20B5\nDo you want to buy it?"
+    tr: "{0}\nFiyat: {1} \u20B5\nSat\u0131n almak istiyor musun?"
+    es: "{0}\nPrecio: {1} \u20B5\n\xBFQuieres comprarlo?"
+    fr: "{0}\nPrix : {1} \u20B5\nVoulez-vous l'acheter ?"
+    de: "{0}\nPreis: {1} \u20B5\nM\xF6chtest du es kaufen?"
+    ko: "{0}\n\uAC00\uACA9: {1} \u20B5\n\uAD6C\uB9E4\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?"
+    ru: "{0}\n\u0426\u0435\u043D\u0430: {1} \u20B5\n\u041A\u0443\u043F\u0438\u0442\u044C?"
+  - key: trade.title
+    en: "TRADE \u2014 {0}"
+    tr: "TAKAS \u2014 {0}"
+    es: "INTERCAMBIO \u2014 {0}"
+    fr: "\xC9CHANGE \u2014 {0}"
+    de: "HANDEL \u2014 {0}"
+    ko: "\uAC70\uB798 \u2014 {0}"
+    ru: "\u041E\u0411\u041C\u0415\u041D \u2014 {0}"
+  - key: trade.no_players
+    en: No eligible trade player found.
+    tr: "Uygun takas oyuncusu bulunamad\u0131."
+    es: No hay jugadores disponibles para intercambiar.
+    fr: "Aucun joueur disponible pour l'\xE9change."
+    de: Kein geeigneter Handelspartner gefunden.
+    ko: "\uAC70\uB798 \uAC00\uB2A5\uD55C \uD50C\uB808\uC774\uC5B4\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4."
+    ru: "\u041D\u0435\u0442 \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E\u0433\u043E
+      \u0438\u0433\u0440\u043E\u043A\u0430 \u0434\u043B\u044F \u043E\u0431\u043C\u0435\u043D\u0430."
+  - key: trade.no_offered_property
+    en: No property offered
+    tr: "M\xFClk teklif etme"
+    es: Sin propiedad ofrecida
+    fr: "Aucune propri\xE9t\xE9 offerte"
+    de: "Kein Grundst\xFCck anbieten"
+    ko: "\uC81C\uACF5\uD560 \uBD80\uB3D9\uC0B0 \uC5C6\uC74C"
+    ru: "\u0411\u0435\u0437 \u043F\u0440\u0435\u0434\u043B\u0430\u0433\u0430\u0435\u043C\u043E\u0439
+      \u0441\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0441\u0442\u0438"
+  - key: trade.no_requested_property
+    en: No property requested
+    tr: "M\xFClk talep etme"
+    es: Sin propiedad solicitada
+    fr: "Aucune propri\xE9t\xE9 demand\xE9e"
+    de: "Kein Grundst\xFCck anfordern"
+    ko: "\uC694\uCCAD\uD560 \uBD80\uB3D9\uC0B0 \uC5C6\uC74C"
+    ru: "\u0411\u0435\u0437 \u0437\u0430\u043F\u0440\u0430\u0448\u0438\u0432\u0430\u0435\u043C\u043E\u0439
+      \u0441\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0441\u0442\u0438"
+  - key: trade.no_property
+    en: No property
+    tr: "M\xFClk yok"
+    es: Sin propiedad
+    fr: "Aucune propri\xE9t\xE9"
+    de: "Kein Grundst\xFCck"
+    ko: "\uBD80\uB3D9\uC0B0 \uC5C6\uC74C"
+    ru: "\u041D\u0435\u0442 \u0441\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0441\u0442\u0438"
+  - key: trade.no_target
+    en: No target
+    tr: Hedef yok
+    es: Sin objetivo
+    fr: Aucune cible
+    de: Kein Ziel
+    ko: "\uB300\uC0C1 \uC5C6\uC74C"
+    ru: "\u041D\u0435\u0442 \u0446\u0435\u043B\u0438"
+  - key: trade.target_summary
+    en: 'Trade target: {0}
+
+
+      {1}'
+    tr: 'Takas hedefi: {0}
+
+
+      {1}'
+    es: 'Objetivo del intercambio: {0}
+
+
+      {1}'
+    fr: "Cible de l'\xE9change : {0}\n\n{1}"
+    de: 'Handelspartner: {0}
+
+
+      {1}'
+    ko: "\uAC70\uB798 \uB300\uC0C1: {0}\n\n{1}"
+    ru: "\u0426\u0435\u043B\u044C \u043E\u0431\u043C\u0435\u043D\u0430: {0}\n\n{1}"
+  - key: trade.offer_summary
+    en: "{0} gives:\n\u2022 {1}\n\u2022 {2} \u20B5\n\n{3} gives:\n\u2022 {4}\n\u2022
+      {5} \u20B5"
+    tr: "{0} verir:\n\u2022 {1}\n\u2022 {2} \u20B5\n\n{3} verir:\n\u2022 {4}\n\u2022
+      {5} \u20B5"
+    es: "{0} entrega:\n\u2022 {1}\n\u2022 {2} \u20B5\n\n{3} entrega:\n\u2022 {4}\n\u2022
+      {5} \u20B5"
+    fr: "{0} donne :\n\u2022 {1}\n\u2022 {2} \u20B5\n\n{3} donne :\n\u2022 {4}\n\u2022
+      {5} \u20B5"
+    de: "{0} gibt:\n\u2022 {1}\n\u2022 {2} \u20B5\n\n{3} gibt:\n\u2022 {4}\n\u2022
+      {5} \u20B5"
+    ko: "{0} \uC81C\uACF5:\n\u2022 {1}\n\u2022 {2} \u20B5\n\n{3} \uC81C\uACF5:\n\u2022
+      {4}\n\u2022 {5} \u20B5"
+    ru: "{0} \u043E\u0442\u0434\u0430\u0451\u0442:\n\u2022 {1}\n\u2022 {2} \u20B5\n\n{3}
+      \u043E\u0442\u0434\u0430\u0451\u0442:\n\u2022 {4}\n\u2022 {5} \u20B5"
+  - key: trade.response_prompt
+    en: '{0}, do you accept the offer?'
+    tr: '{0}, teklifi kabul ediyor musun?'
+    es: "{0}, \xBFaceptas la oferta?"
+    fr: '{0}, acceptez-vous l''offre ?'
+    de: '{0}, nimmst du das Angebot an?'
+    ko: "{0}, \uC81C\uC548\uC744 \uC218\uB77D\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?"
+    ru: "{0}, \u043F\u0440\u0438\u043D\u044F\u0442\u044C \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0435?"
+  - key: trade.accepted
+    en: TRADE ACCEPTED
+    tr: "TAKAS KABUL ED\u0130LD\u0130"
+    es: INTERCAMBIO ACEPTADO
+    fr: "\xC9CHANGE ACCEPT\xC9"
+    de: HANDEL ANGENOMMEN
+    ko: "\uAC70\uB798 \uC218\uB77D\uB428"
+    ru: "\u041E\u0411\u041C\u0415\u041D \u041F\u0420\u0418\u041D\u042F\u0422"
+  - key: trade.rejected
+    en: TRADE REJECTED
+    tr: "TAKAS REDDED\u0130LD\u0130"
+    es: INTERCAMBIO RECHAZADO
+    fr: "\xC9CHANGE REFUS\xC9"
+    de: HANDEL ABGELEHNT
+    ko: "\uAC70\uB798 \uAC70\uC808\uB428"
+    ru: "\u041E\u0411\u041C\u0415\u041D \u041E\u0422\u041A\u041B\u041E\u041D\u0401\u041D"
+  - key: trade.no_longer_valid
+    en: The trade is no longer valid.
+    tr: "Takas art\u0131k ge\xE7erli de\u011Fil."
+    es: "El intercambio ya no es v\xE1lido."
+    fr: "L'\xE9change n'est plus valide."
+    de: "Der Handel ist nicht mehr g\xFCltig."
+    ko: "\uAC70\uB798\uAC00 \uB354 \uC774\uC0C1 \uC720\uD6A8\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4."
+    ru: "\u041E\u0431\u043C\u0435\u043D \u0431\u043E\u043B\u044C\u0448\u0435 \u043D\u0435\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u0435\u043D."
+  - key: trade.apply_failed
+    en: Trade could not be applied. No changes were made.
+    tr: "Takas uygulanamad\u0131. Hi\xE7bir de\u011Fi\u015Fiklik yap\u0131lmad\u0131."
+    es: No se pudo aplicar el intercambio. No se realizaron cambios.
+    fr: "L'\xE9change n'a pas pu \xEAtre appliqu\xE9. Aucun changement n'a \xE9t\xE9
+      effectu\xE9."
+    de: "Der Handel konnte nicht ausgef\xFChrt werden. Es wurden keine \xC4nderungen
+      vorgenommen."
+    ko: "\uAC70\uB798\uB97C \uC801\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4. \uBCC0\uACBD
+      \uC0AC\uD56D\uC774 \uC5C6\uC2B5\uB2C8\uB2E4."
+    ru: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u0440\u0438\u043C\u0435\u043D\u0438\u0442\u044C
+      \u043E\u0431\u043C\u0435\u043D. \u0418\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u0439
+      \u043D\u0435 \u0432\u043D\u0435\u0441\u0435\u043D\u043E."
+  - key: auction.no_bids
+    en: 'No one placed a bid.
+
+      Property was not sold.'
+    tr: "Kimse teklif vermedi.\nM\xFClk sat\u0131lmad\u0131."
+    es: "Nadie hizo una oferta.\nLa propiedad no se vendi\xF3."
+    fr: "Aucune offre.\nLa propri\xE9t\xE9 n'a pas \xE9t\xE9 vendue."
+    de: "Niemand hat geboten.\nDas Grundst\xFCck wurde nicht verkauft."
+    ko: "\uC785\uCC30\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.\n\uBD80\uB3D9\uC0B0\uC774 \uD310\uB9E4\uB418\uC9C0
+      \uC54A\uC558\uC2B5\uB2C8\uB2E4."
+    ru: "\u041D\u0438\u043A\u0442\u043E \u043D\u0435 \u0441\u0434\u0435\u043B\u0430\u043B
+      \u0441\u0442\u0430\u0432\u043A\u0443.\n\u0421\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0441\u0442\u044C
+      \u043D\u0435 \u043F\u0440\u043E\u0434\u0430\u043D\u0430."
+  - key: auction.no_valid_bid
+    en: 'No valid bid was found.
+
+      Property was not sold.'
+    tr: "Ge\xE7erli teklif bulunamad\u0131.\nM\xFClk sat\u0131lmad\u0131."
+    es: "No se encontr\xF3 una oferta v\xE1lida.\nLa propiedad no se vendi\xF3."
+    fr: "Aucune offre valide.\nLa propri\xE9t\xE9 n'a pas \xE9t\xE9 vendue."
+    de: "Kein g\xFCltiges Gebot.\nDas Grundst\xFCck wurde nicht verkauft."
+    ko: "\uC720\uD6A8\uD55C \uC785\uCC30\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.\n\uBD80\uB3D9\uC0B0\uC774
+      \uD310\uB9E4\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4."
+    ru: "\u041D\u0435\u0442 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u044C\u043D\u043E\u0439
+      \u0441\u0442\u0430\u0432\u043A\u0438.\n\u0421\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0441\u0442\u044C
+      \u043D\u0435 \u043F\u0440\u043E\u0434\u0430\u043D\u0430."
+  - key: auction.winner_cannot_pay
+    en: 'The winning bid could not be paid.
+
+      Property was not sold.'
+    tr: "Kazanan teklif \xF6denemedi.\nM\xFClk sat\u0131lmad\u0131."
+    es: "No se pudo pagar la oferta ganadora.\nLa propiedad no se vendi\xF3."
+    fr: "L'offre gagnante n'a pas pu \xEAtre pay\xE9e.\nLa propri\xE9t\xE9 n'a pas
+      \xE9t\xE9 vendue."
+    de: "Das Siegergebot konnte nicht bezahlt werden.\nDas Grundst\xFCck wurde nicht
+      verkauft."
+    ko: "\uB099\uCC30\uAE08\uC744 \uC9C0\uBD88\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.\n\uBD80\uB3D9\uC0B0\uC774
+      \uD310\uB9E4\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4."
+    ru: "\u041F\u043E\u0431\u0435\u0434\u043D\u0443\u044E \u0441\u0442\u0430\u0432\u043A\u0443
+      \u043D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043E\u043F\u043B\u0430\u0442\u0438\u0442\u044C.\n\u0421\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0441\u0442\u044C
+      \u043D\u0435 \u043F\u0440\u043E\u0434\u0430\u043D\u0430."
+  - key: auction.ownership_failed
+    en: 'Ownership could not be transferred.
+
+      Bid refunded.'
+    tr: "M\xFClkiyet aktar\u0131lamad\u0131.\nTeklif iade edildi."
+    es: 'No se pudo transferir la propiedad.
+
+      Oferta reembolsada.'
+    fr: "Le transfert de propri\xE9t\xE9 a \xE9chou\xE9.\nOffre rembours\xE9e."
+    de: "Eigentum konnte nicht \xFCbertragen werden.\nGebot erstattet."
+    ko: "\uC18C\uC720\uAD8C\uC744 \uC774\uC804\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.\n\uC785\uCC30\uAE08\uC774
+      \uD658\uBD88\uB418\uC5C8\uC2B5\uB2C8\uB2E4."
+    ru: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u0435\u0440\u0435\u0434\u0430\u0442\u044C
+      \u0441\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0441\u0442\u044C.\n\u0421\u0442\u0430\u0432\u043A\u0430
+      \u0432\u043E\u0437\u0432\u0440\u0430\u0449\u0435\u043D\u0430."
+  - key: auction.winner_result
+    en: "{0} won!\n{1}\nWinning bid: {2} \u20B5"
+    tr: "{0} kazand\u0131!\n{1}\nKazanan teklif: {2} \u20B5"
+    es: "\xA1{0} gan\xF3!\n{1}\nOferta ganadora: {2} \u20B5"
+    fr: "{0} a gagn\xE9 !\n{1}\nOffre gagnante : {2} \u20B5"
+    de: "{0} hat gewonnen!\n{1}\nSiegergebot: {2} \u20B5"
+    ko: "{0} \uC2B9\uB9AC!\n{1}\n\uB099\uCC30\uAC00: {2} \u20B5"
+    ru: "{0} \u043F\u043E\u0431\u0435\u0434\u0438\u043B!\n{1}\n\u041F\u043E\u0431\u0435\u0434\u043D\u0430\u044F
+      \u0441\u0442\u0430\u0432\u043A\u0430: {2} \u20B5"
+  - key: auction.insufficient_balance
+    en: "{0} does not have enough money.\nRequired: {1} \u20B5 | Available: {2} \u20B5"
+    tr: "{0} i\xE7in yetersiz bakiye.\nGerekli: {1} \u20B5 | Mevcut: {2} \u20B5"
+    es: "{0} no tiene suficiente dinero.\nNecesario: {1} \u20B5 | Disponible: {2}
+      \u20B5"
+    fr: "Solde insuffisant pour {0}.\nRequis : {1} \u20B5 | Disponible : {2} \u20B5"
+    de: "{0} hat nicht genug Geld.\nBen\xF6tigt: {1} \u20B5 | Verf\xFCgbar: {2} \u20B5"
+    ko: "{0}\uC758 \uC794\uC561\uC774 \uBD80\uC871\uD569\uB2C8\uB2E4.\n\uD544\uC694:
+      {1} \u20B5 | \uBCF4\uC720: {2} \u20B5"
+    ru: "\u0423 {0} \u043D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u043E\u0447\u043D\u043E
+      \u0434\u0435\u043D\u0435\u0433.\n\u041D\u0443\u0436\u043D\u043E: {1} \u20B5
+      | \u0414\u043E\u0441\u0442\u0443\u043F\u043D\u043E: {2} \u20B5"
+  - key: event.card.event_positive_large_order.title
+    en: Large Order
+    tr: "B\xFCy\xFCk Sipari\u015F"
+    es: Gran pedido
+    fr: Commande importante
+    de: "Gro\xDFauftrag"
+    ko: "\uB300\uADDC\uBAA8 \uC8FC\uBB38"
+    ru: "\u041A\u0440\u0443\u043F\u043D\u044B\u0439 \u0437\u0430\u043A\u0430\u0437"
+  - key: event.card.event_positive_large_order.description
+    en: You received an unexpectedly large order.
+    tr: "Beklenmedik b\xFCy\xFCk bir sipari\u015F ald\u0131n."
+    es: Recibiste un pedido inesperadamente grande.
+    fr: "Vous avez re\xE7u une commande exceptionnellement importante."
+    de: "Du hast unerwartet einen Gro\xDFauftrag erhalten."
+    ko: "\uC608\uC0C1\uCE58 \uBABB\uD55C \uB300\uADDC\uBAA8 \uC8FC\uBB38\uC744 \uBC1B\uC558\uC2B5\uB2C8\uB2E4."
+    ru: "\u0412\u044B \u043D\u0435\u043E\u0436\u0438\u0434\u0430\u043D\u043D\u043E
+      \u043F\u043E\u043B\u0443\u0447\u0438\u043B\u0438 \u043A\u0440\u0443\u043F\u043D\u044B\u0439
+      \u0437\u0430\u043A\u0430\u0437."
+  - key: event.card.event_positive_busy_season.title
+    en: Busy Season
+    tr: "Yo\u011Fun Sezon"
+    es: Temporada alta
+    fr: Haute saison
+    de: Hochsaison
+    ko: "\uC131\uC218\uAE30"
+    ru: "\u0412\u044B\u0441\u043E\u043A\u0438\u0439 \u0441\u0435\u0437\u043E\u043D"
+  - key: event.card.event_positive_busy_season.description
+    en: Business went better than expected.
+    tr: "\u0130\u015Flerin beklenenden daha iyi gitti."
+    es: El negocio fue mejor de lo esperado.
+    fr: "Les affaires ont \xE9t\xE9 meilleures que pr\xE9vu."
+    de: "Das Gesch\xE4ft lief besser als erwartet."
+    ko: "\uC0AC\uC5C5\uC774 \uC608\uC0C1\uBCF4\uB2E4 \uC798 \uD480\uB838\uC2B5\uB2C8\uB2E4."
+    ru: "\u0414\u0435\u043B\u0430 \u043F\u043E\u0448\u043B\u0438 \u043B\u0443\u0447\u0448\u0435,
+      \u0447\u0435\u043C \u043E\u0436\u0438\u0434\u0430\u043B\u043E\u0441\u044C."
+  - key: event.card.event_positive_local_support.title
+    en: Local Support
+    tr: Yerel Destek
+    es: Apoyo local
+    fr: Soutien local
+    de: "Lokale F\xF6rderung"
+    ko: "\uC9C0\uC5ED \uC9C0\uC6D0"
+    ru: "\u041C\u0435\u0441\u0442\u043D\u0430\u044F \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430"
+  - key: event.card.event_positive_local_support.description
+    en: You received a payment from a local support program.
+    tr: "Yerel bir destek program\u0131ndan \xF6deme ald\u0131n."
+    es: Recibiste un pago de un programa de apoyo local.
+    fr: "Vous avez re\xE7u une aide d'un programme local."
+    de: "Du hast eine Zahlung aus einem lokalen F\xF6rderprogramm erhalten."
+    ko: "\uC9C0\uC5ED \uC9C0\uC6D0 \uD504\uB85C\uADF8\uB7A8\uC5D0\uC11C \uC9C0\uC6D0\uAE08\uC744
+      \uBC1B\uC558\uC2B5\uB2C8\uB2E4."
+    ru: "\u0412\u044B \u043F\u043E\u043B\u0443\u0447\u0438\u043B\u0438 \u0432\u044B\u043F\u043B\u0430\u0442\u0443
+      \u043F\u043E \u043C\u0435\u0441\u0442\u043D\u043E\u0439 \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u0435
+      \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0438."
+  - key: event.card.event_positive_investment.title
+    en: New Investment
+    tr: "Yeni Yat\u0131r\u0131m"
+    es: "Nueva inversi\xF3n"
+    fr: Nouvel investissement
+    de: Neue Investition
+    ko: "\uC2E0\uADDC \uD22C\uC790"
+    ru: "\u041D\u043E\u0432\u0430\u044F \u0438\u043D\u0432\u0435\u0441\u0442\u0438\u0446\u0438\u044F"
+  - key: event.card.event_positive_investment.description
+    en: A new investment opportunity provided extra resources.
+    tr: "Yeni bir yat\u0131r\u0131m f\u0131rsat\u0131 sana ek kaynak sa\u011Flad\u0131."
+    es: "Una nueva oportunidad de inversi\xF3n te dio recursos adicionales."
+    fr: "Une nouvelle opportunit\xE9 d'investissement vous a apport\xE9 des ressources
+      suppl\xE9mentaires."
+    de: "Eine neue Investitionsm\xF6glichkeit brachte zus\xE4tzliche Mittel."
+    ko: "\uC0C8\uB85C\uC6B4 \uD22C\uC790 \uAE30\uD68C\uB85C \uCD94\uAC00 \uC790\uAE08\uC744
+      \uD655\uBCF4\uD588\uC2B5\uB2C8\uB2E4."
+    ru: "\u041D\u043E\u0432\u0430\u044F \u0438\u043D\u0432\u0435\u0441\u0442\u0438\u0446\u0438\u043E\u043D\u043D\u0430\u044F
+      \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442\u044C \u043F\u0440\u0438\u043D\u0435\u0441\u043B\u0430
+      \u0434\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0435
+      \u0441\u0440\u0435\u0434\u0441\u0442\u0432\u0430."
+  - key: event.card.event_positive_savings.title
+    en: Savings Success
+    tr: "Tasarruf Ba\u015Far\u0131s\u0131"
+    es: Ahorro exitoso
+    fr: "\xC9conomies r\xE9ussies"
+    de: Erfolgreich gespart
+    ko: "\uC808\uC57D \uC131\uACF5"
+    ru: "\u0423\u0434\u0430\u0447\u043D\u0430\u044F \u044D\u043A\u043E\u043D\u043E\u043C\u0438\u044F"
+  - key: event.card.event_positive_savings.description
+    en: You closed the period with lower expenses than expected.
+    tr: "Beklenenden d\xFC\u015F\xFCk giderlerle d\xF6nemi kapatt\u0131n."
+    es: Cerraste el periodo con menos gastos de lo esperado.
+    fr: "Vous avez termin\xE9 la p\xE9riode avec moins de d\xE9penses que pr\xE9vu."
+    de: Du hast den Zeitraum mit geringeren Ausgaben als erwartet abgeschlossen.
+    ko: "\uC608\uC0C1\uBCF4\uB2E4 \uC801\uC740 \uBE44\uC6A9\uC73C\uB85C \uAE30\uAC04\uC744
+      \uB9C8\uCCE4\uC2B5\uB2C8\uB2E4."
+    ru: "\u0412\u044B \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u043B\u0438 \u043F\u0435\u0440\u0438\u043E\u0434
+      \u0441 \u043C\u0435\u043D\u044C\u0448\u0438\u043C\u0438 \u0440\u0430\u0441\u0445\u043E\u0434\u0430\u043C\u0438,
+      \u0447\u0435\u043C \u043E\u0436\u0438\u0434\u0430\u043B\u043E\u0441\u044C."
+  - key: event.card.event_positive_campaign.title
+    en: Campaign Success
+    tr: "Kampanya Ba\u015Far\u0131s\u0131"
+    es: "Campa\xF1a exitosa"
+    fr: "Campagne r\xE9ussie"
+    de: Erfolgreiche Kampagne
+    ko: "\uCEA0\uD398\uC778 \uC131\uACF5"
+    ru: "\u0423\u0441\u043F\u0435\u0448\u043D\u0430\u044F \u043A\u0430\u043C\u043F\u0430\u043D\u0438\u044F"
+  - key: event.card.event_positive_campaign.description
+    en: Your campaign generated a strong return.
+    tr: "Yapt\u0131\u011F\u0131n kampanya g\xFC\xE7l\xFC bir geri d\xF6n\xFC\u015F
+      sa\u011Flad\u0131."
+    es: "Tu campa\xF1a gener\xF3 un gran retorno."
+    fr: "Votre campagne a g\xE9n\xE9r\xE9 un excellent retour."
+    de: Deine Kampagne brachte einen starken Ertrag.
+    ko: "\uCEA0\uD398\uC778\uC774 \uD070 \uC131\uACFC\uB97C \uB0C8\uC2B5\uB2C8\uB2E4."
+    ru: "\u0412\u0430\u0448\u0430 \u043A\u0430\u043C\u043F\u0430\u043D\u0438\u044F
+      \u043F\u0440\u0438\u043D\u0435\u0441\u043B\u0430 \u0432\u044B\u0441\u043E\u043A\u0438\u0439
+      \u0440\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442."
+  - key: event.card.event_positive_tax_refund.title
+    en: Tax Refund
+    tr: "Vergi \u0130adesi"
+    es: Reembolso fiscal
+    fr: Remboursement fiscal
+    de: "Steuerr\xFCckzahlung"
+    ko: "\uC138\uAE08 \uD658\uAE09"
+    ru: "\u0412\u043E\u0437\u0432\u0440\u0430\u0442 \u043D\u0430\u043B\u043E\u0433\u0430"
+  - key: event.card.event_positive_tax_refund.description
+    en: You received a larger tax refund than expected.
+    tr: "Beklenenden y\xFCksek bir vergi iadesi ald\u0131n."
+    es: Recibiste un reembolso fiscal mayor de lo esperado.
+    fr: "Vous avez re\xE7u un remboursement fiscal plus \xE9lev\xE9 que pr\xE9vu."
+    de: "Du hast eine h\xF6here Steuerr\xFCckzahlung als erwartet erhalten."
+    ko: "\uC608\uC0C1\uBCF4\uB2E4 \uD070 \uC138\uAE08 \uD658\uAE09\uC744 \uBC1B\uC558\uC2B5\uB2C8\uB2E4."
+    ru: "\u0412\u044B \u043F\u043E\u043B\u0443\u0447\u0438\u043B\u0438 \u0431\u043E\u043B\u044C\u0448\u0438\u0439
+      \u0432\u043E\u0437\u0432\u0440\u0430\u0442 \u043D\u0430\u043B\u043E\u0433\u0430,
+      \u0447\u0435\u043C \u043E\u0436\u0438\u0434\u0430\u043B\u043E\u0441\u044C."
+  - key: event.card.event_positive_supplier_discount.title
+    en: Supplier Discount
+    tr: "Tedarik\xE7i \u0130ndirimi"
+    es: Descuento del proveedor
+    fr: Remise fournisseur
+    de: Lieferantenrabatt
+    ko: "\uACF5\uAE09\uC5C5\uCCB4 \uD560\uC778"
+    ru: "\u0421\u043A\u0438\u0434\u043A\u0430 \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430"
+  - key: event.card.event_positive_supplier_discount.description
+    en: Your supplier gave you a special discount.
+    tr: "Tedarik\xE7in \xF6zel bir indirim uygulad\u0131."
+    es: "Tu proveedor te ofreci\xF3 un descuento especial."
+    fr: "Votre fournisseur vous a accord\xE9 une remise sp\xE9ciale."
+    de: "Dein Lieferant hat dir einen Sonderrabatt gew\xE4hrt."
+    ko: "\uACF5\uAE09\uC5C5\uCCB4\uAC00 \uD2B9\uBCC4 \uD560\uC778\uC744 \uC81C\uACF5\uD588\uC2B5\uB2C8\uB2E4."
+    ru: "\u041F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A \u043F\u0440\u0435\u0434\u043E\u0441\u0442\u0430\u0432\u0438\u043B
+      \u0432\u0430\u043C \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u044C\u043D\u0443\u044E
+      \u0441\u043A\u0438\u0434\u043A\u0443."
+  - key: event.card.event_positive_viral_post.title
+    en: Viral Post
+    tr: "Viral Payla\u015F\u0131m"
+    es: "Publicaci\xF3n viral"
+    fr: Publication virale
+    de: Viraler Beitrag
+    ko: "\uBC14\uC774\uB7F4 \uAC8C\uC2DC\uBB3C"
+    ru: "\u0412\u0438\u0440\u0443\u0441\u043D\u0430\u044F \u043F\u0443\u0431\u043B\u0438\u043A\u0430\u0446\u0438\u044F"
+  - key: event.card.event_positive_viral_post.description
+    en: One of your posts unexpectedly gained attention.
+    tr: "Bir payla\u015F\u0131m\u0131n beklenmedik \u015Fekilde ilgi g\xF6rd\xFC."
+    es: "Una de tus publicaciones llam\xF3 la atenci\xF3n inesperadamente."
+    fr: "L'une de vos publications a attir\xE9 une attention inattendue."
+    de: "Einer deiner Beitr\xE4ge bekam unerwartet viel Aufmerksamkeit."
+    ko: "\uAC8C\uC2DC\uBB3C \uD558\uB098\uAC00 \uC608\uC0C1\uCE58 \uBABB\uD558\uAC8C
+      \uD070 \uAD00\uC2EC\uC744 \uBC1B\uC558\uC2B5\uB2C8\uB2E4."
+    ru: "\u041E\u0434\u043D\u0430 \u0438\u0437 \u0432\u0430\u0448\u0438\u0445 \u043F\u0443\u0431\u043B\u0438\u043A\u0430\u0446\u0438\u0439
+      \u043D\u0435\u043E\u0436\u0438\u0434\u0430\u043D\u043D\u043E \u043F\u0440\u0438\u0432\u043B\u0435\u043A\u043B\u0430
+      \u043C\u043D\u043E\u0433\u043E \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u044F."
+  - key: event.card.event_positive_partnership.title
+    en: New Partnership
+    tr: "Yeni Ortakl\u0131k"
+    es: Nueva alianza
+    fr: Nouveau partenariat
+    de: Neue Partnerschaft
+    ko: "\uC0C8 \uD30C\uD2B8\uB108\uC2ED"
+    ru: "\u041D\u043E\u0432\u043E\u0435 \u043F\u0430\u0440\u0442\u043D\u0451\u0440\u0441\u0442\u0432\u043E"
+  - key: event.card.event_positive_partnership.description
+    en: A new partnership generated extra income.
+    tr: "Yeni bir ortakl\u0131k ek gelir sa\u011Flad\u0131."
+    es: "Una nueva alianza gener\xF3 ingresos adicionales."
+    fr: "Un nouveau partenariat a g\xE9n\xE9r\xE9 des revenus suppl\xE9mentaires."
+    de: "Eine neue Partnerschaft brachte zus\xE4tzliche Einnahmen."
+    ko: "\uC0C8\uB85C\uC6B4 \uD30C\uD2B8\uB108\uC2ED\uC73C\uB85C \uCD94\uAC00 \uC218\uC775\uC744
+      \uC5BB\uC5C8\uC2B5\uB2C8\uB2E4."
+    ru: "\u041D\u043E\u0432\u043E\u0435 \u043F\u0430\u0440\u0442\u043D\u0451\u0440\u0441\u0442\u0432\u043E
+      \u043F\u0440\u0438\u043D\u0435\u0441\u043B\u043E \u0434\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0439
+      \u0434\u043E\u0445\u043E\u0434."
+  - key: event.card.event_positive_insurance_refund.title
+    en: Insurance Refund
+    tr: "Sigorta \u0130adesi"
+    es: Reembolso del seguro
+    fr: Remboursement d'assurance
+    de: "Versicherungsr\xFCckzahlung"
+    ko: "\uBCF4\uD5D8 \uD658\uAE09"
+    ru: "\u0421\u0442\u0440\u0430\u0445\u043E\u0432\u0430\u044F \u0432\u044B\u043F\u043B\u0430\u0442\u0430"
+  - key: event.card.event_positive_insurance_refund.description
+    en: You received a reimbursement from an old claim.
+    tr: "Eski bir dosyadan geri \xF6deme ald\u0131n."
+    es: "Recibiste un reembolso de una reclamaci\xF3n anterior."
+    fr: "Vous avez re\xE7u un remboursement li\xE9 \xE0 un ancien dossier."
+    de: "Du hast eine R\xFCckzahlung aus einem alten Versicherungsfall erhalten."
+    ko: "\uC774\uC804 \uBCF4\uD5D8 \uCCAD\uAD6C\uC5D0\uC11C \uD658\uAE09\uAE08\uC744
+      \uBC1B\uC558\uC2B5\uB2C8\uB2E4."
+    ru: "\u0412\u044B \u043F\u043E\u043B\u0443\u0447\u0438\u043B\u0438 \u0432\u044B\u043F\u043B\u0430\u0442\u0443
+      \u043F\u043E \u0441\u0442\u0430\u0440\u043E\u043C\u0443 \u0441\u0442\u0440\u0430\u0445\u043E\u0432\u043E\u043C\u0443
+      \u0441\u043B\u0443\u0447\u0430\u044E."
+  - key: event.card.event_positive_efficiency.title
+    en: Efficient Month
+    tr: Verimli Ay
+    es: Mes eficiente
+    fr: Mois efficace
+    de: Effizienter Monat
+    ko: "\uD6A8\uC728\uC801\uC778 \uD55C \uB2EC"
+    ru: "\u042D\u0444\u0444\u0435\u043A\u0442\u0438\u0432\u043D\u044B\u0439 \u043C\u0435\u0441\u044F\u0446"
+  - key: event.card.event_positive_efficiency.description
+    en: Operational efficiency saved more than expected.
+    tr: "Operasyonel verimlilik beklenenden fazla tasarruf sa\u011Flad\u0131."
+    es: "La eficiencia operativa ahorr\xF3 m\xE1s de lo esperado."
+    fr: "L'efficacit\xE9 op\xE9rationnelle a permis d'\xE9conomiser plus que pr\xE9vu."
+    de: Betriebliche Effizienz sparte mehr als erwartet.
+    ko: "\uC6B4\uC601 \uD6A8\uC728\uD654\uB85C \uC608\uC0C1\uBCF4\uB2E4 \uB9CE\uC740
+      \uBE44\uC6A9\uC744 \uC808\uAC10\uD588\uC2B5\uB2C8\uB2E4."
+    ru: "\u041E\u043F\u0435\u0440\u0430\u0446\u0438\u043E\u043D\u043D\u0430\u044F
+      \u044D\u0444\u0444\u0435\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442\u044C
+      \u043F\u043E\u0437\u0432\u043E\u043B\u0438\u043B\u0430 \u0441\u044D\u043A\u043E\u043D\u043E\u043C\u0438\u0442\u044C
+      \u0431\u043E\u043B\u044C\u0448\u0435 \u043E\u0436\u0438\u0434\u0430\u0435\u043C\u043E\u0433\u043E."
+  - key: event.card.event_negative_maintenance.title
+    en: Maintenance Cost
+    tr: "Bak\u0131m Masraf\u0131"
+    es: Coste de mantenimiento
+    fr: Frais d'entretien
+    de: Wartungskosten
+    ko: "\uC720\uC9C0\uBCF4\uC218 \uBE44\uC6A9"
+    ru: "\u0420\u0430\u0441\u0445\u043E\u0434\u044B \u043D\u0430 \u043E\u0431\u0441\u043B\u0443\u0436\u0438\u0432\u0430\u043D\u0438\u0435"
+  - key: event.card.event_negative_maintenance.description
+    en: Unexpected maintenance expenses appeared.
+    tr: "Beklenmedik bak\u0131m giderleri \xE7\u0131kt\u0131."
+    es: Aparecieron gastos de mantenimiento inesperados.
+    fr: "Des frais d'entretien impr\xE9vus sont apparus."
+    de: Unerwartete Wartungskosten sind angefallen.
+    ko: "\uC608\uC0C1\uCE58 \uBABB\uD55C \uC720\uC9C0\uBCF4\uC218 \uBE44\uC6A9\uC774
+      \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4."
+    ru: "\u0412\u043E\u0437\u043D\u0438\u043A\u043B\u0438 \u043D\u0435\u043F\u0440\u0435\u0434\u0432\u0438\u0434\u0435\u043D\u043D\u044B\u0435
+      \u0440\u0430\u0441\u0445\u043E\u0434\u044B \u043D\u0430 \u043E\u0431\u0441\u043B\u0443\u0436\u0438\u0432\u0430\u043D\u0438\u0435."
+  - key: event.card.event_negative_market_drop.title
+    en: Market Drop
+    tr: "Piyasa D\xFC\u015F\xFC\u015F\xFC"
+    es: "Ca\xEDda del mercado"
+    fr: "Baisse du march\xE9"
+    de: "Marktr\xFCckgang"
+    ko: "\uC2DC\uC7A5 \uD558\uB77D"
+    ru: "\u041F\u0430\u0434\u0435\u043D\u0438\u0435 \u0440\u044B\u043D\u043A\u0430"
+  - key: event.card.event_negative_market_drop.description
+    en: Market volatility affected your income.
+    tr: Piyasadaki dalgalanma gelirini etkiledi.
+    es: "La volatilidad del mercado afect\xF3 tus ingresos."
+    fr: "La volatilit\xE9 du march\xE9 a affect\xE9 vos revenus."
+    de: "Marktschwankungen haben deine Einnahmen beeintr\xE4chtigt."
+    ko: "\uC2DC\uC7A5 \uBCC0\uB3D9\uC73C\uB85C \uC218\uC785\uC774 \uC904\uC5C8\uC2B5\uB2C8\uB2E4."
+    ru: "\u041A\u043E\u043B\u0435\u0431\u0430\u043D\u0438\u044F \u0440\u044B\u043D\u043A\u0430
+      \u043F\u043E\u0432\u043B\u0438\u044F\u043B\u0438 \u043D\u0430 \u0432\u0430\u0448
+      \u0434\u043E\u0445\u043E\u0434."
+  - key: event.card.event_negative_invoice.title
+    en: Unexpected Invoice
+    tr: Beklenmedik Fatura
+    es: Factura inesperada
+    fr: "Facture impr\xE9vue"
+    de: Unerwartete Rechnung
+    ko: "\uC608\uC0C1\uCE58 \uBABB\uD55C \uCCAD\uAD6C\uC11C"
+    ru: "\u041D\u0435\u043E\u0436\u0438\u0434\u0430\u043D\u043D\u044B\u0439 \u0441\u0447\u0451\u0442"
+  - key: event.card.event_negative_invoice.description
+    en: An unplanned business invoice arrived.
+    tr: "Planlanmayan bir i\u015Fletme faturas\u0131 geldi."
+    es: "Lleg\xF3 una factura comercial no planificada."
+    fr: "Une facture professionnelle impr\xE9vue est arriv\xE9e."
+    de: "Eine ungeplante Gesch\xE4ftsrechnung ist eingegangen."
+    ko: "\uC608\uC815\uC5D0 \uC5C6\uB358 \uC0AC\uC5C5 \uCCAD\uAD6C\uC11C\uAC00 \uB3C4\uCC29\uD588\uC2B5\uB2C8\uB2E4."
+    ru: "\u041F\u043E\u0441\u0442\u0443\u043F\u0438\u043B \u043D\u0435\u0437\u0430\u043F\u043B\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u044B\u0439
+      \u0434\u0435\u043B\u043E\u0432\u043E\u0439 \u0441\u0447\u0451\u0442."
+  - key: event.card.event_negative_damage.title
+    en: Damage Expense
+    tr: Hasar Gideri
+    es: "Gasto por da\xF1os"
+    fr: "Frais de r\xE9paration"
+    de: Schadenskosten
+    ko: "\uC190\uC0C1 \uBE44\uC6A9"
+    ru: "\u0420\u0430\u0441\u0445\u043E\u0434\u044B \u043D\u0430 \u0443\u0449\u0435\u0440\u0431"
+  - key: event.card.event_negative_damage.description
+    en: You need to pay for minor damage.
+    tr: "K\xFC\xE7\xFCk bir hasar i\xE7in \xF6deme yapman gerekiyor."
+    es: "Debes pagar por unos da\xF1os menores."
+    fr: "Vous devez payer pour des d\xE9g\xE2ts mineurs."
+    de: "Du musst f\xFCr einen kleinen Schaden bezahlen."
+    ko: "\uACBD\uBBF8\uD55C \uC190\uC0C1\uC5D0 \uB300\uD55C \uBE44\uC6A9\uC744 \uC9C0\uBD88\uD574\uC57C
+      \uD569\uB2C8\uB2E4."
+    ru: "\u041D\u0443\u0436\u043D\u043E \u043E\u043F\u043B\u0430\u0442\u0438\u0442\u044C
+      \u043D\u0435\u0431\u043E\u043B\u044C\u0448\u043E\u0439 \u0443\u0449\u0435\u0440\u0431."
+  - key: event.card.event_negative_supply.title
+    en: Supply Issue
+    tr: Tedarik Sorunu
+    es: Problema de suministro
+    fr: "Probl\xE8me d'approvisionnement"
+    de: Lieferproblem
+    ko: "\uACF5\uAE09 \uBB38\uC81C"
+    ru: "\u041F\u0440\u043E\u0431\u043B\u0435\u043C\u0430 \u0441 \u043F\u043E\u0441\u0442\u0430\u0432\u043A\u0430\u043C\u0438"
+  - key: event.card.event_negative_supply.description
+    en: A supply-chain disruption created extra costs.
+    tr: "Tedarik zincirindeki aksama ek maliyet \xE7\u0131kard\u0131."
+    es: "Una interrupci\xF3n de la cadena de suministro gener\xF3 costes adicionales."
+    fr: "Une perturbation de la cha\xEEne d'approvisionnement a entra\xEEn\xE9 des
+      co\xFBts suppl\xE9mentaires."
+    de: "Eine St\xF6rung in der Lieferkette verursachte zus\xE4tzliche Kosten."
+    ko: "\uACF5\uAE09\uB9DD \uCC28\uC9C8\uB85C \uCD94\uAC00 \uBE44\uC6A9\uC774 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4."
+    ru: "\u0421\u0431\u043E\u0439 \u0432 \u0446\u0435\u043F\u043E\u0447\u043A\u0435
+      \u043F\u043E\u0441\u0442\u0430\u0432\u043E\u043A \u043F\u0440\u0438\u0432\u0451\u043B
+      \u043A \u0434\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u043C
+      \u0440\u0430\u0441\u0445\u043E\u0434\u0430\u043C."
+  - key: event.card.event_negative_penalty.title
+    en: Unexpected Penalty
+    tr: Beklenmedik Ceza
+    es: "Sanci\xF3n inesperada"
+    fr: "P\xE9nalit\xE9 impr\xE9vue"
+    de: Unerwartete Strafe
+    ko: "\uC608\uC0C1\uCE58 \uBABB\uD55C \uBC8C\uAE08"
+    ru: "\u041D\u0435\u043E\u0436\u0438\u0434\u0430\u043D\u043D\u044B\u0439 \u0448\u0442\u0440\u0430\u0444"
+  - key: event.card.event_negative_penalty.description
+    en: A violation requires a large payment.
+    tr: "Bir ihlal nedeniyle y\xFCksek bir \xF6deme yapman gerekiyor."
+    es: "Una infracci\xF3n exige un pago importante."
+    fr: "Une infraction vous oblige \xE0 effectuer un paiement important."
+    de: "Ein Versto\xDF erfordert eine hohe Zahlung."
+    ko: "\uC704\uBC18 \uC0AC\uD56D\uC73C\uB85C \uD070 \uAE08\uC561\uC744 \uC9C0\uBD88\uD574\uC57C
+      \uD569\uB2C8\uB2E4."
+    ru: "\u0418\u0437-\u0437\u0430 \u043D\u0430\u0440\u0443\u0448\u0435\u043D\u0438\u044F
+      \u0442\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F \u043A\u0440\u0443\u043F\u043D\u0430\u044F
+      \u0432\u044B\u043F\u043B\u0430\u0442\u0430."
+  - key: event.card.event_negative_late_fee.title
+    en: Late Fee
+    tr: Gecikme Bedeli
+    es: Cargo por demora
+    fr: Frais de retard
+    de: "Versp\xE4tungsgeb\xFChr"
+    ko: "\uC5F0\uCCB4\uB8CC"
+    ru: "\u041F\u043B\u0430\u0442\u0430 \u0437\u0430 \u043F\u0440\u043E\u0441\u0440\u043E\u0447\u043A\u0443"
+  - key: event.card.event_negative_late_fee.description
+    en: A delayed payment generated an extra fee.
+    tr: "Geciken bir \xF6deme i\xE7in ek \xFCcret \xE7\u0131kt\u0131."
+    es: "Un pago atrasado gener\xF3 un cargo adicional."
+    fr: "Un paiement en retard a entra\xEEn\xE9 des frais suppl\xE9mentaires."
+    de: "Eine versp\xE4tete Zahlung verursachte eine zus\xE4tzliche Geb\xFChr."
+    ko: "\uC9C0\uC5F0\uB41C \uACB0\uC81C\uB85C \uCD94\uAC00 \uC218\uC218\uB8CC\uAC00
+      \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4."
+    ru: "\u041F\u0440\u043E\u0441\u0440\u043E\u0447\u0435\u043D\u043D\u044B\u0439
+      \u043F\u043B\u0430\u0442\u0451\u0436 \u043F\u0440\u0438\u0432\u0451\u043B \u043A
+      \u0434\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u043E\u0439
+      \u043A\u043E\u043C\u0438\u0441\u0441\u0438\u0438."
+  - key: event.card.event_negative_equipment.title
+    en: Equipment Repair
+    tr: Ekipman Tamiri
+    es: "Reparaci\xF3n de equipo"
+    fr: "R\xE9paration d'\xE9quipement"
+    de: "Ger\xE4tereparatur"
+    ko: "\uC7A5\uBE44 \uC218\uB9AC"
+    ru: "\u0420\u0435\u043C\u043E\u043D\u0442 \u043E\u0431\u043E\u0440\u0443\u0434\u043E\u0432\u0430\u043D\u0438\u044F"
+  - key: event.card.event_negative_equipment.description
+    en: A piece of equipment needs an urgent repair.
+    tr: "Bir ekipman\u0131n acil tamire ihtiyac\u0131 var."
+    es: "Un equipo necesita una reparaci\xF3n urgente."
+    fr: "Un \xE9quipement n\xE9cessite une r\xE9paration urgente."
+    de: "Ein Ger\xE4t muss dringend repariert werden."
+    ko: "\uC7A5\uBE44 \uD558\uB098\uB97C \uAE34\uAE09\uD788 \uC218\uB9AC\uD574\uC57C
+      \uD569\uB2C8\uB2E4."
+    ru: "\u041E\u0431\u043E\u0440\u0443\u0434\u043E\u0432\u0430\u043D\u0438\u044E
+      \u0442\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F \u0441\u0440\u043E\u0447\u043D\u044B\u0439
+      \u0440\u0435\u043C\u043E\u043D\u0442."
+  - key: event.card.event_negative_delivery.title
+    en: Delivery Issue
+    tr: Teslimat Sorunu
+    es: Problema de entrega
+    fr: "Probl\xE8me de livraison"
+    de: Lieferproblem
+    ko: "\uBC30\uC1A1 \uBB38\uC81C"
+    ru: "\u041F\u0440\u043E\u0431\u043B\u0435\u043C\u0430 \u0441 \u0434\u043E\u0441\u0442\u0430\u0432\u043A\u043E\u0439"
+  - key: event.card.event_negative_delivery.description
+    en: A delivery disruption created extra costs.
+    tr: "Teslimattaki aksama ek maliyet olu\u015Fturdu."
+    es: "Un problema de entrega gener\xF3 costes adicionales."
+    fr: "Un probl\xE8me de livraison a entra\xEEn\xE9 des co\xFBts suppl\xE9mentaires."
+    de: "Eine Lieferst\xF6rung verursachte zus\xE4tzliche Kosten."
+    ko: "\uBC30\uC1A1 \uCC28\uC9C8\uB85C \uCD94\uAC00 \uBE44\uC6A9\uC774 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4."
+    ru: "\u0421\u0431\u043E\u0439 \u0434\u043E\u0441\u0442\u0430\u0432\u043A\u0438
+      \u043F\u0440\u0438\u0432\u0451\u043B \u043A \u0434\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u043C
+      \u0440\u0430\u0441\u0445\u043E\u0434\u0430\u043C."
+  - key: event.card.event_negative_permit.title
+    en: Permit Cost
+    tr: "\u0130zin Masraf\u0131"
+    es: Coste de permiso
+    fr: Frais d'autorisation
+    de: "Genehmigungsgeb\xFChr"
+    ko: "\uD5C8\uAC00 \uBE44\uC6A9"
+    ru: "\u0420\u0430\u0441\u0445\u043E\u0434\u044B \u043D\u0430 \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438\u0435"
+  - key: event.card.event_negative_permit.description
+    en: An unexpected permit and processing fee appeared.
+    tr: "Beklenmedik bir izin ve i\u015Flem \xFCcreti \xE7\u0131kt\u0131."
+    es: "Apareci\xF3 una tasa inesperada de permiso y gesti\xF3n."
+    fr: "Des frais impr\xE9vus d'autorisation et de traitement sont apparus."
+    de: "Eine unerwartete Genehmigungs- und Bearbeitungsgeb\xFChr ist angefallen."
+    ko: "\uC608\uC0C1\uCE58 \uBABB\uD55C \uD5C8\uAC00 \uBC0F \uCC98\uB9AC \uC218\uC218\uB8CC\uAC00
+      \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4."
+    ru: "\u0412\u043E\u0437\u043D\u0438\u043A\u043B\u0438 \u043D\u0435\u043F\u0440\u0435\u0434\u0432\u0438\u0434\u0435\u043D\u043D\u044B\u0435
+      \u0441\u0431\u043E\u0440\u044B \u0437\u0430 \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438\u0435
+      \u0438 \u043E\u0444\u043E\u0440\u043C\u043B\u0435\u043D\u0438\u0435."
+  - key: event.card.event_negative_refunds.title
+    en: Refund Wave
+    tr: "\u0130ade Dalgas\u0131"
+    es: Oleada de reembolsos
+    fr: Vague de remboursements
+    de: "R\xFCckerstattungswelle"
+    ko: "\uD658\uBD88 \uC99D\uAC00"
+    ru: "\u0412\u043E\u043B\u043D\u0430 \u0432\u043E\u0437\u0432\u0440\u0430\u0442\u043E\u0432"
+  - key: event.card.event_negative_refunds.description
+    en: Several refunds had to be paid at the same time.
+    tr: "Ayn\u0131 anda birka\xE7 geri \xF6deme yapmak zorunda kald\u0131n."
+    es: Tuviste que realizar varios reembolsos al mismo tiempo.
+    fr: "Vous avez d\xFB effectuer plusieurs remboursements en m\xEAme temps."
+    de: "Du musstest mehrere R\xFCckerstattungen gleichzeitig zahlen."
+    ko: "\uC5EC\uB7EC \uAC74\uC758 \uD658\uBD88\uC744 \uD55C\uAEBC\uBC88\uC5D0 \uCC98\uB9AC\uD574\uC57C
+      \uD588\uC2B5\uB2C8\uB2E4."
+    ru: "\u041F\u0440\u0438\u0448\u043B\u043E\u0441\u044C \u043E\u0434\u043D\u043E\u0432\u0440\u0435\u043C\u0435\u043D\u043D\u043E
+      \u043E\u0444\u043E\u0440\u043C\u0438\u0442\u044C \u043D\u0435\u0441\u043A\u043E\u043B\u044C\u043A\u043E
+      \u0432\u043E\u0437\u0432\u0440\u0430\u0442\u043E\u0432."
+  - key: event.card.event_negative_utility.title
+    en: High Utility Bill
+    tr: "Y\xFCksek Fatura"
+    es: Factura elevada
+    fr: "Facture \xE9lev\xE9e"
+    de: Hohe Betriebskosten
+    ko: "\uB192\uC740 \uACF5\uACFC\uAE08"
+    ru: "\u0412\u044B\u0441\u043E\u043A\u0438\u0439 \u0441\u0447\u0451\u0442"
+  - key: event.card.event_negative_utility.description
+    en: Energy and service expenses increased this month.
+    tr: "Enerji ve hizmet giderleri bu ay y\xFCkseldi."
+    es: "Los gastos de energ\xEDa y servicios aumentaron este mes."
+    fr: "Les d\xE9penses d'\xE9nergie et de services ont augment\xE9 ce mois-ci."
+    de: Energie- und Betriebskosten sind diesen Monat gestiegen.
+    ko: "\uC774\uBC88 \uB2EC \uC5D0\uB108\uC9C0\uC640 \uC11C\uBE44\uC2A4 \uBE44\uC6A9\uC774
+      \uC99D\uAC00\uD588\uC2B5\uB2C8\uB2E4."
+    ru: "\u0412 \u044D\u0442\u043E\u043C \u043C\u0435\u0441\u044F\u0446\u0435 \u0432\u044B\u0440\u043E\u0441\u043B\u0438
+      \u0440\u0430\u0441\u0445\u043E\u0434\u044B \u043D\u0430 \u044D\u043D\u0435\u0440\u0433\u0438\u044E
+      \u0438 \u0443\u0441\u043B\u0443\u0433\u0438."
+  - key: event.card.event_special_rest_day.title
+    en: Mandatory Break
+    tr: Zorunlu Mola
+    es: Pausa obligatoria
+    fr: Pause obligatoire
+    de: Zwangspause
+    ko: "\uAC15\uC81C \uD734\uC2DD"
+    ru: "\u0412\u044B\u043D\u0443\u0436\u0434\u0435\u043D\u043D\u044B\u0439 \u043F\u0435\u0440\u0435\u0440\u044B\u0432"
+  - key: event.card.event_special_rest_day.description
+    en: You need to take an unplanned break.
+    tr: "Plan d\u0131\u015F\u0131 bir mola vermen gerekiyor."
+    es: Debes hacer una pausa no planificada.
+    fr: "Vous devez prendre une pause impr\xE9vue."
+    de: Du musst eine ungeplante Pause einlegen.
+    ko: "\uC608\uC815\uC5D0 \uC5C6\uB358 \uD734\uC2DD\uC744 \uCDE8\uD574\uC57C \uD569\uB2C8\uB2E4."
+    ru: "\u0412\u0430\u043C \u043F\u0440\u0438\u0434\u0451\u0442\u0441\u044F \u0441\u0434\u0435\u043B\u0430\u0442\u044C
+      \u043D\u0435\u0437\u0430\u043F\u043B\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u044B\u0439
+      \u043F\u0435\u0440\u0435\u0440\u044B\u0432."
+  - key: event.card.event_special_move_3.title
+    en: Fast Progress
+    tr: "H\u0131zl\u0131 \u0130lerleme"
+    es: "Avance r\xE1pido"
+    fr: Progression rapide
+    de: Schneller Fortschritt
+    ko: "\uBE60\uB978 \uC804\uC9C4"
+    ru: "\u0411\u044B\u0441\u0442\u0440\u043E\u0435 \u043F\u0440\u043E\u0434\u0432\u0438\u0436\u0435\u043D\u0438\u0435"
+  - key: event.card.event_special_move_3.description
+    en: Things sped up. Move forward three spaces.
+    tr: "\u0130\u015Fler h\u0131zland\u0131. \xDC\xE7 kare ileri git."
+    es: "Todo se aceler\xF3. Avanza tres casillas."
+    fr: "Les choses s'acc\xE9l\xE8rent. Avancez de trois cases."
+    de: Es geht schneller voran. Gehe drei Felder vor.
+    ko: "\uC77C\uC774 \uBE68\uB77C\uC84C\uC2B5\uB2C8\uB2E4. \uC138 \uCE78 \uC804\uC9C4\uD558\uC138\uC694."
+    ru: "\u0414\u0435\u043B\u0430 \u0443\u0441\u043A\u043E\u0440\u0438\u043B\u0438\u0441\u044C.
+      \u041F\u0440\u043E\u0434\u0432\u0438\u043D\u044C\u0442\u0435\u0441\u044C \u043D\u0430
+      \u0442\u0440\u0438 \u043A\u043B\u0435\u0442\u043A\u0438."
+  - key: event.card.event_special_move_5.title
+    en: Big Opportunity
+    tr: "B\xFCy\xFCk F\u0131rsat"
+    es: Gran oportunidad
+    fr: "Grande opportunit\xE9"
+    de: "Gro\xDFe Chance"
+    ko: "\uD070 \uAE30\uD68C"
+    ru: "\u0411\u043E\u043B\u044C\u0448\u0430\u044F \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442\u044C"
+  - key: event.card.event_special_move_5.description
+    en: A new opportunity moved you ahead. Move forward five spaces.
+    tr: "Yeni bir f\u0131rsat seni \xF6ne ta\u015F\u0131d\u0131. Be\u015F kare ileri
+      git."
+    es: Una nueva oportunidad te impulsa. Avanza cinco casillas.
+    fr: "Une nouvelle opportunit\xE9 vous fait avancer. Avancez de cinq cases."
+    de: "Eine neue Chance bringt dich voran. Gehe f\xFCnf Felder vor."
+    ko: "\uC0C8\uB85C\uC6B4 \uAE30\uD68C\uAC00 \uCC3E\uC544\uC654\uC2B5\uB2C8\uB2E4.
+      \uB2E4\uC12F \uCE78 \uC804\uC9C4\uD558\uC138\uC694."
+    ru: "\u041D\u043E\u0432\u0430\u044F \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442\u044C
+      \u043F\u0440\u043E\u0434\u0432\u0438\u0433\u0430\u0435\u0442 \u0432\u0430\u0441
+      \u0432\u043F\u0435\u0440\u0451\u0434. \u041F\u0440\u043E\u0439\u0434\u0438\u0442\u0435
+      \u043F\u044F\u0442\u044C \u043A\u043B\u0435\u0442\u043E\u043A."
+  - key: event.card.event_special_to_bonus.title
+    en: Bonus Route
+    tr: "Bonus Rotas\u0131"
+    es: "Ruta de bonificaci\xF3n"
+    fr: Route bonus
+    de: Bonusroute
+    ko: "\uBCF4\uB108\uC2A4 \uACBD\uB85C"
+    ru: "\u041F\u0443\u0442\u044C \u043A \u0431\u043E\u043D\u0443\u0441\u0443"
+  - key: event.card.event_special_to_bonus.description
+    en: Move toward the nearest Bonus space.
+    tr: "En yak\u0131n Bonus karesine do\u011Fru ilerle."
+    es: "Avanza hacia la casilla de bonificaci\xF3n m\xE1s cercana."
+    fr: Avancez vers la case Bonus la plus proche.
+    de: "Gehe zum n\xE4chsten Bonusfeld."
+    ko: "\uAC00\uC7A5 \uAC00\uAE4C\uC6B4 \uBCF4\uB108\uC2A4 \uCE78\uC73C\uB85C \uC774\uB3D9\uD558\uC138\uC694."
+    ru: "\u041F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442\u0435\u0441\u044C
+      \u043A \u0431\u043B\u0438\u0436\u0430\u0439\u0448\u0435\u0439 \u0431\u043E\u043D\u0443\u0441\u043D\u043E\u0439
+      \u043A\u043B\u0435\u0442\u043A\u0435."
+  - key: event.card.event_special_to_travel.title
+    en: New Route
+    tr: Yeni Rota
+    es: Nueva ruta
+    fr: Nouvelle route
+    de: Neue Route
+    ko: "\uC0C8 \uACBD\uB85C"
+    ru: "\u041D\u043E\u0432\u044B\u0439 \u043C\u0430\u0440\u0448\u0440\u0443\u0442"
+  - key: event.card.event_special_to_travel.description
+    en: Move toward the nearest Travel space.
+    tr: "En yak\u0131n Seyahat karesine do\u011Fru ilerle."
+    es: "Avanza hacia la casilla de viaje m\xE1s cercana."
+    fr: Avancez vers la case Voyage la plus proche.
+    de: "Gehe zum n\xE4chsten Reisefeld."
+    ko: "\uAC00\uC7A5 \uAC00\uAE4C\uC6B4 \uC5EC\uD589 \uCE78\uC73C\uB85C \uC774\uB3D9\uD558\uC138\uC694."
+    ru: "\u041F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442\u0435\u0441\u044C
+      \u043A \u0431\u043B\u0438\u0436\u0430\u0439\u0448\u0435\u0439 \u043A\u043B\u0435\u0442\u043A\u0435
+      \u043F\u0443\u0442\u0435\u0448\u0435\u0441\u0442\u0432\u0438\u044F."
+  - key: event.card.event_special_to_auction.title
+    en: Market Opportunity
+    tr: "Pazar F\u0131rsat\u0131"
+    es: Oportunidad de mercado
+    fr: "Opportunit\xE9 de march\xE9"
+    de: Marktchance
+    ko: "\uC2DC\uC7A5 \uAE30\uD68C"
+    ru: "\u0420\u044B\u043D\u043E\u0447\u043D\u0430\u044F \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442\u044C"
+  - key: event.card.event_special_to_auction.description
+    en: Move toward the nearest Auction space.
+    tr: "En yak\u0131n A\xE7\u0131k Art\u0131rma karesine do\u011Fru ilerle."
+    es: "Avanza hacia la casilla de subasta m\xE1s cercana."
+    fr: "Avancez vers la case Ench\xE8re la plus proche."
+    de: "Gehe zum n\xE4chsten Auktionsfeld."
+    ko: "\uAC00\uC7A5 \uAC00\uAE4C\uC6B4 \uACBD\uB9E4 \uCE78\uC73C\uB85C \uC774\uB3D9\uD558\uC138\uC694."
+    ru: "\u041F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442\u0435\u0441\u044C
+      \u043A \u0431\u043B\u0438\u0436\u0430\u0439\u0448\u0435\u0439 \u043A\u043B\u0435\u0442\u043A\u0435
+      \u0430\u0443\u043A\u0446\u0438\u043E\u043D\u0430."
+  - key: event.card.event_special_move_2.title
+    en: Small Advantage
+    tr: "K\xFC\xE7\xFCk Avantaj"
+    es: "Peque\xF1a ventaja"
+    fr: Petit avantage
+    de: Kleiner Vorteil
+    ko: "\uC791\uC740 \uC774\uC810"
+    ru: "\u041D\u0435\u0431\u043E\u043B\u044C\u0448\u043E\u0435 \u043F\u0440\u0435\u0438\u043C\u0443\u0449\u0435\u0441\u0442\u0432\u043E"
+  - key: event.card.event_special_move_2.description
+    en: Move forward two spaces.
+    tr: "\u0130ki kare ileri git."
+    es: Avanza dos casillas.
+    fr: Avancez de deux cases.
+    de: Gehe zwei Felder vor.
+    ko: "\uB450 \uCE78 \uC804\uC9C4\uD558\uC138\uC694."
+    ru: "\u041F\u0440\u043E\u0434\u0432\u0438\u043D\u044C\u0442\u0435\u0441\u044C
+      \u043D\u0430 \u0434\u0432\u0435 \u043A\u043B\u0435\u0442\u043A\u0438."
+  - key: event.card.event_special_move_4.title
+    en: Gained Momentum
+    tr: "H\u0131z Kazand\u0131n"
+    es: Has ganado impulso
+    fr: "Vous prenez de l'\xE9lan"
+    de: Du nimmst Fahrt auf
+    ko: "\uC18D\uB3C4 \uC0C1\uC2B9"
+    ru: "\u041D\u0430\u0431\u0440\u0430\u043D\u043D\u044B\u0439 \u0442\u0435\u043C\u043F"
+  - key: event.card.event_special_move_4.description
+    en: Move forward four spaces.
+    tr: "D\xF6rt kare ileri git."
+    es: Avanza cuatro casillas.
+    fr: Avancez de quatre cases.
+    de: Gehe vier Felder vor.
+    ko: "\uB124 \uCE78 \uC804\uC9C4\uD558\uC138\uC694."
+    ru: "\u041F\u0440\u043E\u0434\u0432\u0438\u043D\u044C\u0442\u0435\u0441\u044C
+      \u043D\u0430 \u0447\u0435\u0442\u044B\u0440\u0435 \u043A\u043B\u0435\u0442\u043A\u0438."
+  - key: event.card.event_special_move_6.title
+    en: Big Leap
+    tr: "B\xFCy\xFCk S\u0131\xE7rama"
+    es: Gran salto
+    fr: Grand bond
+    de: "Gro\xDFer Sprung"
+    ko: "\uD070 \uB3C4\uC57D"
+    ru: "\u0411\u043E\u043B\u044C\u0448\u043E\u0439 \u0440\u044B\u0432\u043E\u043A"
+  - key: event.card.event_special_move_6.description
+    en: Move forward six spaces.
+    tr: "Alt\u0131 kare ileri git."
+    es: Avanza seis casillas.
+    fr: Avancez de six cases.
+    de: Gehe sechs Felder vor.
+    ko: "\uC5EC\uC12F \uCE78 \uC804\uC9C4\uD558\uC138\uC694."
+    ru: "\u041F\u0440\u043E\u0434\u0432\u0438\u043D\u044C\u0442\u0435\u0441\u044C
+      \u043D\u0430 \u0448\u0435\u0441\u0442\u044C \u043A\u043B\u0435\u0442\u043E\u043A."
+  - key: event.card.event_special_to_vacation.title
+    en: Short Vacation
+    tr: "K\u0131sa Tatil"
+    es: Vacaciones cortas
+    fr: Courtes vacances
+    de: Kurzurlaub
+    ko: "\uC9E7\uC740 \uD734\uAC00"
+    ru: "\u041A\u043E\u0440\u043E\u0442\u043A\u0438\u0439 \u043E\u0442\u043F\u0443\u0441\u043A"
+  - key: event.card.event_special_to_vacation.description
+    en: Move toward the nearest Vacation space.
+    tr: "En yak\u0131n Tatil karesine do\u011Fru ilerle."
+    es: "Avanza hacia la casilla de vacaciones m\xE1s cercana."
+    fr: Avancez vers la case Vacances la plus proche.
+    de: "Gehe zum n\xE4chsten Urlaubsfeld."
+    ko: "\uAC00\uC7A5 \uAC00\uAE4C\uC6B4 \uD734\uAC00 \uCE78\uC73C\uB85C \uC774\uB3D9\uD558\uC138\uC694."
+    ru: "\u041F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442\u0435\u0441\u044C
+      \u043A \u0431\u043B\u0438\u0436\u0430\u0439\u0448\u0435\u0439 \u043A\u043B\u0435\u0442\u043A\u0435
+      \u043E\u0442\u043F\u0443\u0441\u043A\u0430."
+  - key: event.card.event_special_to_rest.title
+    en: Rest Stop
+    tr: "Dinlenme Noktas\u0131"
+    es: Punto de descanso
+    fr: Aire de repos
+    de: Rastplatz
+    ko: "\uD734\uC2DD \uC9C0\uC810"
+    ru: "\u041C\u0435\u0441\u0442\u043E \u043E\u0442\u0434\u044B\u0445\u0430"
+  - key: event.card.event_special_to_rest.description
+    en: Move toward the nearest Rest space.
+    tr: "En yak\u0131n Dinlenme karesine do\u011Fru ilerle."
+    es: "Avanza hacia la casilla de descanso m\xE1s cercana."
+    fr: Avancez vers la case Repos la plus proche.
+    de: "Gehe zum n\xE4chsten Rastfeld."
+    ko: "\uAC00\uC7A5 \uAC00\uAE4C\uC6B4 \uD734\uC2DD \uCE78\uC73C\uB85C \uC774\uB3D9\uD558\uC138\uC694."
+    ru: "\u041F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442\u0435\u0441\u044C
+      \u043A \u0431\u043B\u0438\u0436\u0430\u0439\u0448\u0435\u0439 \u043A\u043B\u0435\u0442\u043A\u0435
+      \u043E\u0442\u0434\u044B\u0445\u0430."
+  - key: event.card.event_special_skip_2.title
+    en: System Outage
+    tr: Sistem Kesintisi
+    es: "Ca\xEDda del sistema"
+    fr: "Panne syst\xE8me"
+    de: Systemausfall
+    ko: "\uC2DC\uC2A4\uD15C \uC7A5\uC560"
+    ru: "\u0421\u0431\u043E\u0439 \u0441\u0438\u0441\u0442\u0435\u043C\u044B"
+  - key: event.card.event_special_skip_2.description
+    en: An unexpected outage makes you wait for two turns.
+    tr: Beklenmedik bir kesinti nedeniyle iki tur bekle.
+    es: "Una ca\xEDda inesperada te obliga a esperar dos turnos."
+    fr: "Une panne impr\xE9vue vous fait attendre deux tours."
+    de: "Ein unerwarteter Ausfall l\xE4sst dich zwei Runden aussetzen."
+    ko: "\uC608\uC0C1\uCE58 \uBABB\uD55C \uC7A5\uC560\uB85C \uB450 \uD134\uC744 \uC26C\uC5B4\uC57C
+      \uD569\uB2C8\uB2E4."
+    ru: "\u0418\u0437-\u0437\u0430 \u043D\u0435\u043E\u0436\u0438\u0434\u0430\u043D\u043D\u043E\u0433\u043E
+      \u0441\u0431\u043E\u044F \u043F\u0440\u043E\u043F\u0443\u0441\u0442\u0438\u0442\u0435
+      \u0434\u0432\u0430 \u0445\u043E\u0434\u0430."
+  - key: event.applying
+    en: Applying card...
+    tr: "Kart uygulan\u0131yor..."
+    es: Aplicando carta...
+    fr: Application de la carte...
+    de: Karte wird angewendet...
+    ko: "\uCE74\uB4DC \uC801\uC6A9 \uC911..."
+    ru: "\u041F\u0440\u0438\u043C\u0435\u043D\u0435\u043D\u0438\u0435 \u043A\u0430\u0440\u0442\u044B..."
+  - key: event.effect_none
+    en: No effect was applied.
+    tr: "Etki uygulanmad\u0131."
+    es: "No se aplic\xF3 ning\xFAn efecto."
+    fr: "Aucun effet n'a \xE9t\xE9 appliqu\xE9."
+    de: Es wurde kein Effekt angewendet.
+    ko: "\uD6A8\uACFC\uAC00 \uC801\uC6A9\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4."
+    ru: "\u042D\u0444\u0444\u0435\u043A\u0442 \u043D\u0435 \u043F\u0440\u0438\u043C\u0435\u043D\u0451\u043D."
+  - key: event.bankrupt_result
+    en: "BANKRUPT\nPaid: {0} \u20B5\nTransferred/released properties: {1}"
+    tr: "\u0130FLAS\n\xD6denen: {0} \u20B5\nDevredilen/bo\u015Fa \xE7\u0131kan m\xFClk:
+      {1}"
+    es: "BANCARROTA\nPagado: {0} \u20B5\nPropiedades transferidas/liberadas: {1}"
+    fr: "FAILLITE\nPay\xE9 : {0} \u20B5\nPropri\xE9t\xE9s transf\xE9r\xE9es/lib\xE9r\xE9es
+      : {1}"
+    de: "INSOLVENT\nBezahlt: {0} \u20B5\n\xDCbertragene/freigegebene Grundst\xFCcke:
+      {1}"
+    ko: "\uD30C\uC0B0\n\uC9C0\uBD88: {0} \u20B5\n\uC774\uC804/\uD574\uC81C\uB41C
+      \uBD80\uB3D9\uC0B0: {1}"
+    ru: "\u0411\u0410\u041D\u041A\u0420\u041E\u0422\n\u041E\u043F\u043B\u0430\u0447\u0435\u043D\u043E:
+      {0} \u20B5\n\u041F\u0435\u0440\u0435\u0434\u0430\u043D\u043E/\u043E\u0441\u0432\u043E\u0431\u043E\u0436\u0434\u0435\u043D\u043E
+      \u043E\u0431\u044A\u0435\u043A\u0442\u043E\u0432: {1}"
+  - key: event.money_no_change
+    en: No money change
+    tr: "Para de\u011Fi\u015Fmedi"
+    es: Sin cambios de dinero
+    fr: Aucun changement d'argent
+    de: "Keine Geld\xE4nderung"
+    ko: "\uAE08\uC561 \uBCC0\uB3D9 \uC5C6\uC74C"
+    ru: "\u0414\u0435\u043D\u044C\u0433\u0438 \u043D\u0435 \u0438\u0437\u043C\u0435\u043D\u0438\u043B\u0438\u0441\u044C"
+  - key: event.skip_one
+    en: You will skip your next turn.
+    tr: "Sonraki turunu atlayacaks\u0131n."
+    es: "Perder\xE1s tu pr\xF3ximo turno."
+    fr: Vous passerez votre prochain tour.
+    de: "Du setzt deinen n\xE4chsten Zug aus."
+    ko: "\uB2E4\uC74C \uD134\uC744 \uC27D\uB2C8\uB2E4."
+    ru: "\u0412\u044B \u043F\u0440\u043E\u043F\u0443\u0441\u0442\u0438\u0442\u0435
+      \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0438\u0439 \u0445\u043E\u0434."
+  - key: event.skip_many
+    en: You will skip your next {0} turns.
+    tr: "Sonraki {0} turunu atlayacaks\u0131n."
+    es: "Perder\xE1s tus pr\xF3ximos {0} turnos."
+    fr: Vous passerez vos {0} prochains tours.
+    de: "Du setzt deine n\xE4chsten {0} Z\xFCge aus."
+    ko: "\uB2E4\uC74C {0}\uD134\uC744 \uC27D\uB2C8\uB2E4."
+    ru: "\u0412\u044B \u043F\u0440\u043E\u043F\u0443\u0441\u0442\u0438\u0442\u0435
+      \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0438\u0435 {0} \u0445\u043E\u0434\u0430."
+  - key: event.move_failed
+    en: Movement could not be applied.
+    tr: "Hareket uygulanamad\u0131."
+    es: No se pudo realizar el movimiento.
+    fr: "Le d\xE9placement n'a pas pu \xEAtre effectu\xE9."
+    de: "Bewegung konnte nicht ausgef\xFChrt werden."
+    ko: "\uC774\uB3D9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4."
+    ru: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0432\u044B\u043F\u043E\u043B\u043D\u0438\u0442\u044C
+      \u043F\u0435\u0440\u0435\u043C\u0435\u0449\u0435\u043D\u0438\u0435."
+  - key: event.move_progress
+    en: Moving forward {0} spaces{1}
+    tr: '{0} kare ilerliyorsun{1}'
+    es: Avanzando {0} casillas{1}
+    fr: Avance de {0} cases{1}
+    de: Du gehst {0} Felder vor{1}
+    ko: "{0}\uCE78 \uC804\uC9C4 \uC911{1}"
+    ru: "\u041F\u0440\u043E\u0434\u0432\u0438\u0436\u0435\u043D\u0438\u0435 \u043D\u0430
+      {0} \u043A\u043B\u0435\u0442\u043E\u043A{1}"
+  - key: event.move_target_suffix
+    en: ': {0}'
+    tr: ': {0}'
+    es: ': {0}'
+    fr: ': {0}'
+    de: ': {0}'
+    ko: ': {0}'
+    ru: ': {0}'
+  - key: event.move_done_tile
+    en: 'Moved forward {0} spaces: {1}'
+    tr: '{0} kare ilerledin: {1}'
+    es: 'Avanzaste {0} casillas: {1}'
+    fr: "Vous avez avanc\xE9 de {0} cases : {1}"
+    de: "Du bist {0} Felder vorger\xFCckt: {1}"
+    ko: "{0}\uCE78 \uC804\uC9C4: {1}"
+    ru: "\u0412\u044B \u043F\u0440\u043E\u0434\u0432\u0438\u043D\u0443\u043B\u0438\u0441\u044C
+      \u043D\u0430 {0} \u043A\u043B\u0435\u0442\u043E\u043A: {1}"
+  - key: event.move_done
+    en: Moved forward {0} spaces.
+    tr: '{0} kare ilerledin.'
+    es: Avanzaste {0} casillas.
+    fr: "Vous avez avanc\xE9 de {0} cases."
+    de: "Du bist {0} Felder vorger\xFCckt."
+    ko: "{0}\uCE78 \uC804\uC9C4\uD588\uC2B5\uB2C8\uB2E4."
+    ru: "\u0412\u044B \u043F\u0440\u043E\u0434\u0432\u0438\u043D\u0443\u043B\u0438\u0441\u044C
+      \u043D\u0430 {0} \u043A\u043B\u0435\u0442\u043E\u043A."
+  - key: event.target_not_found
+    en: No suitable target was found.
+    tr: "Uygun hedef bulunamad\u0131."
+    es: "No se encontr\xF3 un destino adecuado."
+    fr: "Aucune destination appropri\xE9e n'a \xE9t\xE9 trouv\xE9e."
+    de: Kein geeignetes Ziel gefunden.
+    ko: "\uC801\uC808\uD55C \uBAA9\uC801\uC9C0\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4."
+    ru: "\u041F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u0430\u044F \u0446\u0435\u043B\u044C
+      \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u0430."
+  - key: event.target_moving_tile
+    en: Moving to {0}.
+    tr: '{0} konumuna ilerliyorsun.'
+    es: Avanzando hacia {0}.
+    fr: "D\xE9placement vers {0}."
+    de: Du bewegst dich zu {0}.
+    ko: "{0}(\uC73C)\uB85C \uC774\uB3D9 \uC911\uC785\uB2C8\uB2E4."
+    ru: "\u041F\u0435\u0440\u0435\u043C\u0435\u0449\u0435\u043D\u0438\u0435 \u043A
+      {0}."
+  - key: event.target_moving
+    en: Moving to the target space.
+    tr: Hedef konuma ilerliyorsun.
+    es: Avanzando hacia la casilla objetivo.
+    fr: "D\xE9placement vers la case cible."
+    de: Du bewegst dich zum Zielfeld.
+    ko: "\uBAA9\uD45C \uCE78\uC73C\uB85C \uC774\uB3D9 \uC911\uC785\uB2C8\uB2E4."
+    ru: "\u041F\u0435\u0440\u0435\u043C\u0435\u0449\u0435\u043D\u0438\u0435 \u043A
+      \u0446\u0435\u043B\u0435\u0432\u043E\u0439 \u043A\u043B\u0435\u0442\u043A\u0435."
+  - key: event.target_done_tile
+    en: Moved to {0}.
+    tr: '{0} konumuna ilerledin.'
+    es: Te moviste a {0}.
+    fr: Vous avez rejoint {0}.
+    de: Du bist zu {0} gezogen.
+    ko: "{0}(\uC73C)\uB85C \uC774\uB3D9\uD588\uC2B5\uB2C8\uB2E4."
+    ru: "\u0412\u044B \u043F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u043B\u0438\u0441\u044C
+      \u043A {0}."
+  - key: event.target_done
+    en: Moved to the target space.
+    tr: Hedef konuma ilerledin.
+    es: Te moviste a la casilla objetivo.
+    fr: Vous avez rejoint la case cible.
+    de: Du bist zum Zielfeld gezogen.
+    ko: "\uBAA9\uD45C \uCE78\uC73C\uB85C \uC774\uB3D9\uD588\uC2B5\uB2C8\uB2E4."
+    ru: "\u0412\u044B \u043F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u043B\u0438\u0441\u044C
+      \u043A \u0446\u0435\u043B\u0435\u0432\u043E\u0439 \u043A\u043B\u0435\u0442\u043A\u0435."
+  - key: event.deck.default
+    en: Event Deck
+    tr: Etkinlik Destesi
+    es: Mazo de eventos
+    fr: "Paquet d'\xE9v\xE9nements"
+    de: Ereignisstapel
+    ko: "\uC774\uBCA4\uD2B8 \uB371"
+    ru: "\u041A\u043E\u043B\u043E\u0434\u0430 \u0441\u043E\u0431\u044B\u0442\u0438\u0439"
+  - key: tile.special.start
+    en: START
+    tr: "BA\u015ELANGI\xC7"
+    es: INICIO
+    fr: "D\xC9PART"
+    de: START
+    ko: "\uC2DC\uC791"
+    ru: "\u0421\u0422\u0410\u0420\u0422"
+  - key: tile.special.event
+    en: EVENT
+    tr: "ETK\u0130NL\u0130K"
+    es: EVENTO
+    fr: "\xC9V\xC9NEMENT"
+    de: EREIGNIS
+    ko: "\uC774\uBCA4\uD2B8"
+    ru: "\u0421\u041E\u0411\u042B\u0422\u0418\u0415"
+  - key: tile.special.tax
+    en: TAX
+    tr: "VERG\u0130"
+    es: IMPUESTO
+    fr: TAXE
+    de: STEUER
+    ko: "\uC138\uAE08"
+    ru: "\u041D\u0410\u041B\u041E\u0413"
+  - key: tile.special.auction
+    en: AUCTION
+    tr: "A\xC7IK ARTIRMA"
+    es: SUBASTA
+    fr: "ENCH\xC8RE"
+    de: AUKTION
+    ko: "\uACBD\uB9E4"
+    ru: "\u0410\u0423\u041A\u0426\u0418\u041E\u041D"
+  - key: tile.special.travel
+    en: TRAVEL
+    tr: SEYAHAT
+    es: VIAJE
+    fr: VOYAGE
+    de: REISE
+    ko: "\uC5EC\uD589"
+    ru: "\u041F\u0423\u0422\u0415\u0428\u0415\u0421\u0422\u0412\u0418\u0415"
+  - key: tile.special.vacation
+    en: VACATION
+    tr: "TAT\u0130L"
+    es: VACACIONES
+    fr: VACANCES
+    de: URLAUB
+    ko: "\uD734\uAC00"
+    ru: "\u041E\u0422\u041F\u0423\u0421\u041A"
+  - key: tile.special.rest
+    en: REST
+    tr: "D\u0130NLENME"
+    es: DESCANSO
+    fr: REPOS
+    de: RAST
+    ko: "\uD734\uC2DD"
+    ru: "\u041E\u0422\u0414\u042B\u0425"
+  - key: tile.special.bonus
+    en: BONUS
+    tr: BONUS
+    es: BONUS
+    fr: BONUS
+    de: BONUS
+    ko: "\uBCF4\uB108\uC2A4"
+    ru: "\u0411\u041E\u041D\u0423\u0421"
+  - key: special.tax.title
+    en: Tax Payment
+    tr: "Vergi \xD6demesi"
+    es: Pago de impuestos
+    fr: Paiement des taxes
+    de: Steuerzahlung
+    ko: "\uC138\uAE08 \uB0A9\uBD80"
+    ru: "\u0423\u043F\u043B\u0430\u0442\u0430 \u043D\u0430\u043B\u043E\u0433\u0430"
+  - key: special.tax.description
+    en: You need to pay business expenses and local taxes.
+    tr: "\u0130\u015Fletme giderleri ve yerel vergileri \xF6demen gerekiyor."
+    es: Debes pagar los gastos del negocio y los impuestos locales.
+    fr: Vous devez payer les frais d'exploitation et les taxes locales.
+    de: Du musst Betriebskosten und lokale Steuern bezahlen.
+    ko: "\uC0AC\uC5C5 \uBE44\uC6A9\uACFC \uC9C0\uBC29\uC138\uB97C \uB0A9\uBD80\uD574\uC57C
+      \uD569\uB2C8\uB2E4."
+    ru: "\u041D\u0435\u043E\u0431\u0445\u043E\u0434\u0438\u043C\u043E \u043E\u043F\u043B\u0430\u0442\u0438\u0442\u044C
+      \u0434\u0435\u043B\u043E\u0432\u044B\u0435 \u0440\u0430\u0441\u0445\u043E\u0434\u044B
+      \u0438 \u043C\u0435\u0441\u0442\u043D\u044B\u0435 \u043D\u0430\u043B\u043E\u0433\u0438."
+  - key: special.bonus.title
+    en: Regional Bonus
+    tr: "B\xF6lge Bonusu"
+    es: Bono regional
+    fr: "Bonus r\xE9gional"
+    de: Regionalbonus
+    ko: "\uC9C0\uC5ED \uBCF4\uB108\uC2A4"
+    ru: "\u0420\u0435\u0433\u0438\u043E\u043D\u0430\u043B\u044C\u043D\u044B\u0439
+      \u0431\u043E\u043D\u0443\u0441"
+  - key: special.bonus.description
+    en: You received a bonus from local business support.
+    tr: "Yerel ticaret deste\u011Finden bonus kazand\u0131n."
+    es: Recibiste un bono de apoyo al comercio local.
+    fr: "Vous avez re\xE7u un bonus gr\xE2ce au soutien du commerce local."
+    de: "Du hast einen Bonus aus lokaler Wirtschaftsf\xF6rderung erhalten."
+    ko: "\uC9C0\uC5ED \uBE44\uC988\uB2C8\uC2A4 \uC9C0\uC6D0\uC73C\uB85C \uBCF4\uB108\uC2A4\uB97C
+      \uBC1B\uC558\uC2B5\uB2C8\uB2E4."
+    ru: "\u0412\u044B \u043F\u043E\u043B\u0443\u0447\u0438\u043B\u0438 \u0431\u043E\u043D\u0443\u0441
+      \u043F\u043E \u043F\u0440\u043E\u0433\u0440\u0430\u043C\u043C\u0435 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0438
+      \u043C\u0435\u0441\u0442\u043D\u043E\u0433\u043E \u0431\u0438\u0437\u043D\u0435\u0441\u0430."
+  - key: special.rest.title
+    en: Rest Area
+    tr: "Dinlenme Alan\u0131"
+    es: Zona de descanso
+    fr: Aire de repos
+    de: Rastplatz
+    ko: "\uD734\uC2DD \uAD6C\uC5ED"
+    ru: "\u0417\u043E\u043D\u0430 \u043E\u0442\u0434\u044B\u0445\u0430"
+  - key: special.rest.skip_one
+    en: You will skip your next turn.
+    tr: "Bir sonraki turunu atlayacaks\u0131n."
+    es: "Perder\xE1s tu pr\xF3ximo turno."
+    fr: Vous passerez votre prochain tour.
+    de: "Du setzt deinen n\xE4chsten Zug aus."
+    ko: "\uB2E4\uC74C \uD134\uC744 \uC27D\uB2C8\uB2E4."
+    ru: "\u0412\u044B \u043F\u0440\u043E\u043F\u0443\u0441\u0442\u0438\u0442\u0435
+      \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0438\u0439 \u0445\u043E\u0434."
+  - key: special.rest.skip_many
+    en: You will skip your next {0} turns.
+    tr: "Sonraki {0} turunu atlayacaks\u0131n."
+    es: "Perder\xE1s tus pr\xF3ximos {0} turnos."
+    fr: Vous passerez vos {0} prochains tours.
+    de: "Du setzt deine n\xE4chsten {0} Z\xFCge aus."
+    ko: "\uB2E4\uC74C {0}\uD134\uC744 \uC27D\uB2C8\uB2E4."
+    ru: "\u0412\u044B \u043F\u0440\u043E\u043F\u0443\u0441\u0442\u0438\u0442\u0435
+      \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0438\u0435 {0} \u0445\u043E\u0434\u0430."
+  - key: special.vacation.title
+    en: Vacation Area
+    tr: "Tatil B\xF6lgesi"
+    es: Zona de vacaciones
+    fr: Zone de vacances
+    de: Urlaubsgebiet
+    ko: "\uD734\uAC00 \uAD6C\uC5ED"
+    ru: "\u0417\u043E\u043D\u0430 \u043E\u0442\u043F\u0443\u0441\u043A\u0430"
+  - key: special.vacation.description
+    en: You earned extra income from a vacation event.
+    tr: "Tatil etkinli\u011Finden ek gelir kazand\u0131n."
+    es: Obtuviste ingresos extra gracias a un evento de vacaciones.
+    fr: "Vous avez gagn\xE9 un revenu suppl\xE9mentaire gr\xE2ce \xE0 un \xE9v\xE9nement
+      de vacances."
+    de: "Du hast durch ein Urlaubsereignis zus\xE4tzliches Einkommen erhalten."
+    ko: "\uD734\uAC00 \uC774\uBCA4\uD2B8\uB85C \uCD94\uAC00 \uC218\uC775\uC744 \uC5BB\uC5C8\uC2B5\uB2C8\uB2E4."
+    ru: "\u0412\u044B \u043F\u043E\u043B\u0443\u0447\u0438\u043B\u0438 \u0434\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0439
+      \u0434\u043E\u0445\u043E\u0434 \u0431\u043B\u0430\u0433\u043E\u0434\u0430\u0440\u044F
+      \u043E\u0442\u043F\u0443\u0441\u043A\u043D\u043E\u043C\u0443 \u0441\u043E\u0431\u044B\u0442\u0438\u044E."
+  - key: special.travel.center
+    en: TRAVEL HUB
+    tr: "SEYAHAT MERKEZ\u0130"
+    es: CENTRO DE VIAJE
+    fr: CENTRE DE VOYAGE
+    de: REISEZENTRUM
+    ko: "\uC5EC\uD589 \uD5C8\uBE0C"
+    ru: "\u0426\u0415\u041D\u0422\u0420 \u041F\u0423\u0422\u0415\u0428\u0415\u0421\u0422\u0412\u0418\u0419"
+  - key: special.travel.question
+    en: Would you like to travel to the nearest Event space?
+    tr: "En yak\u0131n Etkinlik karesine gitmek ister misin?"
+    es: "\xBFQuieres viajar a la casilla de Evento m\xE1s cercana?"
+    fr: "Voulez-vous aller vers la case \xC9v\xE9nement la plus proche ?"
+    de: "M\xF6chtest du zum n\xE4chsten Ereignisfeld reisen?"
+    ko: "\uAC00\uC7A5 \uAC00\uAE4C\uC6B4 \uC774\uBCA4\uD2B8 \uCE78\uC73C\uB85C \uC774\uB3D9\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?"
+    ru: "\u0425\u043E\u0442\u0438\u0442\u0435 \u043F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442\u044C\u0441\u044F
+      \u043D\u0430 \u0431\u043B\u0438\u0436\u0430\u0439\u0448\u0443\u044E \u043A\u043B\u0435\u0442\u043A\u0443
+      \u0441\u043E\u0431\u044B\u0442\u0438\u044F?"
+  - key: special.travel.target
+    en: 'Target: {0}'
+    tr: 'Hedef: {0}'
+    es: 'Destino: {0}'
+    fr: 'Destination : {0}'
+    de: 'Ziel: {0}'
+    ko: "\uBAA9\uD45C: {0}"
+    ru: "\u0426\u0435\u043B\u044C: {0}"
+  - key: special.travel.fee
+    en: "Travel fee: {0} \u20B5"
+    tr: "Seyahat \xFCcreti: {0} \u20B5"
+    es: "Coste del viaje: {0} \u20B5"
+    fr: "Co\xFBt du voyage : {0} \u20B5"
+    de: "Reisekosten: {0} \u20B5"
+    ko: "\uC5EC\uD589 \uBE44\uC6A9: {0} \u20B5"
+    ru: "\u0421\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u043F\u043E\u0435\u0437\u0434\u043A\u0438:
+      {0} \u20B5"
+  - key: special.travel.free
+    en: 'Travel fee: Free'
+    tr: "Seyahat \xFCcreti: \xDCcretsiz"
+    es: 'Coste del viaje: Gratis'
+    fr: "Co\xFBt du voyage : Gratuit"
+    de: 'Reisekosten: Kostenlos'
+    ko: "\uC5EC\uD589 \uBE44\uC6A9: \uBB34\uB8CC"
+    ru: "\u0421\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u043F\u043E\u0435\u0437\u0434\u043A\u0438:
+      \u0411\u0435\u0441\u043F\u043B\u0430\u0442\u043D\u043E"
+  - key: special.travel.start_reward
+    en: "If you pass Start, you earn +{0} \u20B5."
+    tr: "Ba\u015Flang\u0131\xE7tan ge\xE7ersen +{0} \u20B5 kazan\u0131rs\u0131n."
+    es: "Si pasas por Inicio, ganas +{0} \u20B5."
+    fr: "Si vous passez par D\xE9part, vous gagnez +{0} \u20B5."
+    de: "Wenn du Start passierst, erh\xE4ltst du +{0} \u20B5."
+    ko: "\uC2DC\uC791 \uCE78\uC744 \uC9C0\uB098\uBA74 +{0} \u20B5\uB97C \uBC1B\uC2B5\uB2C8\uB2E4."
+    ru: "\u0415\u0441\u043B\u0438 \u0432\u044B \u043F\u0440\u043E\u0439\u0434\u0451\u0442\u0435
+      \u0447\u0435\u0440\u0435\u0437 \u0421\u0442\u0430\u0440\u0442, \u043F\u043E\u043B\u0443\u0447\u0438\u0442\u0435
+      +{0} \u20B5."
+  - key: special.travel.insufficient
+    en: 'Insufficient balance: you cannot travel.'
+    tr: 'Bakiye yetersiz: seyahat edemezsin.'
+    es: 'Saldo insuficiente: no puedes viajar.'
+    fr: 'Solde insuffisant : vous ne pouvez pas voyager.'
+    de: 'Nicht genug Geld: Du kannst nicht reisen.'
+    ko: "\uC794\uC561\uC774 \uBD80\uC871\uD558\uC5EC \uC774\uB3D9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4."
+    ru: "\u041D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u043E\u0447\u043D\u043E
+      \u0441\u0440\u0435\u0434\u0441\u0442\u0432: \u043F\u0443\u0442\u0435\u0448\u0435\u0441\u0442\u0432\u0438\u0435
+      \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E."
+  - key: special.result.no_money_change
+    en: No money change
+    tr: "Para de\u011Fi\u015Fmedi"
+    es: Sin cambios de dinero
+    fr: Aucun changement d'argent
+    de: "Keine Geld\xE4nderung"
+    ko: "\uAE08\uC561 \uBCC0\uB3D9 \uC5C6\uC74C"
+    ru: "\u0414\u0435\u043D\u044C\u0433\u0438 \u043D\u0435 \u0438\u0437\u043C\u0435\u043D\u0438\u043B\u0438\u0441\u044C"
+  - key: special.result.bankrupt
+    en: "BANKRUPT\nPaid: {0} \u20B5\nTransferred/released properties: {1}"
+    tr: "\u0130FLAS\n\xD6denen: {0} \u20B5\nDevredilen/bo\u015Fa \xE7\u0131kan m\xFClk:
+      {1}"
+    es: "BANCARROTA\nPagado: {0} \u20B5\nPropiedades transferidas/liberadas: {1}"
+    fr: "FAILLITE\nPay\xE9 : {0} \u20B5\nPropri\xE9t\xE9s transf\xE9r\xE9es/lib\xE9r\xE9es
+      : {1}"
+    de: "INSOLVENT\nBezahlt: {0} \u20B5\n\xDCbertragene/freigegebene Grundst\xFCcke:
+      {1}"
+    ko: "\uD30C\uC0B0\n\uC9C0\uBD88: {0} \u20B5\n\uC774\uC804/\uD574\uC81C\uB41C
+      \uBD80\uB3D9\uC0B0: {1}"
+    ru: "\u0411\u0410\u041D\u041A\u0420\u041E\u0422\n\u041E\u043F\u043B\u0430\u0447\u0435\u043D\u043E:
+      {0} \u20B5\n\u041F\u0435\u0440\u0435\u0434\u0430\u043D\u043E/\u043E\u0441\u0432\u043E\u0431\u043E\u0436\u0434\u0435\u043D\u043E
+      \u043E\u0431\u044A\u0435\u043A\u0442\u043E\u0432: {1}"
+  - key: rent.bankrupt.title
+    en: BANKRUPT
+    tr: "\u0130FLAS"
+    es: BANCARROTA
+    fr: FAILLITE
+    de: INSOLVENT
+    ko: "\uD30C\uC0B0"
+    ru: "\u0411\u0410\u041D\u041A\u0420\u041E\u0422"
+  - key: rent.bankrupt.description
+    en: "{0} could not pay the {2} \u20B5 rent required for {1}. Remaining cash and
+      properties were transferred to {3}."
+    tr: "{0}, {1} i\xE7in gereken {2} \u20B5 kiray\u0131 \xF6deyemedi. Kalan nakit
+      ve m\xFClkler {3} hesab\u0131na aktar\u0131ld\u0131."
+    es: "{0} no pudo pagar el alquiler de {2} \u20B5 requerido por {1}. El dinero
+      y las propiedades restantes se transfirieron a {3}."
+    fr: "{0} n'a pas pu payer le loyer de {2} \u20B5 pour {1}. L'argent et les propri\xE9t\xE9s
+      restants ont \xE9t\xE9 transf\xE9r\xE9s \xE0 {3}."
+    de: "{0} konnte die f\xFCr {1} f\xE4llige Miete von {2} \u20B5 nicht bezahlen.
+      Verbleibendes Geld und Grundst\xFCcke wurden an {3} \xFCbertragen."
+    ko: "{0}\uB2D8\uC774 {1}\uC758 \uC784\uB300\uB8CC {2} \u20B5\uB97C \uC9C0\uBD88\uD558\uC9C0
+      \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uB0A8\uC740 \uD604\uAE08\uACFC \uBD80\uB3D9\uC0B0\uC740
+      {3}\uC5D0\uAC8C \uC774\uC804\uB418\uC5C8\uC2B5\uB2C8\uB2E4."
+    ru: "{0} \u043D\u0435 \u0441\u043C\u043E\u0433 \u043E\u043F\u043B\u0430\u0442\u0438\u0442\u044C
+      \u0430\u0440\u0435\u043D\u0434\u0443 {2} \u20B5 \u0437\u0430 {1}. \u041E\u0441\u0442\u0430\u0432\u0448\u0438\u0435\u0441\u044F
+      \u0434\u0435\u043D\u044C\u0433\u0438 \u0438 \u0441\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0441\u0442\u044C
+      \u043F\u0435\u0440\u0435\u0434\u0430\u043D\u044B {3}."
+  - key: rent.bankrupt.result
+    en: "Paid: {0} \u20B5\nUnpaid: {1} \u20B5\nTransferred properties: {2}"
+    tr: "\xD6denen: {0} \u20B5\nKar\u015F\u0131lanamayan: {1} \u20B5\nDevredilen
+      m\xFClk: {2}"
+    es: "Pagado: {0} \u20B5\nPendiente: {1} \u20B5\nPropiedades transferidas: {2}"
+    fr: "Pay\xE9 : {0} \u20B5\nImpay\xE9 : {1} \u20B5\nPropri\xE9t\xE9s transf\xE9r\xE9es
+      : {2}"
+    de: "Bezahlt: {0} \u20B5\nOffen: {1} \u20B5\n\xDCbertragene Grundst\xFCcke: {2}"
+    ko: "\uC9C0\uBD88: {0} \u20B5\n\uBBF8\uC9C0\uAE09: {1} \u20B5\n\uC774\uC804\uB41C
+      \uBD80\uB3D9\uC0B0: {2}"
+    ru: "\u041E\u043F\u043B\u0430\u0447\u0435\u043D\u043E: {0} \u20B5\n\u041D\u0435
+      \u043E\u043F\u043B\u0430\u0447\u0435\u043D\u043E: {1} \u20B5\n\u041F\u0435\u0440\u0435\u0434\u0430\u043D\u043E
+      \u043E\u0431\u044A\u0435\u043A\u0442\u043E\u0432: {2}"
+  - key: development.balanced_rule
+    en: 'Balanced development rule: develop one of the Level {0} properties in this
+      group first.'
+    tr: "Dengeli geli\u015Ftirme kural\u0131: \xD6nce b\xF6lgedeki Seviye {0} m\xFClklerden
+      birini geli\u015Ftir."
+    es: 'Regla de desarrollo equilibrado: primero desarrolla una de las propiedades
+      de nivel {0} del grupo.'
+    fr: "R\xE8gle de d\xE9veloppement \xE9quilibr\xE9 : d\xE9veloppez d'abord l'une
+      des propri\xE9t\xE9s de niveau {0} du groupe."
+    de: "Regel f\xFCr ausgeglichene Entwicklung: Entwickle zuerst eines der Grundst\xFCcke
+      auf Stufe {0} in dieser Gruppe."
+    ko: "\uADE0\uD615 \uAC1C\uBC1C \uADDC\uCE59: \uBA3C\uC800 \uC774 \uADF8\uB8F9\uC758
+      \uB808\uBCA8 {0} \uBD80\uB3D9\uC0B0 \uC911 \uD558\uB098\uB97C \uAC1C\uBC1C\uD558\uC138\uC694."
+    ru: "\u041F\u0440\u0430\u0432\u0438\u043B\u043E \u0441\u0431\u0430\u043B\u0430\u043D\u0441\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u043E\u0433\u043E
+      \u0440\u0430\u0437\u0432\u0438\u0442\u0438\u044F: \u0441\u043D\u0430\u0447\u0430\u043B\u0430
+      \u0443\u043B\u0443\u0447\u0448\u0438\u0442\u0435 \u043E\u0434\u0438\u043D \u0438\u0437
+      \u043E\u0431\u044A\u0435\u043A\u0442\u043E\u0432 \u0443\u0440\u043E\u0432\u043D\u044F
+      {0} \u0432 \u0433\u0440\u0443\u043F\u043F\u0435."
+  - key: development.insufficient_balance
+    en: Insufficient balance for this development.
+    tr: "Bu geli\u015Ftirme i\xE7in bakiye yetersiz."
+    es: Saldo insuficiente para este desarrollo.
+    fr: "Solde insuffisant pour ce d\xE9veloppement."
+    de: "Nicht genug Geld f\xFCr diese Entwicklung."
+    ko: "\uC774 \uAC1C\uBC1C\uC5D0 \uD544\uC694\uD55C \uC794\uC561\uC774 \uBD80\uC871\uD569\uB2C8\uB2E4."
+    ru: "\u041D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u043E\u0447\u043D\u043E
+      \u0441\u0440\u0435\u0434\u0441\u0442\u0432 \u0434\u043B\u044F \u044D\u0442\u043E\u0433\u043E
+      \u0443\u043B\u0443\u0447\u0448\u0435\u043D\u0438\u044F."
+  - key: development.unknown_group
+    en: Unknown Group
+    tr: "Bilinmeyen B\xF6lge"
+    es: Grupo desconocido
+    fr: Groupe inconnu
+    de: Unbekannte Gruppe
+    ko: "\uC54C \uC218 \uC5C6\uB294 \uADF8\uB8F9"
+    ru: "\u041D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043D\u0430\u044F \u0433\u0440\u0443\u043F\u043F\u0430"
+  - key: development.group_number
+    en: Group {0}
+    tr: "B\xF6lge {0}"
+    es: Grupo {0}
+    fr: Groupe {0}
+    de: Gruppe {0}
+    ko: "\uADF8\uB8F9 {0}"
+    ru: "\u0413\u0440\u0443\u043F\u043F\u0430 {0}"
+  - key: development.group_levels
+    en: 'Group levels: {0}'
+    tr: "B\xF6lge seviyeleri: {0}"
+    es: 'Niveles del grupo: {0}'
+    fr: 'Niveaux du groupe : {0}'
+    de: 'Gruppenstufen: {0}'
+    ko: "\uADF8\uB8F9 \uB808\uBCA8: {0}"
+    ru: "\u0423\u0440\u043E\u0432\u043D\u0438 \u0433\u0440\u0443\u043F\u043F\u044B:
+      {0}"
+  - key: development.group_complete
+    en: '{0} complete'
+    tr: "{0} tamamland\u0131"
+    es: '{0} completo'
+    fr: "{0} termin\xE9"
+    de: "{0} vollst\xE4ndig"
+    ko: "{0} \uC644\uB8CC"
+    ru: "{0} \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u0430"
+  - key: development.level
+    en: 'Level: {0}/{1}'
+    tr: 'Seviye: {0}/{1}'
+    es: 'Nivel: {0}/{1}'
+    fr: 'Niveau : {0}/{1}'
+    de: 'Stufe: {0}/{1}'
+    ko: "\uB808\uBCA8: {0}/{1}"
+    ru: "\u0423\u0440\u043E\u0432\u0435\u043D\u044C: {0}/{1}"
+  - key: development.rent
+    en: "Rent: {0} \u20B5 \u2192 {1} \u20B5"
+    tr: "Kira: {0} \u20B5 \u2192 {1} \u20B5"
+    es: "Alquiler: {0} \u20B5 \u2192 {1} \u20B5"
+    fr: "Loyer : {0} \u20B5 \u2192 {1} \u20B5"
+    de: "Miete: {0} \u20B5 \u2192 {1} \u20B5"
+    ko: "\uC784\uB300\uB8CC: {0} \u20B5 \u2192 {1} \u20B5"
+    ru: "\u0410\u0440\u0435\u043D\u0434\u0430: {0} \u20B5 \u2192 {1} \u20B5"
+  - key: development.cost
+    en: "Development cost: {0} \u20B5"
+    tr: "Geli\u015Ftirme maliyeti: {0} \u20B5"
+    es: "Coste de desarrollo: {0} \u20B5"
+    fr: "Co\xFBt du d\xE9veloppement : {0} \u20B5"
+    de: "Entwicklungskosten: {0} \u20B5"
+    ko: "\uAC1C\uBC1C \uBE44\uC6A9: {0} \u20B5"
+    ru: "\u0421\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u0443\u043B\u0443\u0447\u0448\u0435\u043D\u0438\u044F:
+      {0} \u20B5"
+  - key: development.balance
+    en: "Balance: {0} \u20B5"
+    tr: "Bakiye: {0} \u20B5"
+    es: "Saldo: {0} \u20B5"
+    fr: "Solde : {0} \u20B5"
+    de: "Guthaben: {0} \u20B5"
+    ko: "\uC794\uC561: {0} \u20B5"
+    ru: "\u0411\u0430\u043B\u0430\u043D\u0441: {0} \u20B5"
+  - key: match.player_bankrupt
+    en: "{0} \u2014 BANKRUPT"
+    tr: "{0} \u2014 \u0130FLAS"
+    es: "{0} \u2014 BANCARROTA"
+    fr: "{0} \u2014 FAILLITE"
+    de: "{0} \u2014 INSOLVENT"
+    ko: "{0} \u2014 \uD30C\uC0B0"
+    ru: "{0} \u2014 \u0411\u0410\u041D\u041A\u0420\u041E\u0422"
+  - key: match.cash_properties
+    en: "Cash: {0} \u20B5 | Properties: {1} | Property Value: {2} \u20B5"
+    tr: "Nakit: {0} \u20B5 | M\xFClk: {1} | M\xFClk De\u011Feri: {2} \u20B5"
+    es: "Efectivo: {0} \u20B5 | Propiedades: {1} | Valor: {2} \u20B5"
+    fr: "Liquidit\xE9s : {0} \u20B5 | Propri\xE9t\xE9s : {1} | Valeur : {2} \u20B5"
+    de: "Bargeld: {0} \u20B5 | Grundst\xFCcke: {1} | Wert: {2} \u20B5"
+    ko: "\uD604\uAE08: {0} \u20B5 | \uBD80\uB3D9\uC0B0: {1} | \uAC00\uCE58: {2} \u20B5"
+    ru: "\u041D\u0430\u043B\u0438\u0447\u043D\u044B\u0435: {0} \u20B5 | \u0421\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0441\u0442\u044C:
+      {1} | \u0421\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C: {2} \u20B5"
+  - key: match.development
+    en: "Development Levels: {0} | Development Value: {1} \u20B5"
+    tr: "Geli\u015Ftirme Seviyesi: {0} | Geli\u015Ftirme De\u011Feri: {1} \u20B5"
+    es: "Niveles de desarrollo: {0} | Valor de desarrollo: {1} \u20B5"
+    fr: "Niveaux de d\xE9veloppement : {0} | Valeur : {1} \u20B5"
+    de: "Entwicklungsstufen: {0} | Entwicklungswert: {1} \u20B5"
+    ko: "\uAC1C\uBC1C \uB808\uBCA8: {0} | \uAC1C\uBC1C \uAC00\uCE58: {1} \u20B5"
+    ru: "\u0423\u0440\u043E\u0432\u043D\u0438 \u0443\u043B\u0443\u0447\u0448\u0435\u043D\u0438\u0439:
+      {0} | \u0421\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C \u0443\u043B\u0443\u0447\u0448\u0435\u043D\u0438\u0439:
+      {1} \u20B5"
+  - key: match.net_worth
+    en: "Net Worth: {0} \u20B5"
+    tr: "Net Servet: {0} \u20B5"
+    es: "Patrimonio neto: {0} \u20B5"
+    fr: "Valeur nette : {0} \u20B5"
+    de: "Nettoverm\xF6gen: {0} \u20B5"
+    ko: "\uC21C\uC790\uC0B0: {0} \u20B5"
+    ru: "\u0427\u0438\u0441\u0442\u0430\u044F \u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C:
+      {0} \u20B5"
+  - key: match.winner
+    en: "{0} Won!\n{1} \u20B5"
+    tr: "{0} Kazand\u0131!\n{1} \u20B5"
+    es: "\xA1{0} gan\xF3!\n{1} \u20B5"
+    fr: "{0} a gagn\xE9 !\n{1} \u20B5"
+    de: "{0} hat gewonnen!\n{1} \u20B5"
+    ko: "{0} \uC2B9\uB9AC!\n{1} \u20B5"
+    ru: "{0} \u043F\u043E\u0431\u0435\u0434\u0438\u043B!\n{1} \u20B5"
+  - key: match.tie
+    en: "Tie!\n{0} \u20B5"
+    tr: "Beraberlik!\n{0} \u20B5"
+    es: "\xA1Empate!\n{0} \u20B5"
+    fr: "\xC9galit\xE9 !\n{0} \u20B5"
+    de: "Unentschieden!\n{0} \u20B5"
+    ko: "\uBB34\uC2B9\uBD80!\n{0} \u20B5"
+    ru: "\u041D\u0438\u0447\u044C\u044F!\n{0} \u20B5"
+  - key: match.complete
+    en: Match Complete
+    tr: "Ma\xE7 Tamamland\u0131"
+    es: Partida terminada
+    fr: "Partie termin\xE9e"
+    de: Spiel beendet
+    ko: "\uAC8C\uC784 \uC885\uB8CC"
+    ru: "\u041C\u0430\u0442\u0447 \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043D"

@@ -48,7 +48,7 @@ public static class AtlasBoardMainMenuV1Setup
         new Color32(61, 62, 66, 255);
 
     [MenuItem(
-        "Atlas Board/UI/Build or Refresh Main Menu + Lobby v1.3.1")]
+        "Atlas Board/UI/Build or Refresh Main Menu + Lobby v1.3")]
     public static void BuildOrRefresh()
     {
         if (EditorApplication.isPlaying)
@@ -195,7 +195,7 @@ public static class AtlasBoardMainMenuV1Setup
             canvasObject;
 
         Debug.Log(
-            "AtlasBoard Main Menu + Lobby v1.3.1 built. " +
+            "AtlasBoard Main Menu + Lobby v1.3 built. " +
             "The existing Canvas_MatchSetup was not deleted or modified. " +
             "Press Play to enter through the new Main Menu.");
     }
@@ -1104,14 +1104,9 @@ public static class AtlasBoardMainMenuV1Setup
                 Color.white,
                 null);
 
-        AtlasBoardDropdown dropdown =
+        TMP_Dropdown dropdown =
             root.AddComponent<
-                AtlasBoardDropdown>();
-
-        dropdown.EditorConfigurePopup(
-            6,
-            60f,
-            32000);
+                TMP_Dropdown>();
 
         TMP_Text caption =
             CreateText(
@@ -1144,7 +1139,7 @@ public static class AtlasBoardMainMenuV1Setup
                 6);
 
         float templateHeight =
-            visibleRows * 60f +
+            visibleRows * 64f +
             28f;
 
         GameObject template =
@@ -1567,7 +1562,7 @@ public static class AtlasBoardMainMenuV1Setup
         text.color = color;
         text.fontStyle = style;
         text.alignment = alignment;
-        text.enableWordWrapping = true;
+        text.textWrappingMode = TextWrappingModes.Normal;
         text.raycastTarget = false;
 
         if (defaultFont != null)

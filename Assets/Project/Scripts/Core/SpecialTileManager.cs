@@ -269,10 +269,11 @@ public class SpecialTileManager : MonoBehaviour
         if (causedBankruptcy)
         {
             specialResultText.text =
-                "İFLAS\n" +
-                $"Ödenen: {Mathf.Abs(appliedMoneyChange)} ₵\n" +
-                $"Devredilen/boşa çıkan mülk: " +
-                $"{transferredProperties}";
+                AtlasBoardL.T(
+                    "special.result.bankrupt",
+                    Mathf.Abs(
+                        appliedMoneyChange),
+                    transferredProperties);
 
             return;
         }
@@ -290,7 +291,8 @@ public class SpecialTileManager : MonoBehaviour
         else
         {
             specialResultText.text =
-                "Para değişmedi";
+                AtlasBoardL.T(
+                    "special.result.no_money_change");
         }
     }
 

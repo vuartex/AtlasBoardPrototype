@@ -66,12 +66,59 @@ public class EventCardDefinition : ScriptableObject
     public EventCardCategory Category => category;
     public bool EnabledCard => enabledCard;
     public int Weight => Mathf.Max(1, weight);
-    public string Title => title;
-    public string Description => description;
+    public string Title =>
+        GetLocalizedOrFallback(
+            TitleLocalizationKey,
+            title);
+
+    public string Description =>
+        GetLocalizedOrFallback(
+            DescriptionLocalizationKey,
+            description);
+
+    public string RawTitle =>
+        title;
+
+    public string RawDescription =>
+        description;
+
+    public string TitleLocalizationKey =>
+        string.IsNullOrWhiteSpace(
+            cardId)
+                ? string.Empty
+                : $"event.card.{cardId}.title";
+
+    public string DescriptionLocalizationKey =>
+        string.IsNullOrWhiteSpace(
+            cardId)
+                ? string.Empty
+                : $"event.card.{cardId}.description";
     public string RequiredMapId => requiredMapId;
     public EventCardEffectType EffectType => effectType;
     public int EffectAmount => effectAmount;
     public TileType TargetTileType => targetTileType;
+
+    private static string GetLocalizedOrFallback(
+        string key,
+        string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(
+                key))
+        {
+            return fallback;
+        }
+
+        string localized =
+            AtlasBoardL.T(
+                key);
+
+        return string.Equals(
+                   localized,
+                   key,
+                   System.StringComparison.Ordinal)
+            ? fallback
+            : localized;
+    }
 
     public bool IsAvailableForMap(
         string mapId)

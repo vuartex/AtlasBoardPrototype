@@ -61,11 +61,38 @@ public class AtlasBoardMainMenuController : MonoBehaviour
 
     private void Awake()
     {
+        AtlasBoardLocalizationManager.LanguageChanged +=
+            HandleLanguageChanged;
+
         ResolveGameplayUIReferences();
         CaptureGameplayUIState();
         HideExistingGameUI();
         RefreshProfile();
         ShowMainMenu();
+    }
+
+    private void OnDestroy()
+    {
+        AtlasBoardLocalizationManager.LanguageChanged -=
+            HandleLanguageChanged;
+    }
+
+    private void HandleLanguageChanged()
+    {
+        RefreshProfile();
+
+        if (lobbyPanel != null &&
+            lobbyPanel.activeSelf &&
+            lobbyTitleText != null)
+        {
+            lobbyTitleText.text =
+                currentLobbyMode ==
+                "PRIVATE TABLE"
+                    ? AtlasBoardL.T(
+                        "menu.private_table")
+                    : AtlasBoardL.T(
+                        "menu.play");
+        }
     }
 
     private void Update()
@@ -116,24 +143,40 @@ public class AtlasBoardMainMenuController : MonoBehaviour
     public void OpenShop()
     {
         ShowModal(
-            "SHOP",
-            "Shop foundation is ready.\n" +
-            "Items, cosmetics and progression can be added later.");
+            AtlasBoardL.T(
+                "menu.shop"),
+            AtlasBoardL.T(
+                "menu.shop_body"));
     }
 
     public void OpenSettings()
     {
         ShowModal(
-            "SETTINGS",
-            "Audio, graphics, camera and quality settings " +
-            "will be connected in the Settings phase.");
+            AtlasBoardL.T(
+                "settings.title"),
+            AtlasBoardL.T(
+                "settings.audio_title"));
     }
 
     public void OpenProfile()
     {
+        string visibleProfileName =
+            string.Equals(
+                profileName,
+                "PLAYER",
+                System.StringComparison.OrdinalIgnoreCase)
+                    ? AtlasBoardL.T(
+                        "menu.player")
+                    : profileName;
+
         ShowModal(
-            "PROFILE",
-            $"{profileName}\nCash: {profileCash:N0}\nGold: {profileGold:N0}");
+            AtlasBoardL.T(
+                "menu.profile"),
+            AtlasBoardL.T(
+                "menu.profile_body",
+                visibleProfileName,
+                profileCash,
+                profileGold));
     }
 
     public void QuitGame()
@@ -203,10 +246,10 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         // v1.1 deliberately does NOT expose the legacy Match Setup screen.
         // If mapping ever fails, stay in the new lobby and show a clear error.
         ShowModal(
-            "START MATCH",
-            "The new lobby could not start the match automatically.\n" +
-            "The legacy setup screen was kept hidden.\n" +
-            "Check the Console mapping message.");
+            AtlasBoardL.T(
+                "menu.start_match_error_title"),
+            AtlasBoardL.T(
+                "menu.start_match_error_body"));
 
         Debug.LogWarning(
             "AtlasBoard Main Menu v1.1 blocked the legacy Match Setup " +
@@ -245,7 +288,12 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         if (lobbyTitleText != null)
         {
             lobbyTitleText.text =
-                currentLobbyMode;
+                currentLobbyMode ==
+                "PRIVATE TABLE"
+                    ? AtlasBoardL.T(
+                        "menu.private_table")
+                    : AtlasBoardL.T(
+                        "menu.play");
         }
 
         RefreshPlayerRows();
@@ -273,7 +321,13 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         if (profileNameText != null)
         {
             profileNameText.text =
-                profileName;
+                string.Equals(
+                    profileName,
+                    "PLAYER",
+                    System.StringComparison.OrdinalIgnoreCase)
+                        ? AtlasBoardL.T(
+                            "menu.player")
+                        : profileName;
         }
 
         if (profileCashText != null)
@@ -313,9 +367,8 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             currentLobbyMode;
 
         selection.MapId =
-            GetDropdownText(
-                mapDropdown,
-                "Turkey");
+            GetMapIdByIndex(
+                mapDropdown);
 
         selection.PlayerCount =
             GetPlayerCount();
@@ -326,10 +379,8 @@ public class AtlasBoardMainMenuController : MonoBehaviour
                 20);
 
         selection.ThemeId =
-            ThemeDisplayNameToId(
-                GetDropdownText(
-                    themeDropdown,
-                    "Classic Table"));
+            GetThemeIdByIndex(
+                themeDropdown);
 
         selection.BalancedDevelopment =
             balancedDevelopmentToggle == null ||
@@ -346,16 +397,16 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         selection.PlayerTypes =
             new[]
             {
-                GetDropdownText(
+                GetPlayerTypeByIndex(
                     player1TypeDropdown,
                     "Human"),
-                GetDropdownText(
+                GetPlayerTypeByIndex(
                     player2TypeDropdown,
                     "Bot"),
-                GetDropdownText(
+                GetPlayerTypeByIndex(
                     player3TypeDropdown,
                     "Bot"),
-                GetDropdownText(
+                GetPlayerTypeByIndex(
                     player4TypeDropdown,
                     "Bot")
             };
@@ -363,35 +414,52 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         return selection;
     }
 
-    private static string ThemeDisplayNameToId(
-        string displayName)
+    private static string GetMapIdByIndex(
+        TMP_Dropdown dropdown)
     {
-        if (string.IsNullOrWhiteSpace(displayName))
+        int index =
+            dropdown != null
+                ? dropdown.value
+                : 0;
+
+        return index switch
         {
-            return "classic_table";
+            1 => "Colorado",
+            2 => "USA",
+            _ => "Turkey"
+        };
+    }
+
+    private static string GetThemeIdByIndex(
+        TMP_Dropdown dropdown)
+    {
+        int index =
+            dropdown != null
+                ? dropdown.value
+                : 0;
+
+        return index switch
+        {
+            1 => "garden",
+            2 => "beach",
+            3 => "pavilion",
+            4 => "street",
+            _ => "classic_table"
+        };
+    }
+
+    private static string GetPlayerTypeByIndex(
+        TMP_Dropdown dropdown,
+        string fallback)
+    {
+        if (dropdown == null)
+        {
+            return fallback;
         }
 
-        string normalized =
-            displayName.Trim()
-                .ToLowerInvariant();
-
-        switch (normalized)
-        {
-            case "garden":
-                return "garden";
-
-            case "beach":
-                return "beach";
-
-            case "pavilion":
-                return "pavilion";
-
-            case "street":
-                return "street";
-
-            default:
-                return "classic_table";
-        }
+        return dropdown.value == 1
+            ? "Bot"
+            : "Human";
     }
 
     private int GetPlayerCount()

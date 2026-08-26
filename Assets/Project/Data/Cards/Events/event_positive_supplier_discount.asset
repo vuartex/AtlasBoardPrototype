@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1fdafee4c8b7a3408b43ba536ff1885, type: 3}
+  m_Name: event_positive_supplier_discount
+  m_EditorClassIdentifier: Assembly-CSharp::EventCardDefinition
+  cardId: event_positive_supplier_discount
+  category: 0
+  enabledCard: 1
+  weight: 10
+  title: "Tedarik\xE7i \u0130ndirimi"
+  description: "Tedarik\xE7in \xF6zel bir indirim uygulad\u0131."
+  requiredMapId: 
+  effectType: 0
+  effectAmount: 110
+  targetTileType: 8

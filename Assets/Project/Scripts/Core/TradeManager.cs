@@ -132,7 +132,53 @@ public class TradeManager : MonoBehaviour
 
     private void Start()
     {
+        AtlasBoardLocalizationManager.LanguageChanged +=
+            HandleLanguageChanged;
+
         SetPanelActive(false);
+    }
+
+    private void OnDestroy()
+    {
+        AtlasBoardLocalizationManager.LanguageChanged -=
+            HandleLanguageChanged;
+    }
+
+    private void HandleLanguageChanged()
+    {
+        if (panelState ==
+            TradePanelState.Closed)
+        {
+            return;
+        }
+
+        if (tradeTitleText != null &&
+            initiator != null)
+        {
+            tradeTitleText.text =
+                AtlasBoardL.T(
+                    "trade.title",
+                    AtlasBoardL.PlayerName(
+                        initiator));
+        }
+
+        if (panelState ==
+            TradePanelState.BuildingOffer)
+        {
+            RefreshTargetAndPropertyOptions();
+            UpdateSetupSummary();
+            return;
+        }
+
+        if (panelState ==
+            TradePanelState.AwaitingResponse)
+        {
+            SyncCurrentOfferToUI();
+
+            SetSummary(
+                BuildOfferSummary(
+                    includeResponsePrompt: true));
+        }
     }
 
     public bool TryBeginBotOffer(
@@ -197,7 +243,10 @@ public class TradeManager : MonoBehaviour
         if (tradeTitleText != null)
         {
             tradeTitleText.text =
-                $"TAKAS — {initiator.DisplayName}";
+                AtlasBoardL.T(
+                    "trade.title",
+                    AtlasBoardL.PlayerName(
+                        initiator));
         }
 
         SyncCurrentOfferToUI();
@@ -254,7 +303,8 @@ public class TradeManager : MonoBehaviour
         if (targetPlayers.Count == 0)
         {
             ShowTemporaryResult(
-                "Uygun takas oyuncusu bulunamadı.");
+                AtlasBoardL.T(
+                    "trade.no_players"));
 
             return;
         }
@@ -269,7 +319,10 @@ public class TradeManager : MonoBehaviour
         if (tradeTitleText != null)
         {
             tradeTitleText.text =
-                $"TAKAS — {initiator.DisplayName}";
+                AtlasBoardL.T(
+                    "trade.title",
+                    AtlasBoardL.PlayerName(
+                        initiator));
         }
 
         PopulateTargetDropdown();
@@ -392,7 +445,9 @@ public class TradeManager : MonoBehaviour
                 out string validationMessage))
         {
             ShowTemporaryResult(
-                "Takas artık geçerli değil.\n" +
+                AtlasBoardL.T(
+                    "trade.no_longer_valid") +
+                "\n" +
                 validationMessage);
 
             return;
@@ -401,8 +456,8 @@ public class TradeManager : MonoBehaviour
         if (!ExecuteTrade())
         {
             ShowTemporaryResult(
-                "Takas uygulanamadı. " +
-                "Hiçbir değişiklik yapılmadı.");
+                AtlasBoardL.T(
+                    "trade.apply_failed"));
 
             return;
         }
@@ -413,7 +468,9 @@ public class TradeManager : MonoBehaviour
             this);
 
         ShowTemporaryResult(
-            "TAKAS KABUL EDİLDİ\n\n" +
+            AtlasBoardL.T(
+                "trade.accepted") +
+            "\n\n" +
             BuildOfferSummary(
                 includeResponsePrompt: false));
     }
@@ -433,7 +490,8 @@ public class TradeManager : MonoBehaviour
             this);
 
         ShowTemporaryResult(
-            "TAKAS REDDEDİLDİ");
+            AtlasBoardL.T(
+                "trade.rejected"));
     }
 
     public void CancelTrade()
@@ -493,7 +551,9 @@ public class TradeManager : MonoBehaviour
         foreach (PlayerGameState player
                  in targetPlayers)
         {
-            options.Add(player.DisplayName);
+            options.Add(
+                AtlasBoardL.PlayerName(
+                    player));
         }
 
         targetPlayerDropdown.AddOptions(options);
@@ -531,12 +591,14 @@ public class TradeManager : MonoBehaviour
         PopulatePropertyDropdown(
             offeredPropertyDropdown,
             offeredProperties,
-            "Mülk teklif etme");
+            AtlasBoardL.T(
+                "trade.no_offered_property"));
 
         PopulatePropertyDropdown(
             requestedPropertyDropdown,
             requestedProperties,
-            "Mülk talep etme");
+            AtlasBoardL.T(
+                "trade.no_requested_property"));
     }
 
     private void BuildPropertyList(
@@ -650,12 +712,14 @@ public class TradeManager : MonoBehaviour
         PopulatePropertyDropdown(
             offeredPropertyDropdown,
             offeredProperties,
-            "Mülk teklif etme");
+            AtlasBoardL.T(
+                "trade.no_offered_property"));
 
         PopulatePropertyDropdown(
             requestedPropertyDropdown,
             requestedProperties,
-            "Mülk talep etme");
+            AtlasBoardL.T(
+                "trade.no_requested_property"));
 
         if (offeredPropertyDropdown != null)
         {
@@ -1041,13 +1105,17 @@ public class TradeManager : MonoBehaviour
 
         string targetName =
             target != null
-                ? target.DisplayName
-                : "Hedef yok";
+                ? AtlasBoardL.PlayerName(
+                    target)
+                : AtlasBoardL.T(
+                    "trade.no_target");
 
         SetSummary(
-            $"Takas hedefi: {targetName}\n\n" +
-            BuildOfferSummary(
-                includeResponsePrompt: false));
+            AtlasBoardL.T(
+                "trade.target_summary",
+                targetName,
+                BuildOfferSummary(
+                    includeResponsePrompt: false)));
     }
 
     private string BuildOfferSummary(
@@ -1056,26 +1124,47 @@ public class TradeManager : MonoBehaviour
         string offeredPropertyName =
             offeredProperty != null
                 ? offeredProperty.DisplayName
-                : "Mülk yok";
+                : AtlasBoardL.T(
+                    "trade.no_property");
 
         string requestedPropertyName =
             requestedProperty != null
                 ? requestedProperty.DisplayName
-                : "Mülk yok";
+                : AtlasBoardL.T(
+                    "trade.no_property");
+
+        string initiatorName =
+            initiator != null
+                ? AtlasBoardL.PlayerName(
+                    initiator)
+                : AtlasBoardL.T(
+                    "common.player");
+
+        string targetName =
+            target != null
+                ? AtlasBoardL.PlayerName(
+                    target)
+                : AtlasBoardL.T(
+                    "trade.no_target");
 
         string summary =
-            $"{initiator?.DisplayName ?? "Oyuncu"} verir:\n" +
-            $"• {offeredPropertyName}\n" +
-            $"• {offeredCash} ₵\n\n" +
-            $"{target?.DisplayName ?? "Hedef"} verir:\n" +
-            $"• {requestedPropertyName}\n" +
-            $"• {requestedCash} ₵";
+            AtlasBoardL.T(
+                "trade.offer_summary",
+                initiatorName,
+                offeredPropertyName,
+                offeredCash,
+                targetName,
+                requestedPropertyName,
+                requestedCash);
 
-        if (includeResponsePrompt)
+        if (includeResponsePrompt &&
+            target != null)
         {
             summary +=
-                $"\n\n{target.DisplayName}, " +
-                "teklifi kabul ediyor musun?";
+                "\n\n" +
+                AtlasBoardL.T(
+                    "trade.response_prompt",
+                    targetName);
         }
 
         return summary;
