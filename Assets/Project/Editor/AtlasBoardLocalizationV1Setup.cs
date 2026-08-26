@@ -2393,6 +2393,9 @@ public static class AtlasBoardLocalizationV1Setup
         AtlasBoardCoreLocalizationSeed.Append(
             list);
 
+        AtlasBoardPawnLocalizationSeed.Append(
+            list);
+
         database.EditorReplaceEntries(
             list);
 

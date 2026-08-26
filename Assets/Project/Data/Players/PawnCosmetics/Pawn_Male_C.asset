@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f4fe3538c22a5a4d9245259c33cc7c5, type: 3}
+  m_Name: Pawn_Male_C
+  m_EditorClassIdentifier: Assembly-CSharp::PawnCosmeticDefinition
+  cosmeticId: kenney_male_c
+  displayName: Mini Character Male C
+  prefab: {fileID: 919132149155446097, guid: 8226cafbe48fd4a45bbc4e2968bb2815, type: 3}
+  desiredWorldHeight: 1.15
+  rotationOffset: {x: 0, y: 0, z: 0}
+  defaultMotionSet: {fileID: 11400000, guid: f979fda4c2b0563408c5306e9c5ce9e4, type: 2}

@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9111e4ce43b7a54382c5ba447d6dcf9, type: 3}
+  m_Name: PawnCosmeticCatalog_Default
+  m_EditorClassIdentifier: Assembly-CSharp::PawnCosmeticCatalog
+  cosmetics:
+  - {fileID: 11400000, guid: c73ee424d9ccd88488e53c420065c05c, type: 2}
+  - {fileID: 11400000, guid: effc7b84b4bc36c4e9081b354ed563c7, type: 2}
+  - {fileID: 11400000, guid: f2a17e253f0804048a3f5784db18104a, type: 2}
+  - {fileID: 11400000, guid: 36193b751f3030448af37d385ebcde84, type: 2}
+  - {fileID: 11400000, guid: 451d44ff0f51b424ea5268f1597001ba, type: 2}
+  - {fileID: 11400000, guid: 2343aa44ea521cf4c96d5f517177f225, type: 2}
+  - {fileID: 11400000, guid: c1907b31ff8772e4fbed189e71661a1c, type: 2}
+  - {fileID: 11400000, guid: 6fb85bd55cc6a2b4ca873eec57c8871e, type: 2}

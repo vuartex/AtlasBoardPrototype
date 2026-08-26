@@ -2850,3 +2850,43 @@ MonoBehaviour:
     de: Spiel beendet
     ko: "\uAC8C\uC784 \uC885\uB8CC"
     ru: "\u041C\u0430\u0442\u0447 \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043D"
+  - key: lobby.pawn
+    en: PAWN
+    tr: "P\u0130YON"
+    es: FICHA
+    fr: PION
+    de: FIGUR
+    ko: "\uB9D0"
+    ru: "\u0424\u0418\u0428\u041A\u0410"
+  - key: pawn.customization.title
+    en: PAWN CUSTOMIZATION
+    tr: "P\u0130YON \xD6ZELLE\u015ET\u0130RME"
+    es: PERSONALIZAR FICHA
+    fr: PERSONNALISER LE PION
+    de: FIGUR ANPASSEN
+    ko: "\uB9D0 \uAFB8\uBBF8\uAE30"
+    ru: "\u041D\u0410\u0421\u0422\u0420\u041E\u0419\u041A\u0410 \u0424\u0418\u0428\u041A\u0418"
+  - key: pawn.customization.player
+    en: Player {0}
+    tr: Oyuncu {0}
+    es: Jugador {0}
+    fr: Joueur {0}
+    de: Spieler {0}
+    ko: "\uD50C\uB808\uC774\uC5B4 {0}"
+    ru: "\u0418\u0433\u0440\u043E\u043A {0}"
+  - key: pawn.customization.selection
+    en: Pawn {0} / {1}
+    tr: Piyon {0} / {1}
+    es: Ficha {0} / {1}
+    fr: Pion {0} / {1}
+    de: Figur {0} / {1}
+    ko: "\uB9D0 {0} / {1}"
+    ru: "\u0424\u0438\u0448\u043A\u0430 {0} / {1}"
+  - key: pawn.customization.use
+    en: USE PAWN
+    tr: "P\u0130YONU KULLAN"
+    es: USAR FICHA
+    fr: UTILISER CE PION
+    de: FIGUR VERWENDEN
+    ko: "\uC774 \uB9D0 \uC0AC\uC6A9"
+    ru: "\u0418\u0421\u041F\u041E\u041B\u042C\u0417\u041E\u0412\u0410\u0422\u042C"
