@@ -202,6 +202,32 @@ public class TurnManager : MonoBehaviour
     public PlayerGameState CurrentPlayerState =>
         GetPlayerState(currentPlayerIndex);
 
+    public bool HasPendingTripleDoublePenaltyFor(
+        PlayerGameState player)
+    {
+        return tripleDoublePenaltyPlayer != null &&
+               player != null &&
+               IsSamePlayer(
+                   tripleDoublePenaltyPlayer,
+                   player);
+    }
+
+    public bool IsStartingOrderPhase =>
+        isMatchStarted &&
+        gamePhase == GamePhase.DeterminingTurnOrder &&
+        !isMatchFinished;
+
+    public event System.Action<
+        PlayerGameState,
+        bool,
+        bool> HumanRollCommitted;
+
+    public bool IsPlayerBot(
+        PlayerGameState player)
+    {
+        return IsBotPlayer(player);
+    }
+
     public PlayerGameState StartingOrderPlayerState
     {
         get
@@ -450,33 +476,22 @@ public class TurnManager : MonoBehaviour
             return;
         }
 
-        if (gamePhase ==
-            GamePhase.DeterminingTurnOrder)
+        PlayerGameState player =
+            gamePhase == GamePhase.DeterminingTurnOrder
+                ? StartingOrderPlayerState
+                : gamePhase == GamePhase.Playing
+                    ? CurrentPlayerState
+                    : null;
+
+        if (player == null ||
+            IsBotPlayer(player))
         {
-            PlayerGameState startingPlayer =
-                StartingOrderPlayerState;
-
-            if (IsBotPlayer(startingPlayer))
-            {
-                return;
-            }
-
-            RollForStartingOrder();
             return;
         }
 
-        if (gamePhase == GamePhase.Playing)
-        {
-            PlayerGameState activePlayer =
-                CurrentPlayerState;
-
-            if (IsBotPlayer(activePlayer))
-            {
-                return;
-            }
-
-            RollForActivePlayer();
-        }
+        TryRequestRollInternal(
+            player,
+            automaticHumanRoll: false);
     }
 
     public bool CanPlayerRequestRoll(
@@ -528,25 +543,85 @@ public class TurnManager : MonoBehaviour
     public bool TryRequestRoll(
         PlayerGameState player)
     {
+        return TryRequestRollInternal(
+            player,
+            automaticHumanRoll: false);
+    }
+
+    public bool TryRequestAutomaticHumanRoll(
+        PlayerGameState player)
+    {
+        if (player == null ||
+            IsBotPlayer(player))
+        {
+            return false;
+        }
+
+        return TryRequestRollInternal(
+            player,
+            automaticHumanRoll: true);
+    }
+
+    private bool TryRequestRollInternal(
+        PlayerGameState player,
+        bool automaticHumanRoll)
+    {
         if (!CanPlayerRequestRoll(player))
         {
             return false;
         }
 
-        if (gamePhase ==
-            GamePhase.DeterminingTurnOrder)
+        bool isHuman =
+            !IsBotPlayer(player);
+
+        bool isStartingOrder =
+            gamePhase ==
+            GamePhase.DeterminingTurnOrder;
+
+        if (isStartingOrder)
         {
             RollForStartingOrder();
-            return true;
         }
-
-        if (gamePhase == GamePhase.Playing)
+        else if (gamePhase == GamePhase.Playing)
         {
             RollForActivePlayer();
-            return true;
+        }
+        else
+        {
+            return false;
         }
 
-        return false;
+        if (isHuman)
+        {
+            HumanRollCommitted?.Invoke(
+                player,
+                automaticHumanRoll,
+                isStartingOrder);
+        }
+
+        return true;
+    }
+
+    public void RefreshTurnPresentationForControlChange()
+    {
+        if (!isMatchStarted ||
+            isMatchFinished)
+        {
+            return;
+        }
+
+        if (gamePhase == GamePhase.DeterminingTurnOrder)
+        {
+            UpdateStartingOrderUI();
+            return;
+        }
+
+        if (gamePhase == GamePhase.Playing &&
+            !resolvingDiceVisual &&
+            !waitingForMovement)
+        {
+            UpdateTurnUI();
+        }
     }
 
     public bool TryBeginBotManagementAction(

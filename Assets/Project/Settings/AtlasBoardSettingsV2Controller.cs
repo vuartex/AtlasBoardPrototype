@@ -188,6 +188,42 @@ public class AtlasBoardSettingsV2Controller : MonoBehaviour
         OpenSettings();
     }
 
+    public void ReloadAndApplyPersistedSettingsFromExternalSync()
+    {
+        savedUserSettings =
+            AtlasBoardUserSettingsStore.Load();
+
+        savedAudioSettings =
+            AtlasBoardAudioSettings.Load();
+
+        AtlasBoardUserSettingsRuntime.SetCurrent(
+            savedUserSettings);
+
+        AtlasBoardLocalizationManager.Instance
+            ?.SetLanguage(
+                savedUserSettings.LanguageCode);
+
+        ApplyAudioSettings(
+            savedAudioSettings,
+            savedUserSettings.AudioMuted);
+
+        ApplyUserSettings(
+            savedUserSettings,
+            applyDisplayChanges: true);
+
+        if (settingsRoot != null &&
+            settingsRoot.activeSelf)
+        {
+            BuildResolutionOptions();
+
+            PopulateUi(
+                savedUserSettings,
+                savedAudioSettings);
+        }
+
+        RefreshCurrentResolutionLabel();
+    }
+
     public void OpenSettings()
     {
         // Some menu/gameplay transitions may disable Canvas_Settings itself.

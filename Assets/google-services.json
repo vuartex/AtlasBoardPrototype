@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "962084427661",
+    "project_id": "atlasboard-usa",
+    "storage_bucket": "atlasboard-usa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:962084427661:android:3e8f20b1ddfe0da4d68fc4",
+        "android_client_info": {
+          "package_name": "com.atlasboardgame.atlasboard"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAOnxprB0-59IZ2D5uvWM4xBtixzA_cRtU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

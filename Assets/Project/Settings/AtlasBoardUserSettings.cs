@@ -123,6 +123,8 @@ public struct AtlasBoardUserSettingsValues
 
 public static class AtlasBoardUserSettingsStore
 {
+    public static event System.Action SettingsSaved;
+
     private const string Prefix =
         "atlasboard.settings.";
 
@@ -318,6 +320,8 @@ public static class AtlasBoardUserSettingsStore
                     : values.LanguageCode);
 
         PlayerPrefs.Save();
+
+        SettingsSaved?.Invoke();
     }
 
     public static AtlasBoardUserSettingsValues Clamp(

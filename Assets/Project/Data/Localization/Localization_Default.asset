@@ -2890,3 +2890,471 @@ MonoBehaviour:
     de: FIGUR VERWENDEN
     ko: "\uC774 \uB9D0 \uC0AC\uC6A9"
     ru: "\u0418\u0421\u041F\u041E\u041B\u042C\u0417\u041E\u0412\u0410\u0422\u042C"
+  - key: leaveflow.pause.title
+    en: PAUSED
+    tr: DURAKLATILDI
+    es: PAUSA
+    fr: PAUSE
+    de: PAUSE
+    ko: "\uC77C\uC2DC \uC815\uC9C0"
+    ru: "\u041F\u0410\u0423\u0417\u0410"
+  - key: leaveflow.pause.resume
+    en: RESUME
+    tr: DEVAM ET
+    es: CONTINUAR
+    fr: REPRENDRE
+    de: FORTSETZEN
+    ko: "\uACC4\uC18D"
+    ru: "\u041F\u0420\u041E\u0414\u041E\u041B\u0416\u0418\u0422\u042C"
+  - key: leaveflow.pause.settings
+    en: SETTINGS
+    tr: AYARLAR
+    es: AJUSTES
+    fr: "PARAM\xC8TRES"
+    de: EINSTELLUNGEN
+    ko: "\uC124\uC815"
+    ru: "\u041D\u0410\u0421\u0422\u0420\u041E\u0419\u041A\u0418"
+  - key: leaveflow.pause.leave_match
+    en: LEAVE MATCH
+    tr: "MA\xC7TAN AYRIL"
+    es: SALIR DE LA PARTIDA
+    fr: QUITTER LA PARTIE
+    de: SPIEL VERLASSEN
+    ko: "\uAC8C\uC784 \uB098\uAC00\uAE30"
+    ru: "\u041F\u041E\u041A\u0418\u041D\u0423\u0422\u042C \u041C\u0410\u0422\u0427"
+  - key: leaveflow.pause.quit_game
+    en: QUIT GAME
+    tr: "OYUNDAN \xC7IK"
+    es: SALIR DEL JUEGO
+    fr: QUITTER LE JEU
+    de: SPIEL BEENDEN
+    ko: "\uAC8C\uC784 \uC885\uB8CC"
+    ru: "\u0412\u042B\u0419\u0422\u0418 \u0418\u0417 \u0418\u0413\u0420\u042B"
+  - key: leaveflow.confirm.title
+    en: LEAVE CURRENT MATCH?
+    tr: "MEVCUT MA\xC7TAN AYRIL?"
+    es: "\xBFSALIR DE LA PARTIDA ACTUAL?"
+    fr: QUITTER LA PARTIE EN COURS ?
+    de: AKTUELLES SPIEL VERLASSEN?
+    ko: "\uD604\uC7AC \uAC8C\uC784\uC5D0\uC11C \uB098\uAC08\uAE4C\uC694?"
+    ru: "\u041F\u041E\u041A\u0418\u041D\u0423\u0422\u042C \u0422\u0415\u041A\u0423\u0429\u0418\u0419
+      \u041C\u0410\u0422\u0427?"
+  - key: leaveflow.confirm.body
+    en: Progress in this match will be lost.
+    tr: "Bu ma\xE7taki ilerleme kaybolacak."
+    es: "El progreso de esta partida se perder\xE1."
+    fr: La progression de cette partie sera perdue.
+    de: Der Fortschritt in diesem Spiel geht verloren.
+    ko: "\uC774 \uAC8C\uC784\uC758 \uC9C4\uD589 \uC0C1\uD669\uC774 \uC0AC\uB77C\uC9D1\uB2C8\uB2E4."
+    ru: "\u041F\u0440\u043E\u0433\u0440\u0435\u0441\u0441 \u0432 \u044D\u0442\u043E\u043C
+      \u043C\u0430\u0442\u0447\u0435 \u0431\u0443\u0434\u0435\u0442 \u043F\u043E\u0442\u0435\u0440\u044F\u043D."
+  - key: leaveflow.confirm.cancel
+    en: CANCEL
+    tr: "\u0130PTAL"
+    es: CANCELAR
+    fr: ANNULER
+    de: ABBRECHEN
+    ko: "\uCDE8\uC18C"
+    ru: "\u041E\u0422\u041C\u0415\u041D\u0410"
+  - key: leaveflow.lobby.leave
+    en: LEAVE LOBBY
+    tr: "LOB\u0130DEN AYRIL"
+    es: SALIR DE LA SALA
+    fr: QUITTER LE LOBBY
+    de: LOBBY VERLASSEN
+    ko: "\uB85C\uBE44 \uB098\uAC00\uAE30"
+    ru: "\u041F\u041E\u041A\u0418\u041D\u0423\u0422\u042C \u041B\u041E\u0411\u0411\u0418"
+  - key: lobby.online.private_room
+    en: PRIVATE ROOM
+    tr: "\xD6ZEL ODA"
+    es: SALA PRIVADA
+    fr: "SALON PRIV\xC9"
+    de: PRIVATER RAUM
+    ko: "\uBE44\uACF5\uAC1C \uBC29"
+    ru: "\u041F\u0420\u0418\u0412\u0410\u0422\u041D\u0410\u042F \u041A\u041E\u041C\u041D\u0410\u0422\u0410"
+  - key: lobby.online.create_room
+    en: CREATE ROOM
+    tr: "ODA OLU\u015ETUR"
+    es: CREAR SALA
+    fr: "CR\xC9ER UN SALON"
+    de: RAUM ERSTELLEN
+    ko: "\uBC29 \uB9CC\uB4E4\uAE30"
+    ru: "\u0421\u041E\u0417\u0414\u0410\u0422\u042C \u041A\u041E\u041C\u041D\u0410\u0422\u0423"
+  - key: lobby.online.join_by_code
+    en: JOIN BY CODE
+    tr: KODLA KATIL
+    es: "UNIRSE CON C\xD3DIGO"
+    fr: REJOINDRE PAR CODE
+    de: MIT CODE BEITRETEN
+    ko: "\uCF54\uB4DC\uB85C \uCC38\uAC00"
+    ru: "\u0412\u041E\u0419\u0422\u0418 \u041F\u041E \u041A\u041E\u0414\u0423"
+  - key: lobby.online.join_room
+    en: JOIN ROOM
+    tr: ODAYA KATIL
+    es: UNIRSE A LA SALA
+    fr: REJOINDRE LE SALON
+    de: RAUM BEITRETEN
+    ko: "\uBC29 \uCC38\uAC00"
+    ru: "\u0412\u041E\u0419\u0422\u0418 \u0412 \u041A\u041E\u041C\u041D\u0410\u0422\u0423"
+  - key: lobby.online.room_code
+    en: ROOM CODE
+    tr: ODA KODU
+    es: "C\xD3DIGO DE SALA"
+    fr: CODE DU SALON
+    de: RAUMCODE
+    ko: "\uBC29 \uCF54\uB4DC"
+    ru: "\u041A\u041E\u0414 \u041A\u041E\u041C\u041D\u0410\u0422\u042B"
+  - key: lobby.online.create_or_join
+    en: Create a room or enter a 6-digit code.
+    tr: "Bir oda olu\u015Ftur veya 6 haneli kod gir."
+    es: "Crea una sala o introduce un c\xF3digo de 6 d\xEDgitos."
+    fr: "Cr\xE9ez un salon ou saisissez un code \xE0 6 chiffres."
+    de: Erstelle einen Raum oder gib einen 6-stelligen Code ein.
+    ko: "\uBC29\uC744 \uB9CC\uB4E4\uAC70\uB098 6\uC790\uB9AC \uCF54\uB4DC\uB97C \uC785\uB825\uD558\uC138\uC694."
+    ru: "\u0421\u043E\u0437\u0434\u0430\u0439\u0442\u0435 \u043A\u043E\u043C\u043D\u0430\u0442\u0443
+      \u0438\u043B\u0438 \u0432\u0432\u0435\u0434\u0438\u0442\u0435 6-\u0437\u043D\u0430\u0447\u043D\u044B\u0439
+      \u043A\u043E\u0434."
+  - key: lobby.online.create_or_join_short
+    en: CREATE OR JOIN ROOM
+    tr: "ODA OLU\u015ETUR VEYA KATIL"
+    es: CREAR O UNIRSE
+    fr: "CR\xC9ER OU REJOINDRE"
+    de: RAUM ERSTELLEN ODER BEITRETEN
+    ko: "\uBC29 \uB9CC\uB4E4\uAE30 \uB610\uB294 \uCC38\uAC00"
+    ru: "\u0421\u041E\u0417\u0414\u0410\u0422\u042C \u0418\u041B\u0418 \u0412\u041E\u0419\u0422\u0418"
+  - key: lobby.online.invalid_code
+    en: Enter exactly 6 digits.
+    tr: Tam olarak 6 hane gir.
+    es: "Introduce exactamente 6 d\xEDgitos."
+    fr: Saisissez exactement 6 chiffres.
+    de: Gib genau 6 Ziffern ein.
+    ko: "\uC815\uD655\uD788 6\uC790\uB9AC\uB97C \uC785\uB825\uD558\uC138\uC694."
+    ru: "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0440\u043E\u0432\u043D\u043E
+      6 \u0446\u0438\u0444\u0440."
+  - key: lobby.online.preview_created
+    en: "LOCAL UI PREVIEW \u2022 ROOM CREATED"
+    tr: "YEREL ARAY\xDCZ \xD6N\u0130ZLEME \u2022 ODA OLU\u015ETURULDU"
+    es: "VISTA LOCAL \u2022 SALA CREADA"
+    fr: "APER\xC7U LOCAL \u2022 SALON CR\xC9\xC9"
+    de: "LOKALE UI-VORSCHAU \u2022 RAUM ERSTELLT"
+    ko: "\uB85C\uCEEC UI \uBBF8\uB9AC\uBCF4\uAE30 \u2022 \uBC29 \uC0DD\uC131\uB428"
+    ru: "\u041B\u041E\u041A\u0410\u041B\u042C\u041D\u042B\u0419 \u041F\u0420\u0415\u0414\u041F\u0420\u041E\u0421\u041C\u041E\u0422\u0420
+      \u2022 \u041A\u041E\u041C\u041D\u0410\u0422\u0410 \u0421\u041E\u0417\u0414\u0410\u041D\u0410"
+  - key: lobby.online.preview_joined
+    en: "LOCAL UI PREVIEW \u2022 JOINED AS GUEST"
+    tr: "YEREL ARAY\xDCZ \xD6N\u0130ZLEME \u2022 M\u0130SAF\u0130R OLARAK KATILDIN"
+    es: "VISTA LOCAL \u2022 UNIDO COMO INVITADO"
+    fr: "APER\xC7U LOCAL \u2022 REJOINT COMME INVIT\xC9"
+    de: "LOKALE UI-VORSCHAU \u2022 ALS GAST BEIGETRETEN"
+    ko: "\uB85C\uCEEC UI \uBBF8\uB9AC\uBCF4\uAE30 \u2022 \uAC8C\uC2A4\uD2B8\uB85C
+      \uCC38\uAC00"
+    ru: "\u041B\u041E\u041A\u0410\u041B\u042C\u041D\u042B\u0419 \u041F\u0420\u0415\u0414\u041F\u0420\u041E\u0421\u041C\u041E\u0422\u0420
+      \u2022 \u0412\u0425\u041E\u0414 \u041A\u0410\u041A \u0413\u041E\u0421\u0422\u042C"
+  - key: lobby.online.show
+    en: SHOW
+    tr: "G\xD6STER"
+    es: MOSTRAR
+    fr: AFFICHER
+    de: ZEIGEN
+    ko: "\uD45C\uC2DC"
+    ru: "\u041F\u041E\u041A\u0410\u0417\u0410\u0422\u042C"
+  - key: lobby.online.hide
+    en: HIDE
+    tr: "G\u0130ZLE"
+    es: OCULTAR
+    fr: MASQUER
+    de: AUSBLENDEN
+    ko: "\uC228\uAE30\uAE30"
+    ru: "\u0421\u041A\u0420\u042B\u0422\u042C"
+  - key: lobby.online.copy
+    en: COPY
+    tr: KOPYALA
+    es: COPIAR
+    fr: COPIER
+    de: KOPIEREN
+    ko: "\uBCF5\uC0AC"
+    ru: "\u041A\u041E\u041F\u0418\u0420\u041E\u0412\u0410\u0422\u042C"
+  - key: lobby.online.copied
+    en: COPIED
+    tr: KOPYALANDI
+    es: COPIADO
+    fr: "COPI\xC9"
+    de: KOPIERT
+    ko: "\uBCF5\uC0AC\uB428"
+    ru: "\u0421\u041A\u041E\u041F\u0418\u0420\u041E\u0412\u0410\u041D\u041E"
+  - key: lobby.online.ready
+    en: READY
+    tr: HAZIR
+    es: LISTO
+    fr: "PR\xCAT"
+    de: BEREIT
+    ko: "\uC900\uBE44"
+    ru: "\u0413\u041E\u0422\u041E\u0412"
+  - key: lobby.online.ready_checked
+    en: "READY \u2713"
+    tr: "HAZIR \u2713"
+    es: "LISTO \u2713"
+    fr: "PR\xCAT \u2713"
+    de: "BEREIT \u2713"
+    ko: "\uC900\uBE44 \u2713"
+    ru: "\u0413\u041E\u0422\u041E\u0412 \u2713"
+  - key: lobby.online.revision_format
+    en: SETTINGS REV {0}
+    tr: "AYAR S\xDCR\xDCM\xDC {0}"
+    es: REV. AJUSTES {0}
+    fr: "R\xC9V. R\xC9GLAGES {0}"
+    de: EINSTELLUNGS-REV {0}
+    ko: "\uC124\uC815 \uB9AC\uBE44\uC804 {0}"
+    ru: "\u0420\u0415\u0412\u0418\u0417\u0418\u042F \u041D\u0410\u0421\u0422\u0420\u041E\u0415\u041A
+      {0}"
+  - key: lobby.online.settings_changed
+    en: "SETTINGS CHANGED \u2022 READY RESET"
+    tr: "AYARLAR DE\u011E\u0130\u015ET\u0130 \u2022 HAZIRLIK SIFIRLANDI"
+    es: "AJUSTES CAMBIADOS \u2022 LISTO RESTABLECIDO"
+    fr: "R\xC9GLAGES MODIFI\xC9S \u2022 PR\xCAT R\xC9INITIALIS\xC9"
+    de: "EINSTELLUNGEN GE\xC4NDERT \u2022 BEREIT ZUR\xDCCKGESETZT"
+    ko: "\uC124\uC815 \uBCC0\uACBD \u2022 \uC900\uBE44 \uCD08\uAE30\uD654"
+    ru: "\u041D\u0410\u0421\u0422\u0420\u041E\u0419\u041A\u0418 \u0418\u0417\u041C\u0415\u041D\u0415\u041D\u042B
+      \u2022 \u0413\u041E\u0422\u041E\u0412\u041D\u041E\u0421\u0422\u042C \u0421\u0411\u0420\u041E\u0428\u0415\u041D\u0410"
+  - key: lobby.online.player_format
+    en: PLAYER {0}
+    tr: OYUNCU {0}
+    es: JUGADOR {0}
+    fr: JOUEUR {0}
+    de: SPIELER {0}
+    ko: "\uD50C\uB808\uC774\uC5B4 {0}"
+    ru: "\u0418\u0413\u0420\u041E\u041A {0}"
+  - key: lobby.online.you
+    en: PLAYER (YOU)
+    tr: OYUNCU (SEN)
+    es: "JUGADOR (T\xDA)"
+    fr: JOUEUR (VOUS)
+    de: SPIELER (DU)
+    ko: "\uD50C\uB808\uC774\uC5B4 (\uB098)"
+    ru: "\u0418\u0413\u0420\u041E\u041A (\u0412\u042B)"
+  - key: lobby.online.you_short
+    en: YOU
+    tr: SEN
+    es: "T\xDA"
+    fr: VOUS
+    de: DU
+    ko: "\uB098"
+    ru: "\u0412\u042B"
+  - key: lobby.online.host
+    en: HOST
+    tr: KURUCU
+    es: "ANFITRI\xD3N"
+    fr: "H\xD4TE"
+    de: HOST
+    ko: "\uD638\uC2A4\uD2B8"
+    ru: "\u0425\u041E\u0421\u0422"
+  - key: lobby.online.host_ready
+    en: "HOST \u2022 READY"
+    tr: "KURUCU \u2022 HAZIR"
+    es: "ANFITRI\xD3N \u2022 LISTO"
+    fr: "H\xD4TE \u2022 PR\xCAT"
+    de: "HOST \u2022 BEREIT"
+    ko: "\uD638\uC2A4\uD2B8 \u2022 \uC900\uBE44"
+    ru: "\u0425\u041E\u0421\u0422 \u2022 \u0413\u041E\u0422\u041E\u0412"
+  - key: lobby.online.host_player
+    en: HOST PLAYER
+    tr: KURUCU OYUNCU
+    es: "JUGADOR ANFITRI\xD3N"
+    fr: "JOUEUR H\xD4TE"
+    de: HOST-SPIELER
+    ko: "\uD638\uC2A4\uD2B8 \uD50C\uB808\uC774\uC5B4"
+    ru: "\u0418\u0413\u0420\u041E\u041A-\u0425\u041E\u0421\u0422"
+  - key: lobby.online.waiting
+    en: WAITING
+    tr: "BEKLEN\u0130YOR"
+    es: ESPERANDO
+    fr: EN ATTENTE
+    de: WARTET
+    ko: "\uB300\uAE30 \uC911"
+    ru: "\u041E\u0416\u0418\u0414\u0410\u041D\u0418\u0415"
+  - key: lobby.online.waiting_player
+    en: WAITING FOR PLAYER
+    tr: "OYUNCU BEKLEN\u0130YOR"
+    es: ESPERANDO JUGADOR
+    fr: EN ATTENTE D'UN JOUEUR
+    de: WARTET AUF SPIELER
+    ko: "\uD50C\uB808\uC774\uC5B4 \uB300\uAE30 \uC911"
+    ru: "\u041E\u0416\u0418\u0414\u0410\u041D\u0418\u0415 \u0418\u0413\u0420\u041E\u041A\u0410"
+  - key: lobby.online.open_human_seat
+    en: OPEN HUMAN SEAT
+    tr: "A\xC7IK OYUNCU KOLTU\u011EU"
+    es: PLAZA HUMANA LIBRE
+    fr: PLACE JOUEUR LIBRE
+    de: FREIER SPIELERPLATZ
+    ko: "\uBE48 \uD50C\uB808\uC774\uC5B4 \uC790\uB9AC"
+    ru: "\u0421\u0412\u041E\u0411\u041E\u0414\u041D\u041E\u0415 \u041C\u0415\u0421\u0422\u041E"
+  - key: lobby.online.bot
+    en: BOT
+    tr: BOT
+    es: BOT
+    fr: BOT
+    de: BOT
+    ko: "\uBD07"
+    ru: "\u0411\u041E\u0422"
+  - key: lobby.online.bot_seat
+    en: BOT SEAT
+    tr: "BOT KOLTU\u011EU"
+    es: PLAZA DE BOT
+    fr: PLACE BOT
+    de: BOT-PLATZ
+    ko: "\uBD07 \uC790\uB9AC"
+    ru: "\u041C\u0415\u0421\u0422\u041E \u0411\u041E\u0422\u0410"
+  - key: lobby.online.ready_for_revision
+    en: "READY \u2022 REV {0}"
+    tr: "HAZIR \u2022 S\xDCR\xDCM {0}"
+    es: "LISTO \u2022 REV {0}"
+    fr: "PR\xCAT \u2022 R\xC9V {0}"
+    de: "BEREIT \u2022 REV {0}"
+    ko: "\uC900\uBE44 \u2022 \uB9AC\uBE44\uC804 {0}"
+    ru: "\u0413\u041E\u0422\u041E\u0412 \u2022 \u0420\u0415\u0412 {0}"
+  - key: lobby.online.not_ready
+    en: NOT READY
+    tr: "HAZIR DE\u011E\u0130L"
+    es: NO LISTO
+    fr: "PAS PR\xCAT"
+    de: NICHT BEREIT
+    ko: "\uC900\uBE44 \uC548 \uB428"
+    ru: "\u041D\u0415 \u0413\u041E\u0422\u041E\u0412"
+  - key: lobby.online.starting
+    en: STARTING...
+    tr: "BA\u015ELATILIYOR..."
+    es: INICIANDO...
+    fr: "D\xC9MARRAGE..."
+    de: STARTET...
+    ko: "\uC2DC\uC791 \uC911..."
+    ru: "\u0417\u0410\u041F\u0423\u0421\u041A..."
+  - key: lobby.online.add_or_wait
+    en: + ADD / WAIT ONLINE
+    tr: + EKLE / ONLINE BEKLE
+    es: "+ A\xD1ADIR / ESPERAR ONLINE"
+    fr: + AJOUTER / ATTENDRE EN LIGNE
+    de: "+ HINZUF\xDCGEN / ONLINE WARTEN"
+    ko: "+ \uCD94\uAC00 / \uC628\uB77C\uC778 \uB300\uAE30"
+    ru: "+ \u0414\u041E\u0411\u0410\u0412\u0418\u0422\u042C / \u0416\u0414\u0410\u0422\u042C
+      \u041E\u041D\u041B\u0410\u0419\u041D"
+  - key: lobby.online.local_player
+    en: LOCAL PLAYER
+    tr: YEREL OYUNCU
+    es: JUGADOR LOCAL
+    fr: JOUEUR LOCAL
+    de: LOKALER SPIELER
+    ko: "\uB85C\uCEEC \uD50C\uB808\uC774\uC5B4"
+    ru: "\u041B\u041E\u041A\u0410\u041B\u042C\u041D\u042B\u0419 \u0418\u0413\u0420\u041E\u041A"
+  - key: lobby.online.local_player_number
+    en: LOCAL PLAYER {0}
+    tr: YEREL OYUNCU {0}
+    es: JUGADOR LOCAL {0}
+    fr: JOUEUR LOCAL {0}
+    de: LOKALER SPIELER {0}
+    ko: "\uB85C\uCEEC \uD50C\uB808\uC774\uC5B4 {0}"
+    ru: "\u041B\u041E\u041A\u0410\u041B\u042C\u041D\u042B\u0419 \u0418\u0413\u0420\u041E\u041A
+      {0}"
+  - key: lobby.online.waiting_online
+    en: WAITING FOR ONLINE PLAYER
+    tr: "ONLINE OYUNCU BEKLEN\u0130YOR"
+    es: ESPERANDO JUGADOR ONLINE
+    fr: EN ATTENTE D'UN JOUEUR EN LIGNE
+    de: WARTET AUF ONLINE-SPIELER
+    ko: "\uC628\uB77C\uC778 \uD50C\uB808\uC774\uC5B4 \uB300\uAE30 \uC911"
+    ru: "\u041E\u0416\u0418\u0414\u0410\u041D\u0418\u0415 \u041E\u041D\u041B\u0410\u0419\u041D-\u0418\u0413\u0420\u041E\u041A\u0410"
+  - key: lobby.online.open_online_seat
+    en: OPEN ONLINE SEAT
+    tr: "A\xC7IK ONLINE KOLTUK"
+    es: PLAZA ONLINE LIBRE
+    fr: PLACE EN LIGNE LIBRE
+    de: FREIER ONLINE-PLATZ
+    ko: "\uBE48 \uC628\uB77C\uC778 \uC790\uB9AC"
+    ru: "\u0421\u0412\u041E\u0411\u041E\u0414\u041D\u041E\u0415 \u041E\u041D\u041B\u0410\u0419\u041D-\u041C\u0415\u0421\u0422\u041E"
+  - key: lobby.online.no_ready_required
+    en: "LOCAL \u2022 NO READY REQUIRED"
+    tr: "YEREL \u2022 HAZIR GEREKMEZ"
+    es: "LOCAL \u2022 NO REQUIERE LISTO"
+    fr: "LOCAL \u2022 PAS DE PR\xCAT REQUIS"
+    de: "LOKAL \u2022 KEIN BEREIT N\xD6TIG"
+    ko: "\uB85C\uCEEC \u2022 \uC900\uBE44 \uBD88\uD544\uC694"
+    ru: "\u041B\u041E\u041A\u0410\u041B\u042C\u041D\u042B\u0419 \u2022 \u0413\u041E\u0422\u041E\u0412\u041D\u041E\u0421\u0422\u042C
+      \u041D\u0415 \u041D\u0423\u0416\u041D\u0410"
+  - key: lobby.online.bot_no_ready
+    en: "BOT \u2022 NO READY"
+    tr: "BOT \u2022 HAZIR GEREKMEZ"
+    es: "BOT \u2022 SIN LISTO"
+    fr: "BOT \u2022 PAS DE PR\xCAT"
+    de: "BOT \u2022 KEIN BEREIT"
+    ko: "\uBD07 \u2022 \uC900\uBE44 \uBD88\uD544\uC694"
+    ru: "\u0411\u041E\u0422 \u2022 \u0413\u041E\u0422\u041E\u0412\u041D\u041E\u0421\u0422\u042C
+      \u041D\u0415 \u041D\u0423\u0416\u041D\u0410"
+  - key: lobby.online.host_local
+    en: "HOST \u2022 LOCAL"
+    tr: "KURUCU \u2022 YEREL"
+    es: "ANFITRI\xD3N \u2022 LOCAL"
+    fr: "H\xD4TE \u2022 LOCAL"
+    de: "HOST \u2022 LOKAL"
+    ko: "\uD638\uC2A4\uD2B8 \u2022 \uB85C\uCEEC"
+    ru: "\u0425\u041E\u0421\u0422 \u2022 \u041B\u041E\u041A\u0410\u041B\u042C\u041D\u042B\u0419"
+  - key: lobby.online.roster_resolved
+    en: "ROSTER READY \u2022 START AVAILABLE"
+    tr: "KADRO HAZIR \u2022 BA\u015ELATILAB\u0130L\u0130R"
+    es: "PLANTILLA LISTA \u2022 INICIO DISPONIBLE"
+    fr: "\xC9QUIPE PR\xCATE \u2022 D\xC9MARRAGE DISPONIBLE"
+    de: "AUFSTELLUNG BEREIT \u2022 START VERF\xDCGBAR"
+    ko: "\uAD6C\uC131 \uC644\uB8CC \u2022 \uC2DC\uC791 \uAC00\uB2A5"
+    ru: "\u0421\u041E\u0421\u0422\u0410\u0412 \u0413\u041E\u0422\u041E\u0412 \u2022
+      \u041C\u041E\u0416\u041D\u041E \u041D\u0410\u0427\u0410\u0422\u042C"
+  - key: lobby.online.waiting_online_or_add
+    en: "WAITING FOR ONLINE PLAYER \u2022 OR ADD LOCAL/BOT"
+    tr: "ONLINE OYUNCU BEKLEN\u0130YOR \u2022 VEYA YEREL/BOT EKLE"
+    es: "ESPERANDO JUGADOR ONLINE \u2022 O A\xD1ADE LOCAL/BOT"
+    fr: "EN ATTENTE D'UN JOUEUR EN LIGNE \u2022 OU AJOUTEZ LOCAL/BOT"
+    de: "WARTET AUF ONLINE-SPIELER \u2022 ODER LOKAL/BOT HINZUF\xDCGEN"
+    ko: "\uC628\uB77C\uC778 \uD50C\uB808\uC774\uC5B4 \uB300\uAE30 \u2022 \uB610\uB294
+      \uB85C\uCEEC/\uBD07 \uCD94\uAC00"
+    ru: "\u041E\u0416\u0418\u0414\u0410\u041D\u0418\u0415 \u041E\u041D\u041B\u0410\u0419\u041D-\u0418\u0413\u0420\u041E\u041A\u0410
+      \u2022 \u0418\u041B\u0418 \u0414\u041E\u0411\u0410\u0412\u042C\u0422\u0415
+      \u041B\u041E\u041A\u0410\u041B\u042C\u041D\u041E\u0413\u041E/\u0411\u041E\u0422\u0410"
+  - key: lobby.online.bot_number
+    en: BOT {0}
+    tr: BOT {0}
+    es: BOT {0}
+    fr: BOT {0}
+    de: BOT {0}
+    ko: "\uBD07 {0}"
+    ru: "\u0411\u041E\u0422 {0}"
+  - key: lobby.online.add_local_player
+    en: ADD LOCAL PLAYER
+    tr: YEREL OYUNCU EKLE
+    es: "A\xD1ADIR JUGADOR LOCAL"
+    fr: AJOUTER UN JOUEUR LOCAL
+    de: "LOKALEN SPIELER HINZUF\xDCGEN"
+    ko: "\uB85C\uCEEC \uD50C\uB808\uC774\uC5B4 \uCD94\uAC00"
+    ru: "\u0414\u041E\u0411\u0410\u0412\u0418\u0422\u042C \u041B\u041E\u041A\u0410\u041B\u042C\u041D\u041E\u0413\u041E
+      \u0418\u0413\u0420\u041E\u041A\u0410"
+  - key: lobby.online.add_bot
+    en: ADD BOT
+    tr: BOT EKLE
+    es: "A\xD1ADIR BOT"
+    fr: AJOUTER UN BOT
+    de: "BOT HINZUF\xDCGEN"
+    ko: "\uBD07 \uCD94\uAC00"
+    ru: "\u0414\u041E\u0411\u0410\u0412\u0418\u0422\u042C \u0411\u041E\u0422\u0410"
+  - key: lobby.online.local_bot_number
+    en: LOCAL BOT {0}
+    tr: YEREL BOT {0}
+    es: BOT LOCAL {0}
+    fr: BOT LOCAL {0}
+    de: LOKALER BOT {0}
+    ko: "\uB85C\uCEEC \uBD07 {0}"
+    ru: "\u041B\u041E\u041A\u0410\u041B\u042C\u041D\u042B\u0419 \u0411\u041E\u0422
+      {0}"
+  - key: lobby.online.backend_connected
+    en: BACKEND SNAPSHOT CONNECTED
+    tr: "BACKEND DURUMU BA\u011ELANDI"
+    es: SNAPSHOT BACKEND CONECTADO
+    fr: "\xC9TAT BACKEND CONNECT\xC9"
+    de: BACKEND-SNAPSHOT VERBUNDEN
+    ko: "\uBC31\uC5D4\uB4DC \uC2A4\uB0C5\uC0F7 \uC5F0\uACB0\uB428"
+    ru: "\u0421\u041D\u0418\u041C\u041E\u041A BACKEND \u041F\u041E\u0414\u041A\u041B\u042E\u0427\u0415\u041D"

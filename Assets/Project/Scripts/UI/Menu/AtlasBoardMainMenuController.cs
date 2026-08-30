@@ -137,6 +137,23 @@ public class AtlasBoardMainMenuController : MonoBehaviour
     public void OpenPrivateLobby()
     {
         currentLobbyMode = "PRIVATE TABLE";
+
+        AtlasBoardPrivateLobbyUIController privateLobby =
+            GetComponent<AtlasBoardPrivateLobbyUIController>();
+
+        if (privateLobby != null)
+        {
+            privateLobby.ShowRoomEntryFromMainMenu();
+            return;
+        }
+
+        // Safety fallback if the private-lobby extension is missing.
+        OpenLobby();
+    }
+
+    public void OpenPrivateLobbyAfterRoomChoice()
+    {
+        currentLobbyMode = "PRIVATE TABLE";
         OpenLobby();
     }
 
@@ -193,6 +210,14 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         SetActive(mainMenuPanel, true);
         SetActive(lobbyPanel, false);
         SetActive(modalPanel, false);
+
+        AtlasBoardPrivateLobbyUIController privateLobby =
+            GetComponent<AtlasBoardPrivateLobbyUIController>();
+
+        if (privateLobby != null)
+        {
+            privateLobby.NotifyMainMenuShown();
+        }
     }
 
     public void BackFromLobby()

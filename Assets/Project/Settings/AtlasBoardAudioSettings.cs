@@ -31,6 +31,8 @@ public struct AtlasBoardAudioSettingsValues
 
 public static class AtlasBoardAudioSettings
 {
+    public static event System.Action SettingsSaved;
+
     private const string KeyMaster =
         "atlasboard.audio.master";
 
@@ -107,6 +109,8 @@ public static class AtlasBoardAudioSettings
             values.Effects);
 
         PlayerPrefs.Save();
+
+        SettingsSaved?.Invoke();
     }
 
     public static AtlasBoardAudioSettingsValues Clamp(

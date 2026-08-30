@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@string/gcm_defaultSenderId,@string/google_storage_bucket,@string/project_id,@string/google_api_key,@string/google_crash_reporting_api_key,@string/google_app_id">
+  <string name="gcm_defaultSenderId" translatable="false">962084427661</string>
+  <string name="google_storage_bucket" translatable="false">atlasboard-usa.firebasestorage.app</string>
+  <string name="project_id" translatable="false">atlasboard-usa</string>
+  <string name="google_api_key" translatable="false">AIzaSyAOnxprB0-59IZ2D5uvWM4xBtixzA_cRtU</string>
+  <string name="google_crash_reporting_api_key" translatable="false">AIzaSyAOnxprB0-59IZ2D5uvWM4xBtixzA_cRtU</string>
+  <string name="google_app_id" translatable="false">1:962084427661:android:3e8f20b1ddfe0da4d68fc4</string>
+</resources>
