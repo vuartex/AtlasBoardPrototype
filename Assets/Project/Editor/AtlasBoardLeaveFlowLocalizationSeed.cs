@@ -39,6 +39,21 @@ public static class AtlasBoardLeaveFlowLocalizationSeed
 
         Add(list, "leaveflow.lobby.leave",
             "LEAVE LOBBY", "LOBİDEN AYRIL", "SALIR DE LA SALA", "QUITTER LE LOBBY", "LOBBY VERLASSEN", "로비 나가기", "ПОКИНУТЬ ЛОББИ");
+
+        Add(list, "leaveflow.pause.room_code",
+            "ROOM CODE", "ODA KODU", "CÓDIGO DE SALA", "CODE DU SALON", "RAUMCODE", "방 코드", "КОД КОМНАТЫ");
+
+        Add(list, "leaveflow.pause.room_code_show",
+            "SHOW", "GÖSTER", "MOSTRAR", "AFFICHER", "ANZEIGEN", "표시", "ПОКАЗАТЬ");
+
+        Add(list, "leaveflow.pause.room_code_hide",
+            "HIDE", "GİZLE", "OCULTAR", "MASQUER", "AUSBLENDEN", "숨기기", "СКРЫТЬ");
+
+        Add(list, "leaveflow.pause.room_code_copy",
+            "COPY", "KOPYALA", "COPIAR", "COPIER", "KOPIEREN", "복사", "КОПИРОВАТЬ");
+
+        Add(list, "leaveflow.pause.room_code_copied",
+            "COPIED", "KOPYALANDI", "COPIADO", "COPIÉ", "KOPIERT", "복사됨", "СКОПИРОВАНО");
     }
 
     private static void Add(

@@ -17,7 +17,9 @@
     "test:promo": "node scripts/promo-event-tickets-e2e.mjs",
     "test:economy:flow": "node scripts/economy-integrated-flow-e2e.mjs",
     "test:economy": "node scripts/economy-validation-suite.mjs",
-    "test:lobby": "node scripts/lobby-ready-e2e.mjs"
+    "test:lobby": "node scripts/lobby-seat-host-start-e2e.mjs",
+    "test:public-lobby": "node scripts/public-lobby-discovery-e2e.mjs",
+    "test:public-lobby-join": "node scripts/public-lobby-join-password-e2e.mjs"
   },
   "engines": {
     "node": "22"

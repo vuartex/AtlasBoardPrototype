@@ -85,19 +85,37 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             lobbyPanel.activeSelf &&
             lobbyTitleText != null)
         {
-            lobbyTitleText.text =
-                currentLobbyMode ==
-                "PRIVATE TABLE"
-                    ? AtlasBoardL.T(
-                        "menu.private_table")
-                    : AtlasBoardL.T(
+            if (currentLobbyMode ==
+                "PRIVATE TABLE")
+            {
+                lobbyTitleText.text =
+                    AtlasBoardL.T(
+                        "menu.private_table");
+            }
+            else if (currentLobbyMode ==
+                     "PUBLIC TABLE")
+            {
+                lobbyTitleText.text =
+                    AtlasBoardL.T(
+                        "menu.public_table");
+            }
+            else
+            {
+                lobbyTitleText.text =
+                    AtlasBoardL.T(
                         "menu.play");
+            }
         }
     }
 
     private void Update()
     {
         if (!WasEscapePressedThisFrame())
+        {
+            return;
+        }
+
+        if (HasActiveEscapeBlocker())
         {
             return;
         }
@@ -116,6 +134,23 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         }
     }
 
+    private static bool HasActiveEscapeBlocker()
+    {
+        AtlasBoardEscapeBlocker[] blockers =
+            UnityEngine.Object.FindObjectsByType<AtlasBoardEscapeBlocker>(
+                FindObjectsInactive.Include);
+
+        foreach (AtlasBoardEscapeBlocker blocker in blockers)
+        {
+            if (blocker != null && blocker.gameObject.activeInHierarchy)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static bool WasEscapePressedThisFrame()
     {
 #if ENABLE_INPUT_SYSTEM
@@ -130,7 +165,16 @@ public class AtlasBoardMainMenuController : MonoBehaviour
 
     public void OpenPlayLobby()
     {
-        currentLobbyMode = "PLAY";
+        AtlasBoardPublicLobbyBrowserController publicBrowser =
+            GetComponent<AtlasBoardPublicLobbyBrowserController>();
+
+        if (publicBrowser != null)
+        {
+            publicBrowser.HostPublicRoomFromMainMenu();
+            return;
+        }
+
+        currentLobbyMode = "PUBLIC TABLE";
         OpenLobby();
     }
 
@@ -154,6 +198,12 @@ public class AtlasBoardMainMenuController : MonoBehaviour
     public void OpenPrivateLobbyAfterRoomChoice()
     {
         currentLobbyMode = "PRIVATE TABLE";
+        OpenLobby();
+    }
+
+    public void OpenPublicLobbyAfterRoomChoice()
+    {
+        currentLobbyMode = "PUBLIC TABLE";
         OpenLobby();
     }
 
@@ -237,6 +287,34 @@ public class AtlasBoardMainMenuController : MonoBehaviour
 
     public void StartMatch()
     {
+        if (currentLobbyMode == "PRIVATE TABLE" ||
+            currentLobbyMode == "PUBLIC TABLE")
+        {
+            AtlasBoardPrivateLobbyUIController privateLobby =
+                GetComponent<AtlasBoardPrivateLobbyUIController>();
+
+            if (privateLobby != null &&
+                privateLobby.HandleHostStartRequested())
+            {
+                return;
+            }
+        }
+
+        StartMatchCore();
+    }
+
+    public void StartMatchAfterPrivateBackendAuthorization()
+    {
+        StartMatchCore();
+    }
+
+    public AtlasBoardLobbySelection GetCurrentLobbySelection()
+    {
+        return ReadLobbySelection();
+    }
+
+    private void StartMatchCore()
+    {
         AtlasBoardLobbySelection selection =
             ReadLobbySelection();
 
@@ -312,13 +390,18 @@ public class AtlasBoardMainMenuController : MonoBehaviour
 
         if (lobbyTitleText != null)
         {
-            lobbyTitleText.text =
-                currentLobbyMode ==
-                "PRIVATE TABLE"
-                    ? AtlasBoardL.T(
-                        "menu.private_table")
-                    : AtlasBoardL.T(
-                        "menu.play");
+            if (currentLobbyMode == "PRIVATE TABLE")
+            {
+                lobbyTitleText.text = AtlasBoardL.T("menu.private_table");
+            }
+            else if (currentLobbyMode == "PUBLIC TABLE")
+            {
+                lobbyTitleText.text = AtlasBoardL.T("menu.public_table");
+            }
+            else
+            {
+                lobbyTitleText.text = AtlasBoardL.T("menu.play");
+            }
         }
 
         RefreshPlayerRows();

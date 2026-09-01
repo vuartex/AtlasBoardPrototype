@@ -1,4 +1,5 @@
 import {getApps, initializeApp} from "firebase-admin/app";
+import {FieldValue, getFirestore} from "firebase-admin/firestore";
 import {logger} from "firebase-functions";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 import {setGlobalOptions} from "firebase-functions/v2/options";
@@ -23,13 +24,23 @@ import {
   PromoRedeemInput,
 } from "./economy/promo";
 import {
+  configureLobbySeats,
   createPrivateLobby,
   getLobbySnapshot,
   joinLobbyByCode,
+  joinPublicLobby,
+  kickLobbyMember,
+  leaveLobby,
+  updateLobbyPassword,
+  closeLobby,
   setLobbyReady,
+  startLobbyMatch,
   updateLobbySettings,
+  LobbySeatPolicy,
   LobbySettingsInput,
   LobbyVersionInfo,
+  createPublicLobby,
+  listPublicLobbies,
 } from "./lobby/lobby";
 
 const REGION = "europe-west1";
@@ -596,6 +607,78 @@ export const promoTestRedeem = onCall(
 
 
 /**
+ * Emulator-only account bootstrap for Unity lobby integration tests.
+ *
+ * The Auth Emulator creates the temporary identity. This callable only ensures
+ * the minimal canonical account/profile documents required by lobby authority.
+ * It refuses to run without BOTH Functions and Firestore emulators.
+ */
+export const lobbyDevEnsureAccount = onCall(
+  {
+    region: REGION,
+    maxInstances: 2,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    requireEmulatedFirestore("lobby.error.emulator_only");
+    const data = request.data ?? {};
+
+    const displayName = readRequiredString(
+      data.displayName,
+      "displayName",
+      1,
+      40,
+      "lobby.error.invalid_request",
+    ).trim();
+
+    const db = getFirestore();
+    const timestamp = FieldValue.serverTimestamp();
+
+    await db.runTransaction(async (transaction) => {
+      transaction.set(
+        db.collection("users").doc(uid),
+        {
+          accountId: uid,
+          accountStatus: "active",
+          countryCode: "US",
+          preferredLanguage: "EN",
+          schemaVersion: 1,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+        {merge: true},
+      );
+
+      transaction.set(
+        db.collection("public_profiles").doc(uid),
+        {
+          displayName,
+          schemaVersion: 1,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        },
+        {merge: true},
+      );
+    });
+
+    logger.info("AtlasBoard lobby dev account ensured.", {
+      accountId: uid,
+      displayName,
+    });
+
+    return {
+      ok: true,
+      accountId: uid,
+      projectId: PROJECT_ID,
+      region: REGION,
+      backendSchemaVersion: BACKEND_SCHEMA_VERSION,
+      protocolVersion: PROTOCOL_VERSION,
+    };
+  },
+);
+
+/**
  * Production-intended private-lobby create entry point for Phase 3D.
  *
  * The raw six-digit room code is returned only to the creating client. The
@@ -617,7 +700,6 @@ export const lobbyCreatePrivateRoom = onCall(
       themeId: data.themeId as string,
       roundLimit: data.roundLimit as number,
       maxPlayers: data.maxPlayers as number,
-      requiredHumanPlayers: data.requiredHumanPlayers as number,
       balancedDevelopment: data.balancedDevelopment as boolean,
       doublesEnabled: data.doublesEnabled as boolean,
       tripleDoublePenaltyEnabled:
@@ -642,8 +724,8 @@ export const lobbyCreatePrivateRoom = onCall(
       accountId: uid,
       lobbyId: result.snapshot.lobbyId,
       settingsRevision: result.snapshot.settingsRevision,
-      requiredHumanPlayers:
-        result.snapshot.requiredHumanPlayers,
+      openOnlineSeatCount:
+        result.snapshot.openOnlineSeatCount,
       maxPlayers: result.snapshot.maxPlayers,
     });
 
@@ -653,6 +735,147 @@ export const lobbyCreatePrivateRoom = onCall(
       region: REGION,
       backendSchemaVersion: BACKEND_SCHEMA_VERSION,
       protocolVersion: PROTOCOL_VERSION,
+      roomCode: result.roomCode,
+      snapshot: result.snapshot,
+    };
+  },
+);
+
+/**
+ * Creates a PUBLIC waiting lobby and its sanitized discovery projection.
+ * The host still receives a protected six-digit room code for invite/reconnect
+ * UX, but that code is never placed in browser cards.
+ */
+export const lobbyCreatePublicRoom = onCall(
+  {
+    region: REGION,
+    maxInstances: 10,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const data = request.data ?? {};
+
+    const settings: LobbySettingsInput = {
+      mapId: data.mapId as string,
+      themeId: data.themeId as string,
+      roundLimit: data.roundLimit as number,
+      maxPlayers: data.maxPlayers as number,
+      balancedDevelopment: data.balancedDevelopment as boolean,
+      doublesEnabled: data.doublesEnabled as boolean,
+      tripleDoublePenaltyEnabled:
+        data.tripleDoublePenaltyEnabled as boolean,
+    };
+
+    const versions: LobbyVersionInfo = {
+      gameVersion: data.gameVersion as string,
+      protocolVersion: data.protocolVersion as number,
+      rulesVersion: data.rulesVersion as number,
+      contentVersion: data.contentVersion as string,
+      regionId: data.regionId as string,
+    };
+
+    const result = await createPublicLobby({
+      uid,
+      settings,
+      versions,
+    });
+
+    logger.info("AtlasBoard public lobby created.", {
+      accountId: uid,
+      lobbyId: result.snapshot.lobbyId,
+      settingsRevision: result.snapshot.settingsRevision,
+      openOnlineSeatCount: result.snapshot.openOnlineSeatCount,
+      maxPlayers: result.snapshot.maxPlayers,
+    });
+
+    return {
+      ok: true,
+      projectId: PROJECT_ID,
+      region: REGION,
+      backendSchemaVersion: BACKEND_SCHEMA_VERSION,
+      protocolVersion: PROTOCOL_VERSION,
+      roomCode: result.roomCode,
+      snapshot: result.snapshot,
+    };
+  },
+);
+
+/**
+ * Lists sanitized joinable public lobby cards for the browser.
+ * No room code, account id, join-code hash, Ready state, or member details are
+ * returned. Discovery data is not authoritative for a future Join.
+ */
+export const lobbyListPublicRooms = onCall(
+  {
+    region: REGION,
+    maxInstances: 30,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const data = request.data ?? {};
+
+    const versions: LobbyVersionInfo = {
+      gameVersion: data.gameVersion as string,
+      protocolVersion: data.protocolVersion as number,
+      rulesVersion: data.rulesVersion as number,
+      contentVersion: data.contentVersion as string,
+      regionId: data.regionId as string,
+    };
+
+    const rooms = await listPublicLobbies({
+      uid,
+      versions,
+      limit: data.limit as number,
+    });
+
+    return {
+      ok: true,
+      rooms,
+    };
+  },
+);
+
+/**
+ * Joins a public lobby directly from a sanitized browser card. The canonical
+ * lobby is re-read transactionally; the browser row is never treated as
+ * authority for capacity or access.
+ */
+export const lobbyJoinPublicRoom = onCall(
+  {
+    region: REGION,
+    maxInstances: 20,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const data = request.data ?? {};
+    const versions: LobbyVersionInfo = {
+      gameVersion: data.gameVersion as string,
+      protocolVersion: data.protocolVersion as number,
+      rulesVersion: data.rulesVersion as number,
+      contentVersion: data.contentVersion as string,
+      regionId: data.regionId as string,
+    };
+
+    const result = await joinPublicLobby({
+      uid,
+      lobbyId: data.lobbyId as string,
+      password: data.password as string,
+      idempotencyKey: data.idempotencyKey as string,
+      versions,
+    });
+
+    logger.info("AtlasBoard public lobby join completed.", {
+      accountId: uid,
+      lobbyId: result.snapshot.lobbyId,
+      idempotentReplay: result.idempotentReplay,
+    });
+
+    return {
+      ok: true,
+      idempotentReplay: result.idempotentReplay,
       roomCode: result.roomCode,
       snapshot: result.snapshot,
     };
@@ -683,6 +906,7 @@ export const lobbyJoinByCode = onCall(
     const result = await joinLobbyByCode({
       uid,
       roomCode: data.roomCode as string,
+      password: data.password as string,
       idempotencyKey: data.idempotencyKey as string,
       versions,
     });
@@ -702,6 +926,56 @@ export const lobbyJoinByCode = onCall(
       idempotentReplay: result.idempotentReplay,
       snapshot: result.snapshot,
     };
+  },
+);
+
+/**
+ * Host-only room password/access update shared by Private and Public rooms.
+ */
+export const lobbyUpdatePassword = onCall(
+  {
+    region: REGION,
+    maxInstances: 10,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const data = request.data ?? {};
+    const result = await updateLobbyPassword({
+      uid,
+      lobbyId: data.lobbyId as string,
+      expectedSettingsRevision: data.expectedSettingsRevision as number,
+      password: data.password as string,
+    });
+
+    return {ok: true, applied: result.applied, snapshot: result.snapshot};
+  },
+);
+
+/**
+ * Host closes an unstarted lobby when returning to the Main Menu.
+ */
+export const lobbyCloseRoom = onCall(
+  {
+    region: REGION,
+    maxInstances: 10,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const data = request.data ?? {};
+    const result = await closeLobby({
+      uid,
+      lobbyId: data.lobbyId as string,
+    });
+
+    logger.info("AtlasBoard lobby closed by host.", {
+      accountId: uid,
+      lobbyId: result.snapshot.lobbyId,
+      applied: result.applied,
+    });
+
+    return {ok: true, applied: result.applied, snapshot: result.snapshot};
   },
 );
 
@@ -750,9 +1024,61 @@ export const lobbyUpdateSettings = onCall(
 );
 
 /**
- * Sets readyForRevision. When all required human seats are occupied and ready
- * for the current settings revision, the backend atomically creates exactly one
- * match bootstrap and transitions the lobby Waiting -> Starting.
+ * Host-only fixed-slot policy update.
+ *
+ * P1 is always Host/Local. P2-P4 policies are Online, Local Human, Bot, or
+ * Inactive when outside maxPlayers. Existing connected Remote Humans are
+ * preserved when the requested policy remains Online.
+ */
+export const lobbyConfigureSeats = onCall(
+  {
+    region: REGION,
+    maxInstances: 10,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const data = request.data ?? {};
+
+    const seatPolicies =
+      Array.isArray(data.seatPolicies) ?
+        data.seatPolicies as LobbySeatPolicy[] :
+        [];
+
+    const result = await configureLobbySeats({
+      uid,
+      lobbyId: data.lobbyId as string,
+      expectedSettingsRevision:
+        data.expectedSettingsRevision as number,
+      maxPlayers: data.maxPlayers as number,
+      seatPolicies,
+    });
+
+    logger.info("AtlasBoard lobby seat configuration completed.", {
+      accountId: uid,
+      lobbyId: result.snapshot.lobbyId,
+      settingsRevision: result.snapshot.settingsRevision,
+      maxPlayers: result.snapshot.maxPlayers,
+      openOnlineSeatCount: result.snapshot.openOnlineSeatCount,
+      localHumanCount: result.snapshot.localHumanCount,
+      botCount: result.snapshot.botCount,
+      applied: result.applied,
+    });
+
+    return {
+      ok: true,
+      applied: result.applied,
+      snapshot: result.snapshot,
+    };
+  },
+);
+
+/**
+ * Sets Ready for a connected Remote Human only.
+ *
+ * Host, Local Humans, and Bots never Ready. Ready never auto-starts a match;
+ * only the host-owned lobbyStartMatch callable may transition Waiting ->
+ * Starting.
  */
 export const lobbySetReady = onCall(
   {
@@ -777,13 +1103,130 @@ export const lobbySetReady = onCall(
       lobbyId: result.snapshot.lobbyId,
       settingsRevision: result.snapshot.settingsRevision,
       lifecycleState: result.snapshot.lifecycleState,
+      applied: result.applied,
+    });
+
+    return {
+      ok: true,
+      applied: result.applied,
+      snapshot: result.snapshot,
+    };
+  },
+);
+
+/**
+ * Host-only remote player removal.
+ *
+ * The backend resets the concrete seat to OpenOnline, records a lobby-specific
+ * kick so the removed account cannot immediately rejoin with the same room
+ * code, and increments settingsRevision.
+ */
+export const lobbyKickMember = onCall(
+  {
+    region: REGION,
+    maxInstances: 10,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const data = request.data ?? {};
+
+    const result = await kickLobbyMember({
+      uid,
+      lobbyId: data.lobbyId as string,
+      expectedSettingsRevision:
+        data.expectedSettingsRevision as number,
+      slotIndex: data.slotIndex as number,
+    });
+
+    logger.info("AtlasBoard lobby remote member removed.", {
+      accountId: uid,
+      lobbyId: result.snapshot.lobbyId,
+      settingsRevision: result.snapshot.settingsRevision,
+      slotIndex: data.slotIndex,
+      applied: result.applied,
+    });
+
+    return {
+      ok: true,
+      applied: result.applied,
+      snapshot: result.snapshot,
+    };
+  },
+);
+
+/**
+ * Remote member voluntary leave.
+ */
+export const lobbyLeaveRoom = onCall(
+  {
+    region: REGION,
+    maxInstances: 20,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const data = request.data ?? {};
+
+    const result = await leaveLobby({
+      uid,
+      lobbyId: data.lobbyId as string,
+    });
+
+    logger.info("AtlasBoard lobby remote member left voluntarily.", {
+      accountId: uid,
+      lobbyId: result.snapshot.lobbyId,
+      settingsRevision: result.snapshot.settingsRevision,
+      applied: result.applied,
+    });
+
+    return {
+      ok: true,
+      applied: result.applied,
+      snapshot: result.snapshot,
+    };
+  },
+);
+
+/**
+ * Host-only authoritative start.
+ *
+ * The backend requires every connected Remote Human to be Ready for the
+ * current settingsRevision. Local Humans and Bots never participate in the
+ * Ready gate. Any unresolved OpenOnline seat is atomically converted to a Bot
+ * when Start is accepted.
+ */
+export const lobbyStartMatch = onCall(
+  {
+    region: REGION,
+    maxInstances: 10,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const data = request.data ?? {};
+
+    const result = await startLobbyMatch({
+      uid,
+      lobbyId: data.lobbyId as string,
+      expectedSettingsRevision:
+        data.expectedSettingsRevision as number,
+    });
+
+    logger.info("AtlasBoard lobby host start completed.", {
+      accountId: uid,
+      lobbyId: result.snapshot.lobbyId,
+      lifecycleState: result.snapshot.lifecycleState,
       started: result.started,
+      idempotentReplay: result.idempotentReplay,
       matchId: result.snapshot.matchId,
+      startEventId: result.snapshot.startEventId,
     });
 
     return {
       ok: true,
       started: result.started,
+      idempotentReplay: result.idempotentReplay,
       snapshot: result.snapshot,
     };
   },

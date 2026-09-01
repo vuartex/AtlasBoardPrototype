@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -35,6 +37,25 @@ public class AtlasBoardLeaveFlowController : MonoBehaviour
     [SerializeField]
     private GameObject leaveConfirmationRoot;
 
+    [Header("In-Match Room Code")]
+    [SerializeField]
+    private GameObject roomCodeSectionRoot;
+
+    [SerializeField]
+    private TMP_Text roomCodeValueText;
+
+    [SerializeField]
+    private Button roomCodeShowHideButton;
+
+    [SerializeField]
+    private TMP_Text roomCodeShowHideButtonText;
+
+    [SerializeField]
+    private Button roomCodeCopyButton;
+
+    [SerializeField]
+    private TMP_Text roomCodeCopyButtonText;
+
     [Header("Buttons")]
     [SerializeField]
     private Button resumeButton;
@@ -63,6 +84,11 @@ public class AtlasBoardLeaveFlowController : MonoBehaviour
     private bool pauseOwnsTimeScale;
     private float previousTimeScale = 1f;
     private bool resumeFromEscapeRequested;
+
+    private AtlasBoardLobbyRuntimeBridge lobbyRuntimeBridge;
+    private bool roomCodeRevealed;
+    private string currentPauseRoomCode = string.Empty;
+    private Coroutine copyFeedbackCoroutine;
 
     private void Awake()
     {
@@ -171,6 +197,8 @@ public class AtlasBoardLeaveFlowController : MonoBehaviour
 
         CaptureGameplayState();
         KeepGameplayShortcutDisabled();
+        RefreshPauseRoomCodeSection(
+            resetVisibility: true);
 
         if (leaveConfirmationRoot != null)
         {
@@ -526,6 +554,21 @@ public class AtlasBoardLeaveFlowController : MonoBehaviour
     private void HideLeaveFlowImmediate()
     {
         resumeFromEscapeRequested = false;
+        roomCodeRevealed = false;
+        currentPauseRoomCode = string.Empty;
+
+        if (copyFeedbackCoroutine != null)
+        {
+            StopCoroutine(
+                copyFeedbackCoroutine);
+
+            copyFeedbackCoroutine = null;
+        }
+
+        if (roomCodeSectionRoot != null)
+        {
+            roomCodeSectionRoot.SetActive(false);
+        }
 
         if (leaveConfirmationRoot != null)
         {
@@ -552,6 +595,12 @@ public class AtlasBoardLeaveFlowController : MonoBehaviour
         AddClick(cancelLeaveButton, CancelLeaveMatch);
         AddClick(confirmLeaveButton, ConfirmLeaveMatch);
         AddClick(leaveLobbyButton, LeaveLobby);
+        AddClick(
+            roomCodeShowHideButton,
+            TogglePauseRoomCodeVisibility);
+        AddClick(
+            roomCodeCopyButton,
+            CopyPauseRoomCode);
 
         controlsHooked = true;
     }
@@ -570,6 +619,12 @@ public class AtlasBoardLeaveFlowController : MonoBehaviour
         RemoveClick(cancelLeaveButton, CancelLeaveMatch);
         RemoveClick(confirmLeaveButton, ConfirmLeaveMatch);
         RemoveClick(leaveLobbyButton, LeaveLobby);
+        RemoveClick(
+            roomCodeShowHideButton,
+            TogglePauseRoomCodeVisibility);
+        RemoveClick(
+            roomCodeCopyButton,
+            CopyPauseRoomCode);
 
         controlsHooked = false;
     }
@@ -601,6 +656,220 @@ public class AtlasBoardLeaveFlowController : MonoBehaviour
         {
             lobbyRoot = FindChildRecursive(mainMenuCanvas.transform, "Lobby")?.gameObject;
         }
+
+        if (lobbyRuntimeBridge == null)
+        {
+            lobbyRuntimeBridge =
+                FindIncludingInactive<
+                    AtlasBoardLobbyRuntimeBridge>();
+        }
+    }
+
+    private void RefreshPauseRoomCodeSection(
+        bool resetVisibility)
+    {
+        ResolveReferences();
+
+        string code =
+            lobbyRuntimeBridge != null
+                ? lobbyRuntimeBridge.CurrentRoomCode
+                : string.Empty;
+
+        code =
+            string.IsNullOrWhiteSpace(code)
+                ? string.Empty
+                : code.Trim();
+
+        bool hasCode =
+            IsSixDigitRoomCode(code);
+
+        currentPauseRoomCode =
+            hasCode
+                ? code
+                : string.Empty;
+
+        if (resetVisibility)
+        {
+            roomCodeRevealed = false;
+        }
+
+        if (roomCodeSectionRoot != null)
+        {
+            roomCodeSectionRoot.SetActive(
+                hasCode);
+        }
+
+        if (!hasCode)
+        {
+            return;
+        }
+
+        RefreshPauseRoomCodeValue();
+        ResetPauseRoomCodeActionLabels();
+    }
+
+    private void TogglePauseRoomCodeVisibility()
+    {
+        if (string.IsNullOrWhiteSpace(
+                currentPauseRoomCode))
+        {
+            RefreshPauseRoomCodeSection(
+                resetVisibility: true);
+
+            if (string.IsNullOrWhiteSpace(
+                    currentPauseRoomCode))
+            {
+                return;
+            }
+        }
+
+        roomCodeRevealed =
+            !roomCodeRevealed;
+
+        RefreshPauseRoomCodeValue();
+        UpdatePauseRoomCodeShowHideLabel();
+        AtlasBoardAudioManager.Instance?.PlayUiClick();
+    }
+
+    private void CopyPauseRoomCode()
+    {
+        if (string.IsNullOrWhiteSpace(
+                currentPauseRoomCode))
+        {
+            RefreshPauseRoomCodeSection(
+                resetVisibility: false);
+
+            if (string.IsNullOrWhiteSpace(
+                    currentPauseRoomCode))
+            {
+                return;
+            }
+        }
+
+        GUIUtility.systemCopyBuffer =
+            currentPauseRoomCode;
+
+        SetText(
+            roomCodeCopyButtonText,
+            Localize(
+                "leaveflow.pause.room_code_copied",
+                "COPIED"));
+
+        if (copyFeedbackCoroutine != null)
+        {
+            StopCoroutine(
+                copyFeedbackCoroutine);
+        }
+
+        copyFeedbackCoroutine =
+            StartCoroutine(
+                RestorePauseCopyLabelAfterDelay());
+
+        AtlasBoardAudioManager.Instance?.PlayUiClick();
+    }
+
+    private IEnumerator RestorePauseCopyLabelAfterDelay()
+    {
+        yield return new WaitForSecondsRealtime(
+            1.25f);
+
+        copyFeedbackCoroutine = null;
+
+        SetText(
+            roomCodeCopyButtonText,
+            Localize(
+                "leaveflow.pause.room_code_copy",
+                "COPY"));
+    }
+
+    private void RefreshPauseRoomCodeValue()
+    {
+        SetText(
+            roomCodeValueText,
+            roomCodeRevealed
+                ? currentPauseRoomCode
+                : "••••••");
+
+        UpdatePauseRoomCodeShowHideLabel();
+    }
+
+    private void UpdatePauseRoomCodeShowHideLabel()
+    {
+        SetText(
+            roomCodeShowHideButtonText,
+            roomCodeRevealed
+                ? Localize(
+                    "leaveflow.pause.room_code_hide",
+                    "HIDE")
+                : Localize(
+                    "leaveflow.pause.room_code_show",
+                    "SHOW"));
+    }
+
+    private void ResetPauseRoomCodeActionLabels()
+    {
+        UpdatePauseRoomCodeShowHideLabel();
+
+        SetText(
+            roomCodeCopyButtonText,
+            Localize(
+                "leaveflow.pause.room_code_copy",
+                "COPY"));
+    }
+
+    private static bool IsSixDigitRoomCode(
+        string code)
+    {
+        if (string.IsNullOrWhiteSpace(code) ||
+            code.Length != 6)
+        {
+            return false;
+        }
+
+        for (int i = 0;
+             i < code.Length;
+             i++)
+        {
+            if (!char.IsDigit(code[i]))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static void SetText(
+        TMP_Text text,
+        string value)
+    {
+        if (text != null)
+        {
+            text.text =
+                value ?? string.Empty;
+        }
+    }
+
+    private static string Localize(
+        string key,
+        string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            return fallback ?? string.Empty;
+        }
+
+        string value =
+            AtlasBoardL.T(
+                key);
+
+        return string.IsNullOrWhiteSpace(value) ||
+               string.Equals(
+                   value,
+                   key,
+                   StringComparison.OrdinalIgnoreCase)
+            ? fallback ?? string.Empty
+            : value;
     }
 
 
@@ -780,6 +1049,12 @@ public class AtlasBoardLeaveFlowController : MonoBehaviour
         GameObject newLobbyRoot,
         GameObject newPauseRoot,
         GameObject newLeaveConfirmationRoot,
+        GameObject newRoomCodeSectionRoot,
+        TMP_Text newRoomCodeValueText,
+        Button newRoomCodeShowHideButton,
+        TMP_Text newRoomCodeShowHideButtonText,
+        Button newRoomCodeCopyButton,
+        TMP_Text newRoomCodeCopyButtonText,
         Button newResumeButton,
         Button newSettingsButton,
         Button newLeaveMatchButton,
@@ -795,6 +1070,14 @@ public class AtlasBoardLeaveFlowController : MonoBehaviour
         lobbyRoot = newLobbyRoot;
         pauseRoot = newPauseRoot;
         leaveConfirmationRoot = newLeaveConfirmationRoot;
+        roomCodeSectionRoot = newRoomCodeSectionRoot;
+        roomCodeValueText = newRoomCodeValueText;
+        roomCodeShowHideButton = newRoomCodeShowHideButton;
+        roomCodeShowHideButtonText =
+            newRoomCodeShowHideButtonText;
+        roomCodeCopyButton = newRoomCodeCopyButton;
+        roomCodeCopyButtonText =
+            newRoomCodeCopyButtonText;
         resumeButton = newResumeButton;
         settingsButton = newSettingsButton;
         leaveMatchButton = newLeaveMatchButton;

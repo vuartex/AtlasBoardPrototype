@@ -118,7 +118,7 @@ public static class AtlasBoardLeaveFlowV1Setup
                 pauseRoot.transform,
                 "PauseWindow",
                 Vector2.zero,
-                new Vector2(680f, 690f),
+                new Vector2(720f, 780f),
                 Panel);
 
         CreateImage(
@@ -134,10 +134,79 @@ public static class AtlasBoardLeaveFlowV1Setup
             "leaveflow.pause.title",
             "PAUSED",
             new Vector2(0f, 295f),
-            new Vector2(600f, 70f),
+            new Vector2(640f, 70f),
             38f,
             Color.white,
             font);
+
+        GameObject roomCodeSectionRoot =
+            CreatePanel(
+                pauseWindow.transform,
+                "RoomCodeSection",
+                new Vector2(0f, 170f),
+                new Vector2(600f, 110f),
+                new Color32(232, 233, 236, 255));
+
+        CreateLocalizedText(
+            roomCodeSectionRoot.transform,
+            "RoomCodeLabel",
+            "leaveflow.pause.room_code",
+            "ROOM CODE",
+            new Vector2(-185f, 24f),
+            new Vector2(230f, 28f),
+            18f,
+            DarkText,
+            font);
+
+        TMP_Text roomCodeValueText =
+            CreateText(
+                roomCodeSectionRoot.transform,
+                "RoomCodeValue",
+                "••••••",
+                new Vector2(-185f, -18f),
+                new Vector2(230f, 46f),
+                29f,
+                DarkText,
+                font);
+
+        roomCodeValueText.fontStyle =
+            FontStyles.Bold;
+
+        Button roomCodeShowHideButton =
+            CreateButton(
+                roomCodeSectionRoot.transform,
+                "Button_RoomCodeShowHide",
+                "leaveflow.pause.room_code_show",
+                "SHOW",
+                new Vector2(75f, -4f),
+                new Vector2(130f, 54f),
+                Blue,
+                font);
+
+        TMP_Text roomCodeShowHideButtonText =
+            roomCodeShowHideButton.
+                GetComponentInChildren<TMP_Text>(true);
+
+        Button roomCodeCopyButton =
+            CreateButton(
+                roomCodeSectionRoot.transform,
+                "Button_RoomCodeCopy",
+                "leaveflow.pause.room_code_copy",
+                "COPY",
+                new Vector2(220f, -4f),
+                new Vector2(130f, 54f),
+                new Color32(196, 145, 0, 255),
+                font);
+
+        TMP_Text roomCodeCopyButtonText =
+            roomCodeCopyButton.
+                GetComponentInChildren<TMP_Text>(true);
+
+        ConfigureRoomCodeActionText(
+            roomCodeShowHideButtonText);
+
+        ConfigureRoomCodeActionText(
+            roomCodeCopyButtonText);
 
         Button resumeButton =
             CreateButton(
@@ -145,7 +214,7 @@ public static class AtlasBoardLeaveFlowV1Setup
                 "Button_Resume",
                 "leaveflow.pause.resume",
                 "RESUME",
-                new Vector2(0f, 160f),
+                new Vector2(0f, 55f),
                 new Vector2(500f, 82f),
                 Green,
                 font);
@@ -156,7 +225,7 @@ public static class AtlasBoardLeaveFlowV1Setup
                 "Button_Settings",
                 "leaveflow.pause.settings",
                 "SETTINGS",
-                new Vector2(0f, 55f),
+                new Vector2(0f, -45f),
                 new Vector2(500f, 82f),
                 Blue,
                 font);
@@ -167,7 +236,7 @@ public static class AtlasBoardLeaveFlowV1Setup
                 "Button_LeaveMatch",
                 "leaveflow.pause.leave_match",
                 "LEAVE MATCH",
-                new Vector2(0f, -50f),
+                new Vector2(0f, -145f),
                 new Vector2(500f, 82f),
                 Red,
                 font);
@@ -178,7 +247,7 @@ public static class AtlasBoardLeaveFlowV1Setup
                 "Button_QuitGame",
                 "leaveflow.pause.quit_game",
                 "QUIT GAME",
-                new Vector2(0f, -155f),
+                new Vector2(0f, -245f),
                 new Vector2(500f, 82f),
                 new Color32(78, 84, 95, 255),
                 font);
@@ -187,7 +256,7 @@ public static class AtlasBoardLeaveFlowV1Setup
             pauseWindow.transform,
             "PauseHint",
             "ESC",
-            new Vector2(0f, -275f),
+            new Vector2(0f, -348f),
             new Vector2(500f, 40f),
             21f,
             new Color32(90, 95, 103, 255),
@@ -278,6 +347,12 @@ public static class AtlasBoardLeaveFlowV1Setup
             lobbyRoot,
             pauseRoot,
             confirmRoot,
+            roomCodeSectionRoot,
+            roomCodeValueText,
+            roomCodeShowHideButton,
+            roomCodeShowHideButtonText,
+            roomCodeCopyButton,
+            roomCodeCopyButtonText,
             resumeButton,
             settingsButton,
             leaveMatchButton,
@@ -288,6 +363,7 @@ public static class AtlasBoardLeaveFlowV1Setup
 
         BuildGameplayPauseShortcut(controller, font);
 
+        roomCodeSectionRoot.SetActive(false);
         pauseRoot.SetActive(false);
         confirmRoot.SetActive(false);
 
@@ -304,9 +380,10 @@ public static class AtlasBoardLeaveFlowV1Setup
             "Gameplay ESC now opens PAUSED only when no existing gameplay modal owns Escape; " +
             "Resume, Settings, Leave Match confirmation and Quit Game are wired. " +
             "The existing Lobby Back button remains the single Leave Lobby control. " +
-            "Gameplay SET was replaced by a compact menu icon that opens this pause menu. " +
+            "Gameplay MENU stays beside the existing gameplay controls, while ESC opens this pause menu. " +
             "Single-Human offline matches may freeze locally; 2+ Human and future online sessions never freeze shared simulation from Pause. " +
-            "Local Leave Match reloads the active scene for a clean reset; future online sessions can intercept leave requests through IAtlasBoardSessionExitHandler.");
+            "Local Leave Match reloads the active scene for a clean reset; future online sessions can intercept leave requests through IAtlasBoardSessionExitHandler. " +
+            "When a private online room code is available, ESC now exposes a masked SHOW/HIDE/COPY room-code strip for reconnect support.");
     }
 
     private static void MergeLocalizationEntries()
@@ -359,6 +436,8 @@ public static class AtlasBoardLeaveFlowV1Setup
             return;
         }
 
+        // Remove only the pause/menu shortcut created by earlier Leave Flow
+        // versions. Do NOT move, clone or delete Player HUD controls.
         Transform oldPause =
             FindChildRecursive(
                 overlay.transform,
@@ -370,55 +449,54 @@ public static class AtlasBoardLeaveFlowV1Setup
                 oldPause.gameObject);
         }
 
-        Transform oldSettings =
+        // The canonical location requested for this shortcut is beside the
+        // existing camera-reset control on the UX StatusBar. CameraResetButton
+        // itself is built by AtlasBoardUXPackV1Setup at x=18 from the right
+        // edge of StatusBar, with a 48x48 size. Place MENU immediately after it.
+        Transform statusBar =
             FindChildRecursive(
                 overlay.transform,
-                "Button_Settings");
+                "StatusBar");
 
-        Transform parent =
-            oldSettings != null
-                ? oldSettings.parent
-                : overlay.transform;
+        Transform cameraReset =
+            statusBar != null
+                ? FindChildRecursive(
+                    statusBar,
+                    "CameraResetButton")
+                : null;
 
-        Vector2 anchorMin = new Vector2(1f, 1f);
-        Vector2 anchorMax = new Vector2(1f, 1f);
-        Vector2 pivot = new Vector2(1f, 1f);
-        Vector2 sizeDelta = new Vector2(64f, 64f);
-        Vector2 anchoredPosition = new Vector2(-24f, -92f);
-
-        Sprite backgroundSprite = null;
-        bool preserveAspect = false;
-
-        if (oldSettings != null)
+        if (statusBar == null ||
+            cameraReset == null)
         {
-            RectTransform oldRect =
-                oldSettings as RectTransform;
-
-            if (oldRect != null)
-            {
-                anchorMin = oldRect.anchorMin;
-                anchorMax = oldRect.anchorMax;
-                pivot = oldRect.pivot;
-                sizeDelta = oldRect.sizeDelta;
-                anchoredPosition = oldRect.anchoredPosition;
-            }
-
-            Image oldImage =
-                oldSettings.GetComponent<Image>();
-
-            // Reuse the existing compact button background when possible.
-            // The replacement uses a geometry-based hamburger glyph so it never
-            // depends on font size, localization or glyph availability.
-            if (oldImage != null &&
-                oldSettings.GetComponentInChildren<TMP_Text>(true) != null)
-            {
-                backgroundSprite = oldImage.sprite;
-                preserveAspect = oldImage.preserveAspect;
-            }
-
-            Undo.DestroyObjectImmediate(
-                oldSettings.gameObject);
+            Debug.LogWarning(
+                "AtlasBoard Leave Flow could not find StatusBar/CameraResetButton. " +
+                "Run Atlas Board -> UX -> Build or Refresh UX Pack v1 first. " +
+                "The gameplay MENU shortcut was not moved to a fallback location because that could overlap Player HUD again.");
+            return;
         }
+
+        RectTransform resetRect =
+            cameraReset as RectTransform;
+
+        Vector2 buttonSize =
+            resetRect != null
+                ? resetRect.sizeDelta
+                : new Vector2(48f, 48f);
+
+        if (buttonSize.x <= 0f || buttonSize.y <= 0f)
+        {
+            buttonSize = new Vector2(48f, 48f);
+        }
+
+        float gap = 10f;
+        Vector2 anchoredPosition =
+            resetRect != null
+                ? new Vector2(
+                    resetRect.anchoredPosition.x +
+                    buttonSize.x +
+                    gap,
+                    resetRect.anchoredPosition.y)
+                : new Vector2(76f, 0f);
 
         GameObject buttonObject =
             new GameObject(
@@ -431,36 +509,61 @@ public static class AtlasBoardLeaveFlowV1Setup
 
         Undo.RegisterCreatedObjectUndo(
             buttonObject,
-            "Build AtlasBoard gameplay pause shortcut");
+            "Build AtlasBoard gameplay pause shortcut beside camera reset");
 
         buttonObject.transform.SetParent(
-            parent,
+            statusBar,
             false);
 
         RectTransform rect =
             buttonObject.GetComponent<RectTransform>();
 
-        rect.anchorMin = anchorMin;
-        rect.anchorMax = anchorMax;
-        rect.pivot = pivot;
-        rect.sizeDelta = sizeDelta;
+        if (resetRect != null)
+        {
+            rect.anchorMin = resetRect.anchorMin;
+            rect.anchorMax = resetRect.anchorMax;
+            rect.pivot = resetRect.pivot;
+        }
+        else
+        {
+            rect.anchorMin = new Vector2(1f, 0.5f);
+            rect.anchorMax = new Vector2(1f, 0.5f);
+            rect.pivot = new Vector2(0f, 0.5f);
+        }
+
+        rect.sizeDelta = buttonSize;
         rect.anchoredPosition = anchoredPosition;
+
+        Image resetImage =
+            cameraReset.GetComponent<Image>();
 
         Image image =
             buttonObject.GetComponent<Image>();
 
         image.color = Blue;
-        image.sprite = backgroundSprite;
-        image.preserveAspect = preserveAspect;
+
+        if (resetImage != null)
+        {
+            image.sprite = resetImage.sprite;
+            image.type = resetImage.type;
+            image.preserveAspect = resetImage.preserveAspect;
+        }
 
         Button button =
             buttonObject.GetComponent<Button>();
 
         button.targetGraphic = image;
 
+        ColorBlock colors = button.colors;
+        colors.normalColor = Color.white;
+        colors.highlightedColor = new Color(1f, 1f, 1f, 0.88f);
+        colors.pressedColor = new Color(0.82f, 0.82f, 0.82f, 1f);
+        colors.selectedColor = colors.highlightedColor;
+        button.colors = colors;
+
         CreateMenuIcon(
             buttonObject.transform,
-            sizeDelta);
+            buttonSize);
 
         AtlasBoardPauseMenuOpenButton opener =
             buttonObject.GetComponent<AtlasBoardPauseMenuOpenButton>();
@@ -468,15 +571,9 @@ public static class AtlasBoardLeaveFlowV1Setup
         opener.EditorConfigure(controller);
         EditorUtility.SetDirty(opener);
 
-        // Destroying Button_Settings clears the Settings controller's serialized
-        // gameplay button reference. Mark it dirty so the scene persists that change.
-        AtlasBoardSettingsV2Controller settingsController =
-            FindSceneComponent<AtlasBoardSettingsV2Controller>();
-
-        if (settingsController != null)
-        {
-            EditorUtility.SetDirty(settingsController);
-        }
+        Debug.Log(
+            "AtlasBoard gameplay MENU shortcut placed beside StatusBar/CameraResetButton. " +
+            $"Position={anchoredPosition}, Size={buttonSize}.");
     }
 
     private static void CreateMenuIcon(
@@ -510,6 +607,23 @@ public static class AtlasBoardLeaveFlowV1Setup
             image.color = Color.white;
             image.raycastTarget = false;
         }
+    }
+
+    private static void ConfigureRoomCodeActionText(
+        TMP_Text text)
+    {
+        if (text == null)
+        {
+            return;
+        }
+
+        text.enableAutoSizing = true;
+        text.fontSizeMin = 10f;
+        text.fontSizeMax = 19f;
+        text.textWrappingMode =
+            TextWrappingModes.NoWrap;
+        text.overflowMode =
+            TextOverflowModes.Ellipsis;
     }
 
     private static Button CreateButton(

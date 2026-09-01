@@ -290,6 +290,22 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
         Debug.Log("AtlasBoard account signed out.", this);
     }
 
+    public async Task<string> GetCurrentIdTokenAsync(
+        bool forceRefresh = false)
+    {
+        await EnsureInitializedAsync();
+
+        if (!IsInitialized ||
+            auth == null ||
+            auth.CurrentUser == null)
+        {
+            return string.Empty;
+        }
+
+        return await auth.CurrentUser.TokenAsync(
+            forceRefresh);
+    }
+
     public async Task<AtlasAccountSnapshot> LoadCurrentAccountAsync()
     {
         await EnsureInitializedAsync();

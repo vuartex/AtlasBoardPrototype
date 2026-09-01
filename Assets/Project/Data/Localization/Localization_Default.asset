@@ -2890,80 +2890,6 @@ MonoBehaviour:
     de: FIGUR VERWENDEN
     ko: "\uC774 \uB9D0 \uC0AC\uC6A9"
     ru: "\u0418\u0421\u041F\u041E\u041B\u042C\u0417\u041E\u0412\u0410\u0422\u042C"
-  - key: leaveflow.pause.title
-    en: PAUSED
-    tr: DURAKLATILDI
-    es: PAUSA
-    fr: PAUSE
-    de: PAUSE
-    ko: "\uC77C\uC2DC \uC815\uC9C0"
-    ru: "\u041F\u0410\u0423\u0417\u0410"
-  - key: leaveflow.pause.resume
-    en: RESUME
-    tr: DEVAM ET
-    es: CONTINUAR
-    fr: REPRENDRE
-    de: FORTSETZEN
-    ko: "\uACC4\uC18D"
-    ru: "\u041F\u0420\u041E\u0414\u041E\u041B\u0416\u0418\u0422\u042C"
-  - key: leaveflow.pause.settings
-    en: SETTINGS
-    tr: AYARLAR
-    es: AJUSTES
-    fr: "PARAM\xC8TRES"
-    de: EINSTELLUNGEN
-    ko: "\uC124\uC815"
-    ru: "\u041D\u0410\u0421\u0422\u0420\u041E\u0419\u041A\u0418"
-  - key: leaveflow.pause.leave_match
-    en: LEAVE MATCH
-    tr: "MA\xC7TAN AYRIL"
-    es: SALIR DE LA PARTIDA
-    fr: QUITTER LA PARTIE
-    de: SPIEL VERLASSEN
-    ko: "\uAC8C\uC784 \uB098\uAC00\uAE30"
-    ru: "\u041F\u041E\u041A\u0418\u041D\u0423\u0422\u042C \u041C\u0410\u0422\u0427"
-  - key: leaveflow.pause.quit_game
-    en: QUIT GAME
-    tr: "OYUNDAN \xC7IK"
-    es: SALIR DEL JUEGO
-    fr: QUITTER LE JEU
-    de: SPIEL BEENDEN
-    ko: "\uAC8C\uC784 \uC885\uB8CC"
-    ru: "\u0412\u042B\u0419\u0422\u0418 \u0418\u0417 \u0418\u0413\u0420\u042B"
-  - key: leaveflow.confirm.title
-    en: LEAVE CURRENT MATCH?
-    tr: "MEVCUT MA\xC7TAN AYRIL?"
-    es: "\xBFSALIR DE LA PARTIDA ACTUAL?"
-    fr: QUITTER LA PARTIE EN COURS ?
-    de: AKTUELLES SPIEL VERLASSEN?
-    ko: "\uD604\uC7AC \uAC8C\uC784\uC5D0\uC11C \uB098\uAC08\uAE4C\uC694?"
-    ru: "\u041F\u041E\u041A\u0418\u041D\u0423\u0422\u042C \u0422\u0415\u041A\u0423\u0429\u0418\u0419
-      \u041C\u0410\u0422\u0427?"
-  - key: leaveflow.confirm.body
-    en: Progress in this match will be lost.
-    tr: "Bu ma\xE7taki ilerleme kaybolacak."
-    es: "El progreso de esta partida se perder\xE1."
-    fr: La progression de cette partie sera perdue.
-    de: Der Fortschritt in diesem Spiel geht verloren.
-    ko: "\uC774 \uAC8C\uC784\uC758 \uC9C4\uD589 \uC0C1\uD669\uC774 \uC0AC\uB77C\uC9D1\uB2C8\uB2E4."
-    ru: "\u041F\u0440\u043E\u0433\u0440\u0435\u0441\u0441 \u0432 \u044D\u0442\u043E\u043C
-      \u043C\u0430\u0442\u0447\u0435 \u0431\u0443\u0434\u0435\u0442 \u043F\u043E\u0442\u0435\u0440\u044F\u043D."
-  - key: leaveflow.confirm.cancel
-    en: CANCEL
-    tr: "\u0130PTAL"
-    es: CANCELAR
-    fr: ANNULER
-    de: ABBRECHEN
-    ko: "\uCDE8\uC18C"
-    ru: "\u041E\u0422\u041C\u0415\u041D\u0410"
-  - key: leaveflow.lobby.leave
-    en: LEAVE LOBBY
-    tr: "LOB\u0130DEN AYRIL"
-    es: SALIR DE LA SALA
-    fr: QUITTER LE LOBBY
-    de: LOBBY VERLASSEN
-    ko: "\uB85C\uBE44 \uB098\uAC00\uAE30"
-    ru: "\u041F\u041E\u041A\u0418\u041D\u0423\u0422\u042C \u041B\u041E\u0411\u0411\u0418"
   - key: lobby.online.private_room
     en: PRIVATE ROOM
     tr: "\xD6ZEL ODA"
@@ -3358,3 +3284,648 @@ MonoBehaviour:
     de: BACKEND-SNAPSHOT VERBUNDEN
     ko: "\uBC31\uC5D4\uB4DC \uC2A4\uB0C5\uC0F7 \uC5F0\uACB0\uB428"
     ru: "\u0421\u041D\u0418\u041C\u041E\u041A BACKEND \u041F\u041E\u0414\u041A\u041B\u042E\u0427\u0415\u041D"
+  - key: lobby.online.player_count_blocked_title
+    en: PLAYER COUNT CANNOT BE REDUCED
+    tr: OYUNCU SAYISI AZALTILAMAZ
+    es: "NO SE PUEDE REDUCIR EL N\xDAMERO DE JUGADORES"
+    fr: "IMPOSSIBLE DE R\xC9DUIRE LE NOMBRE DE JOUEURS"
+    de: SPIELERANZAHL KANN NICHT REDUZIERT WERDEN
+    ko: "\uD50C\uB808\uC774\uC5B4 \uC218\uB97C \uC904\uC77C \uC218 \uC5C6\uC74C"
+    ru: "\u041D\u0415\u041B\u042C\u0417\u042F \u0423\u041C\u0415\u041D\u042C\u0428\u0418\u0422\u042C
+      \u0427\u0418\u0421\u041B\u041E \u0418\u0413\u0420\u041E\u041A\u041E\u0412"
+  - key: lobby.online.player_count_blocked_body
+    en: An online player is using a slot that would be removed. Remove that player
+      from the lobby first.
+    tr: "Kald\u0131r\u0131lacak koltuklardan birinde online oyuncu var. \xD6nce o
+      oyuncuyu lobiden \xE7\u0131kar."
+    es: "Un jugador online ocupa una plaza que se eliminar\xEDa. Elim\xEDnalo primero
+      de la sala."
+    fr: "Un joueur en ligne occupe une place qui serait supprim\xE9e. Retirez-le
+      d'abord du salon."
+    de: "Ein Online-Spieler belegt einen Platz, der entfernt w\xFCrde. Entferne diesen
+      Spieler zuerst aus der Lobby."
+    ko: "\uC0AD\uC81C\uB420 \uC2AC\uB86F\uC5D0 \uC628\uB77C\uC778 \uD50C\uB808\uC774\uC5B4\uAC00
+      \uC788\uC2B5\uB2C8\uB2E4. \uBA3C\uC800 \uD574\uB2F9 \uD50C\uB808\uC774\uC5B4\uB97C
+      \uB85C\uBE44\uC5D0\uC11C \uC81C\uAC70\uD558\uC138\uC694."
+    ru: "\u041E\u043D\u043B\u0430\u0439\u043D-\u0438\u0433\u0440\u043E\u043A \u0437\u0430\u043D\u0438\u043C\u0430\u0435\u0442
+      \u0443\u0434\u0430\u043B\u044F\u0435\u043C\u043E\u0435 \u043C\u0435\u0441\u0442\u043E.
+      \u0421\u043D\u0430\u0447\u0430\u043B\u0430 \u0443\u0434\u0430\u043B\u0438\u0442\u0435
+      \u044D\u0442\u043E\u0433\u043E \u0438\u0433\u0440\u043E\u043A\u0430 \u0438\u0437
+      \u043B\u043E\u0431\u0431\u0438."
+  - key: lobby.online.kick_title
+    en: REMOVE PLAYER?
+    tr: "OYUNCU \xC7IKARILSIN MI?"
+    es: "\xBFELIMINAR JUGADOR?"
+    fr: RETIRER LE JOUEUR ?
+    de: SPIELER ENTFERNEN?
+    ko: "\uD50C\uB808\uC774\uC5B4\uB97C \uB0B4\uBCF4\uB0BC\uAE4C\uC694?"
+    ru: "\u0423\u0414\u0410\u041B\u0418\u0422\u042C \u0418\u0413\u0420\u041E\u041A\u0410?"
+  - key: lobby.online.kick_body
+    en: Remove {0} from this lobby?
+    tr: "{0} bu lobiden \xE7\u0131kar\u0131ls\u0131n m\u0131?"
+    es: "\xBFEliminar a {0} de esta sala?"
+    fr: Retirer {0} de ce salon ?
+    de: '{0} aus dieser Lobby entfernen?'
+    ko: "{0}\uB2D8\uC744 \uC774 \uB85C\uBE44\uC5D0\uC11C \uB0B4\uBCF4\uB0BC\uAE4C\uC694?"
+    ru: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C {0} \u0438\u0437 \u044D\u0442\u043E\u0433\u043E
+      \u043B\u043E\u0431\u0431\u0438?"
+  - key: lobby.online.remove_player
+    en: REMOVE
+    tr: "\xC7IKAR"
+    es: ELIMINAR
+    fr: RETIRER
+    de: ENTFERNEN
+    ko: "\uB0B4\uBCF4\uB0B4\uAE30"
+    ru: "\u0423\u0414\u0410\u041B\u0418\u0422\u042C"
+  - key: lobby.online.removing_player
+    en: REMOVING PLAYER...
+    tr: "OYUNCU \xC7IKARILIYOR..."
+    es: ELIMINANDO JUGADOR...
+    fr: RETRAIT DU JOUEUR...
+    de: SPIELER WIRD ENTFERNT...
+    ko: "\uD50C\uB808\uC774\uC5B4 \uB0B4\uBCF4\uB0B4\uB294 \uC911..."
+    ru: "\u0418\u0413\u0420\u041E\u041A \u0423\u0414\u0410\u041B\u042F\u0415\u0422\u0421\u042F..."
+  - key: lobby.online.kicked_title
+    en: REMOVED FROM LOBBY
+    tr: "LOB\u0130DEN \xC7IKARILDIN"
+    es: ELIMINADO DE LA SALA
+    fr: "RETIR\xC9 DU SALON"
+    de: AUS DER LOBBY ENTFERNT
+    ko: "\uB85C\uBE44\uC5D0\uC11C \uD1F4\uC7A5\uB428"
+    ru: "\u0412\u042B \u0423\u0414\u0410\u041B\u0415\u041D\u042B \u0418\u0417 \u041B\u041E\u0411\u0411\u0418"
+  - key: lobby.online.kicked_body
+    en: The host removed you from this lobby.
+    tr: "Lobi kurucusu seni bu lobiden \xE7\u0131kard\u0131."
+    es: "El anfitri\xF3n te elimin\xF3 de esta sala."
+    fr: "L'h\xF4te vous a retir\xE9 de ce salon."
+    de: Der Host hat dich aus dieser Lobby entfernt.
+    ko: "\uD638\uC2A4\uD2B8\uAC00 \uD68C\uC6D0\uB2D8\uC744 \uC774 \uB85C\uBE44\uC5D0\uC11C
+      \uB0B4\uBCF4\uB0C8\uC2B5\uB2C8\uB2E4."
+    ru: "\u0425\u043E\u0441\u0442 \u0443\u0434\u0430\u043B\u0438\u043B \u0432\u0430\u0441
+      \u0438\u0437 \u044D\u0442\u043E\u0433\u043E \u043B\u043E\u0431\u0431\u0438."
+  - key: lobby.online.host_can_start_with_open
+    en: "HOST CAN START \u2022 OPEN SEATS BECOME BOTS"
+    tr: "KURUCU BA\u015ELATAB\u0130L\u0130R \u2022 BO\u015E KOLTUKLAR BOT OLUR"
+    es: "EL ANFITRI\xD3N PUEDE INICIAR \u2022 LAS PLAZAS LIBRES SER\xC1N BOTS"
+    fr: "L'H\xD4TE PEUT D\xC9MARRER \u2022 LES PLACES LIBRES DEVIENNENT DES BOTS"
+    de: "HOST KANN STARTEN \u2022 FREIE PL\xC4TZE WERDEN BOTS"
+    ko: "\uD638\uC2A4\uD2B8 \uC2DC\uC791 \uAC00\uB2A5 \u2022 \uBE48 \uC2AC\uB86F\uC740
+      \uBD07\uC73C\uB85C \uC804\uD658"
+    ru: "\u0425\u041E\u0421\u0422 \u041C\u041E\u0416\u0415\u0422 \u041D\u0410\u0427\u0410\u0422\u042C
+      \u2022 \u0421\u0412\u041E\u0411\u041E\u0414\u041D\u042B\u0415 \u041C\u0415\u0421\u0422\u0410
+      \u0421\u0422\u0410\u041D\u0423\u0422 \u0411\u041E\u0422\u0410\u041C\u0418"
+  - key: lobby.online.match_starting_title
+    en: MATCH STARTING
+    tr: "MA\xC7 BA\u015ELIYOR"
+    es: LA PARTIDA COMIENZA
+    fr: LA PARTIE COMMENCE
+    de: MATCH STARTET
+    ko: "\uAC8C\uC784 \uC2DC\uC791"
+    ru: "\u041C\u0410\u0422\u0427 \u041D\u0410\u0427\u0418\u041D\u0410\u0415\u0422\u0421\u042F"
+  - key: lobby.online.match_starting_body
+    en: Lobby locked. Remaining open seats are filled by bots.
+    tr: "Lobi kilitlendi. Kalan bo\u015F koltuklar botlarla dolduruldu."
+    es: "La sala est\xE1 bloqueada. Las plazas abiertas restantes se llenan con bots."
+    fr: "Le salon est verrouill\xE9. Les places libres restantes sont remplies par
+      des bots."
+    de: "Die Lobby ist gesperrt. Verbleibende freie Pl\xE4tze werden mit Bots gef\xFCllt."
+    ko: "\uB85C\uBE44\uAC00 \uC7A0\uACBC\uC2B5\uB2C8\uB2E4. \uB0A8\uC740 \uBE48 \uC2AC\uB86F\uC740
+      \uBD07\uC73C\uB85C \uCC44\uC6CC\uC9D1\uB2C8\uB2E4."
+    ru: "\u041B\u043E\u0431\u0431\u0438 \u0437\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D\u043E.
+      \u041E\u0441\u0442\u0430\u0432\u0448\u0438\u0435\u0441\u044F \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u044B\u0435
+      \u043C\u0435\u0441\u0442\u0430 \u0437\u0430\u043F\u043E\u043B\u043D\u044F\u044E\u0442\u0441\u044F
+      \u0431\u043E\u0442\u0430\u043C\u0438."
+  - key: lobby.error.invalid_room_code
+    en: Invalid room code.
+    tr: "Ge\xE7ersiz oda kodu."
+    es: "C\xF3digo de sala no v\xE1lido."
+    fr: Code de salon invalide.
+    de: "Ung\xFCltiger Raumcode."
+    ko: "\uC798\uBABB\uB41C \uBC29 \uCF54\uB4DC\uC785\uB2C8\uB2E4."
+    ru: "\u041D\u0435\u0432\u0435\u0440\u043D\u044B\u0439 \u043A\u043E\u0434 \u043A\u043E\u043C\u043D\u0430\u0442\u044B."
+  - key: lobby.online.authoritative_start_ready
+    en: START CONFIRMED
+    tr: "BA\u015ELANGI\xC7 ONAYLANDI"
+    es: INICIO CONFIRMADO
+    fr: "D\xC9MARRAGE CONFIRM\xC9"
+    de: "START BEST\xC4TIGT"
+    ko: "\uC2DC\uC791 \uD655\uC778\uB428"
+    ru: "\u0421\u0422\u0410\u0420\u0422 \u041F\u041E\u0414\u0422\u0412\u0415\u0420\u0416\u0414\u0401\u041D"
+  - key: lobby.error.kicked
+    en: You were removed from this lobby.
+    tr: "Bu lobiden \xE7\u0131kar\u0131ld\u0131n."
+    es: Fuiste eliminado de esta sala.
+    fr: "Vous avez \xE9t\xE9 retir\xE9 de ce salon."
+    de: Du wurdest aus dieser Lobby entfernt.
+    ko: "\uC774 \uB85C\uBE44\uC5D0\uC11C \uD1F4\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4."
+    ru: "\u0412\u0430\u0441 \u0443\u0434\u0430\u043B\u0438\u043B\u0438 \u0438\u0437
+      \u044D\u0442\u043E\u0433\u043E \u043B\u043E\u0431\u0431\u0438."
+  - key: lobby.error.remote_player_not_present
+    en: That online player is no longer in the lobby.
+    tr: "Bu online oyuncu art\u0131k lobide de\u011Fil."
+    es: "Ese jugador online ya no est\xE1 en la sala."
+    fr: Ce joueur en ligne n'est plus dans le salon.
+    de: Dieser Online-Spieler ist nicht mehr in der Lobby.
+    ko: "\uD574\uB2F9 \uC628\uB77C\uC778 \uD50C\uB808\uC774\uC5B4\uB294 \uB354 \uC774\uC0C1
+      \uB85C\uBE44\uC5D0 \uC5C6\uC2B5\uB2C8\uB2E4."
+    ru: "\u042D\u0442\u043E\u0433\u043E \u043E\u043D\u043B\u0430\u0439\u043D-\u0438\u0433\u0440\u043E\u043A\u0430
+      \u0431\u043E\u043B\u044C\u0448\u0435 \u043D\u0435\u0442 \u0432 \u043B\u043E\u0431\u0431\u0438."
+  - key: leaveflow.pause.title
+    en: PAUSED
+    tr: DURAKLATILDI
+    es: PAUSA
+    fr: PAUSE
+    de: PAUSE
+    ko: "\uC77C\uC2DC \uC815\uC9C0"
+    ru: "\u041F\u0410\u0423\u0417\u0410"
+  - key: leaveflow.pause.resume
+    en: RESUME
+    tr: DEVAM ET
+    es: CONTINUAR
+    fr: REPRENDRE
+    de: FORTSETZEN
+    ko: "\uACC4\uC18D"
+    ru: "\u041F\u0420\u041E\u0414\u041E\u041B\u0416\u0418\u0422\u042C"
+  - key: leaveflow.pause.settings
+    en: SETTINGS
+    tr: AYARLAR
+    es: AJUSTES
+    fr: "PARAM\xC8TRES"
+    de: EINSTELLUNGEN
+    ko: "\uC124\uC815"
+    ru: "\u041D\u0410\u0421\u0422\u0420\u041E\u0419\u041A\u0418"
+  - key: leaveflow.pause.leave_match
+    en: LEAVE MATCH
+    tr: "MA\xC7TAN AYRIL"
+    es: SALIR DE LA PARTIDA
+    fr: QUITTER LA PARTIE
+    de: SPIEL VERLASSEN
+    ko: "\uAC8C\uC784 \uB098\uAC00\uAE30"
+    ru: "\u041F\u041E\u041A\u0418\u041D\u0423\u0422\u042C \u041C\u0410\u0422\u0427"
+  - key: leaveflow.pause.quit_game
+    en: QUIT GAME
+    tr: "OYUNDAN \xC7IK"
+    es: SALIR DEL JUEGO
+    fr: QUITTER LE JEU
+    de: SPIEL BEENDEN
+    ko: "\uAC8C\uC784 \uC885\uB8CC"
+    ru: "\u0412\u042B\u0419\u0422\u0418 \u0418\u0417 \u0418\u0413\u0420\u042B"
+  - key: leaveflow.confirm.title
+    en: LEAVE CURRENT MATCH?
+    tr: "MEVCUT MA\xC7TAN AYRIL?"
+    es: "\xBFSALIR DE LA PARTIDA ACTUAL?"
+    fr: QUITTER LA PARTIE EN COURS ?
+    de: AKTUELLES SPIEL VERLASSEN?
+    ko: "\uD604\uC7AC \uAC8C\uC784\uC5D0\uC11C \uB098\uAC08\uAE4C\uC694?"
+    ru: "\u041F\u041E\u041A\u0418\u041D\u0423\u0422\u042C \u0422\u0415\u041A\u0423\u0429\u0418\u0419
+      \u041C\u0410\u0422\u0427?"
+  - key: leaveflow.confirm.body
+    en: Progress in this match will be lost.
+    tr: "Bu ma\xE7taki ilerleme kaybolacak."
+    es: "El progreso de esta partida se perder\xE1."
+    fr: La progression de cette partie sera perdue.
+    de: Der Fortschritt in diesem Spiel geht verloren.
+    ko: "\uC774 \uAC8C\uC784\uC758 \uC9C4\uD589 \uC0C1\uD669\uC774 \uC0AC\uB77C\uC9D1\uB2C8\uB2E4."
+    ru: "\u041F\u0440\u043E\u0433\u0440\u0435\u0441\u0441 \u0432 \u044D\u0442\u043E\u043C
+      \u043C\u0430\u0442\u0447\u0435 \u0431\u0443\u0434\u0435\u0442 \u043F\u043E\u0442\u0435\u0440\u044F\u043D."
+  - key: leaveflow.confirm.cancel
+    en: CANCEL
+    tr: "\u0130PTAL"
+    es: CANCELAR
+    fr: ANNULER
+    de: ABBRECHEN
+    ko: "\uCDE8\uC18C"
+    ru: "\u041E\u0422\u041C\u0415\u041D\u0410"
+  - key: leaveflow.lobby.leave
+    en: LEAVE LOBBY
+    tr: "LOB\u0130DEN AYRIL"
+    es: SALIR DE LA SALA
+    fr: QUITTER LE LOBBY
+    de: LOBBY VERLASSEN
+    ko: "\uB85C\uBE44 \uB098\uAC00\uAE30"
+    ru: "\u041F\u041E\u041A\u0418\u041D\u0423\u0422\u042C \u041B\u041E\u0411\u0411\u0418"
+  - key: leaveflow.pause.room_code
+    en: ROOM CODE
+    tr: ODA KODU
+    es: "C\xD3DIGO DE SALA"
+    fr: CODE DU SALON
+    de: RAUMCODE
+    ko: "\uBC29 \uCF54\uB4DC"
+    ru: "\u041A\u041E\u0414 \u041A\u041E\u041C\u041D\u0410\u0422\u042B"
+  - key: leaveflow.pause.room_code_show
+    en: SHOW
+    tr: "G\xD6STER"
+    es: MOSTRAR
+    fr: AFFICHER
+    de: ANZEIGEN
+    ko: "\uD45C\uC2DC"
+    ru: "\u041F\u041E\u041A\u0410\u0417\u0410\u0422\u042C"
+  - key: leaveflow.pause.room_code_hide
+    en: HIDE
+    tr: "G\u0130ZLE"
+    es: OCULTAR
+    fr: MASQUER
+    de: AUSBLENDEN
+    ko: "\uC228\uAE30\uAE30"
+    ru: "\u0421\u041A\u0420\u042B\u0422\u042C"
+  - key: leaveflow.pause.room_code_copy
+    en: COPY
+    tr: KOPYALA
+    es: COPIAR
+    fr: COPIER
+    de: KOPIEREN
+    ko: "\uBCF5\uC0AC"
+    ru: "\u041A\u041E\u041F\u0418\u0420\u041E\u0412\u0410\u0422\u042C"
+  - key: leaveflow.pause.room_code_copied
+    en: COPIED
+    tr: KOPYALANDI
+    es: COPIADO
+    fr: "COPI\xC9"
+    de: KOPIERT
+    ko: "\uBCF5\uC0AC\uB428"
+    ru: "\u0421\u041A\u041E\u041F\u0418\u0420\u041E\u0412\u0410\u041D\u041E"
+  - key: menu.public_rooms
+    en: PUBLIC ROOMS
+    tr: "A\xC7IK ODALAR"
+    es: "SALAS P\xDABLICAS"
+    fr: SALONS PUBLICS
+    de: "\xD6FFENTLICHE R\xC4UME"
+    ko: "\uACF5\uAC1C \uBC29"
+    ru: "\u041F\u0423\u0411\u041B\u0418\u0427\u041D\u042B\u0415 \u041A\u041E\u041C\u041D\u0410\u0422\u042B"
+  - key: menu.public_rooms_subtitle
+    en: BROWSE / JOIN
+    tr: "G\xD6Z AT / KATIL"
+    es: EXPLORAR / UNIRSE
+    fr: PARCOURIR / REJOINDRE
+    de: SUCHEN / BEITRETEN
+    ko: "\uCC3E\uAE30 / \uCC38\uAC00"
+    ru: "\u041E\u0411\u0417\u041E\u0420 / \u0412\u041E\u0419\u0422\u0418"
+  - key: menu.play_online_subtitle
+    en: HOST ONLINE
+    tr: "\xC7EVR\u0130M\u0130\xC7\u0130 ODA KUR"
+    es: CREAR ONLINE
+    fr: "H\xC9BERGER EN LIGNE"
+    de: ONLINE HOSTEN
+    ko: "\uC628\uB77C\uC778 \uBC29 \uB9CC\uB4E4\uAE30"
+    ru: "\u0421\u041E\u0417\u0414\u0410\u0422\u042C \u041E\u041D\u041B\u0410\u0419\u041D"
+  - key: menu.public_table
+    en: PUBLIC TABLE
+    tr: "A\xC7IK MASA"
+    es: "MESA P\xDABLICA"
+    fr: TABLE PUBLIQUE
+    de: "\xD6FFENTLICHER TISCH"
+    ko: "\uACF5\uAC1C \uD14C\uC774\uBE14"
+    ru: "\u041F\u0423\u0411\u041B\u0418\u0427\u041D\u042B\u0419 \u0421\u0422\u041E\u041B"
+  - key: public_browser.title
+    en: PUBLIC ROOMS
+    tr: "A\xC7IK ODALAR"
+    es: "SALAS P\xDABLICAS"
+    fr: SALONS PUBLICS
+    de: "\xD6FFENTLICHE R\xC4UME"
+    ko: "\uACF5\uAC1C \uBC29"
+    ru: "\u041F\u0423\u0411\u041B\u0418\u0427\u041D\u042B\u0415 \u041A\u041E\u041C\u041D\u0410\u0422\u042B"
+  - key: public_browser.subtitle
+    en: Browse and join online tables
+    tr: "\xC7evrimi\xE7i masalara g\xF6z at ve kat\u0131l"
+    es: "Explora y \xFAnete a mesas online"
+    fr: Parcourez et rejoignez des tables en ligne
+    de: Online-Tische durchsuchen und beitreten
+    ko: "\uC628\uB77C\uC778 \uD14C\uC774\uBE14 \uCC3E\uAE30 \uBC0F \uCC38\uAC00"
+    ru: "\u041F\u0440\u043E\u0441\u043C\u043E\u0442\u0440 \u0438 \u0432\u0445\u043E\u0434
+      \u0432 \u043E\u043D\u043B\u0430\u0439\u043D-\u0441\u0442\u043E\u043B\u044B"
+  - key: public_browser.create
+    en: CREATE PUBLIC ROOM
+    tr: "A\xC7IK ODA OLU\u015ETUR"
+    es: "CREAR SALA P\xDABLICA"
+    fr: "CR\xC9ER UN SALON PUBLIC"
+    de: "\xD6FFENTLICHEN RAUM ERSTELLEN"
+    ko: "\uACF5\uAC1C \uBC29 \uB9CC\uB4E4\uAE30"
+    ru: "\u0421\u041E\u0417\u0414\u0410\u0422\u042C \u041F\u0423\u0411\u041B\u0418\u0427\u041D\u0423\u042E
+      \u041A\u041E\u041C\u041D\u0410\u0422\u0423"
+  - key: public_browser.refresh
+    en: REFRESH
+    tr: "YEN\u0130LE"
+    es: ACTUALIZAR
+    fr: ACTUALISER
+    de: AKTUALISIEREN
+    ko: "\uC0C8\uB85C\uACE0\uCE68"
+    ru: "\u041E\u0411\u041D\u041E\u0412\u0418\u0422\u042C"
+  - key: public_browser.join
+    en: JOIN
+    tr: KATIL
+    es: UNIRSE
+    fr: REJOINDRE
+    de: BEITRETEN
+    ko: "\uCC38\uAC00"
+    ru: "\u0412\u041E\u0419\u0422\u0418"
+  - key: public_browser.host
+    en: HOST
+    tr: KURUCU
+    es: "ANFITRI\xD3N"
+    fr: "H\xD4TE"
+    de: HOST
+    ko: "\uD638\uC2A4\uD2B8"
+    ru: "\u0425\u041E\u0421\u0422"
+  - key: public_browser.map
+    en: MAP
+    tr: "HAR\u0130TA"
+    es: MAPA
+    fr: CARTE
+    de: KARTE
+    ko: "\uB9F5"
+    ru: "\u041A\u0410\u0420\u0422\u0410"
+  - key: public_browser.players
+    en: PLAYERS
+    tr: OYUNCULAR
+    es: JUGADORES
+    fr: JOUEURS
+    de: SPIELER
+    ko: "\uD50C\uB808\uC774\uC5B4"
+    ru: "\u0418\u0413\u0420\u041E\u041A\u0418"
+  - key: public_browser.rounds
+    en: ROUNDS
+    tr: TURLAR
+    es: RONDAS
+    fr: TOURS
+    de: RUNDEN
+    ko: "\uB77C\uC6B4\uB4DC"
+    ru: "\u0420\u0410\u0423\u041D\u0414\u042B"
+  - key: public_browser.region
+    en: REGION
+    tr: "B\xD6LGE"
+    es: "REGI\xD3N"
+    fr: "R\xC9GION"
+    de: REGION
+    ko: "\uC9C0\uC5ED"
+    ru: "\u0420\u0415\u0413\u0418\u041E\u041D"
+  - key: public_browser.access
+    en: ACCESS
+    tr: "ER\u0130\u015E\u0130M"
+    es: ACCESO
+    fr: "ACC\xC8S"
+    de: ZUGANG
+    ko: "\uC811\uADFC"
+    ru: "\u0414\u041E\u0421\u0422\u0423\u041F"
+  - key: public_browser.open_short
+    en: OPEN
+    tr: "A\xC7IK"
+    es: ABIERTA
+    fr: OUVERT
+    de: OFFEN
+    ko: "\uACF5\uAC1C"
+    ru: "\u041E\u0422\u041A\u0420\u042B\u0422\u041E"
+  - key: public_browser.password_required_short
+    en: PASSWORD
+    tr: "\u015E\u0130FREL\u0130"
+    es: "CONTRASE\xD1A"
+    fr: MOT DE PASSE
+    de: PASSWORT
+    ko: "\uBE44\uBC00\uBC88\uD638"
+    ru: "\u041F\u0410\u0420\u041E\u041B\u042C"
+  - key: public_browser.search_placeholder
+    en: Search host or map...
+    tr: Kurucu veya harita ara...
+    es: "Buscar anfitri\xF3n o mapa..."
+    fr: "Rechercher h\xF4te ou carte..."
+    de: Host oder Karte suchen...
+    ko: "\uD638\uC2A4\uD2B8 \uB610\uB294 \uB9F5 \uAC80\uC0C9..."
+    ru: "\u041F\u043E\u0438\u0441\u043A \u0445\u043E\u0441\u0442\u0430 \u0438\u043B\u0438
+      \u043A\u0430\u0440\u0442\u044B..."
+  - key: public_browser.all_maps
+    en: ALL MAPS
+    tr: "T\xDCM HAR\u0130TALAR"
+    es: TODOS LOS MAPAS
+    fr: TOUTES LES CARTES
+    de: ALLE KARTEN
+    ko: "\uBAA8\uB4E0 \uB9F5"
+    ru: "\u0412\u0421\u0415 \u041A\u0410\u0420\u0422\u042B"
+  - key: public_browser.any_players
+    en: ANY PLAYERS
+    tr: "T\xDCM OYUNCU SAYILARI"
+    es: CUALQUIER JUGADOR
+    fr: TOUS LES JOUEURS
+    de: ALLE SPIELERZAHLEN
+    ko: "\uBAA8\uB4E0 \uC778\uC6D0"
+    ru: "\u041B\u042E\u0411\u041E\u0415 \u0427\u0418\u0421\u041B\u041E \u0418\u0413\u0420\u041E\u041A\u041E\u0412"
+  - key: public_browser.any_rounds
+    en: ANY ROUNDS
+    tr: "T\xDCM TUR SAYILARI"
+    es: CUALQUIER RONDA
+    fr: TOUS LES TOURS
+    de: ALLE RUNDEN
+    ko: "\uBAA8\uB4E0 \uB77C\uC6B4\uB4DC"
+    ru: "\u041B\u042E\u0411\u041E\u0415 \u0427\u0418\u0421\u041B\u041E \u0420\u0410\u0423\u041D\u0414\u041E\u0412"
+  - key: public_browser.any_access
+    en: ANY ACCESS
+    tr: "T\xDCM ER\u0130\u015E\u0130MLER"
+    es: CUALQUIER ACCESO
+    fr: "TOUS LES ACC\xC8S"
+    de: "ALLE ZUG\xC4NGE"
+    ko: "\uBAA8\uB4E0 \uC811\uADFC"
+    ru: "\u041B\u042E\u0411\u041E\u0419 \u0414\u041E\u0421\u0422\u0423\u041F"
+  - key: public_browser.loading
+    en: Loading public rooms...
+    tr: "A\xE7\u0131k odalar y\xFCkleniyor..."
+    es: "Cargando salas p\xFAblicas..."
+    fr: Chargement des salons publics...
+    de: "\xD6ffentliche R\xE4ume werden geladen..."
+    ko: "\uACF5\uAC1C \uBC29 \uBD88\uB7EC\uC624\uB294 \uC911..."
+    ru: "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430 \u043F\u0443\u0431\u043B\u0438\u0447\u043D\u044B\u0445
+      \u043A\u043E\u043C\u043D\u0430\u0442..."
+  - key: public_browser.empty
+    en: No joinable public rooms found.
+    tr: "Kat\u0131l\u0131nabilir a\xE7\u0131k oda bulunamad\u0131."
+    es: "No se encontraron salas p\xFAblicas disponibles."
+    fr: Aucun salon public disponible.
+    de: "Keine beitretbaren \xF6ffentlichen R\xE4ume gefunden."
+    ko: "\uCC38\uAC00 \uAC00\uB2A5\uD55C \uACF5\uAC1C \uBC29\uC774 \uC5C6\uC2B5\uB2C8\uB2E4."
+    ru: "\u041D\u0435\u0442 \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u044B\u0445
+      \u043F\u0443\u0431\u043B\u0438\u0447\u043D\u044B\u0445 \u043A\u043E\u043C\u043D\u0430\u0442."
+  - key: public_browser.found
+    en: '{0} public room(s) found.'
+    tr: "{0} a\xE7\u0131k oda bulundu."
+    es: "Se encontraron {0} sala(s) p\xFAblica(s)."
+    fr: "{0} salon(s) public(s) trouv\xE9(s)."
+    de: "{0} \xF6ffentliche R\xE4ume gefunden."
+    ko: "\uACF5\uAC1C \uBC29 {0}\uAC1C\uB97C \uCC3E\uC558\uC2B5\uB2C8\uB2E4."
+    ru: "\u041D\u0430\u0439\u0434\u0435\u043D\u043E \u043F\u0443\u0431\u043B\u0438\u0447\u043D\u044B\u0445
+      \u043A\u043E\u043C\u043D\u0430\u0442: {0}."
+  - key: public_browser.creating
+    en: Creating public room...
+    tr: "A\xE7\u0131k oda olu\u015Fturuluyor..."
+    es: "Creando sala p\xFAblica..."
+    fr: "Cr\xE9ation du salon public..."
+    de: "\xD6ffentlicher Raum wird erstellt..."
+    ko: "\uACF5\uAC1C \uBC29 \uB9CC\uB4DC\uB294 \uC911..."
+    ru: "\u0421\u043E\u0437\u0434\u0430\u043D\u0438\u0435 \u043F\u0443\u0431\u043B\u0438\u0447\u043D\u043E\u0439
+      \u043A\u043E\u043C\u043D\u0430\u0442\u044B..."
+  - key: public_browser.joining
+    en: Joining room...
+    tr: "Odaya kat\u0131l\u0131n\u0131yor..."
+    es: "Uni\xE9ndose a la sala..."
+    fr: Connexion au salon...
+    de: Raum wird betreten...
+    ko: "\uBC29 \uCC38\uAC00 \uC911..."
+    ru: "\u0412\u0445\u043E\u0434 \u0432 \u043A\u043E\u043C\u043D\u0430\u0442\u0443..."
+  - key: public_browser.unavailable
+    en: Public room service is unavailable.
+    tr: "A\xE7\u0131k oda hizmeti kullan\u0131lam\u0131yor."
+    es: "El servicio de salas p\xFAblicas no est\xE1 disponible."
+    fr: Le service de salons publics est indisponible.
+    de: "Der \xF6ffentliche Raumdienst ist nicht verf\xFCgbar."
+    ko: "\uACF5\uAC1C \uBC29 \uC11C\uBE44\uC2A4\uB97C \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4."
+    ru: "\u0421\u0435\u0440\u0432\u0438\u0441 \u043F\u0443\u0431\u043B\u0438\u0447\u043D\u044B\u0445
+      \u043A\u043E\u043C\u043D\u0430\u0442 \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D."
+  - key: public_browser.unknown_host
+    en: Unknown
+    tr: Bilinmiyor
+    es: Desconocido
+    fr: Inconnu
+    de: Unbekannt
+    ko: "\uC54C \uC218 \uC5C6\uC74C"
+    ru: "\u041D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043D\u043E"
+  - key: public_browser.password_prompt_title
+    en: PASSWORD REQUIRED
+    tr: "\u015E\u0130FRE GEREKL\u0130"
+    es: "CONTRASE\xD1A REQUERIDA"
+    fr: MOT DE PASSE REQUIS
+    de: PASSWORT ERFORDERLICH
+    ko: "\uBE44\uBC00\uBC88\uD638 \uD544\uC694"
+    ru: "\u0422\u0420\u0415\u0411\u0423\u0415\u0422\u0421\u042F \u041F\u0410\u0420\u041E\u041B\u042C"
+  - key: public_browser.password_prompt_body
+    en: Enter the password for {0}.
+    tr: "{0} i\xE7in oda \u015Fifresini gir."
+    es: "Introduce la contrase\xF1a para {0}."
+    fr: Entrez le mot de passe pour {0}.
+    de: "Passwort f\xFCr {0} eingeben."
+    ko: "{0}\uC758 \uBE44\uBC00\uBC88\uD638\uB97C \uC785\uB825\uD558\uC138\uC694."
+    ru: "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043F\u0430\u0440\u043E\u043B\u044C
+      \u0434\u043B\u044F {0}."
+  - key: public_browser.password_placeholder
+    en: ROOM PASSWORD
+    tr: "ODA \u015E\u0130FRES\u0130"
+    es: "CONTRASE\xD1A DE SALA"
+    fr: MOT DE PASSE DU SALON
+    de: RAUMPASSWORT
+    ko: "\uBC29 \uBE44\uBC00\uBC88\uD638"
+    ru: "\u041F\u0410\u0420\u041E\u041B\u042C \u041A\u041E\u041C\u041D\u0410\u0422\u042B"
+  - key: lobby.game_settings.open
+    en: GAME SETTINGS
+    tr: OYUN AYARLARI
+    es: AJUSTES DE PARTIDA
+    fr: "PARAM\xC8TRES DE JEU"
+    de: SPIELEINSTELLUNGEN
+    ko: "\uAC8C\uC784 \uC124\uC815"
+    ru: "\u041D\u0410\u0421\u0422\u0420\u041E\u0419\u041A\u0418 \u0418\u0413\u0420\u042B"
+  - key: lobby.game_settings.more
+    en: MORE SETTINGS
+    tr: DAHA FAZLA AYAR
+    es: "M\xC1S AJUSTES"
+    fr: "PLUS DE R\xC9GLAGES"
+    de: WEITERE EINSTELLUNGEN
+    ko: "\uCD94\uAC00 \uC124\uC815"
+    ru: "\u0414\u041E\u041F. \u041D\u0410\u0421\u0422\u0420\u041E\u0419\u041A\u0418"
+  - key: lobby.game_settings.subtitle
+    en: "MAP \u2022 RULES \u2022 ACCESS"
+    tr: "HAR\u0130TA \u2022 KURALLAR \u2022 ER\u0130\u015E\u0130M"
+    es: "MAPA \u2022 REGLAS \u2022 ACCESO"
+    fr: "CARTE \u2022 R\xC8GLES \u2022 ACC\xC8S"
+    de: "KARTE \u2022 REGELN \u2022 ZUGANG"
+    ko: "\uB9F5 \u2022 \uADDC\uCE59 \u2022 \uC811\uADFC"
+    ru: "\u041A\u0410\u0420\u0422\u0410 \u2022 \u041F\u0420\u0410\u0412\u0418\u041B\u0410
+      \u2022 \u0414\u041E\u0421\u0422\u0423\u041F"
+  - key: lobby.game_settings.done
+    en: DONE
+    tr: TAMAM
+    es: LISTO
+    fr: "TERMIN\xC9"
+    de: FERTIG
+    ko: "\uC644\uB8CC"
+    ru: "\u0413\u041E\u0422\u041E\u0412\u041E"
+  - key: lobby.access.password
+    en: ROOM PASSWORD
+    tr: "ODA \u015E\u0130FRES\u0130"
+    es: "CONTRASE\xD1A DE SALA"
+    fr: MOT DE PASSE DU SALON
+    de: RAUMPASSWORT
+    ko: "\uBC29 \uBE44\uBC00\uBC88\uD638"
+    ru: "\u041F\u0410\u0420\u041E\u041B\u042C \u041A\u041E\u041C\u041D\u0410\u0422\u042B"
+  - key: lobby.access.password_optional
+    en: PASSWORD (OPTIONAL)
+    tr: "\u015E\u0130FRE (\u0130STE\u011EE BA\u011ELI)"
+    es: "CONTRASE\xD1A (OPCIONAL)"
+    fr: MOT DE PASSE (FACULTATIF)
+    de: PASSWORT (OPTIONAL)
+    ko: "\uBE44\uBC00\uBC88\uD638 (\uC120\uD0DD)"
+    ru: "\u041F\u0410\u0420\u041E\u041B\u042C (\u041D\u0415\u041E\u0411\u042F\u0417\u0410\u0422\u0415\u041B\u042C\u041D\u041E)"
+  - key: lobby.access.password_set
+    en: PASSWORD PROTECTED
+    tr: "\u015E\u0130FRE KORUMALI"
+    es: "PROTEGIDA CON CONTRASE\xD1A"
+    fr: "PROT\xC9G\xC9 PAR MOT DE PASSE"
+    de: "PASSWORTGESCH\xDCTZT"
+    ko: "\uBE44\uBC00\uBC88\uD638 \uBCF4\uD638"
+    ru: "\u0417\u0410\u0429\u0418\u0429\u0415\u041D\u041E \u041F\u0410\u0420\u041E\u041B\u0415\u041C"
+  - key: lobby.access.open
+    en: NO PASSWORD
+    tr: "\u015E\u0130FRE YOK"
+    es: "SIN CONTRASE\xD1A"
+    fr: SANS MOT DE PASSE
+    de: KEIN PASSWORT
+    ko: "\uBE44\uBC00\uBC88\uD638 \uC5C6\uC74C"
+    ru: "\u0411\u0415\u0417 \u041F\u0410\u0420\u041E\u041B\u042F"
+  - key: lobby.access.apply
+    en: APPLY PASSWORD
+    tr: "\u015E\u0130FREY\u0130 UYGULA"
+    es: "APLICAR CONTRASE\xD1A"
+    fr: APPLIQUER LE MOT DE PASSE
+    de: PASSWORT ANWENDEN
+    ko: "\uBE44\uBC00\uBC88\uD638 \uC801\uC6A9"
+    ru: "\u041F\u0420\u0418\u041C\u0415\u041D\u0418\u0422\u042C \u041F\u0410\u0420\u041E\u041B\u042C"
+  - key: lobby.access.saving
+    en: SAVING...
+    tr: "KAYDED\u0130L\u0130YOR..."
+    es: GUARDANDO...
+    fr: ENREGISTREMENT...
+    de: SPEICHERN...
+    ko: "\uC800\uC7A5 \uC911..."
+    ru: "\u0421\u041E\u0425\u0420\u0410\u041D\u0415\u041D\u0418\u0415..."
+  - key: lobby.access.saved
+    en: ACCESS UPDATED
+    tr: "ER\u0130\u015E\u0130M G\xDCNCELLEND\u0130"
+    es: ACCESO ACTUALIZADO
+    fr: "ACC\xC8S MIS \xC0 JOUR"
+    de: ZUGANG AKTUALISIERT
+    ko: "\uC811\uADFC \uC5C5\uB370\uC774\uD2B8\uB428"
+    ru: "\u0414\u041E\u0421\u0422\u0423\u041F \u041E\u0411\u041D\u041E\u0412\u041B\u0401\u041D"
+  - key: lobby.error.password_required
+    en: Room password is required.
+    tr: "Oda \u015Fifresi gerekli."
+    es: "Se requiere la contrase\xF1a de la sala."
+    fr: Le mot de passe du salon est requis.
+    de: Raumpasswort erforderlich.
+    ko: "\uBC29 \uBE44\uBC00\uBC88\uD638\uAC00 \uD544\uC694\uD569\uB2C8\uB2E4."
+    ru: "\u0422\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F \u043F\u0430\u0440\u043E\u043B\u044C
+      \u043A\u043E\u043C\u043D\u0430\u0442\u044B."
+  - key: lobby.error.password_incorrect
+    en: Incorrect room password.
+    tr: "Oda \u015Fifresi yanl\u0131\u015F."
+    es: "Contrase\xF1a de sala incorrecta."
+    fr: Mot de passe du salon incorrect.
+    de: Falsches Raumpasswort.
+    ko: "\uBC29 \uBE44\uBC00\uBC88\uD638\uAC00 \uC62C\uBC14\uB974\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4."
+    ru: "\u041D\u0435\u0432\u0435\u0440\u043D\u044B\u0439 \u043F\u0430\u0440\u043E\u043B\u044C
+      \u043A\u043E\u043C\u043D\u0430\u0442\u044B."
+  - key: lobby.error.password_length
+    en: Password must be 4-32 characters, or blank to remove it.
+    tr: "\u015Eifre 4-32 karakter olmal\u0131; kald\u0131rmak i\xE7in bo\u015F b\u0131rak."
+    es: "La contrase\xF1a debe tener 4-32 caracteres o quedar vac\xEDa para eliminarla."
+    fr: "Le mot de passe doit contenir 4 \xE0 32 caract\xE8res, ou \xEAtre vide pour
+      le supprimer."
+    de: Passwort muss 4-32 Zeichen lang sein oder zum Entfernen leer bleiben.
+    ko: "\uBE44\uBC00\uBC88\uD638\uB294 4-32\uC790\uC5EC\uC57C \uD558\uBA70 \uC81C\uAC70\uD558\uB824\uBA74
+      \uBE44\uC6CC \uB450\uC138\uC694."
+    ru: "\u041F\u0430\u0440\u043E\u043B\u044C \u0434\u043E\u043B\u0436\u0435\u043D
+      \u0441\u043E\u0434\u0435\u0440\u0436\u0430\u0442\u044C 4-32 \u0441\u0438\u043C\u0432\u043E\u043B\u0430;
+      \u043E\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u043F\u0443\u0441\u0442\u044B\u043C
+      \u0434\u043B\u044F \u0443\u0434\u0430\u043B\u0435\u043D\u0438\u044F."
