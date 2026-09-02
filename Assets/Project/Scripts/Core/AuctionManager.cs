@@ -67,28 +67,59 @@ public class AuctionManager : MonoBehaviour
     private Action resolutionCompleted;
     private Coroutine completionCoroutine;
 
+    // Phase 5E online auction presentation/authority.
+    private bool onlineDecisionConfigured;
+    private readonly HashSet<int> onlineLocallyControlledHumanSlots =
+        new HashSet<int>();
+    private bool remotePresentation;
+    private bool remoteRequestPending;
+    private PlayerGameState remoteCurrentBidder;
+    private PlayerGameState remoteHighestBidder;
+    private int remoteCurrentBid;
+    private int remoteMinimumBid;
+    private int remoteSmallBidStep;
+    private int remoteLargeBidStep;
+
+    public event Action<int, string> RemoteAuctionDecisionRequested;
+
     public bool IsAuctionActive =>
-        isAuctionActive;
+        remotePresentation || isAuctionActive;
 
     public BoardTile AuctionProperty =>
         auctionProperty;
 
+    public bool IsRemotePresentation =>
+        remotePresentation;
+
     public int CurrentBid =>
-        currentBid;
+        remotePresentation
+            ? remoteCurrentBid
+            : currentBid;
 
     public int MinimumBid =>
-        minimumBid;
+        remotePresentation
+            ? remoteMinimumBid
+            : minimumBid;
 
     public int SmallBidStep =>
-        smallBidStep;
+        remotePresentation
+            ? remoteSmallBidStep
+            : smallBidStep;
 
     public int LargeBidStep =>
-        largeBidStep;
+        remotePresentation
+            ? remoteLargeBidStep
+            : largeBidStep;
 
     public PlayerGameState CurrentBidder
     {
         get
         {
+            if (remotePresentation)
+            {
+                return remoteCurrentBidder;
+            }
+
             return IsValidPlayerIndex(
                        currentBidderIndex)
                 ? GetPlayer(currentBidderIndex)
@@ -96,15 +127,51 @@ public class AuctionManager : MonoBehaviour
         }
     }
 
+    public PlayerGameState HighestBidder
+    {
+        get
+        {
+            if (remotePresentation)
+            {
+                return remoteHighestBidder;
+            }
+
+            return IsValidPlayerIndex(
+                       highestBidderIndex)
+                ? GetPlayer(highestBidderIndex)
+                : null;
+        }
+    }
+
+    public void ConfigureOnlineDecisionAuthority(
+        IEnumerable<int> locallyControlledHumanSlots)
+    {
+        onlineDecisionConfigured = true;
+        onlineLocallyControlledHumanSlots.Clear();
+
+        if (locallyControlledHumanSlots == null)
+        {
+            return;
+        }
+
+        foreach (int slotIndex in locallyControlledHumanSlots)
+        {
+            if (slotIndex >= 0 && slotIndex < 4)
+            {
+                onlineLocallyControlledHumanSlots.Add(slotIndex);
+            }
+        }
+    }
+
     public int NextSmallBidAmount =>
         Mathf.Max(
-            minimumBid,
-            currentBid + smallBidStep);
+            MinimumBid,
+            CurrentBid + SmallBidStep);
 
     public int NextLargeBidAmount =>
         Mathf.Max(
-            minimumBid,
-            currentBid + largeBidStep);
+            MinimumBid,
+            CurrentBid + LargeBidStep);
 
     public bool IsCurrentBidder(
         PlayerGameState player)
@@ -143,7 +210,7 @@ public class AuctionManager : MonoBehaviour
     {
         if (auctionPanel != null &&
             auctionPanel.activeSelf &&
-            isAuctionActive)
+            IsAuctionActive)
         {
             RefreshAuctionUI();
         }
@@ -211,16 +278,34 @@ public class AuctionManager : MonoBehaviour
 
     public void PlaceSmallBid()
     {
+        if (TrySubmitOnlineRemoteAuctionAction(
+                "bid_small"))
+        {
+            return;
+        }
+
         PlaceBid(smallBidStep);
     }
 
     public void PlaceLargeBid()
     {
+        if (TrySubmitOnlineRemoteAuctionAction(
+                "bid_large"))
+        {
+            return;
+        }
+
         PlaceBid(largeBidStep);
     }
 
     public void PassCurrentBidder()
     {
+        if (TrySubmitOnlineRemoteAuctionAction(
+                "pass"))
+        {
+            return;
+        }
+
         if (!isAuctionActive ||
             !IsValidPlayerIndex(currentBidderIndex))
         {
@@ -280,6 +365,148 @@ public class AuctionManager : MonoBehaviour
             nextWithoutBid;
 
         RefreshAuctionUI();
+    }
+
+    public void ShowOnlineRemoteAuctionState(
+        BoardTile property,
+        PlayerGameState currentBidder,
+        PlayerGameState highestBidder,
+        int authoritativeCurrentBid,
+        int authoritativeMinimumBid,
+        int authoritativeSmallBidStep,
+        int authoritativeLargeBidStep)
+    {
+        if (property == null ||
+            currentBidder == null)
+        {
+            ClearOnlineRemoteAuctionState();
+            return;
+        }
+
+        bool samePresentation =
+            remotePresentation &&
+            auctionProperty != null &&
+            auctionProperty.TileIndex == property.TileIndex &&
+            remoteCurrentBidder != null &&
+            remoteCurrentBidder.PlayerSlotIndex ==
+                currentBidder.PlayerSlotIndex &&
+            remoteCurrentBid == authoritativeCurrentBid;
+
+        remotePresentation = true;
+
+        if (!samePresentation)
+        {
+            remoteRequestPending = false;
+        }
+
+        auctionProperty = property;
+        remoteCurrentBidder = currentBidder;
+        remoteHighestBidder = highestBidder;
+        remoteCurrentBid =
+            Mathf.Max(0, authoritativeCurrentBid);
+        remoteMinimumBid =
+            Mathf.Max(1, authoritativeMinimumBid);
+        remoteSmallBidStep =
+            Mathf.Max(1, authoritativeSmallBidStep);
+        remoteLargeBidStep =
+            Mathf.Max(1, authoritativeLargeBidStep);
+
+        if (auctionPanel != null)
+        {
+            auctionPanel.SetActive(true);
+        }
+
+        RefreshAuctionUI();
+    }
+
+    public void ClearOnlineRemoteAuctionState()
+    {
+        if (!remotePresentation)
+        {
+            return;
+        }
+
+        remotePresentation = false;
+        remoteRequestPending = false;
+        remoteCurrentBidder = null;
+        remoteHighestBidder = null;
+        remoteCurrentBid = 0;
+        remoteMinimumBid = 0;
+        remoteSmallBidStep = 0;
+        remoteLargeBidStep = 0;
+        auctionProperty = null;
+
+        if (auctionPanel != null)
+        {
+            auctionPanel.SetActive(false);
+        }
+
+        if (bidSmallButton != null)
+        {
+            bidSmallButton.interactable = false;
+        }
+
+        if (bidLargeButton != null)
+        {
+            bidLargeButton.interactable = false;
+        }
+
+        if (passButton != null)
+        {
+            passButton.interactable = false;
+        }
+    }
+
+    public void NotifyOnlineRemoteAuctionSubmitFailed()
+    {
+        if (!remotePresentation)
+        {
+            return;
+        }
+
+        remoteRequestPending = false;
+        RefreshButtonAvailability();
+    }
+
+    private bool TrySubmitOnlineRemoteAuctionAction(
+        string action)
+    {
+        if (!remotePresentation)
+        {
+            return false;
+        }
+
+        if (remoteRequestPending ||
+            remoteCurrentBidder == null)
+        {
+            return true;
+        }
+
+        if (!onlineLocallyControlledHumanSlots.Contains(
+                remoteCurrentBidder.PlayerSlotIndex))
+        {
+            return true;
+        }
+
+        Action<int, string> callback =
+            RemoteAuctionDecisionRequested;
+
+        if (callback == null)
+        {
+            Debug.LogWarning(
+                "Remote Auction action has no online subscriber.",
+                this);
+            return true;
+        }
+
+        remoteRequestPending = true;
+        RefreshButtonAvailability();
+
+        callback.Invoke(
+            remoteCurrentBidder.PlayerSlotIndex,
+            action ?? string.Empty);
+
+        return true;
     }
 
     private void BeginAuctionInternal(
@@ -707,6 +934,12 @@ public class AuctionManager : MonoBehaviour
 
     private void RefreshAuctionUI()
     {
+        if (remotePresentation)
+        {
+            RefreshRemoteAuctionUI();
+            return;
+        }
+
         if (!isAuctionActive ||
             auctionProperty == null ||
             !IsValidPlayerIndex(currentBidderIndex))
@@ -765,6 +998,53 @@ public class AuctionManager : MonoBehaviour
 
     private void RefreshButtonAvailability()
     {
+        if (remotePresentation)
+        {
+            PlayerGameState remoteBidder =
+                remoteCurrentBidder;
+
+            bool remoteHumanCanControl =
+                remoteBidder != null &&
+                !remoteRequestPending &&
+                !IsBotPlayer(remoteBidder) &&
+                onlineLocallyControlledHumanSlots.Contains(
+                    remoteBidder.PlayerSlotIndex);
+
+            int remoteNextSmallBid =
+                Mathf.Max(
+                    Mathf.Max(1, remoteMinimumBid),
+                    remoteCurrentBid +
+                    Mathf.Max(1, remoteSmallBidStep));
+
+            int remoteNextLargeBid =
+                Mathf.Max(
+                    Mathf.Max(1, remoteMinimumBid),
+                    remoteCurrentBid +
+                    Mathf.Max(1, remoteLargeBidStep));
+
+            if (bidSmallButton != null)
+            {
+                bidSmallButton.interactable =
+                    remoteHumanCanControl &&
+                    remoteBidder.CurrentMoney >= remoteNextSmallBid;
+            }
+
+            if (bidLargeButton != null)
+            {
+                bidLargeButton.interactable =
+                    remoteHumanCanControl &&
+                    remoteBidder.CurrentMoney >= remoteNextLargeBid;
+            }
+
+            if (passButton != null)
+            {
+                passButton.interactable =
+                    remoteHumanCanControl;
+            }
+
+            return;
+        }
+
         PlayerGameState bidder =
             GetPlayer(currentBidderIndex);
 
@@ -774,7 +1054,10 @@ public class AuctionManager : MonoBehaviour
 
         bool humanCanControl =
             validBidder &&
-            !IsBotPlayer(bidder);
+            !IsBotPlayer(bidder) &&
+            (!onlineDecisionConfigured ||
+             onlineLocallyControlledHumanSlots.Contains(
+                 bidder.PlayerSlotIndex));
 
         int nextSmallBid =
             Mathf.Max(
@@ -805,6 +1088,60 @@ public class AuctionManager : MonoBehaviour
             passButton.interactable =
                 humanCanControl;
         }
+    }
+
+    private void RefreshRemoteAuctionUI()
+    {
+        if (!remotePresentation ||
+            auctionProperty == null ||
+            remoteCurrentBidder == null)
+        {
+            return;
+        }
+
+        string highestBidderName =
+            remoteHighestBidder != null
+                ? AtlasBoardL.PlayerName(
+                    remoteHighestBidder)
+                : AtlasBoardL.T(
+                    "auction.none");
+
+        if (auctionTitleText != null)
+        {
+            auctionTitleText.text =
+                AtlasBoardL.T(
+                    "auction.title");
+        }
+
+        if (auctionPropertyText != null)
+        {
+            auctionPropertyText.text =
+                AtlasBoardL.T(
+                    "auction.property_info",
+                    auctionProperty.DisplayName,
+                    auctionProperty.PurchasePrice,
+                    auctionProperty.BaseRent);
+        }
+
+        if (auctionStatusText != null)
+        {
+            string bidderSuffix =
+                IsBotPlayer(remoteCurrentBidder)
+                    ? AtlasBoardL.T(
+                        "common.bot_suffix")
+                    : string.Empty;
+
+            auctionStatusText.text =
+                AtlasBoardL.T(
+                    "auction.status",
+                    remoteCurrentBid,
+                    highestBidderName,
+                    AtlasBoardL.PlayerName(
+                        remoteCurrentBidder),
+                    bidderSuffix);
+        }
+
+        RefreshButtonAvailability();
     }
 
     private void FinishAuctionWithMessage(
@@ -871,6 +1208,14 @@ public class AuctionManager : MonoBehaviour
         }
 
         isAuctionActive = false;
+        remotePresentation = false;
+        remoteRequestPending = false;
+        remoteCurrentBidder = null;
+        remoteHighestBidder = null;
+        remoteCurrentBid = 0;
+        remoteMinimumBid = 0;
+        remoteSmallBidStep = 0;
+        remoteLargeBidStep = 0;
 
         auctionProperty = null;
         auctionPlayers = null;
@@ -1034,4 +1379,28 @@ public class AuctionManager : MonoBehaviour
 
         return player.VisualProfile.ProfileId;
     }
+    public void ResetForNewMatchSession()
+    {
+        StopAllCoroutines();
+        completionCoroutine = null;
+        isAuctionActive = false;
+        resolutionCompleted = null;
+        auctionProperty = null;
+        auctionPlayers = null;
+        eligibleBidders = null;
+        currentBidderIndex = -1;
+        highestBidderIndex = -1;
+        currentBid = 0;
+        remotePresentation = false;
+        remoteRequestPending = false;
+        remoteCurrentBidder = null;
+        remoteHighestBidder = null;
+        remoteCurrentBid = 0;
+        remoteMinimumBid = 0;
+        remoteSmallBidStep = 0;
+        remoteLargeBidStep = 0;
+
+        if (auctionPanel != null) auctionPanel.SetActive(false);
+    }
+
 }

@@ -81,8 +81,27 @@ public class PlayerPawnMover : MonoBehaviour
     public event Action<PlayerPawnMover>
         MovementCompleted;
 
+    // Phase 5C network lifecycle. These are emitted only by authoritative/local
+    // gameplay movement. Follower presentation movement deliberately suppresses
+    // them so Remote clients never resolve tiles or economy independently.
+    public event Action<PlayerPawnMover>
+        MovementStarted;
+
+    public event Action<PlayerPawnMover>
+        MovementEnded;
+
     public event Action<PlayerPawnMover>
         PassedStart;
+
+    public int LastMovementStartTileIndex { get; private set; } = -1;
+
+    public int LastMovementTargetTileIndex { get; private set; } = -1;
+
+    public int LastMovementStepCount { get; private set; }
+
+    public bool LastMovementPassedStart { get; private set; }
+
+    public bool LastMovementUsedSprint { get; private set; }
 
     private void Awake()
     {
@@ -175,13 +194,18 @@ public class PlayerPawnMover : MonoBehaviour
             return false;
         }
 
+        CaptureAuthoritativeMovement(
+            steps,
+            useSprintAnimation: false);
+
         StartCoroutine(
             MoveStepsRoutine(
                 steps,
                 completedPawn =>
                     MovementCompleted?.Invoke(
                         completedPawn),
-                false));
+                false,
+                raiseGameplayEvents: true));
 
         return true;
     }
@@ -230,13 +254,120 @@ public class PlayerPawnMover : MonoBehaviour
             $"to tile {wrappedTargetIndex}.",
             this);
 
+        CaptureAuthoritativeMovement(
+            steps,
+            useSprintAnimation: true);
+
         StartCoroutine(
             MoveStepsRoutine(
                 steps,
                 onCompleted,
-                true));
+                true,
+                raiseGameplayEvents: true));
 
         return true;
+    }
+
+    /// <summary>
+    /// Phase 5C Remote presentation path. Replays an authoritative forward
+    /// movement without raising PassedStart, MovementStarted, MovementEnded,
+    /// or MovementCompleted gameplay events on the follower.
+    /// </summary>
+    public bool PlayOnlineFollowerMovement(
+        int authoritativeStartTileIndex,
+        int steps,
+        int authoritativeTargetTileIndex,
+        bool useSprintAnimation,
+        Action<PlayerPawnMover> onCompleted = null)
+    {
+        if (isMoving ||
+            steps <= 0 ||
+            IsBankrupt())
+        {
+            return false;
+        }
+
+        EnsureBoardPath();
+
+        if (boardPath == null ||
+            boardPath.TileCount == 0)
+        {
+            Debug.LogError(
+                "Follower pawn cannot move because " +
+                "BoardPath is unavailable.",
+                this);
+
+            return false;
+        }
+
+        int wrappedStart =
+            WrapTileIndex(
+                authoritativeStartTileIndex);
+
+        int wrappedTarget =
+            WrapTileIndex(
+                authoritativeTargetTileIndex);
+
+        currentTileIndex = wrappedStart;
+        SnapToCurrentTile();
+
+        StartCoroutine(
+            MoveStepsRoutine(
+                steps,
+                completedPawn =>
+                {
+                    // Host state is authoritative. Correct any unexpected local
+                    // path divergence after the presentation animation.
+                    if (currentTileIndex != wrappedTarget)
+                    {
+                        currentTileIndex = wrappedTarget;
+                        SnapToCurrentTile();
+                    }
+
+                    onCompleted?.Invoke(
+                        completedPawn);
+                },
+                useSprintAnimation,
+                raiseGameplayEvents: false));
+
+        return true;
+    }
+
+    /// <summary>
+    /// Applies an authoritative tile-index correction when no follower movement
+    /// animation is active. This is visual state sync only.
+    /// </summary>
+    public void SyncOnlineFollowerTileIndex(
+        int authoritativeTileIndex)
+    {
+        if (isMoving ||
+            IsBankrupt())
+        {
+            return;
+        }
+
+        EnsureBoardPath();
+
+        if (boardPath == null ||
+            boardPath.TileCount == 0)
+        {
+            return;
+        }
+
+        int wrappedIndex =
+            WrapTileIndex(
+                authoritativeTileIndex);
+
+        if (currentTileIndex == wrappedIndex)
+        {
+            return;
+        }
+
+        currentTileIndex = wrappedIndex;
+        SnapToCurrentTile();
+
+        pawnMotionAnimator
+            ?.SetLandedPose();
     }
 
     [ContextMenu("Snap To Current Tile")]
@@ -331,7 +462,8 @@ public class PlayerPawnMover : MonoBehaviour
     private IEnumerator MoveStepsRoutine(
         int steps,
         Action<PlayerPawnMover> onCompleted,
-        bool useSprintAnimation)
+        bool useSprintAnimation,
+        bool raiseGameplayEvents)
     {
         isMoving = true;
 
@@ -438,7 +570,8 @@ public class PlayerPawnMover : MonoBehaviour
             transform.position =
                 targetPosition;
 
-            if (passedStartThisStep)
+            if (passedStartThisStep &&
+                raiseGameplayEvents)
             {
                 PassedStart?.Invoke(this);
             }
@@ -468,7 +601,48 @@ public class PlayerPawnMover : MonoBehaviour
                 this);
         }
 
+        if (raiseGameplayEvents)
+        {
+            MovementEnded?.Invoke(this);
+        }
+
         onCompleted?.Invoke(this);
+    }
+
+    private void CaptureAuthoritativeMovement(
+        int steps,
+        bool useSprintAnimation)
+    {
+        EnsureBoardPath();
+
+        if (boardPath == null ||
+            boardPath.TileCount == 0)
+        {
+            return;
+        }
+
+        LastMovementStartTileIndex =
+            WrapTileIndex(
+                currentTileIndex);
+
+        LastMovementStepCount =
+            Mathf.Max(0, steps);
+
+        LastMovementTargetTileIndex =
+            WrapTileIndex(
+                LastMovementStartTileIndex +
+                LastMovementStepCount);
+
+        LastMovementPassedStart =
+            LastMovementStepCount > 0 &&
+            LastMovementStartTileIndex +
+            LastMovementStepCount >=
+                boardPath.TileCount;
+
+        LastMovementUsedSprint =
+            useSprintAnimation;
+
+        MovementStarted?.Invoke(this);
     }
 
     private void HandleBankruptcyChanged(
@@ -894,4 +1068,22 @@ public class PlayerPawnMover : MonoBehaviour
                 GetComponent<PawnMotionAnimator>();
         }
     }
+    public void ResetForNewMatchSession()
+    {
+        StopAllCoroutines();
+        isMoving = false;
+        currentTileIndex = 0;
+
+        EnsureBoardPath();
+
+        if (boardPath != null &&
+            boardPath.TileCount > 0 &&
+            !IsBankrupt())
+        {
+            SnapToCurrentTile();
+        }
+
+        pawnMotionAnimator?.SetLandedPose();
+    }
+
 }

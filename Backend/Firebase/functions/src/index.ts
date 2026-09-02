@@ -34,6 +34,7 @@ import {
   updateLobbyPassword,
   closeLobby,
   setLobbyReady,
+  setLobbyPawnCosmetic,
   startLobbyMatch,
   updateLobbySettings,
   LobbySeatPolicy,
@@ -42,6 +43,19 @@ import {
   createPublicLobby,
   listPublicLobbies,
 } from "./lobby/lobby";
+import {
+  acknowledgeMatchIntents,
+  getMatchNetworkSnapshot,
+  listPendingMatchIntents,
+  publishMatchNetworkState,
+  submitMatchIntent,
+} from "./match/network";
+import {
+  hostExpireReconnects,
+  hostMarkAfkRemoved,
+  hostPrepareRematch,
+  leaveActiveMatch,
+} from "./match/lifecycle";
 
 const REGION = "europe-west1";
 const PROJECT_ID = "atlasboard-usa";
@@ -1074,6 +1088,43 @@ export const lobbyConfigureSeats = onCall(
 );
 
 /**
+ * Stores a seat-owned lobby pawn cosmetic selection. This is cosmetic-only and
+ * does not change settingsRevision or Ready state.
+ */
+export const lobbySetPawnCosmetic = onCall(
+  {
+    region: REGION,
+    maxInstances: 20,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const data = request.data ?? {};
+
+    const result = await setLobbyPawnCosmetic({
+      uid,
+      lobbyId: data.lobbyId as string,
+      slotIndex: data.slotIndex as number,
+      pawnCosmeticId: data.pawnCosmeticId as string,
+    });
+
+    logger.info("AtlasBoard lobby pawn cosmetic updated.", {
+      accountId: uid,
+      lobbyId: result.snapshot.lobbyId,
+      slotIndex: data.slotIndex,
+      pawnCosmeticId: data.pawnCosmeticId,
+      applied: result.applied,
+    });
+
+    return {
+      ok: true,
+      applied: result.applied,
+      snapshot: result.snapshot,
+    };
+  },
+);
+
+/**
  * Sets Ready for a connected Remote Human only.
  *
  * Host, Local Humans, and Bots never Ready. Ready never auto-starts a match;
@@ -1257,3 +1308,233 @@ export const lobbyGetSnapshot = onCall(
     };
   },
 );
+
+/**
+ * Phase 5A member-authorized authoritative match transport snapshot.
+ */
+export const matchGetSnapshot = onCall(
+  {
+    region: REGION,
+    maxInstances: 30,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const data = request.data ?? {};
+
+    const snapshot =
+      await getMatchNetworkSnapshot({
+        uid,
+        matchId: data.matchId as string,
+      });
+
+    return {
+      ok: true,
+      snapshot,
+    };
+  },
+);
+
+/**
+ * Voluntary active-match leave. The authenticated RemoteHuman seat becomes a
+ * TemporaryBot and keeps a five-minute reclaim reservation.
+ */
+export const matchLeaveActive = onCall(
+  {
+    region: REGION,
+    maxInstances: 30,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const data = request.data ?? {};
+    const snapshot = await leaveActiveMatch({
+      uid,
+      matchId: data.matchId,
+    });
+
+    return {ok: true, snapshot};
+  },
+);
+
+/** Host-only permanent AFK seat conversion. */
+export const matchHostMarkAfkRemoved = onCall(
+  {
+    region: REGION,
+    maxInstances: 20,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const data = request.data ?? {};
+    const snapshot = await hostMarkAfkRemoved({
+      uid,
+      matchId: data.matchId,
+      slotIndex: data.slotIndex,
+    });
+
+    return {ok: true, snapshot};
+  },
+);
+
+/** Host-only five-minute TemporaryBot expiry sweep. */
+export const matchHostExpireReconnects = onCall(
+  {
+    region: REGION,
+    maxInstances: 20,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const data = request.data ?? {};
+    const snapshot = await hostExpireReconnects({
+      uid,
+      matchId: data.matchId,
+    });
+
+    return {ok: true, snapshot};
+  },
+);
+
+/** Host-only synchronized return of the completed match to its same lobby. */
+export const matchHostPrepareRematch = onCall(
+  {
+    region: REGION,
+    maxInstances: 20,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const data = request.data ?? {};
+    const snapshot = await hostPrepareRematch({
+      uid,
+      matchId: data.matchId,
+    });
+
+    return {ok: true, snapshot};
+  },
+);
+
+/**
+ * Phase 5A client -> authoritative host intent queue.
+ */
+export const matchSubmitIntent = onCall(
+  {
+    region: REGION,
+    maxInstances: 40,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const data = request.data ?? {};
+
+    const result =
+      await submitMatchIntent({
+        uid,
+        matchId: data.matchId as string,
+        clientCommandId:
+          data.clientCommandId as string,
+        intentType:
+          data.intentType as string,
+        payloadJson:
+          data.payloadJson as string,
+      });
+
+    return {
+      ok: true,
+      ...result,
+    };
+  },
+);
+
+/**
+ * Host-only pending intent reader.
+ */
+export const matchHostListPendingIntents = onCall(
+  {
+    region: REGION,
+    maxInstances: 30,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const data = request.data ?? {};
+
+    const intents =
+      await listPendingMatchIntents({
+        uid,
+        matchId: data.matchId as string,
+      });
+
+    return {
+      ok: true,
+      intents,
+    };
+  },
+);
+
+/**
+ * Host-only authoritative match-state publication.
+ */
+export const matchHostPublishState = onCall(
+  {
+    region: REGION,
+    maxInstances: 30,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const data = request.data ?? {};
+
+    const state =
+      await publishMatchNetworkState({
+        uid,
+        matchId: data.matchId as string,
+        expectedRevision:
+          data.expectedRevision as number,
+        phase:
+          data.phase as string,
+        turnSeatId:
+          data.turnSeatId as string,
+        eventSequence:
+          data.eventSequence as number,
+        snapshotJson:
+          data.snapshotJson as string,
+      });
+
+    return {
+      ok: true,
+      state,
+    };
+  },
+);
+
+/**
+ * Host-only acknowledgement after local authoritative gameplay consumes
+ * remote intents.
+ */
+export const matchHostAcknowledgeIntents = onCall(
+  {
+    region: REGION,
+    maxInstances: 30,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const data = request.data ?? {};
+
+    const result =
+      await acknowledgeMatchIntents({
+        uid,
+        matchId: data.matchId as string,
+        intentIds:
+          data.intentIds as string[],
+      });
+
+    return {
+      ok: true,
+      ...result,
+    };
+  },
+);
+

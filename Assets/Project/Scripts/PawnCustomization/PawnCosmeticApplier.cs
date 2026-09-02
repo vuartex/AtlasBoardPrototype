@@ -39,6 +39,8 @@ public class PawnCosmeticApplier :
     private PawnCosmeticDefinition currentCosmetic;
     private GameObject identityDisc;
     private Material identityMaterial;
+    private bool onlineAuthoritativeCosmeticActive;
+    private string lastOnlineAuthoritativeCosmeticId = string.Empty;
 
     public GameObject CurrentVisual =>
         currentVisual;
@@ -125,11 +127,86 @@ public class PawnCosmeticApplier :
         }
     }
 
+    public bool ApplyOnlineAuthoritativeCosmeticId(
+        string cosmeticId)
+    {
+        ResolveReferences();
+        EnsureMount();
+
+        AtlasBoardPawnCosmeticService service =
+            AtlasBoardPawnCosmeticService.Instance;
+
+        string normalizedCosmeticId =
+            cosmeticId?.Trim() ?? string.Empty;
+
+        if (service == null ||
+            service.Catalog == null ||
+            string.IsNullOrWhiteSpace(normalizedCosmeticId))
+        {
+            return false;
+        }
+
+        onlineAuthoritativeCosmeticActive = true;
+
+        // Network snapshots are revisioned frequently while another pawn moves.
+        // Do not Rebind/recreate an unchanged cosmetic on every snapshot; doing
+        // so resets the idle motion root and can look like stationary pawns are
+        // repeatedly spinning/reloading.
+        if (currentVisual != null &&
+            string.Equals(
+                lastOnlineAuthoritativeCosmeticId,
+                normalizedCosmeticId,
+                System.StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        PawnCosmeticDefinition cosmetic =
+            service.Catalog.FindById(normalizedCosmeticId);
+
+        if (cosmetic == null ||
+            cosmetic.Prefab == null)
+        {
+            return false;
+        }
+
+        if (currentCosmetic != null &&
+            currentVisual != null &&
+            string.Equals(
+                currentCosmetic.CosmeticId,
+                cosmetic.CosmeticId,
+                System.StringComparison.Ordinal))
+        {
+            lastOnlineAuthoritativeCosmeticId =
+                normalizedCosmeticId;
+            return true;
+        }
+
+        ReplaceCosmetic(cosmetic);
+        lastOnlineAuthoritativeCosmeticId =
+            normalizedCosmeticId;
+        EnsureIdentityDisc();
+
+        if (pawnMover != null)
+        {
+            pawnMover.RefreshPawnVisibilityCache();
+            EnforceVisibility(
+                pawnMover.IsPawnVisible);
+        }
+        else
+        {
+            EnforceVisibility(true);
+        }
+
+        return true;
+    }
+
     private void HandleSelectionChanged(
         int playerSlotIndex,
         string cosmeticId)
     {
-        if (playerState == null ||
+        if (onlineAuthoritativeCosmeticActive ||
+            playerState == null ||
             playerState.PlayerSlotIndex !=
             playerSlotIndex)
         {

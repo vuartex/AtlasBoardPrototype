@@ -41,6 +41,7 @@ public class AtlasLobbyMemberSnapshot
     public string AccountId;
     public string LocalOwnerAccountId;
     public string DisplayName;
+    public string PawnCosmeticId;
     public bool IsHost;
     public AtlasSeatControllerKind ControllerKind;
     public AtlasSeatConnectionState ConnectionState;

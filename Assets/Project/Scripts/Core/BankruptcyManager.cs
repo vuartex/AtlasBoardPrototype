@@ -187,19 +187,23 @@ public class BankruptcyManager : MonoBehaviour
                 continue;
             }
 
+            // Development is liquidated when a player goes bankrupt. Even if
+            // the property itself transfers to a creditor, old house/hotel
+            // visuals and rent-development state must not survive the bankrupt
+            // owner.
+            EnsureDevelopmentManager();
+
+            if (propertyDevelopmentManager != null)
+            {
+                propertyDevelopmentManager
+                    .ResetDevelopment(tile);
+            }
+
             tile.ClearOwner();
             transferredCount++;
 
             if (!transferToCreditor)
             {
-                EnsureDevelopmentManager();
-
-                if (propertyDevelopmentManager != null)
-                {
-                    propertyDevelopmentManager
-                        .ResetDevelopment(tile);
-                }
-
                 continue;
             }
 

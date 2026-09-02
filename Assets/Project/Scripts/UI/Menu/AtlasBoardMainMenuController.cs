@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
@@ -49,8 +50,6 @@ public class AtlasBoardMainMenuController : MonoBehaviour
     private GameObject boardControlsCanvas;
     private bool gameplayUIStateCaptured;
     private bool tabletWasActive;
-    private bool overlayWasActive;
-    private bool boardControlsWasActive;
 
     [Header("Temporary Local Profile")]
     [SerializeField] private string profileName = "PLAYER";
@@ -110,6 +109,15 @@ public class AtlasBoardMainMenuController : MonoBehaviour
 
     private void Update()
     {
+        Canvas ownerCanvas =
+            GetComponent<Canvas>();
+
+        if (ownerCanvas != null &&
+            !ownerCanvas.enabled)
+        {
+            return;
+        }
+
         if (!WasEscapePressedThisFrame())
         {
             return;
@@ -257,6 +265,8 @@ public class AtlasBoardMainMenuController : MonoBehaviour
 
     public void ShowMainMenu()
     {
+        SetMainMenuCanvasRendering(true);
+
         SetActive(mainMenuPanel, true);
         SetActive(lobbyPanel, false);
         SetActive(modalPanel, false);
@@ -268,6 +278,102 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         {
             privateLobby.NotifyMainMenuShown();
         }
+    }
+
+    public void ReturnOnlineMatchToLobby()
+    {
+        ResolveGameplayUIReferences();
+        ResetReusableGameplaySession();
+        SetMainMenuCanvasRendering(true);
+
+        SetActive(mainMenuPanel, false);
+        SetActive(lobbyPanel, true);
+        SetActive(modalPanel, false);
+
+        SetActive(existingTabletCanvas, false);
+        SetActive(existingGameplayOverlayCanvas, false);
+        SetActive(boardControlsCanvas, false);
+
+        Debug.Log(
+            "AtlasBoard synchronized online rematch returned this client " +
+            "to the existing lobby without reloading the scene.",
+            this);
+    }
+
+    public void ShowMainMenuAfterActiveMatchExit()
+    {
+        ResolveGameplayUIReferences();
+        ResetReusableGameplaySession();
+        SetMainMenuCanvasRendering(true);
+
+        SetActive(mainMenuPanel, true);
+        SetActive(lobbyPanel, false);
+        SetActive(modalPanel, false);
+
+        SetActive(existingTabletCanvas, false);
+        SetActive(existingGameplayOverlayCanvas, false);
+        SetActive(boardControlsCanvas, false);
+    }
+
+    private static void ResetReusableGameplaySession()
+    {
+        MatchSetupManager setup =
+            FindSceneComponentIncludingInactive<MatchSetupManager>();
+        setup?.ResetForNewMatchSession();
+
+        TurnManager turn =
+            FindSceneComponentIncludingInactive<TurnManager>();
+        turn?.ResetForOnlineLobbySession();
+
+        TileResolutionManager resolution =
+            FindSceneComponentIncludingInactive<TileResolutionManager>();
+        resolution?.ResetForNewMatchSession();
+
+        SpecialTileManager special =
+            FindSceneComponentIncludingInactive<SpecialTileManager>();
+        special?.ResetForNewMatchSession();
+
+        EventCardManager events =
+            FindSceneComponentIncludingInactive<EventCardManager>();
+        events?.ResetForNewMatchSession();
+
+        AuctionManager auction =
+            FindSceneComponentIncludingInactive<AuctionManager>();
+        auction?.ResetForNewMatchSession();
+
+        TradeManager trade =
+            FindSceneComponentIncludingInactive<TradeManager>();
+        trade?.ResetForNewMatchSession();
+
+        MatchResultManager result =
+            FindSceneComponentIncludingInactive<MatchResultManager>();
+        result?.ResetForNewMatchSession();
+
+        TabletUIManager tablet =
+            FindSceneComponentIncludingInactive<TabletUIManager>();
+        tablet?.ResetForNewMatchSession();
+
+        PropertyDevelopmentManager development =
+            FindSceneComponentIncludingInactive<PropertyDevelopmentManager>();
+        development?.ResetAllDevelopmentsForNewMatch();
+    }
+
+    private static T FindSceneComponentIncludingInactive<T>()
+        where T : Component
+    {
+        T[] all =
+            Resources.FindObjectsOfTypeAll<T>();
+
+        foreach (T item in all)
+        {
+            if (item != null &&
+                item.gameObject.scene.IsValid())
+            {
+                return item;
+            }
+        }
+
+        return null;
     }
 
     public void BackFromLobby()
@@ -341,7 +447,12 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             if (started)
             {
                 RestoreGameplayUIForMatch();
-                gameObject.SetActive(false);
+
+                // Phase 5 networking lives on Canvas_MainMenu components.
+                // Hide rendering/raycasting but keep the GameObject active so
+                // Firebase lobby/match bridges and the online coordinator can
+                // continue polling during gameplay.
+                SetMainMenuCanvasRendering(false);
                 return;
             }
         }
@@ -357,6 +468,26 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         Debug.LogWarning(
             "AtlasBoard Main Menu v1.1 blocked the legacy Match Setup " +
             "screen because automatic mapping/start did not complete.");
+    }
+
+    private void SetMainMenuCanvasRendering(
+        bool visible)
+    {
+        Canvas canvas =
+            GetComponent<Canvas>();
+
+        if (canvas != null)
+        {
+            canvas.enabled = visible;
+        }
+
+        GraphicRaycaster raycaster =
+            GetComponent<GraphicRaycaster>();
+
+        if (raycaster != null)
+        {
+            raycaster.enabled = visible;
+        }
     }
 
     private void ApplySelectedTheme(
@@ -645,14 +776,6 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             existingTabletCanvas != null &&
             existingTabletCanvas.activeSelf;
 
-        overlayWasActive =
-            existingGameplayOverlayCanvas != null &&
-            existingGameplayOverlayCanvas.activeSelf;
-
-        boardControlsWasActive =
-            boardControlsCanvas != null &&
-            boardControlsCanvas.activeSelf;
-
         gameplayUIStateCaptured = true;
     }
 
@@ -670,18 +793,16 @@ public class AtlasBoardMainMenuController : MonoBehaviour
 
         if (existingGameplayOverlayCanvas != null)
         {
-            existingGameplayOverlayCanvas.SetActive(
-                gameplayUIStateCaptured
-                    ? overlayWasActive
-                    : true);
+            // Gameplay overlays are required once the match has started.
+            // Do not restore the intentionally-hidden menu-time state.
+            existingGameplayOverlayCanvas.SetActive(true);
         }
 
         if (boardControlsCanvas != null)
         {
-            boardControlsCanvas.SetActive(
-                gameplayUIStateCaptured
-                    ? boardControlsWasActive
-                    : true);
+            // ROLL / TRADE / SET live here. Match startup must win over
+            // the FALSE state captured while the Main Menu was visible.
+            boardControlsCanvas.SetActive(true);
         }
 
         Debug.Log(

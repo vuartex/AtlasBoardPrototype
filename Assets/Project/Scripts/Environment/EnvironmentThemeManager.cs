@@ -119,6 +119,7 @@ public class EnvironmentThemeManager : MonoBehaviour
         EnsureReferences();
 
         ApplyTableMaterials(theme);
+        ApplyClassicBoardPalette(theme);
         ApplySkybox(theme);
         ApplySceneThemeRoots(theme);
         ApplyOptionalPrefabContent(theme);
@@ -436,4 +437,53 @@ public class EnvironmentThemeManager : MonoBehaviour
             newAvailableThemes);
     }
 #endif
+    private void ApplyClassicBoardPalette(
+        EnvironmentThemeProfile theme)
+    {
+        if (theme == null ||
+            !string.Equals(
+                theme.ThemeId,
+                "classic_table",
+                System.StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        // Real table-game palette: muted felt instead of neon green and a
+        // dark warm wood/charcoal underlay instead of saturated blue. Clone
+        // renderer materials at runtime so shared theme assets are untouched.
+        SetRendererColor(
+            tableSurfaceRenderer,
+            new Color32(49, 91, 74, 255));
+        SetRendererColor(
+            tableUnderlayRenderer,
+            new Color32(59, 48, 40, 255));
+    }
+
+    private static void SetRendererColor(
+        Renderer target,
+        Color color)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        Material material = target.material;
+        if (material == null)
+        {
+            return;
+        }
+
+        if (material.HasProperty("_BaseColor"))
+        {
+            material.SetColor("_BaseColor", color);
+        }
+
+        if (material.HasProperty("_Color"))
+        {
+            material.SetColor("_Color", color);
+        }
+    }
+
 }

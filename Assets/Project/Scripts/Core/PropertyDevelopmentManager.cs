@@ -55,6 +55,12 @@ public class PropertyDevelopmentManager : MonoBehaviour
     private bool placeOnOuterTileEdge = true;
 
     [Tooltip(
+        "Keeps development visuals away from the outer title/header strip by " +
+        "placing them on the inner board-facing edge. Recommended for Atlas Board.")]
+    [SerializeField]
+    private bool avoidOuterTitleHeader = true;
+
+    [Tooltip(
         "Distance from the outside edge of the tile in world units.")]
     [SerializeField, Min(0f)]
     private float outerEdgeInset = 0.08f;
@@ -612,6 +618,61 @@ public class PropertyDevelopmentManager : MonoBehaviour
         }
 
         return groupCityCount >= 2;
+    }
+
+    public void ApplyOnlineAuthoritativeDevelopmentLevel(
+        BoardTile tile,
+        int authoritativeLevel,
+        PlayerGameState owner)
+    {
+        if (tile == null)
+        {
+            return;
+        }
+
+        EnsureInitialized();
+
+        int clampedLevel =
+            Mathf.Clamp(
+                authoritativeLevel,
+                0,
+                maximumDevelopmentLevel);
+
+        int currentLevel =
+            GetDevelopmentLevel(tile);
+
+        bool hasVisual =
+            markerRoots.TryGetValue(
+                tile,
+                out Transform markerRoot) &&
+            markerRoot != null &&
+            markerRoot.gameObject.activeSelf &&
+            markerRoot.childCount > 0;
+
+        if (currentLevel == clampedLevel &&
+            ((clampedLevel == 0 && !hasVisual) ||
+             (clampedLevel > 0 && hasVisual)))
+        {
+            return;
+        }
+
+        developmentLevels[tile] =
+            clampedLevel;
+
+        if (clampedLevel <= 0)
+        {
+            RemoveMarkerRoot(tile);
+            return;
+        }
+
+        Material material =
+            owner != null
+                ? owner.OwnershipMaterial
+                : null;
+
+        RebuildDevelopmentVisual(
+            tile,
+            material);
     }
 
     public void RefreshDevelopmentVisual(
@@ -1186,13 +1247,22 @@ public class PropertyDevelopmentManager : MonoBehaviour
         Vector3 rowBaseCenter =
             tileCenter;
 
-        if (placeOnOuterTileEdge)
+        float edgeOffset =
+            outerHalfDepth -
+            outerEdgeInset -
+            buildingDepth * 0.5f;
+
+        if (avoidOuterTitleHeader)
+        {
+            rowBaseCenter -=
+                outwardDirection *
+                edgeOffset;
+        }
+        else if (placeOnOuterTileEdge)
         {
             rowBaseCenter +=
                 outwardDirection *
-                (outerHalfDepth -
-                 outerEdgeInset -
-                 buildingDepth * 0.5f);
+                edgeOffset;
         }
 
         float tileTopY =
@@ -1539,4 +1609,23 @@ public class PropertyDevelopmentManager : MonoBehaviour
             ? debugOwner.DisplayName
             : "Unknown player";
     }
+    public void ResetAllDevelopmentsForNewMatch()
+    {
+        EnsureInitialized();
+
+        List<BoardTile> tiles =
+            new List<BoardTile>(developmentLevels.Keys);
+
+        foreach (BoardTile tile in tiles)
+        {
+            if (tile == null)
+            {
+                continue;
+            }
+
+            developmentLevels[tile] = 0;
+            RemoveMarkerRoot(tile);
+        }
+    }
+
 }

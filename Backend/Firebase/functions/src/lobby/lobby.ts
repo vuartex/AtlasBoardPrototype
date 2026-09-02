@@ -129,6 +129,13 @@ export interface SetLobbyReadyInput {
   ready: boolean;
 }
 
+export interface SetLobbyPawnCosmeticInput {
+  uid: string;
+  lobbyId: string;
+  slotIndex: number;
+  pawnCosmeticId: string;
+}
+
 export interface StartLobbyMatchInput {
   uid: string;
   lobbyId: string;
@@ -161,6 +168,7 @@ export interface LobbyMemberSnapshot {
   accountId: string;
   localOwnerAccountId: string;
   displayName: string;
+  pawnCosmeticId: string;
   isHost: boolean;
   connectionState: string;
   controllerKind: string;
@@ -640,6 +648,10 @@ function memberFromData(
       typeof data.displayName === "string" ?
         data.displayName :
         "",
+    pawnCosmeticId:
+      typeof data.pawnCosmeticId === "string" ?
+        data.pawnCosmeticId :
+        "",
     isHost: data.isHost === true,
     connectionState:
       typeof data.connectionState === "string" ?
@@ -1065,6 +1077,7 @@ function createDefaultSeatData(
     accountId: isHost ? hostUid : "",
     localOwnerAccountId: isHost ? hostUid : "",
     displayName: isHost ? hostDisplayName : "",
+    pawnCosmeticId: "",
     isHost,
     controllerKind:
       isHost ?
@@ -1538,6 +1551,103 @@ export async function joinLobbyByCode(
       );
     }
 
+    const existingMember = state.members.find(
+      (member) =>
+        member.data.active === true &&
+        member.data.accountId === input.uid,
+    );
+
+    // Active-match reconnect is intentionally NOT a normal join. The protected
+    // room code only resolves the session; authorization still requires the
+    // authenticated account to already own this exact seat. Other accounts
+    // continue to receive the normal not-joinable response.
+    if (
+      lobby.lifecycleState === "starting" &&
+      existingMember &&
+      typeof lobby.matchId === "string" &&
+      lobby.matchId.length > 0
+    ) {
+      const matchSeatRef = db
+        .collection("matches")
+        .doc(lobby.matchId)
+        .collection("seats")
+        .doc(existingMember.data.seatId);
+      const matchSeatSnap = await transaction.get(matchSeatRef);
+
+      if (!matchSeatSnap.exists) {
+        throw new HttpsError(
+          "failed-precondition",
+          "MATCH_SEAT_NOT_FOUND",
+          {errorKey: "match.error.seat_required"},
+        );
+      }
+
+      const matchSeat = matchSeatSnap.data() ?? {};
+      const expiresAt =
+        typeof matchSeat.reconnectExpiresAtEpochMs === "number" ?
+          matchSeat.reconnectExpiresAtEpochMs :
+          0;
+
+      if (matchSeat.afkLockedOut === true) {
+        throw new HttpsError(
+          "permission-denied",
+          "AFK_REMOVED_FROM_MATCH",
+          {errorKey: "match.error.afk_removed"},
+        );
+      }
+
+      if (
+        matchSeat.controllerKind === "temporary_bot" &&
+        expiresAt > 0 &&
+        expiresAt < Date.now()
+      ) {
+        transaction.set(
+          matchSeatRef,
+          {
+            controllerKind: "permanent_bot",
+            connectionState: "reconnect_expired",
+            reconnectExpiresAtEpochMs: 0,
+            removalReason: "reconnect_expired",
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          {merge: true},
+        );
+
+        throw new HttpsError(
+          "failed-precondition",
+          "RECONNECT_WINDOW_EXPIRED",
+          {errorKey: "match.error.reconnect_expired"},
+        );
+      }
+
+      transaction.set(
+        matchSeatRef,
+        {
+          controllerKind: "human",
+          connectionState: "connected",
+          reconnectExpiresAtEpochMs: 0,
+          removalReason: "",
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        {merge: true},
+      );
+
+      transaction.set(
+        existingMember.ref,
+        {
+          controllerKind: "human",
+          connectionState: "connected",
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        {merge: true},
+      );
+
+      return {
+        snapshot: state.snapshot,
+        idempotentReplay: true,
+      };
+    }
+
     if (lobby.lifecycleState !== "waiting") {
       throw new HttpsError(
         "failed-precondition",
@@ -1551,25 +1661,25 @@ export async function joinLobbyByCode(
     assertCompatible(lobby, input.versions);
     assertLobbyPassword(lobby, lobbyId, input.password);
 
-    for (const member of state.members) {
-      if (member.data.accountId !== input.uid) {
-        continue;
-      }
-
-      if (member.data.joinIdempotencyKey === input.idempotencyKey) {
-        return {
-          snapshot: state.snapshot,
-          idempotentReplay: true,
-        };
-      }
-
-      throw new HttpsError(
-        "already-exists",
-        "ACCOUNT_ALREADY_IN_LOBBY",
+    if (existingMember) {
+      // Same authenticated account returning to a waiting rematch lobby. Do not
+      // reserve another seat and do not expose a technical duplicate error.
+      transaction.set(
+        existingMember.ref,
         {
-          errorKey: "lobby.error.already_joined",
+          controllerKind: "human",
+          connectionState: "connected",
+          readyForRevision: 0,
+          joinIdempotencyKey: input.idempotencyKey,
+          updatedAt: FieldValue.serverTimestamp(),
         },
+        {merge: true},
       );
+
+      return {
+        snapshot: state.snapshot,
+        idempotentReplay: true,
+      };
     }
 
     const openSeat = state.members.find(
@@ -1595,6 +1705,7 @@ export async function joinLobbyByCode(
       accountId: input.uid,
       localOwnerAccountId: "",
       displayName: account.displayName,
+      pawnCosmeticId: "",
       controllerKind: "human",
       connectionState: "connected",
       readyForRevision: 0,
@@ -1617,6 +1728,7 @@ export async function joinLobbyByCode(
       member.accountId = input.uid;
       member.localOwnerAccountId = "";
       member.displayName = account.displayName;
+      member.pawnCosmeticId = "";
       member.controllerKind = "human";
       member.connectionState = "connected";
       member.readyForRevision = 0;
@@ -2118,6 +2230,7 @@ function concreteSeatFields(
       accountId: "",
       localOwnerAccountId: "",
       displayName: "",
+      pawnCosmeticId: "",
       controllerKind: "none",
       connectionState: "empty",
       readyForRevision: 0,
@@ -2176,6 +2289,7 @@ function concreteSeatFields(
     accountId: "",
     localOwnerAccountId: "",
     displayName: "",
+    pawnCosmeticId: "",
     controllerKind: "none",
     connectionState: "inactive",
     readyForRevision: 0,
@@ -2382,6 +2496,7 @@ export async function kickLobbyMember(
       accountId: "",
       localOwnerAccountId: "",
       displayName: "",
+      pawnCosmeticId: "",
       controllerKind: "none",
       connectionState: "empty",
       readyForRevision: 0,
@@ -2419,6 +2534,7 @@ export async function kickLobbyMember(
       accountId: "",
       localOwnerAccountId: "",
       displayName: "",
+      pawnCosmeticId: "",
       controllerKind: "none",
       connectionState: "empty",
       readyForRevision: 0,
@@ -2508,6 +2624,7 @@ export async function leaveLobby(
       accountId: "",
       localOwnerAccountId: "",
       displayName: "",
+      pawnCosmeticId: "",
       controllerKind: "none",
       connectionState: "empty",
       readyForRevision: 0,
@@ -2530,6 +2647,7 @@ export async function leaveLobby(
       accountId: "",
       localOwnerAccountId: "",
       displayName: "",
+      pawnCosmeticId: "",
       controllerKind: "none",
       connectionState: "empty",
       readyForRevision: 0,
@@ -2609,6 +2727,95 @@ export async function getLobbySnapshot(
     }
 
     return state.snapshot;
+  });
+}
+
+/**
+ * Updates one lobby seat's cosmetic selection without changing game settings.
+ * Remote Humans may update only their own occupied seat. The Host may update
+ * HostLocal, LocalHuman, and Bot seats. Open/Inactive seats are not writable.
+ * @param {SetLobbyPawnCosmeticInput} input Cosmetic update request.
+ * @return {Promise<{snapshot:LobbySnapshot,applied:boolean}>} Result.
+ */
+export async function setLobbyPawnCosmetic(
+  input: SetLobbyPawnCosmeticInput,
+): Promise<{snapshot: LobbySnapshot; applied: boolean}> {
+  const db = getFirestore();
+  const lobbyRef = db.collection("lobbies").doc(input.lobbyId);
+
+  const cosmeticId =
+    typeof input.pawnCosmeticId === "string" ?
+      input.pawnCosmeticId.trim() :
+      "";
+
+  if (
+    !Number.isInteger(input.slotIndex) ||
+    input.slotIndex < 0 ||
+    input.slotIndex >= MAX_PLAYERS ||
+    cosmeticId.length < 1 ||
+    cosmeticId.length > 80 ||
+    !/^[A-Za-z0-9._:-]+$/.test(cosmeticId)
+  ) {
+    throw new HttpsError(
+      "invalid-argument",
+      "INVALID_PAWN_COSMETIC",
+      {errorKey: "lobby.error.invalid_pawn_cosmetic"},
+    );
+  }
+
+  return db.runTransaction(async (transaction) => {
+    const state = await readLobbyState(transaction, lobbyRef);
+    const lobby = state.lobbyData;
+
+    if (lobby.lifecycleState !== "waiting") {
+      throw new HttpsError(
+        "failed-precondition",
+        "LOBBY_COSMETIC_LOCKED",
+        {errorKey: "lobby.error.not_joinable"},
+      );
+    }
+
+    const target = state.members[input.slotIndex];
+    const targetSnapshot = state.snapshot.members[input.slotIndex];
+
+    if (!target || !targetSnapshot || !targetSnapshot.active) {
+      throw new HttpsError(
+        "failed-precondition",
+        "PAWN_SEAT_NOT_ACTIVE",
+        {errorKey: "lobby.error.invalid_seat"},
+      );
+    }
+
+    const callerIsHost = lobby.hostAccountId === input.uid;
+    const callerOwnsRemote =
+      targetSnapshot.seatMode === "remote_human" &&
+      targetSnapshot.accountId === input.uid;
+    const hostOwnsSeat =
+      callerIsHost &&
+      (targetSnapshot.seatMode === "host_local" ||
+       targetSnapshot.seatMode === "local_human" ||
+       targetSnapshot.seatMode === "bot");
+
+    if (!callerOwnsRemote && !hostOwnsSeat) {
+      throw new HttpsError(
+        "permission-denied",
+        "PAWN_COSMETIC_NOT_OWNED",
+        {errorKey: "lobby.error.permission_denied"},
+      );
+    }
+
+    if (targetSnapshot.pawnCosmeticId === cosmeticId) {
+      return {snapshot: state.snapshot, applied: false};
+    }
+
+    transaction.update(target.ref, {
+      pawnCosmeticId: cosmeticId,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    targetSnapshot.pawnCosmeticId = cosmeticId;
+
+    return {snapshot: state.snapshot, applied: true};
   });
 }
 
@@ -3001,6 +3208,22 @@ export async function startLobbyMatch(
         ),
       );
     }
+
+    transaction.create(
+      matchRef.collection("network").doc("state"),
+      {
+        revision: 0,
+        phase: "starting",
+        turnSeatId: "",
+        eventSequence: 0,
+        snapshotJson: "{}",
+        authorityHostAccountId:
+          lobby.hostAccountId,
+        schemaVersion: 1,
+        createdAt: serverTimestamp,
+        updatedAt: serverTimestamp,
+      },
+    );
 
     const lobbyNext = {
       ...lobby,

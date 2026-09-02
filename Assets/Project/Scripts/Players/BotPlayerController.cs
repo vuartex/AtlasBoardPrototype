@@ -6,7 +6,7 @@ public class BotPlayerController : MonoBehaviour
 {
     [Header("Bot Control")]
     [SerializeField]
-    private bool botEnabled = true;
+    private bool botEnabled = false;
 
     [SerializeField, Min(0f)]
     private float rollDecisionDelay = 0.8f;
@@ -165,6 +165,17 @@ public class BotPlayerController : MonoBehaviour
     public void SetBotEnabled(
         bool enabledValue)
     {
+        // An authoritative online Human seat must never inherit a stale local
+        // BotPlayerController flag from a previous room/match. Host may only
+        // simulate seats whose authoritative controller kind is bot-like.
+        if (enabledValue &&
+            playerState != null &&
+            playerState.OnlineSeatStateActive &&
+            !playerState.IsOnlineBotControlled)
+        {
+            enabledValue = false;
+        }
+
         botEnabled = enabledValue;
 
         if (!botEnabled &&
@@ -176,7 +187,7 @@ public class BotPlayerController : MonoBehaviour
 
         Debug.Log(
             $"{name} control mode changed to " +
-            $"{(botEnabled ? "BOT" : "HUMAN")}.",
+            $"{(botEnabled ? "BOT" : "HUMAN")}." ,
             this);
     }
 
@@ -184,6 +195,11 @@ public class BotPlayerController : MonoBehaviour
     {
         playerState =
             GetComponent<PlayerGameState>();
+
+        // Scene/prefab serialization may still contain an old TRUE value from
+        // prototype days. Every match setup now assigns control explicitly, so
+        // start neutral and never let a Human act as a bot for even one frame.
+        botEnabled = false;
     }
 
     private void Start()
@@ -202,6 +218,21 @@ public class BotPlayerController : MonoBehaviour
 
     private void Update()
     {
+        if (playerState != null &&
+            playerState.OnlineSeatStateActive &&
+            !playerState.IsOnlineBotControlled)
+        {
+            // Defensive runtime correction for scene reuse: even if some legacy
+            // setup path briefly toggles this component on, a real online Human
+            // must never make autonomous bot decisions.
+            if (botEnabled)
+            {
+                SetBotEnabled(false);
+            }
+
+            return;
+        }
+
         if (!botEnabled ||
             playerState == null ||
             decisionRoutine != null)

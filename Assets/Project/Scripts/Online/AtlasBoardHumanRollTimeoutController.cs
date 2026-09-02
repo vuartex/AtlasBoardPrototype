@@ -10,6 +10,9 @@ public class AtlasBoardHumanRollTimeoutController : MonoBehaviour
     [SerializeField]
     private AtlasBoardOnlineFoundation onlineFoundation;
 
+    [SerializeField]
+    private TradeManager tradeManager;
+
     [SerializeField, Min(1f)]
     private float humanRollTimeoutSeconds =
         AtlasOnlineDefaults.HumanRollTimeoutSeconds;
@@ -21,6 +24,8 @@ public class AtlasBoardHumanRollTimeoutController : MonoBehaviour
     private PlayerGameState windowPlayer;
     private float elapsedEligibleSeconds;
     private bool windowStarted;
+    private int remoteManagementHoldSlot = -1;
+    private float remoteManagementHoldUntilUnscaledTime;
 
     private int countedScheduledTurnCompletedTurns = -1;
     private int countedScheduledTurnSlot = -1;
@@ -84,8 +89,41 @@ public class AtlasBoardHumanRollTimeoutController : MonoBehaviour
             }
         }
 
+        // A Human who deliberately opens Trade is actively using their turn.
+        // The 10-second roll AFK clock must not continue in the background while
+        // the 25-second Trade decision window is active. Closing Trade starts a
+        // completely fresh roll window.
+        if (tradeManager == null)
+        {
+            tradeManager =
+                FindSceneComponent<TradeManager>();
+        }
+
+        if (tradeManager != null &&
+            !tradeManager.IsTradeClosed)
+        {
+            ResetRollWindow();
+            return;
+        }
+
         PlayerGameState candidate =
             ResolveHumanRollCandidate();
+
+        if (remoteManagementHoldSlot >= 0 &&
+            Time.unscaledTime >=
+                remoteManagementHoldUntilUnscaledTime)
+        {
+            remoteManagementHoldSlot = -1;
+            remoteManagementHoldUntilUnscaledTime = 0f;
+        }
+
+        if (candidate != null &&
+            candidate.PlayerSlotIndex ==
+                remoteManagementHoldSlot)
+        {
+            ResetRollWindow();
+            return;
+        }
 
         if (candidate == null ||
             turnManager.IsPlayerBot(candidate))
@@ -100,10 +138,16 @@ public class AtlasBoardHumanRollTimeoutController : MonoBehaviour
             windowPlayer = candidate;
         }
 
-        // CanPlayerRequestRoll is the single source of truth for the
-        // timeout window. If dice/movement/turn-start/management/modal
-        // work blocks rolling, the clock simply pauses here.
-        if (!turnManager.CanPlayerRequestRoll(candidate))
+        // In an online authoritative Host session the timeout policy must
+        // cover RemoteHuman seats too. Local input authority is intentionally
+        // NOT required for a Host-generated AFK roll. Followers never generate
+        // gameplay RNG.
+        bool canTimeoutRoll =
+            turnManager.IsOnlineAuthoritativeHost
+                ? turnManager.CanHostAuthoritativelyAutoRollHuman(candidate)
+                : turnManager.CanPlayerRequestRoll(candidate);
+
+        if (!canTimeoutRoll)
         {
             return;
         }
@@ -135,8 +179,15 @@ public class AtlasBoardHumanRollTimeoutController : MonoBehaviour
         // the automatic request is accepted.
         ResetRollWindow();
 
-        if (!turnManager.TryRequestAutomaticHumanRoll(
-                timedOutPlayer))
+        bool automaticRollAccepted =
+            turnManager.IsOnlineAuthoritativeHost
+                ? turnManager
+                    .TryRequestHostAuthoritativeAutomaticHumanRoll(
+                        timedOutPlayer)
+                : turnManager.TryRequestAutomaticHumanRoll(
+                    timedOutPlayer);
+
+        if (!automaticRollAccepted)
         {
             // Eligibility may have changed in this exact frame.
             // A future eligible frame starts a fresh window.
@@ -364,6 +415,43 @@ public class AtlasBoardHumanRollTimeoutController : MonoBehaviour
         }
     }
 
+    public void SetRemoteManagementHold(
+        int playerSlotIndex,
+        bool active,
+        float safetySeconds = 30f)
+    {
+        if (!active)
+        {
+            if (remoteManagementHoldSlot ==
+                playerSlotIndex)
+            {
+                remoteManagementHoldSlot = -1;
+                remoteManagementHoldUntilUnscaledTime = 0f;
+            }
+
+            ResetRollWindow();
+            return;
+        }
+
+        remoteManagementHoldSlot =
+            Mathf.Clamp(playerSlotIndex, 0, 3);
+        remoteManagementHoldUntilUnscaledTime =
+            Time.unscaledTime +
+            Mathf.Max(5f, safetySeconds);
+
+        ResetRollWindow();
+    }
+
+    public void ResetForNewMatchSession()
+    {
+        remoteManagementHoldSlot = -1;
+        remoteManagementHoldUntilUnscaledTime = 0f;
+        countedScheduledTurnCompletedTurns = -1;
+        countedScheduledTurnSlot = -1;
+        localAfkStreakBySlot.Clear();
+        ResetRollWindow();
+    }
+
     private void ResetRollWindow()
     {
         windowPlayer = null;
@@ -384,6 +472,12 @@ public class AtlasBoardHumanRollTimeoutController : MonoBehaviour
             onlineFoundation =
                 FindSceneComponent<
                     AtlasBoardOnlineFoundation>();
+        }
+
+        if (tradeManager == null)
+        {
+            tradeManager =
+                FindSceneComponent<TradeManager>();
         }
     }
 

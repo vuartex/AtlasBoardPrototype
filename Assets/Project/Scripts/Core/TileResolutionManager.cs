@@ -92,13 +92,36 @@ public class TileResolutionManager : MonoBehaviour
     private PlayerGameState pendingPlayer;
     private BoardTile pendingTile;
 
+    // Phase 5E Remote clients mirror a Host-authored purchase prompt, but
+    // never execute purchase/economy logic locally. Existing UI/keyboard
+    // paths are redirected through this event while the mirrored prompt is active.
+    private bool remotePurchasePresentation;
+    private bool remotePurchaseRequestPending;
+    private bool onlineHostPurchaseAuthorityMode;
+    private readonly HashSet<int>
+        onlineLocallyControlledHumanSlots =
+            new HashSet<int>();
+
+    public event Action<int, int, bool>
+        RemotePurchaseDecisionRequested;
+
     private PlayerGameState pendingTravelPlayer;
     private PlayerPawnMover pendingTravelPawn;
     private int pendingTravelTargetIndex = -1;
     private int pendingTravelFee;
+    private bool remoteTravelPresentation;
+    private bool remoteTravelRequestPending;
+
+    public event Action<int, int, bool>
+        RemoteTravelDecisionRequested;
 
     private PlayerGameState pendingDevelopmentPlayer;
     private BoardTile pendingDevelopmentTile;
+    private bool remoteDevelopmentPresentation;
+    private bool remoteDevelopmentRequestPending;
+
+    public event Action<int, int, bool>
+        RemoteDevelopmentDecisionRequested;
 
     private Action resolutionCompleted;
 
@@ -107,6 +130,215 @@ public class TileResolutionManager : MonoBehaviour
 
     public BoardTile PendingPurchaseTile =>
         pendingTile;
+
+    public bool IsRemotePurchasePresentation =>
+        remotePurchasePresentation;
+
+    public void ConfigureOnlinePurchaseDecisionAuthority(
+        bool hostAuthorityMode,
+        IEnumerable<int> locallyControlledHumanSlots)
+    {
+        onlineHostPurchaseAuthorityMode =
+            hostAuthorityMode;
+
+        onlineLocallyControlledHumanSlots.Clear();
+
+        if (locallyControlledHumanSlots == null)
+        {
+            return;
+        }
+
+        foreach (int slotIndex
+                 in locallyControlledHumanSlots)
+        {
+            if (slotIndex >= 0 &&
+                slotIndex < 4)
+            {
+                onlineLocallyControlledHumanSlots.Add(
+                    slotIndex);
+            }
+        }
+    }
+
+    private bool ShouldShowAuthoritativePurchasePanelLocally(
+        PlayerGameState player)
+    {
+        return ShouldShowAuthoritativeDecisionPanelLocally(
+            player);
+    }
+
+    private bool ShouldShowAuthoritativeDecisionPanelLocally(
+        PlayerGameState player)
+    {
+        if (!onlineHostPurchaseAuthorityMode ||
+            player == null)
+        {
+            return true;
+        }
+
+        if (IsBotPlayer(player))
+        {
+            return false;
+        }
+
+        return onlineLocallyControlledHumanSlots.Contains(
+            player.PlayerSlotIndex);
+    }
+
+    public void ShowOnlineRemotePurchaseDecision(
+        PlayerGameState player,
+        BoardTile tile)
+    {
+        if (player == null ||
+            tile == null)
+        {
+            ClearOnlineRemotePurchaseDecision();
+            return;
+        }
+
+        remotePurchasePresentation = true;
+        remotePurchaseRequestPending = false;
+        pendingPlayer = player;
+        pendingTile = tile;
+
+        RefreshPendingPurchaseText();
+
+        if (purchasePanel != null)
+        {
+            purchasePanel.SetActive(true);
+        }
+
+        RefreshPurchaseButtonAvailability();
+    }
+
+    public void ClearOnlineRemotePurchaseDecision()
+    {
+        if (!remotePurchasePresentation)
+        {
+            return;
+        }
+
+        remotePurchasePresentation = false;
+        remotePurchaseRequestPending = false;
+        pendingPlayer = null;
+        pendingTile = null;
+
+        if (purchasePanel != null)
+        {
+            purchasePanel.SetActive(false);
+        }
+
+        if (buyButton != null)
+        {
+            buyButton.interactable = true;
+        }
+
+        if (skipButton != null)
+        {
+            skipButton.interactable = true;
+        }
+    }
+
+    public void NotifyOnlineRemotePurchaseSubmitFailed()
+    {
+        if (!remotePurchasePresentation)
+        {
+            return;
+        }
+
+        remotePurchaseRequestPending = false;
+        RefreshPurchaseButtonAvailability();
+    }
+
+    public void ShowOnlineRemoteTravelDecision(
+        PlayerGameState player,
+        int targetTileIndex,
+        int travelFee)
+    {
+        ResolveBoardPathForOnlineTravel();
+
+        if (player == null ||
+            boardPath == null ||
+            targetTileIndex < 0 ||
+            targetTileIndex >= boardPath.TileCount)
+        {
+            ClearOnlineRemoteTravelDecision();
+            return;
+        }
+
+        BoardTile targetTile =
+            boardPath.GetTile(targetTileIndex);
+
+        if (targetTile == null)
+        {
+            ClearOnlineRemoteTravelDecision();
+            return;
+        }
+
+        remoteTravelPresentation = true;
+        remoteTravelRequestPending = false;
+        pendingTravelPlayer = player;
+        pendingTravelPawn =
+            player.GetComponent<PlayerPawnMover>();
+        pendingTravelTargetIndex = targetTileIndex;
+        pendingTravelFee = Mathf.Max(0, travelFee);
+
+        BoardEconomyProfile activeEconomy =
+            ResolveEconomyProfile();
+
+        int startReward =
+            activeEconomy?.StartPassReward ?? 200;
+
+        RefreshTravelInfoText(
+            player,
+            targetTile,
+            startReward);
+
+        if (travelPanel != null)
+        {
+            travelPanel.SetActive(true);
+        }
+
+        RefreshTravelButtonAvailability();
+    }
+
+    public void ClearOnlineRemoteTravelDecision()
+    {
+        if (!remoteTravelPresentation)
+        {
+            return;
+        }
+
+        remoteTravelPresentation = false;
+        remoteTravelRequestPending = false;
+        ClearPendingTravelState();
+
+        if (travelPanel != null)
+        {
+            travelPanel.SetActive(false);
+        }
+
+        if (travelGoButton != null)
+        {
+            travelGoButton.interactable = true;
+        }
+
+        if (travelStayButton != null)
+        {
+            travelStayButton.interactable = true;
+        }
+    }
+
+    public void NotifyOnlineRemoteTravelSubmitFailed()
+    {
+        if (!remoteTravelPresentation)
+        {
+            return;
+        }
+
+        remoteTravelRequestPending = false;
+        RefreshTravelButtonAvailability();
+    }
 
     public bool HasPendingPurchaseFor(
         PlayerGameState player)
@@ -125,11 +357,85 @@ public class TileResolutionManager : MonoBehaviour
     public int PendingTravelTargetIndex =>
         pendingTravelTargetIndex;
 
+    public int PendingTravelFee =>
+        pendingTravelFee;
+
+    public bool IsRemoteTravelPresentation =>
+        remoteTravelPresentation;
+
     public PlayerGameState PendingDevelopmentPlayer =>
         pendingDevelopmentPlayer;
 
     public BoardTile PendingDevelopmentTile =>
         pendingDevelopmentTile;
+
+    public bool IsRemoteDevelopmentPresentation =>
+        remoteDevelopmentPresentation;
+
+    public void ShowOnlineRemoteDevelopmentDecision(
+        PlayerGameState player,
+        BoardTile tile)
+    {
+        if (player == null ||
+            tile == null)
+        {
+            ClearOnlineRemoteDevelopmentDecision();
+            return;
+        }
+
+        remoteDevelopmentPresentation = true;
+        remoteDevelopmentRequestPending = false;
+        pendingDevelopmentPlayer = player;
+        pendingDevelopmentTile = tile;
+
+        RefreshDevelopmentPanel();
+
+        if (developmentPanel != null)
+        {
+            developmentPanel.SetActive(true);
+        }
+
+        RefreshDevelopmentButtonAvailability();
+    }
+
+    public void ClearOnlineRemoteDevelopmentDecision()
+    {
+        if (!remoteDevelopmentPresentation)
+        {
+            return;
+        }
+
+        remoteDevelopmentPresentation = false;
+        remoteDevelopmentRequestPending = false;
+        pendingDevelopmentPlayer = null;
+        pendingDevelopmentTile = null;
+
+        if (developmentPanel != null)
+        {
+            developmentPanel.SetActive(false);
+        }
+
+        if (developButton != null)
+        {
+            developButton.interactable = true;
+        }
+
+        if (skipDevelopmentButton != null)
+        {
+            skipDevelopmentButton.interactable = true;
+        }
+    }
+
+    public void NotifyOnlineRemoteDevelopmentSubmitFailed()
+    {
+        if (!remoteDevelopmentPresentation)
+        {
+            return;
+        }
+
+        remoteDevelopmentRequestPending = false;
+        RefreshDevelopmentButtonAvailability();
+    }
 
     public bool HasPendingTravelFor(
         PlayerGameState player)
@@ -313,6 +619,12 @@ public class TileResolutionManager : MonoBehaviour
 
     public void BuyPendingTile()
     {
+        if (TrySubmitOnlineRemotePurchaseDecision(
+                buyProperty: true))
+        {
+            return;
+        }
+
         if (pendingPlayer == null || pendingTile == null)
         {
             Debug.LogWarning(
@@ -363,6 +675,12 @@ public class TileResolutionManager : MonoBehaviour
 
     public void SkipPendingTile()
     {
+        if (TrySubmitOnlineRemotePurchaseDecision(
+                buyProperty: false))
+        {
+            return;
+        }
+
         if (pendingPlayer == null || pendingTile == null)
         {
             Debug.LogWarning(
@@ -455,6 +773,12 @@ public class TileResolutionManager : MonoBehaviour
 
     public void DevelopPendingTile()
     {
+        if (TrySubmitOnlineRemoteDevelopmentDecision(
+                true))
+        {
+            return;
+        }
+
         if (pendingDevelopmentPlayer == null ||
             pendingDevelopmentTile == null)
         {
@@ -502,6 +826,12 @@ public class TileResolutionManager : MonoBehaviour
 
     public void SkipPendingDevelopment()
     {
+        if (TrySubmitOnlineRemoteDevelopmentDecision(
+                false))
+        {
+            return;
+        }
+
         if (pendingDevelopmentPlayer != null &&
             pendingDevelopmentTile != null)
         {
@@ -517,6 +847,12 @@ public class TileResolutionManager : MonoBehaviour
 
     public void TravelToNextEvent()
     {
+        if (TrySubmitOnlineRemoteTravelDecision(
+                true))
+        {
+            return;
+        }
+
         if (pendingTravelPlayer == null ||
             pendingTravelPawn == null ||
             pendingTravelTargetIndex < 0)
@@ -585,6 +921,12 @@ public class TileResolutionManager : MonoBehaviour
 
     public void StayOnTravelTile()
     {
+        if (TrySubmitOnlineRemoteTravelDecision(
+                false))
+        {
+            return;
+        }
+
         if (pendingTravelPlayer != null)
         {
             Debug.Log(
@@ -631,9 +973,14 @@ public class TileResolutionManager : MonoBehaviour
                         tile.PurchasePrice);
             }
 
+            bool showPurchasePanel =
+                ShouldShowAuthoritativePurchasePanelLocally(
+                    player);
+
             if (purchasePanel != null)
             {
-                purchasePanel.SetActive(true);
+                purchasePanel.SetActive(
+                    showPurchasePanel);
             }
 
             RefreshPurchaseButtonAvailability();
@@ -661,9 +1008,14 @@ public class TileResolutionManager : MonoBehaviour
 
                 RefreshDevelopmentPanel();
 
+                bool showDevelopmentPanel =
+                    ShouldShowAuthoritativeDecisionPanelLocally(
+                        player);
+
                 if (developmentPanel != null)
                 {
-                    developmentPanel.SetActive(true);
+                    developmentPanel.SetActive(
+                        showDevelopmentPanel);
                 }
 
                 RefreshDevelopmentButtonAvailability();
@@ -859,6 +1211,9 @@ public class TileResolutionManager : MonoBehaviour
                 ResolveEconomyProfile()?.TaxAmount ??
                 taxAmount);
 
+        specialTileManager.SetOnlinePresentationDescriptor(
+            "tax");
+
         specialTileManager.ResolveMoneyEffect(
             player,
             AtlasBoardL.T(
@@ -887,6 +1242,9 @@ public class TileResolutionManager : MonoBehaviour
                 ResolveEconomyProfile()?.BonusAmount ??
                 bonusAmount);
 
+        specialTileManager.SetOnlinePresentationDescriptor(
+            "bonus");
+
         specialTileManager.ResolveMoneyEffect(
             player,
             AtlasBoardL.T(
@@ -913,6 +1271,10 @@ public class TileResolutionManager : MonoBehaviour
 
         player.AddTurnsToSkip(turnsToSkip);
 
+        TurnManager activeTurnManager =
+            FindAnyObjectByType<TurnManager>();
+        activeTurnManager?.SuppressExtraRollForCurrentTurn();
+
         if (specialTileManager == null)
         {
             Debug.LogWarning(
@@ -922,6 +1284,10 @@ public class TileResolutionManager : MonoBehaviour
             CompleteResolution();
             return;
         }
+
+        specialTileManager.SetOnlinePresentationDescriptor(
+            "rest",
+            turnsToSkip);
 
         specialTileManager.ResolveMoneyEffect(
             player,
@@ -955,6 +1321,9 @@ public class TileResolutionManager : MonoBehaviour
                 ResolveEconomyProfile()
                     ?.VacationBonusAmount ??
                 vacationBonusAmount);
+
+        specialTileManager.SetOnlinePresentationDescriptor(
+            "vacation");
 
         specialTileManager.ResolveMoneyEffect(
             player,
@@ -1020,52 +1389,16 @@ public class TileResolutionManager : MonoBehaviour
         int startReward =
             activeEconomy?.StartPassReward ?? 200;
 
-        if (travelInfoText != null)
-        {
-            string feeLine =
-                pendingTravelFee > 0
-                    ? AtlasBoardL.T(
-                        "special.travel.fee",
-                        pendingTravelFee)
-                    : AtlasBoardL.T(
-                        "special.travel.free");
-
-            string affordabilityLine =
-                pendingTravelFee > 0 &&
-                player.CurrentMoney <
-                    pendingTravelFee
-                    ? "\n\n" +
-                      AtlasBoardL.T(
-                          "special.travel.insufficient")
-                    : string.Empty;
-
-            string targetName =
-                AtlasBoardL.TileName(
-                    targetTile.TileType,
-                    targetTile.DisplayName);
-
-            travelInfoText.text =
-                AtlasBoardL.T(
-                    "special.travel.center") +
-                "\n\n" +
-                AtlasBoardL.T(
-                    "special.travel.question") +
-                "\n" +
-                AtlasBoardL.T(
-                    "special.travel.target",
-                    targetName) +
-                "\n" +
-                feeLine +
-                "\n\n" +
-                AtlasBoardL.T(
-                    "special.travel.start_reward",
-                    startReward) +
-                affordabilityLine;
-        }
+        RefreshTravelInfoText(
+            player,
+            targetTile,
+            startReward);
 
         if (travelPanel != null)
         {
-            travelPanel.SetActive(true);
+            travelPanel.SetActive(
+                ShouldShowAuthoritativeDecisionPanelLocally(
+                    player));
         }
 
         RefreshTravelButtonAvailability();
@@ -1252,7 +1585,13 @@ public class TileResolutionManager : MonoBehaviour
 
         bool humanCanControl =
             !IsBotPlayer(
-                pendingDevelopmentPlayer);
+                pendingDevelopmentPlayer) &&
+            (!onlineHostPurchaseAuthorityMode ||
+             remoteDevelopmentPresentation ||
+             onlineLocallyControlledHumanSlots.Contains(
+                 pendingDevelopmentPlayer.PlayerSlotIndex)) &&
+            (!remoteDevelopmentPresentation ||
+             !remoteDevelopmentRequestPending);
 
         bool canAfford =
             propertyDevelopmentManager != null &&
@@ -1278,10 +1617,20 @@ public class TileResolutionManager : MonoBehaviour
 
     private void RefreshTravelButtonAvailability()
     {
+        bool locallyOwnedHuman =
+            pendingTravelPlayer != null &&
+            (!onlineHostPurchaseAuthorityMode ||
+             remoteTravelPresentation ||
+             onlineLocallyControlledHumanSlots.Contains(
+                 pendingTravelPlayer.PlayerSlotIndex));
+
         bool humanCanControl =
+            locallyOwnedHuman &&
             pendingTravelPlayer != null &&
             !IsBotPlayer(
-                pendingTravelPlayer);
+                pendingTravelPlayer) &&
+            (!remoteTravelPresentation ||
+             !remoteTravelRequestPending);
 
         bool canAffordTravel =
             pendingTravelPlayer != null &&
@@ -1300,6 +1649,142 @@ public class TileResolutionManager : MonoBehaviour
         {
             travelStayButton.interactable =
                 humanCanControl;
+        }
+    }
+
+    private bool TrySubmitOnlineRemoteTravelDecision(
+        bool shouldTravel)
+    {
+        if (!remoteTravelPresentation)
+        {
+            return false;
+        }
+
+        if (remoteTravelRequestPending ||
+            pendingTravelPlayer == null ||
+            pendingTravelTargetIndex < 0)
+        {
+            return true;
+        }
+
+        Action<int, int, bool> callback =
+            RemoteTravelDecisionRequested;
+
+        if (callback == null)
+        {
+            Debug.LogWarning(
+                "Remote travel decision has no online subscriber.",
+                this);
+            return true;
+        }
+
+        remoteTravelRequestPending = true;
+        RefreshTravelButtonAvailability();
+
+        callback.Invoke(
+            pendingTravelPlayer.PlayerSlotIndex,
+            pendingTravelTargetIndex,
+            shouldTravel);
+
+        return true;
+    }
+
+    private bool TrySubmitOnlineRemoteDevelopmentDecision(
+        bool shouldDevelop)
+    {
+        if (!remoteDevelopmentPresentation)
+        {
+            return false;
+        }
+
+        if (remoteDevelopmentRequestPending ||
+            pendingDevelopmentPlayer == null ||
+            pendingDevelopmentTile == null)
+        {
+            return true;
+        }
+
+        Action<int, int, bool> callback =
+            RemoteDevelopmentDecisionRequested;
+
+        if (callback == null)
+        {
+            Debug.LogWarning(
+                "Remote development decision has no online subscriber.",
+                this);
+            return true;
+        }
+
+        remoteDevelopmentRequestPending = true;
+        RefreshDevelopmentButtonAvailability();
+
+        callback.Invoke(
+            pendingDevelopmentPlayer.PlayerSlotIndex,
+            pendingDevelopmentTile.TileIndex,
+            shouldDevelop);
+
+        return true;
+    }
+
+    private void RefreshTravelInfoText(
+        PlayerGameState player,
+        BoardTile targetTile,
+        int startReward)
+    {
+        if (travelInfoText == null ||
+            player == null ||
+            targetTile == null)
+        {
+            return;
+        }
+
+        string feeLine =
+            pendingTravelFee > 0
+                ? AtlasBoardL.T(
+                    "special.travel.fee",
+                    pendingTravelFee)
+                : AtlasBoardL.T(
+                    "special.travel.free");
+
+        string affordabilityLine =
+            pendingTravelFee > 0 &&
+            player.CurrentMoney <
+                pendingTravelFee
+                ? "\n\n" +
+                  AtlasBoardL.T(
+                      "special.travel.insufficient")
+                : string.Empty;
+
+        string targetName =
+            AtlasBoardL.TileName(
+                targetTile.TileType,
+                targetTile.DisplayName);
+
+        travelInfoText.text =
+            AtlasBoardL.T(
+                "special.travel.center") +
+            "\n\n" +
+            AtlasBoardL.T(
+                "special.travel.question") +
+            "\n" +
+            AtlasBoardL.T(
+                "special.travel.target",
+                targetName) +
+            "\n" +
+            feeLine +
+            "\n\n" +
+            AtlasBoardL.T(
+                "special.travel.start_reward",
+                startReward) +
+            affordabilityLine;
+    }
+
+    private void ResolveBoardPathForOnlineTravel()
+    {
+        if (boardPath == null)
+        {
+            boardPath =
+                FindAnyObjectByType<BoardPath>();
         }
     }
 
@@ -1339,9 +1824,14 @@ public class TileResolutionManager : MonoBehaviour
             pendingPlayer != null &&
             !IsBotPlayer(pendingPlayer);
 
+        bool requestAvailable =
+            !remotePurchasePresentation ||
+            !remotePurchaseRequestPending;
+
         if (buyButton != null)
         {
             buyButton.interactable =
+                requestAvailable &&
                 humanCanControl &&
                 pendingTile != null &&
                 pendingPlayer.CurrentMoney >=
@@ -1351,8 +1841,50 @@ public class TileResolutionManager : MonoBehaviour
         if (skipButton != null)
         {
             skipButton.interactable =
+                requestAvailable &&
                 humanCanControl;
         }
+    }
+
+    private bool TrySubmitOnlineRemotePurchaseDecision(
+        bool buyProperty)
+    {
+        if (!remotePurchasePresentation)
+        {
+            return false;
+        }
+
+        if (remotePurchaseRequestPending ||
+            pendingPlayer == null ||
+            pendingTile == null)
+        {
+            return true;
+        }
+
+        remotePurchaseRequestPending = true;
+        RefreshPurchaseButtonAvailability();
+
+        Action<int, int, bool> callback =
+            RemotePurchaseDecisionRequested;
+
+        if (callback == null)
+        {
+            remotePurchaseRequestPending = false;
+            RefreshPurchaseButtonAvailability();
+
+            Debug.LogWarning(
+                "Remote purchase decision has no online subscriber.",
+                this);
+
+            return true;
+        }
+
+        callback.Invoke(
+            pendingPlayer.PlayerSlotIndex,
+            pendingTile.TileIndex,
+            buyProperty);
+
+        return true;
     }
 
     private bool IsBotPlayer(
@@ -1463,9 +1995,15 @@ public class TileResolutionManager : MonoBehaviour
 
         pendingPlayer = null;
         pendingTile = null;
+        remotePurchasePresentation = false;
+        remotePurchaseRequestPending = false;
+        remoteTravelPresentation = false;
+        remoteTravelRequestPending = false;
 
         pendingDevelopmentPlayer = null;
         pendingDevelopmentTile = null;
+        remoteDevelopmentPresentation = false;
+        remoteDevelopmentRequestPending = false;
 
         ClearPendingTravelState();
         RefreshBalancesText();
@@ -1655,4 +2193,36 @@ public class TileResolutionManager : MonoBehaviour
 
         return player.VisualProfile.ProfileId;
     }
+    public void ResetForNewMatchSession()
+    {
+        pendingPlayer = null;
+        pendingTile = null;
+        resolutionCompleted = null;
+
+        remotePurchasePresentation = false;
+        remotePurchaseRequestPending = false;
+
+        pendingTravelPlayer = null;
+        pendingTravelPawn = null;
+        pendingTravelTargetIndex = -1;
+        pendingTravelFee = 0;
+        remoteTravelPresentation = false;
+        remoteTravelRequestPending = false;
+
+        pendingDevelopmentPlayer = null;
+        pendingDevelopmentTile = null;
+        remoteDevelopmentPresentation = false;
+        remoteDevelopmentRequestPending = false;
+
+        if (purchasePanel != null) purchasePanel.SetActive(false);
+        if (travelPanel != null) travelPanel.SetActive(false);
+        if (developmentPanel != null) developmentPanel.SetActive(false);
+        if (buyButton != null) buyButton.interactable = true;
+        if (skipButton != null) skipButton.interactable = true;
+        if (travelGoButton != null) travelGoButton.interactable = true;
+        if (travelStayButton != null) travelStayButton.interactable = true;
+        if (developButton != null) developButton.interactable = true;
+        if (skipDevelopmentButton != null) skipDevelopmentButton.interactable = true;
+    }
+
 }

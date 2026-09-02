@@ -40,12 +40,24 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     private bool initializing;
     private bool pollInFlight;
     private float nextPollAt;
+    private bool pawnCosmeticSyncInFlight;
 
     public event Action<AtlasLobbySnapshot> SnapshotChanged;
     public event Action<string> LobbyAccessLost;
 
     public string CurrentAccountId => currentAccountId;
     public string CurrentLobbyId => currentLobbyId;
+
+    internal string AuthTokenForOnlineSubsystems =>
+        idToken;
+
+    public async Task<bool> EnsureOnlineIdentityAsync()
+    {
+        AtlasLobbyOperationResult result =
+            await EnsureIdentityAsync();
+
+        return result.Success;
+    }
     public string CurrentRoomCode => currentRoomCode;
     public AtlasLobbySnapshot CurrentSnapshot => currentSnapshot;
 
@@ -604,6 +616,54 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         return latest;
     }
 
+    public async Task<AtlasLobbyOperationResult> SetPawnCosmeticAsync(
+        int slotIndex,
+        string pawnCosmeticId)
+    {
+        if (!HasLobby ||
+            currentSnapshot == null)
+        {
+            return AtlasLobbyOperationResult.Fail(
+                "lobby.error.not_joinable",
+                "No active lobby snapshot is available.");
+        }
+
+        string normalized =
+            pawnCosmeticId != null
+                ? pawnCosmeticId.Trim()
+                : string.Empty;
+
+        if (slotIndex < 0 ||
+            slotIndex >= 4 ||
+            string.IsNullOrWhiteSpace(normalized))
+        {
+            return AtlasLobbyOperationResult.Fail(
+                "lobby.error.invalid_pawn_cosmetic",
+                "Pawn cosmetic selection is invalid.");
+        }
+
+        LobbyPawnCosmeticRequest request =
+            new LobbyPawnCosmeticRequest
+            {
+                lobbyId = currentLobbyId,
+                slotIndex = slotIndex,
+                pawnCosmeticId = normalized
+            };
+
+        AtlasLobbyOperationResult result =
+            await CallLobbyFunctionAsync(
+                "lobbySetPawnCosmetic",
+                request);
+
+        if (result.Success &&
+            result.Snapshot != null)
+        {
+            AcceptSnapshot(result.Snapshot);
+        }
+
+        return result;
+    }
+
     public async Task<AtlasLobbyOperationResult> SetReadyAsync(
         bool ready)
     {
@@ -761,6 +821,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         currentRoomCode = string.Empty;
         joinIdempotencyKey = string.Empty;
         currentSnapshot = null;
+        pawnCosmeticSyncInFlight = false;
     }
 
     private async Task<AtlasLobbyOperationResult> EnsureIdentityAsync()
@@ -1147,7 +1208,18 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
 
             // Starting/Started style lifecycle progression must also never be
             // repainted by an older Waiting response at the same revision.
-            if (snapshot.SettingsRevision ==
+            // The one intentional reverse transition is a synchronized Rematch:
+            // Host clears MatchId and moves the existing room back to Waiting.
+            bool synchronizedRematchReturn =
+                currentSnapshot.LifecycleState ==
+                    AtlasRoomLifecycleState.Starting &&
+                snapshot.LifecycleState ==
+                    AtlasRoomLifecycleState.Waiting &&
+                !string.IsNullOrWhiteSpace(currentSnapshot.MatchId) &&
+                string.IsNullOrWhiteSpace(snapshot.MatchId);
+
+            if (!synchronizedRematchReturn &&
+                snapshot.SettingsRevision ==
                     currentSnapshot.SettingsRevision &&
                 LifecycleRank(snapshot.LifecycleState) <
                     LifecycleRank(currentSnapshot.LifecycleState))
@@ -1159,6 +1231,108 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         currentSnapshot = snapshot;
         currentLobbyId = snapshot.LobbyId;
         SnapshotChanged?.Invoke(snapshot);
+
+        if (snapshot.LifecycleState ==
+            AtlasRoomLifecycleState.Waiting)
+        {
+            SyncLocallyOwnedPawnCosmeticsIfNeeded();
+        }
+    }
+
+    private async void SyncLocallyOwnedPawnCosmeticsIfNeeded()
+    {
+        if (pawnCosmeticSyncInFlight ||
+            currentSnapshot == null ||
+            currentSnapshot.Members == null ||
+            currentSnapshot.LifecycleState !=
+                AtlasRoomLifecycleState.Waiting)
+        {
+            return;
+        }
+
+        AtlasBoardPawnCosmeticService service =
+            AtlasBoardPawnCosmeticService.Instance;
+
+        if (service == null ||
+            service.Catalog == null)
+        {
+            return;
+        }
+
+        pawnCosmeticSyncInFlight = true;
+
+        try
+        {
+            bool localIsHost =
+                string.Equals(
+                    currentSnapshot.HostAccountId,
+                    currentAccountId,
+                    StringComparison.Ordinal);
+
+            foreach (AtlasLobbyMemberSnapshot member
+                     in currentSnapshot.Members)
+            {
+                if (member == null ||
+                    !member.Active)
+                {
+                    continue;
+                }
+
+                bool locallyOwned =
+                    member.SeatMode ==
+                        AtlasLobbySeatMode.RemoteHuman
+                        ? string.Equals(
+                            member.AccountId,
+                            currentAccountId,
+                            StringComparison.Ordinal)
+                        : localIsHost &&
+                          (member.SeatMode ==
+                               AtlasLobbySeatMode.HostLocal ||
+                           member.SeatMode ==
+                               AtlasLobbySeatMode.LocalHuman ||
+                           member.SeatMode ==
+                               AtlasLobbySeatMode.Bot);
+
+                if (!locallyOwned)
+                {
+                    continue;
+                }
+
+                PawnCosmeticDefinition cosmetic =
+                    service.GetSelectedCosmetic(
+                        member.SlotIndex);
+
+                if (cosmetic == null ||
+                    string.IsNullOrWhiteSpace(
+                        cosmetic.CosmeticId) ||
+                    string.Equals(
+                        member.PawnCosmeticId,
+                        cosmetic.CosmeticId,
+                        StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                AtlasLobbyOperationResult result =
+                    await SetPawnCosmeticAsync(
+                        member.SlotIndex,
+                        cosmetic.CosmeticId);
+
+                if (!result.Success)
+                {
+                    Debug.LogWarning(
+                        "Automatic lobby pawn cosmetic sync failed for " +
+                        $"P{member.SlotIndex + 1}: " +
+                        result.TechnicalMessage,
+                        this);
+                    break;
+                }
+            }
+        }
+        finally
+        {
+            pawnCosmeticSyncInFlight = false;
+        }
     }
 
     private static int LifecycleRank(
@@ -1239,6 +1413,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                         AccountId = member.accountId ?? string.Empty,
                         LocalOwnerAccountId = member.localOwnerAccountId ?? string.Empty,
                         DisplayName = member.displayName ?? string.Empty,
+                        PawnCosmeticId = member.pawnCosmeticId ?? string.Empty,
                         IsHost = member.isHost,
                         ControllerKind = ParseControllerKind(member.controllerKind),
                         ConnectionState = ParseConnectionState(member.connectionState),
@@ -1643,6 +1818,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
     [Serializable]
+    private sealed class LobbyPawnCosmeticRequest
+    {
+        public string lobbyId;
+        public int slotIndex;
+        public string pawnCosmeticId;
+    }
+
+    [Serializable]
     private sealed class LobbyLeaveRequest
     {
         public string lobbyId;
@@ -1753,6 +1936,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         public string accountId;
         public string localOwnerAccountId;
         public string displayName;
+        public string pawnCosmeticId;
         public bool isHost;
         public string connectionState;
         public string controllerKind;

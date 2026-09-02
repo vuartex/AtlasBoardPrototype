@@ -1,11 +1,29 @@
+using System;
 using System.Collections.Generic;
 using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class MatchResultManager : MonoBehaviour
 {
+    [Serializable]
+    public sealed class OnlineResultSnapshot
+    {
+        public bool valid;
+        public int highestNetWorth;
+        public int[] winnerSlots = Array.Empty<int>();
+        public bool[] participating = new bool[4];
+        public bool[] bankrupt = new bool[4];
+        public int[] cash = new int[4];
+        public int[] propertyCount = new int[4];
+        public int[] propertyValue = new int[4];
+        public int[] developmentLevels = new int[4];
+        public int[] developmentValue = new int[4];
+        public int[] netWorth = new int[4];
+    }
+
     [Header("Players")]
     [SerializeField]
     private PlayerGameState[] playerStates;
@@ -28,6 +46,10 @@ public class MatchResultManager : MonoBehaviour
     private TMP_Text resultSummaryText;
 
     private bool resultShown;
+    private bool onlineRematchInFlight;
+
+    public bool ResultShown =>
+        resultShown;
 
     private void Start()
     {
@@ -44,45 +66,38 @@ public class MatchResultManager : MonoBehaviour
             return;
         }
 
-        resultShown = true;
+        OnlineResultSnapshot snapshot =
+            BuildOnlineResultSnapshot();
+
+        if (!snapshot.valid)
+        {
+            Debug.LogError(
+                "No player states are configured for match results.",
+                this);
+            return;
+        }
+
+        ShowOnlineMatchResult(
+            snapshot,
+            IsLocalOnlineHost());
+    }
+
+    public OnlineResultSnapshot BuildOnlineResultSnapshot()
+    {
+        OnlineResultSnapshot snapshot =
+            new OnlineResultSnapshot();
 
         if (playerStates == null ||
             playerStates.Length == 0)
         {
-            Debug.LogError(
-                "No player states are configured " +
-                "for match results.",
-                this);
-
-            return;
+            return snapshot;
         }
 
-        List<int> activePlayerIndexes =
+        List<int> activeSlots =
             new List<int>();
-
-        for (int index = 0;
-             index < playerStates.Length;
-             index++)
-        {
-            PlayerGameState player =
-                playerStates[index];
-
-            if (player != null &&
-                player.IsParticipating &&
-                !player.IsBankrupt)
-            {
-                activePlayerIndexes.Add(index);
-            }
-        }
-
-        int highestNetWorth =
-            int.MinValue;
-
-        List<int> winnerIndexes =
+        List<int> winnerSlots =
             new List<int>();
-
-        StringBuilder summaryBuilder =
-            new StringBuilder();
+        int highestNetWorth = int.MinValue;
 
         for (int index = 0;
              index < playerStates.Length;
@@ -97,127 +112,159 @@ public class MatchResultManager : MonoBehaviour
                 continue;
             }
 
-            int propertyCount;
+            int slot =
+                Mathf.Clamp(
+                    player.PlayerSlotIndex,
+                    0,
+                    3);
 
+            int propertyCount;
             int propertyValue =
                 CalculatePropertyValue(
-                    player.PlayerSlotIndex,
+                    slot,
                     out propertyCount);
-
             int developmentValue =
                 propertyDevelopmentManager != null
                     ? propertyDevelopmentManager
-                        .GetDevelopmentInvestmentValue(
-                            player.PlayerSlotIndex)
+                        .GetDevelopmentInvestmentValue(slot)
                     : 0;
-
             int developmentLevels =
                 propertyDevelopmentManager != null
                     ? propertyDevelopmentManager
-                        .GetTotalDevelopmentLevels(
-                            player.PlayerSlotIndex)
+                        .GetTotalDevelopmentLevels(slot)
                     : 0;
-
             int netWorth =
                 player.CurrentMoney +
                 propertyValue +
                 developmentValue;
 
-            if (!player.IsBankrupt)
-            {
-                if (netWorth >
-                    highestNetWorth)
-                {
-                    highestNetWorth =
-                        netWorth;
+            snapshot.participating[slot] = true;
+            snapshot.bankrupt[slot] = player.IsBankrupt;
+            snapshot.cash[slot] = player.CurrentMoney;
+            snapshot.propertyCount[slot] = propertyCount;
+            snapshot.propertyValue[slot] = propertyValue;
+            snapshot.developmentLevels[slot] = developmentLevels;
+            snapshot.developmentValue[slot] = developmentValue;
+            snapshot.netWorth[slot] = netWorth;
 
-                    winnerIndexes.Clear();
-                    winnerIndexes.Add(index);
-                }
-                else if (netWorth ==
-                         highestNetWorth)
-                {
-                    winnerIndexes.Add(index);
-                }
+            if (player.IsBankrupt)
+            {
+                continue;
             }
 
-            if (summaryBuilder.Length > 0)
+            activeSlots.Add(slot);
+
+            if (netWorth > highestNetWorth)
             {
-                summaryBuilder.AppendLine();
-                summaryBuilder.AppendLine();
+                highestNetWorth = netWorth;
+                winnerSlots.Clear();
+                winnerSlots.Add(slot);
             }
-
-            string playerName =
-                AtlasBoardL.PlayerName(
-                    player);
-
-            summaryBuilder.AppendLine(
-                player.IsBankrupt
-                    ? AtlasBoardL.T(
-                        "match.player_bankrupt",
-                        playerName)
-                    : playerName);
-
-            summaryBuilder.Append(
-                AtlasBoardL.T(
-                    "match.cash_properties",
-                    player.CurrentMoney,
-                    propertyCount,
-                    propertyValue));
-
-            summaryBuilder.AppendLine();
-
-            summaryBuilder.Append(
-                AtlasBoardL.T(
-                    "match.development",
-                    developmentLevels,
-                    developmentValue));
-
-            summaryBuilder.AppendLine();
-
-            summaryBuilder.Append(
-                AtlasBoardL.T(
-                    "match.net_worth",
-                    netWorth));
+            else if (netWorth == highestNetWorth)
+            {
+                winnerSlots.Add(slot);
+            }
         }
 
-        if (activePlayerIndexes.Count == 1)
+        if (activeSlots.Count == 1)
         {
-            winnerIndexes.Clear();
-
-            winnerIndexes.Add(
-                activePlayerIndexes[0]);
-
-            PlayerGameState soleWinner =
-                playerStates[
-                    activePlayerIndexes[0]];
-
-            int solePropertyCount;
-
-            int solePropertyValue =
-                CalculatePropertyValue(
-                    soleWinner.PlayerSlotIndex,
-                    out solePropertyCount);
-
-            int soleDevelopmentValue =
-                propertyDevelopmentManager != null
-                    ? propertyDevelopmentManager
-                        .GetDevelopmentInvestmentValue(
-                            soleWinner.PlayerSlotIndex)
-                    : 0;
-
+            winnerSlots.Clear();
+            winnerSlots.Add(activeSlots[0]);
             highestNetWorth =
-                soleWinner.CurrentMoney +
-                solePropertyValue +
-                soleDevelopmentValue;
+                snapshot.netWorth[activeSlots[0]];
         }
 
-        UpdateResultTitle(
-            winnerIndexes,
-            highestNetWorth);
+        if (highestNetWorth == int.MinValue)
+        {
+            highestNetWorth = 0;
+        }
+
+        snapshot.highestNetWorth = highestNetWorth;
+        snapshot.winnerSlots = winnerSlots.ToArray();
+        snapshot.valid = true;
+        return snapshot;
+    }
+
+    public void ShowOnlineMatchResult(
+        OnlineResultSnapshot snapshot,
+        bool localIsHost)
+    {
+        if (snapshot == null ||
+            !snapshot.valid)
+        {
+            return;
+        }
+
+        resultShown = true;
+
+        UpdateResultTitleFromSlots(
+            snapshot.winnerSlots,
+            snapshot.highestNetWorth);
 
         if (resultSummaryText != null)
         {
+            StringBuilder summaryBuilder =
+                new StringBuilder();
+
+            for (int slot = 0; slot < 4; slot++)
+            {
+                if (snapshot.participating == null ||
+                    slot >= snapshot.participating.Length ||
+                    !snapshot.participating[slot])
+                {
+                    continue;
+                }
+
+                if (summaryBuilder.Length > 0)
+                {
+                    summaryBuilder.AppendLine();
+                    summaryBuilder.AppendLine();
+                }
+
+                PlayerGameState player =
+                    GetPlayerByStableSlot(slot);
+                string playerName =
+                    player != null
+                        ? AtlasBoardL.PlayerName(player)
+                        : $"Player {slot + 1}";
+                bool bankrupt =
+                    snapshot.bankrupt != null &&
+                    slot < snapshot.bankrupt.Length &&
+                    snapshot.bankrupt[slot];
+
+                summaryBuilder.AppendLine(
+                    bankrupt
+                        ? AtlasBoardL.T(
+                            "match.player_bankrupt",
+                            playerName)
+                        : playerName);
+                summaryBuilder.Append(
+                    AtlasBoardL.T(
+                        "match.cash_properties",
+                        GetArrayValue(snapshot.cash, slot),
+                        GetArrayValue(snapshot.propertyCount, slot),
+                        GetArrayValue(snapshot.propertyValue, slot)));
+                summaryBuilder.AppendLine();
+                summaryBuilder.Append(
+                    AtlasBoardL.T(
+                        "match.development",
+                        GetArrayValue(snapshot.developmentLevels, slot),
+                        GetArrayValue(snapshot.developmentValue, slot)));
+                summaryBuilder.AppendLine();
+                summaryBuilder.Append(
+                    AtlasBoardL.T(
+                        "match.net_worth",
+                        GetArrayValue(snapshot.netWorth, slot)));
+            }
+
+            if (!localIsHost)
+            {
+                summaryBuilder.AppendLine();
+                summaryBuilder.AppendLine();
+                summaryBuilder.Append(
+                    GetRemoteWaitingText());
+            }
+
             resultSummaryText.text =
                 summaryBuilder.ToString();
         }
@@ -227,15 +274,37 @@ public class MatchResultManager : MonoBehaviour
             resultPanel.SetActive(true);
         }
 
+        ConfigureOnlineResultActionButton(localIsHost);
+
         Debug.Log(
             $"Match completed. Highest net worth: " +
-            $"{highestNetWorth}. Active players: " +
-            $"{activePlayerIndexes.Count}.",
+            $"{snapshot.highestNetWorth}.",
             this);
     }
 
     public void RestartMatch()
     {
+        if (onlineRematchInFlight)
+        {
+            return;
+        }
+
+        AtlasBoardTurnDiceNetworkCoordinator coordinator =
+            FindAnyObjectByType<
+                AtlasBoardTurnDiceNetworkCoordinator>();
+
+        if (coordinator != null &&
+            coordinator.IsPreparedOnlineMatch)
+        {
+            if (coordinator.LocalIsHost)
+            {
+                SetOnlineRematchBusy(true);
+                coordinator.RequestOnlineRematch();
+            }
+
+            return;
+        }
+
         Scene activeScene =
             SceneManager.GetActiveScene();
 
@@ -298,8 +367,8 @@ public class MatchResultManager : MonoBehaviour
         return totalPropertyValue;
     }
 
-    private void UpdateResultTitle(
-        List<int> winnerIndexes,
+    private void UpdateResultTitleFromSlots(
+        int[] winnerSlots,
         int highestNetWorth)
     {
         if (resultTitleText == null)
@@ -307,20 +376,26 @@ public class MatchResultManager : MonoBehaviour
             return;
         }
 
-        if (winnerIndexes.Count == 1)
+        int winnerCount =
+            winnerSlots != null
+                ? winnerSlots.Length
+                : 0;
+
+        if (winnerCount == 1)
         {
             PlayerGameState winner =
-                playerStates[
-                    winnerIndexes[0]];
+                GetPlayerByStableSlot(
+                    winnerSlots[0]);
 
             resultTitleText.text =
                 AtlasBoardL.T(
                     "match.winner",
-                    AtlasBoardL.PlayerName(
-                        winner),
+                    winner != null
+                        ? AtlasBoardL.PlayerName(winner)
+                        : $"Player {winnerSlots[0] + 1}",
                     highestNetWorth);
         }
-        else if (winnerIndexes.Count > 1)
+        else if (winnerCount > 1)
         {
             resultTitleText.text =
                 AtlasBoardL.T(
@@ -334,4 +409,248 @@ public class MatchResultManager : MonoBehaviour
                     "match.complete");
         }
     }
+
+    private PlayerGameState GetPlayerByStableSlot(
+        int slotIndex)
+    {
+        if (playerStates == null)
+        {
+            return null;
+        }
+
+        foreach (PlayerGameState player in playerStates)
+        {
+            if (player != null &&
+                player.PlayerSlotIndex == slotIndex)
+            {
+                return player;
+            }
+        }
+
+        return null;
+    }
+
+    private static int GetArrayValue(
+        int[] values,
+        int index)
+    {
+        return values != null &&
+               index >= 0 &&
+               index < values.Length
+            ? values[index]
+            : 0;
+    }
+
+    private bool IsLocalOnlineHost()
+    {
+        AtlasBoardTurnDiceNetworkCoordinator coordinator =
+            FindAnyObjectByType<
+                AtlasBoardTurnDiceNetworkCoordinator>();
+
+        return coordinator == null ||
+               !coordinator.IsPreparedOnlineMatch ||
+               coordinator.LocalIsHost;
+    }
+
+    private void ConfigureOnlineResultActionButton(
+        bool localIsHost)
+    {
+        Button actionButton =
+            FindOnlineResultActionButton();
+
+        if (actionButton == null)
+        {
+            return;
+        }
+
+        AtlasBoardTurnDiceNetworkCoordinator coordinator =
+            FindAnyObjectByType<AtlasBoardTurnDiceNetworkCoordinator>();
+
+        bool online =
+            coordinator != null &&
+            (coordinator.IsPreparedOnlineMatch || !localIsHost);
+
+        if (!online)
+        {
+            return;
+        }
+
+        actionButton.onClick =
+            new Button.ButtonClickedEvent();
+        actionButton.interactable = true;
+
+        if (localIsHost)
+        {
+            actionButton.onClick.AddListener(RestartMatch);
+            SetResultActionButtonText(
+                actionButton,
+                GetHostRematchText());
+        }
+        else
+        {
+            actionButton.onClick.AddListener(
+                LeaveOnlineMatchFromResult);
+            SetResultActionButtonText(
+                actionButton,
+                GetLeaveMatchText());
+        }
+    }
+
+    private Button FindOnlineResultActionButton()
+    {
+        if (resultPanel == null)
+        {
+            return null;
+        }
+
+        Button[] buttons =
+            resultPanel.GetComponentsInChildren<Button>(true);
+
+        if (buttons == null || buttons.Length == 0)
+        {
+            return null;
+        }
+
+        Button best = null;
+        int bestScore = int.MinValue;
+
+        foreach (Button button in buttons)
+        {
+            if (button == null)
+            {
+                continue;
+            }
+
+            string buttonName =
+                button.name.ToLowerInvariant();
+            TMP_Text tmp =
+                button.GetComponentInChildren<TMP_Text>(true);
+            UnityEngine.UI.Text legacy =
+                button.GetComponentInChildren<UnityEngine.UI.Text>(true);
+            string label =
+                (tmp != null ? tmp.text : legacy != null ? legacy.text : string.Empty)
+                    .ToLowerInvariant();
+
+            int score = 0;
+            if (buttonName.Contains("restart") ||
+                buttonName.Contains("rematch") ||
+                buttonName.Contains("result") ||
+                buttonName.Contains("action")) score += 10;
+            if (label.Contains("restart") ||
+                label.Contains("rematch") ||
+                label.Contains("yeniden") ||
+                label.Contains("başlat")) score += 20;
+
+            if (score > bestScore)
+            {
+                bestScore = score;
+                best = button;
+            }
+        }
+
+        return best ?? buttons[0];
+    }
+
+    private static void SetResultActionButtonText(
+        Button button,
+        string text)
+    {
+        if (button == null)
+        {
+            return;
+        }
+
+        AtlasBoardLocalizedText[] localized =
+            button.GetComponentsInChildren<AtlasBoardLocalizedText>(true);
+        foreach (AtlasBoardLocalizedText item in localized)
+        {
+            if (item != null) item.enabled = false;
+        }
+
+        TMP_Text[] tmpLabels =
+            button.GetComponentsInChildren<TMP_Text>(true);
+        foreach (TMP_Text label in tmpLabels)
+        {
+            if (label != null) label.text = text;
+        }
+
+        UnityEngine.UI.Text[] legacyLabels =
+            button.GetComponentsInChildren<UnityEngine.UI.Text>(true);
+        foreach (UnityEngine.UI.Text label in legacyLabels)
+        {
+            if (label != null) label.text = text;
+        }
+    }
+
+    private void LeaveOnlineMatchFromResult()
+    {
+        AtlasBoardLeaveFlowController leaveFlow =
+            FindAnyObjectByType<
+                AtlasBoardLeaveFlowController>();
+
+        if (leaveFlow != null)
+        {
+            leaveFlow.ShowLeaveMatchConfirmation();
+        }
+    }
+
+    public void ResetForNewMatchSession()
+    {
+        resultShown = false;
+        onlineRematchInFlight = false;
+
+        if (resultPanel != null)
+        {
+            resultPanel.SetActive(false);
+        }
+    }
+
+    public void NotifyOnlineRematchRequestFailed()
+    {
+        SetOnlineRematchBusy(false);
+        Debug.LogWarning(
+            AtlasBoardOnlineRuntimeText.RematchFailed(),
+            this);
+    }
+
+    private void SetOnlineRematchBusy(
+        bool busy)
+    {
+        onlineRematchInFlight = busy;
+
+        if (resultPanel == null)
+        {
+            return;
+        }
+
+        Button actionButton =
+            FindOnlineResultActionButton();
+
+        if (actionButton == null)
+        {
+            return;
+        }
+        actionButton.interactable = !busy;
+        SetResultActionButtonText(
+            actionButton,
+            busy
+                ? AtlasBoardOnlineRuntimeText.Rematching() + "..."
+                : AtlasBoardOnlineRuntimeText.Rematch());
+    }
+
+    private static string GetRemoteWaitingText()
+    {
+        return AtlasBoardOnlineRuntimeText.WaitingForHost();
+    }
+
+    private static string GetLeaveMatchText()
+    {
+        return AtlasBoardOnlineRuntimeText.LeaveMatch();
+    }
+
+    private static string GetHostRematchText()
+    {
+        return AtlasBoardOnlineRuntimeText.Rematch();
+    }
+
 }

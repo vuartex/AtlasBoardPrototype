@@ -107,6 +107,8 @@ public class TurnManager : MonoBehaviour
     [SerializeField, Min(0)]
     private int consecutiveDoublesThisTurn;
 
+    private bool suppressExtraRollForCurrentTurn;
+
     [Header("Doubles Penalty UI")]
     [SerializeField]
     private GameObject tripleDoublePenaltyPanel;
@@ -159,6 +161,31 @@ public class TurnManager : MonoBehaviour
     private Coroutine tripleDoublePenaltyCoroutine;
     private PlayerGameState tripleDoublePenaltyPlayer;
 
+    [Header("Online Turn Authority")]
+    [SerializeField]
+    private bool onlineAuthorityConfigured;
+
+    [SerializeField]
+    private bool onlineFollowerMode;
+
+    [SerializeField]
+    private int onlineFollowerActiveSlotIndex = -1;
+
+    [SerializeField]
+    private string onlineFollowerPhase = "starting";
+
+    private readonly HashSet<int>
+        locallyControlledOnlineHumanSlots =
+            new HashSet<int>();
+
+    private int lastFollowerDiceSequence = -1;
+    private bool onlineRollRequestPending;
+    private bool onlineFollowerManagementPresentation;
+    private bool onlineFollowerHoldLastRollResult;
+    private int onlineFollowerLastResultPlayerSlotIndex = -1;
+    private int onlineFollowerLastResultDiceSequence = -1;
+    private bool onlineFollowerPenaltySubmitPending;
+
     private readonly HashSet<int>
         completedActiveSlotsThisRound =
             new HashSet<int>();
@@ -199,6 +226,26 @@ public class TurnManager : MonoBehaviour
         gamePhase == GamePhase.Playing &&
         !isMatchFinished;
 
+    public bool IsResolvingDiceVisual =>
+        resolvingDiceVisual;
+
+    public bool IsWaitingForMovement =>
+        waitingForMovement;
+
+    public bool IsOnlineFollowerMode =>
+        onlineAuthorityConfigured &&
+        onlineFollowerMode;
+
+    public bool IsOnlineAuthoritativeHost =>
+        onlineAuthorityConfigured &&
+        !onlineFollowerMode;
+
+    public PlayerGameState TripleDoublePenaltyPlayerState =>
+        tripleDoublePenaltyPlayer;
+
+    public bool IsMatchFinished =>
+        isMatchFinished;
+
     public PlayerGameState CurrentPlayerState =>
         GetPlayerState(currentPlayerIndex);
 
@@ -222,6 +269,19 @@ public class TurnManager : MonoBehaviour
         bool,
         bool> HumanRollCommitted;
 
+    public event System.Action<
+        PlayerGameState,
+        bool> OnlineRollRequested;
+
+    public event System.Action<
+        PlayerGameState> OnlineTripleDoublePenaltyContinueRequested;
+
+    public event System.Action<
+        PlayerGameState,
+        int,
+        int,
+        bool> AuthoritativeDiceCommitted;
+
     public bool IsPlayerBot(
         PlayerGameState player)
     {
@@ -232,6 +292,13 @@ public class TurnManager : MonoBehaviour
     {
         get
         {
+            if (onlineAuthorityConfigured &&
+                onlineFollowerMode)
+            {
+                return GetPlayerStateBySlotIndex(
+                    onlineFollowerActiveSlotIndex);
+            }
+
             if (gamePhase != GamePhase.DeterminingTurnOrder ||
                 startingRollQueue == null ||
                 orderRollPlayerIndex < 0 ||
@@ -264,7 +331,11 @@ public class TurnManager : MonoBehaviour
                    activePlayer != null &&
                    activePlayer.IsParticipating &&
                    !activePlayer.IsBankrupt &&
-                   !IsBotPlayer(activePlayer);
+                   !IsBotPlayer(activePlayer) &&
+                   (!onlineAuthorityConfigured ||
+                    (!onlineFollowerMode &&
+                     IsLocallyControlledOnlineHuman(
+                         activePlayer)));
         }
     }
 
@@ -325,6 +396,13 @@ public class TurnManager : MonoBehaviour
                         currentRound);
             }
 
+            return;
+        }
+
+        if (onlineAuthorityConfigured &&
+            onlineFollowerMode)
+        {
+            RefreshOnlineFollowerUI();
             return;
         }
 
@@ -434,6 +512,42 @@ public class TurnManager : MonoBehaviour
 
         isMatchStarted = true;
 
+        if (onlineAuthorityConfigured &&
+            onlineFollowerMode)
+        {
+            isMatchFinished = false;
+            waitingForMovement = false;
+            resolvingDiceVisual = false;
+            resolvingTurnStart = false;
+            resolvingManagementAction = false;
+            gamePhase =
+                GamePhase.DeterminingTurnOrder;
+            onlineFollowerPhase =
+                "starting";
+            onlineFollowerActiveSlotIndex = -1;
+            lastFollowerDiceSequence = -1;
+            onlineRollRequestPending = false;
+
+            if (rollButton != null)
+            {
+                rollButton.interactable = false;
+            }
+
+            if (turnStatusText != null)
+            {
+                turnStatusText.text =
+                    AtlasBoardL.T(
+                        "turn.waiting_player_settings");
+            }
+
+            Debug.Log(
+                "Online follower match presentation initialized. " +
+                "Authoritative Turn/Dice state will arrive from Host.",
+                this);
+
+            return true;
+        }
+
         BeginTurnOrderPhase();
 
         Debug.Log(
@@ -451,6 +565,80 @@ public class TurnManager : MonoBehaviour
         resolvingDiceVisual = false;
         resolvingTurnStart = false;
         resolvingManagementAction = false;
+
+        if (rollButton != null)
+        {
+            rollButton.interactable = false;
+        }
+
+        if (turnStatusText != null)
+        {
+            turnStatusText.text =
+                AtlasBoardL.T(
+                    "turn.waiting_player_settings");
+        }
+    }
+
+    public void ResetForOnlineLobbySession()
+    {
+        // Synchronized rematch and "leave old room -> start a new room" reuse the
+        // same scene. Clear every TurnManager-only runtime token that would
+        // otherwise make the next match inherit the previous match's phase,
+        // follower dice sequence, AFK/penalty presentation or turn counters.
+        StopAllCoroutines();
+
+        beginTurnCoroutine = null;
+        tripleDoublePenaltyCoroutine = null;
+        tripleDoublePenaltyPlayer = null;
+        onlineFollowerPenaltySubmitPending = false;
+
+        isMatchStarted = false;
+        isMatchFinished = false;
+        waitingForMovement = false;
+        resolvingDiceVisual = false;
+        resolvingTurnStart = false;
+        resolvingManagementAction = false;
+        resolvingStartingOrderTie = false;
+
+        gamePhase = GamePhase.DeterminingTurnOrder;
+        currentPlayerIndex = 0;
+        currentTurnOrderIndex = 0;
+        orderRollPlayerIndex = 0;
+        completedTurns = 0;
+        currentRound = 1;
+        lastRoll = 0;
+        lastDieOne = 0;
+        lastDieTwo = 0;
+        consecutiveDoublesThisTurn = 0;
+        suppressExtraRollForCurrentTurn = false;
+
+        startingRolls = null;
+        turnOrder = null;
+        participatingPlayerIndexes = null;
+        startingRollHistories = null;
+        startingRollQueue = new List<int>();
+        completedActiveSlotsThisRound.Clear();
+
+        onlineFollowerActiveSlotIndex = -1;
+        onlineFollowerPhase = "starting";
+        lastFollowerDiceSequence = -1;
+        onlineRollRequestPending = false;
+        onlineFollowerManagementPresentation = false;
+        onlineFollowerHoldLastRollResult = false;
+        onlineFollowerLastResultPlayerSlotIndex = -1;
+        onlineFollowerLastResultDiceSequence = -1;
+
+        ResetTripleDoublePenaltyUI();
+
+        if (diceVisualController != null)
+        {
+            diceVisualController.ResetForNewMatchSession();
+        }
+
+        if (matchResultManager != null)
+        {
+            matchResultManager.ResetForNewMatchSession();
+        }
 
         if (rollButton != null)
         {
@@ -489,12 +677,38 @@ public class TurnManager : MonoBehaviour
             return;
         }
 
-        TryRequestRollInternal(
-            player,
-            automaticHumanRoll: false);
+        // Button and keyboard input must use the exact same online-aware
+        // request path. Remote followers submit an intent; they never roll
+        // local gameplay RNG.
+        TryRequestRoll(player);
     }
 
     public bool CanPlayerRequestRoll(
+        PlayerGameState player)
+    {
+        if (onlineAuthorityConfigured &&
+            onlineFollowerMode)
+        {
+            return CanFollowerRequestRoll(player) &&
+                   !onlineRollRequestPending;
+        }
+
+        if (!CanPlayerRequestRollCore(player))
+        {
+            return false;
+        }
+
+        if (onlineAuthorityConfigured &&
+            !IsBotPlayer(player) &&
+            !IsLocallyControlledOnlineHuman(player))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool CanPlayerRequestRollCore(
         PlayerGameState player)
     {
         if (!isMatchStarted ||
@@ -543,9 +757,41 @@ public class TurnManager : MonoBehaviour
     public bool TryRequestRoll(
         PlayerGameState player)
     {
+        if (onlineAuthorityConfigured &&
+            onlineFollowerMode)
+        {
+            return TryRequestFollowerRollIntent(
+                player);
+        }
+
         return TryRequestRollInternal(
             player,
-            automaticHumanRoll: false);
+            automaticHumanRoll: false,
+            bypassOnlineHumanAuthority: false);
+    }
+
+    private bool TryRequestFollowerRollIntent(
+        PlayerGameState player)
+    {
+        if (!CanFollowerRequestRoll(player) ||
+            onlineRollRequestPending)
+        {
+            return false;
+        }
+
+        onlineRollRequestPending = true;
+
+        if (rollButton != null)
+        {
+            rollButton.interactable = false;
+        }
+
+        OnlineRollRequested?.Invoke(
+            player,
+            gamePhase ==
+                GamePhase.DeterminingTurnOrder);
+
+        return true;
     }
 
     public bool TryRequestAutomaticHumanRoll(
@@ -559,14 +805,53 @@ public class TurnManager : MonoBehaviour
 
         return TryRequestRollInternal(
             player,
-            automaticHumanRoll: true);
+            automaticHumanRoll: true,
+            bypassOnlineHumanAuthority: false);
+    }
+
+    // Host-only AFK path. The authoritative Host must be allowed to perform
+    // a timed human roll for a RemoteHuman seat without pretending that the
+    // seat is locally controlled. Remote followers never use this method.
+    public bool CanHostAuthoritativelyAutoRollHuman(
+        PlayerGameState player)
+    {
+        return IsOnlineAuthoritativeHost &&
+               player != null &&
+               !IsBotPlayer(player) &&
+               CanPlayerRequestRollCore(player);
+    }
+
+    public bool TryRequestHostAuthoritativeAutomaticHumanRoll(
+        PlayerGameState player)
+    {
+        if (!CanHostAuthoritativelyAutoRollHuman(player))
+        {
+            return false;
+        }
+
+        return TryRequestRollInternal(
+            player,
+            automaticHumanRoll: true,
+            bypassOnlineHumanAuthority: true);
     }
 
     private bool TryRequestRollInternal(
         PlayerGameState player,
-        bool automaticHumanRoll)
+        bool automaticHumanRoll,
+        bool bypassOnlineHumanAuthority)
     {
-        if (!CanPlayerRequestRoll(player))
+        if (onlineAuthorityConfigured &&
+            onlineFollowerMode)
+        {
+            return false;
+        }
+
+        bool canRoll =
+            bypassOnlineHumanAuthority
+                ? CanPlayerRequestRollCore(player)
+                : CanPlayerRequestRoll(player);
+
+        if (!canRoll)
         {
             return false;
         }
@@ -602,11 +887,495 @@ public class TurnManager : MonoBehaviour
         return true;
     }
 
+    public void ConfigureOnlineTurnAuthority(
+        bool followerMode,
+        IEnumerable<int> locallyControlledHumanSlots)
+    {
+        onlineAuthorityConfigured = true;
+        onlineFollowerMode = followerMode;
+        onlineRollRequestPending = false;
+        onlineFollowerManagementPresentation = false;
+        locallyControlledOnlineHumanSlots.Clear();
+
+        if (locallyControlledHumanSlots != null)
+        {
+            foreach (int slotIndex in
+                     locallyControlledHumanSlots)
+            {
+                locallyControlledOnlineHumanSlots.Add(
+                    Mathf.Clamp(slotIndex, 0, 3));
+            }
+        }
+
+        RefreshTurnPresentationForControlChange();
+    }
+
+    public void ClearOnlineTurnAuthority()
+    {
+        onlineAuthorityConfigured = false;
+        onlineFollowerMode = false;
+        onlineFollowerActiveSlotIndex = -1;
+        onlineFollowerPhase = "starting";
+        onlineRollRequestPending = false;
+        onlineFollowerManagementPresentation = false;
+        lastFollowerDiceSequence = -1;
+        locallyControlledOnlineHumanSlots.Clear();
+    }
+
+    public bool CanBeginOnlineFollowerManagementPresentation(
+        PlayerGameState player)
+    {
+        return onlineAuthorityConfigured &&
+               onlineFollowerMode &&
+               !onlineFollowerManagementPresentation &&
+               player != null &&
+               IsLocallyControlledOnlineHuman(player) &&
+               CanFollowerRequestRoll(player);
+    }
+
+    public bool BeginOnlineFollowerManagementPresentation(
+        PlayerGameState player)
+    {
+        if (!CanBeginOnlineFollowerManagementPresentation(player))
+        {
+            return false;
+        }
+
+        onlineFollowerManagementPresentation = true;
+        RefreshOnlineFollowerUI();
+        return true;
+    }
+
+    public void EndOnlineFollowerManagementPresentation()
+    {
+        if (!onlineFollowerManagementPresentation)
+        {
+            return;
+        }
+
+        onlineFollowerManagementPresentation = false;
+        RefreshOnlineFollowerUI();
+    }
+
+    public bool TryBeginAuthoritativeNetworkManagementAction(
+        PlayerGameState player)
+    {
+        if (!onlineAuthorityConfigured ||
+            onlineFollowerMode ||
+            player == null ||
+            !isMatchStarted ||
+            gamePhase != GamePhase.Playing ||
+            isMatchFinished ||
+            waitingForMovement ||
+            resolvingDiceVisual ||
+            resolvingTurnStart ||
+            resolvingManagementAction ||
+            player.IsBankrupt ||
+            IsBotPlayer(player) ||
+            CurrentPlayerState == null ||
+            !IsSamePlayer(CurrentPlayerState, player))
+        {
+            return false;
+        }
+
+        resolvingManagementAction = true;
+        UpdateTurnUI();
+        return true;
+    }
+
+    public bool TryRequestAuthoritativeNetworkRoll(
+        PlayerGameState player)
+    {
+        if (!onlineAuthorityConfigured ||
+            onlineFollowerMode)
+        {
+            return false;
+        }
+
+        return TryRequestRollInternal(
+            player,
+            automaticHumanRoll: false,
+            bypassOnlineHumanAuthority: true);
+    }
+
+    public void NotifyOnlineRollRequestFailed()
+    {
+        if (!onlineFollowerMode)
+        {
+            return;
+        }
+
+        onlineRollRequestPending = false;
+        RefreshOnlineFollowerUI();
+    }
+
+    public PlayerGameState GetPlayerStateBySlotIndex(
+        int stableSlotIndex)
+    {
+        if (players == null)
+        {
+            return null;
+        }
+
+        foreach (PlayerPawnMover pawn in players)
+        {
+            if (pawn == null)
+            {
+                continue;
+            }
+
+            PlayerGameState state =
+                pawn.GetComponent<PlayerGameState>();
+
+            if (state != null &&
+                state.PlayerSlotIndex == stableSlotIndex)
+            {
+                return state;
+            }
+        }
+
+        return null;
+    }
+
+    public void ApplyOnlineFollowerTurnDiceFrame(
+        string phase,
+        int activeSlotIndex,
+        int networkRound,
+        int diceSequence,
+        int dicePlayerSlotIndex,
+        int dieOne,
+        int dieTwo,
+        int total,
+        bool startingOrderDice)
+    {
+        if (!onlineAuthorityConfigured ||
+            !onlineFollowerMode ||
+            !isMatchStarted)
+        {
+            return;
+        }
+
+        onlineFollowerPhase =
+            string.IsNullOrWhiteSpace(phase)
+                ? "starting"
+                : phase;
+
+        onlineFollowerActiveSlotIndex =
+            activeSlotIndex;
+
+        currentRound =
+            Mathf.Max(1, networkRound);
+
+        bool followerFinished =
+            string.Equals(
+                onlineFollowerPhase,
+                "finished",
+                System.StringComparison.Ordinal) ||
+            string.Equals(
+                onlineFollowerPhase,
+                "match_complete",
+                System.StringComparison.Ordinal);
+
+        if (followerFinished)
+        {
+            gamePhase = GamePhase.Finished;
+            isMatchFinished = true;
+            onlineRollRequestPending = false;
+            onlineFollowerManagementPresentation = false;
+            onlineFollowerHoldLastRollResult = false;
+            onlineFollowerPenaltySubmitPending = false;
+
+            if (rollButton != null)
+            {
+                rollButton.interactable = false;
+            }
+
+            if (turnStatusText != null)
+            {
+                turnStatusText.text =
+                    AtlasBoardL.T(
+                        "turn.match_complete",
+                        currentRound);
+            }
+
+            return;
+        }
+
+        int arrayIndex =
+            GetPlayerArrayIndexBySlotIndex(
+                activeSlotIndex);
+
+        if (arrayIndex >= 0)
+        {
+            currentPlayerIndex = arrayIndex;
+        }
+
+        gamePhase =
+            string.Equals(
+                onlineFollowerPhase,
+                "starting_order",
+                System.StringComparison.Ordinal) ||
+            (string.Equals(
+                onlineFollowerPhase,
+                "dice_resolving",
+                System.StringComparison.Ordinal) &&
+             startingOrderDice)
+                ? GamePhase.DeterminingTurnOrder
+                : GamePhase.Playing;
+
+        if (diceSequence > lastFollowerDiceSequence &&
+            dieOne >= 1 &&
+            dieOne <= 6 &&
+            dieTwo >= 1 &&
+            dieTwo <= 6)
+        {
+            lastFollowerDiceSequence =
+                diceSequence;
+
+            onlineFollowerLastResultDiceSequence =
+                diceSequence;
+            onlineFollowerLastResultPlayerSlotIndex =
+                dicePlayerSlotIndex;
+            onlineFollowerHoldLastRollResult = false;
+            onlineRollRequestPending = false;
+            resolvingDiceVisual = true;
+            lastDieOne = dieOne;
+            lastDieTwo = dieTwo;
+            lastRoll = total > 0
+                ? total
+                : dieOne + dieTwo;
+
+            if (rollButton != null)
+            {
+                rollButton.interactable = false;
+            }
+
+            PlayerGameState rollingPlayer =
+                GetPlayerStateBySlotIndex(
+                    dicePlayerSlotIndex);
+
+            if (turnStatusText != null &&
+                rollingPlayer != null)
+            {
+                turnStatusText.text =
+                    startingOrderDice
+                        ? AtlasBoardL.T(
+                            "turn.starting_rolling",
+                            AtlasBoardL.PlayerName(
+                                rollingPlayer))
+                        : AtlasBoardL.T(
+                            "turn.active_rolling",
+                            currentRound,
+                            roundLimit,
+                            AtlasBoardL.PlayerName(
+                                rollingPlayer));
+            }
+
+            Debug.Log(
+                $"Phase 5B follower dice — " +
+                $"P{dicePlayerSlotIndex + 1}: " +
+                $"{dieOne} + {dieTwo} = {lastRoll}. " +
+                $"Sequence={diceSequence}.",
+                this);
+
+            PlayDiceVisual(
+                dieOne,
+                dieTwo,
+                () =>
+                {
+                    resolvingDiceVisual = false;
+
+                    if (!startingOrderDice &&
+                        turnStatusText != null &&
+                        rollingPlayer != null)
+                    {
+                        string diceText =
+                            $"{dieOne} + {dieTwo} = {lastRoll}";
+
+                        turnStatusText.text =
+                            AtlasBoardL.T(
+                                "turn.active_result",
+                                currentRound,
+                                roundLimit,
+                                AtlasBoardL.PlayerName(
+                                    rollingPlayer),
+                                diceText);
+
+                        onlineFollowerHoldLastRollResult = true;
+                    }
+
+                    RefreshOnlineFollowerUI();
+                });
+
+            return;
+        }
+
+        if (activeSlotIndex !=
+            dicePlayerSlotIndex)
+        {
+            onlineRollRequestPending = false;
+
+            if (onlineFollowerHoldLastRollResult &&
+                activeSlotIndex !=
+                    onlineFollowerLastResultPlayerSlotIndex)
+            {
+                onlineFollowerHoldLastRollResult = false;
+            }
+        }
+
+        RefreshOnlineFollowerUI();
+    }
+
+    private bool CanFollowerRequestRoll(
+        PlayerGameState player)
+    {
+        if (!onlineAuthorityConfigured ||
+            !onlineFollowerMode ||
+            !isMatchStarted ||
+            player == null ||
+            !player.IsParticipating ||
+            player.IsBankrupt ||
+            resolvingDiceVisual ||
+            onlineFollowerManagementPresentation ||
+            IsBotPlayer(player) ||
+            !IsLocallyControlledOnlineHuman(player))
+        {
+            return false;
+        }
+
+        bool rollPhase =
+            string.Equals(
+                onlineFollowerPhase,
+                "starting_order",
+                System.StringComparison.Ordinal) ||
+            string.Equals(
+                onlineFollowerPhase,
+                "awaiting_roll",
+                System.StringComparison.Ordinal);
+
+        return rollPhase &&
+               player.PlayerSlotIndex ==
+                   onlineFollowerActiveSlotIndex;
+    }
+
+    private bool IsLocallyControlledOnlineHuman(
+        PlayerGameState player)
+    {
+        return player != null &&
+               locallyControlledOnlineHumanSlots.Contains(
+                   player.PlayerSlotIndex);
+    }
+
+    private int GetPlayerArrayIndexBySlotIndex(
+        int stableSlotIndex)
+    {
+        if (players == null)
+        {
+            return -1;
+        }
+
+        for (int index = 0;
+             index < players.Length;
+             index++)
+        {
+            PlayerGameState state =
+                GetPlayerState(index);
+
+            if (state != null &&
+                state.PlayerSlotIndex == stableSlotIndex)
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    private void RefreshOnlineFollowerUI()
+    {
+        if (!onlineAuthorityConfigured ||
+            !onlineFollowerMode ||
+            !isMatchStarted)
+        {
+            return;
+        }
+
+        PlayerGameState activePlayer =
+            GetPlayerStateBySlotIndex(
+                onlineFollowerActiveSlotIndex);
+
+        bool canRoll =
+            CanFollowerRequestRoll(activePlayer) &&
+            !onlineRollRequestPending;
+
+        if (rollButton != null)
+        {
+            rollButton.interactable = canRoll;
+        }
+
+        if (turnStatusText == null ||
+            activePlayer == null ||
+            resolvingDiceVisual)
+        {
+            return;
+        }
+
+        if (onlineFollowerHoldLastRollResult &&
+            onlineFollowerLastResultDiceSequence >= 0 &&
+            onlineFollowerLastResultPlayerSlotIndex ==
+                onlineFollowerActiveSlotIndex &&
+            lastDieOne >= 1 &&
+            lastDieTwo >= 1)
+        {
+            string diceText =
+                $"{lastDieOne} + {lastDieTwo} = {lastRoll}";
+
+            turnStatusText.text =
+                AtlasBoardL.T(
+                    "turn.active_result",
+                    currentRound,
+                    roundLimit,
+                    AtlasBoardL.PlayerName(activePlayer),
+                    diceText);
+
+            return;
+        }
+
+        if (gamePhase ==
+            GamePhase.DeterminingTurnOrder)
+        {
+            turnStatusText.text =
+                AtlasBoardL.T(
+                    "turn.starting_order",
+                    AtlasBoardL.PlayerName(
+                        activePlayer),
+                    string.Empty);
+
+            return;
+        }
+
+        turnStatusText.text =
+            AtlasBoardL.T(
+                "turn.current",
+                currentRound,
+                roundLimit,
+                AtlasBoardL.PlayerName(
+                    activePlayer),
+                string.Empty);
+    }
+
     public void RefreshTurnPresentationForControlChange()
     {
         if (!isMatchStarted ||
             isMatchFinished)
         {
+            return;
+        }
+
+        if (onlineAuthorityConfigured &&
+            onlineFollowerMode)
+        {
+            RefreshOnlineFollowerUI();
             return;
         }
 
@@ -939,6 +1708,16 @@ public class TurnManager : MonoBehaviour
                     "turn.starting_rolling",
                     playerName);
         }
+
+        PlayerGameState authoritativeRollingPlayer =
+            GetPlayerState(
+                playerArrayIndex);
+
+        AuthoritativeDiceCommitted?.Invoke(
+            authoritativeRollingPlayer,
+            dieOne,
+            dieTwo,
+            true);
 
         PlayDiceVisual(
             dieOne,
@@ -1339,6 +2118,12 @@ public class TurnManager : MonoBehaviour
         bool resolvedDouble =
             rolledDouble;
 
+        AuthoritativeDiceCommitted?.Invoke(
+            activePlayer,
+            resolvedDieOne,
+            resolvedDieTwo,
+            false);
+
         PlayDiceVisual(
             resolvedDieOne,
             resolvedDieTwo,
@@ -1548,20 +2333,29 @@ public class TurnManager : MonoBehaviour
                         activePlayer));
         }
 
-        if (tripleDoublePenaltyPanel != null)
-        {
-            tripleDoublePenaltyPanel.SetActive(
-                true);
-        }
-
         bool isBot =
             IsBotPlayer(activePlayer);
+
+        bool remoteOwnedOnlineHuman =
+            IsOnlineAuthoritativeHost &&
+            !isBot &&
+            !IsLocallyControlledOnlineHuman(activePlayer);
+
+        if (tripleDoublePenaltyPanel != null)
+        {
+            // A RemoteHuman penalty belongs on that player's client. The Host
+            // keeps the authoritative pending state but does not show an
+            // actionable duplicate Continue button.
+            tripleDoublePenaltyPanel.SetActive(
+                !remoteOwnedOnlineHuman);
+        }
 
         if (tripleDoublePenaltyContinueButton != null)
         {
             tripleDoublePenaltyContinueButton
                 .interactable =
-                    !isBot;
+                    !isBot &&
+                    !remoteOwnedOnlineHuman;
         }
 
         Debug.Log(
@@ -1575,11 +2369,12 @@ public class TurnManager : MonoBehaviour
             tripleDoublePenaltyPanel != null &&
             tripleDoublePenaltyContinueButton != null;
 
-        // Bots continue automatically. If the UI was not wired,
-        // humans also fall back to the timed continuation so the
-        // match can never deadlock.
+        // Bots continue automatically. RemoteHuman penalties wait for the
+        // owning client's intent (or the existing decision timeout controller).
+        // Local humans keep the original UI/fallback behavior.
         if (isBot ||
-            !hasInteractivePenaltyUI)
+            (!remoteOwnedOnlineHuman &&
+             !hasInteractivePenaltyUI))
         {
             StartTripleDoublePenaltyAutoContinue();
         }
@@ -1589,6 +2384,28 @@ public class TurnManager : MonoBehaviour
     {
         if (tripleDoublePenaltyPlayer == null)
         {
+            return;
+        }
+
+        if (IsOnlineFollowerMode)
+        {
+            if (!IsLocallyControlledOnlineHuman(
+                    tripleDoublePenaltyPlayer) ||
+                onlineFollowerPenaltySubmitPending)
+            {
+                return;
+            }
+
+            onlineFollowerPenaltySubmitPending = true;
+
+            if (tripleDoublePenaltyContinueButton != null)
+            {
+                tripleDoublePenaltyContinueButton.interactable = false;
+            }
+
+            OnlineTripleDoublePenaltyContinueRequested?.Invoke(
+                tripleDoublePenaltyPlayer);
+
             return;
         }
 
@@ -1605,6 +2422,80 @@ public class TurnManager : MonoBehaviour
         tripleDoublePenaltyPlayer = null;
 
         FinishCurrentTurn();
+    }
+
+    public void ApplyOnlineFollowerTripleDoublePenalty(
+        bool active,
+        int playerSlotIndex)
+    {
+        if (!IsOnlineFollowerMode)
+        {
+            return;
+        }
+
+        if (!active)
+        {
+            onlineFollowerPenaltySubmitPending = false;
+            tripleDoublePenaltyPlayer = null;
+            ResetTripleDoublePenaltyUI();
+            return;
+        }
+
+        PlayerGameState player =
+            GetPlayerStateBySlotIndex(playerSlotIndex);
+
+        bool locallyOwned =
+            player != null &&
+            IsLocallyControlledOnlineHuman(player);
+
+        if (!locallyOwned)
+        {
+            tripleDoublePenaltyPlayer = null;
+            ResetTripleDoublePenaltyUI();
+            return;
+        }
+
+        if (tripleDoublePenaltyPlayer != player)
+        {
+            onlineFollowerPenaltySubmitPending = false;
+        }
+
+        tripleDoublePenaltyPlayer = player;
+
+        if (tripleDoublePenaltyText != null)
+        {
+            tripleDoublePenaltyText.text =
+                AtlasBoardL.T(
+                    "turn.triple_double_penalty",
+                    AtlasBoardL.PlayerName(player));
+        }
+
+        if (tripleDoublePenaltyPanel != null)
+        {
+            tripleDoublePenaltyPanel.SetActive(true);
+        }
+
+        if (tripleDoublePenaltyContinueButton != null)
+        {
+            tripleDoublePenaltyContinueButton.interactable =
+                !onlineFollowerPenaltySubmitPending;
+        }
+    }
+
+    public void NotifyOnlineTripleDoublePenaltySubmitFailed()
+    {
+        if (!IsOnlineFollowerMode ||
+            tripleDoublePenaltyPlayer == null)
+        {
+            return;
+        }
+
+        onlineFollowerPenaltySubmitPending = false;
+
+        if (tripleDoublePenaltyContinueButton != null)
+        {
+            tripleDoublePenaltyContinueButton.interactable = true;
+        }
     }
 
     private void StartTripleDoublePenaltyAutoContinue()
@@ -1715,10 +2606,12 @@ public class TurnManager : MonoBehaviour
                 currentPlayerIndex);
 
         bool earnedExtraRoll =
+            !suppressExtraRollForCurrentTurn &&
             enableDoublesExtraRollRule &&
             activePlayer != null &&
             activePlayer.IsParticipating &&
             !activePlayer.IsBankrupt &&
+            !activePlayer.HasTurnsToSkip &&
             IsCurrentRollDouble() &&
             consecutiveDoublesThisTurn > 0 &&
             (!enableTripleDoublePenalty ||
@@ -1762,6 +2655,7 @@ public class TurnManager : MonoBehaviour
 
         waitingForMovement = false;
         consecutiveDoublesThisTurn = 0;
+        suppressExtraRollForCurrentTurn = false;
 
         if (RegisterCompletedTurn())
         {
@@ -2103,7 +2997,9 @@ public class TurnManager : MonoBehaviour
         {
             rollButton.interactable =
                 player != null &&
-                !IsBotPlayer(player);
+                !IsBotPlayer(player) &&
+                (!onlineAuthorityConfigured ||
+                 IsLocallyControlledOnlineHuman(player));
         }
 
         if (turnStatusText != null)
@@ -2161,7 +3057,10 @@ public class TurnManager : MonoBehaviour
         {
             rollButton.interactable =
                 !resolvingManagementAction &&
-                !isBotTurn;
+                !isBotTurn &&
+                (!onlineAuthorityConfigured ||
+                 IsLocallyControlledOnlineHuman(
+                     activePlayer));
         }
 
         if (turnStatusText != null)
@@ -2319,4 +3218,9 @@ public class TurnManager : MonoBehaviour
             }
         }
     }
+    public void SuppressExtraRollForCurrentTurn()
+    {
+        suppressExtraRollForCurrentTurn = true;
+    }
+
 }

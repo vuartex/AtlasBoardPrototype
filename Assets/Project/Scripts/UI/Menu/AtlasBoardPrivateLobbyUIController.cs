@@ -432,6 +432,14 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         }
     }
 
+    public void NotifyActiveMatchClientDetached()
+    {
+        // The active-match backend already owns the seat transition. Do not call
+        // lobbyLeave here: a started lobby is intentionally not leaveable through
+        // the waiting-lobby endpoint. This only clears this client's lobby UI.
+        ResetPrivateState(false);
+    }
+
     private void ResolveExtendedOnlineUiReferences()
     {
         Transform[] all =
@@ -943,6 +951,13 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 code,
                 runtimeBridge.CurrentAccountId);
 
+            if (IsActiveMatchReconnectSnapshot(
+                    result.Snapshot))
+            {
+                await ResumeActiveMatchAfterReconnectAsync(
+                    result.Snapshot);
+            }
+
             Debug.Log(
                 "AtlasBoard 3D.3B: real backend room joined. " +
                 $"Lobby={result.Snapshot.LobbyId}, Account={runtimeBridge.CurrentAccountId}.",
@@ -953,6 +968,76 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             backendBusy = false;
             SetEntryButtonsInteractable(true);
         }
+    }
+
+    private static bool IsActiveMatchReconnectSnapshot(
+        AtlasLobbySnapshot snapshot)
+    {
+        return snapshot != null &&
+               !string.IsNullOrWhiteSpace(snapshot.MatchId) &&
+               (snapshot.LifecycleState ==
+                    AtlasRoomLifecycleState.Starting ||
+                snapshot.LifecycleState ==
+                    AtlasRoomLifecycleState.InMatch);
+    }
+
+    private async System.Threading.Tasks.Task
+        ResumeActiveMatchAfterReconnectAsync(
+            AtlasLobbySnapshot snapshot)
+    {
+        if (snapshot == null ||
+            string.IsNullOrWhiteSpace(snapshot.MatchId))
+        {
+            return;
+        }
+
+        PrepareLegacyControlsForOnlineMatchStart();
+
+        AtlasBoardTurnDiceNetworkCoordinator coordinator =
+            GetComponent<
+                AtlasBoardTurnDiceNetworkCoordinator>();
+
+        coordinator?
+            .PrepareForAuthoritativeMatchStart(
+                snapshot);
+
+        mainMenuController ??=
+            GetComponent<
+                AtlasBoardMainMenuController>();
+
+        mainMenuController?
+            .StartMatchAfterPrivateBackendAuthorization();
+
+        AtlasBoardMatchRuntimeBridge matchRuntime =
+            GetComponent<
+                AtlasBoardMatchRuntimeBridge>();
+
+        if (matchRuntime != null)
+        {
+            // PrepareForAuthoritativeMatchStart resets the stale local session
+            // cache. Fetch once immediately so a returning player catches up to
+            // the current round, pawn positions, money, ownership and decision
+            // state instead of waiting on/being filtered by the old snapshot.
+            AtlasMatchNetworkResult refresh =
+                await matchRuntime
+                    .RefreshSnapshotNowAsync(
+                        snapshot.MatchId);
+
+            if (!refresh.Success)
+            {
+                Debug.LogWarning(
+                    "Active-match reclaim succeeded but the immediate " +
+                    "authoritative catch-up snapshot failed: " +
+                    refresh.TechnicalMessage,
+                    this);
+            }
+        }
+
+        SetText(
+            roomStateText,
+            T(
+                "lobby.online.authoritative_start_ready",
+                "START CONFIRMED"));
     }
 
     private void ConfigureHostLobbyPreview()
@@ -1514,12 +1599,32 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             return;
         }
 
+        bool synchronizedRematchReturn =
+            backendSnapshot != null &&
+            (backendSnapshot.LifecycleState ==
+                 AtlasRoomLifecycleState.Starting ||
+             backendSnapshot.LifecycleState ==
+                 AtlasRoomLifecycleState.InMatch) &&
+            !string.IsNullOrWhiteSpace(backendSnapshot.MatchId) &&
+            snapshot.LifecycleState ==
+                AtlasRoomLifecycleState.Waiting &&
+            string.IsNullOrWhiteSpace(snapshot.MatchId);
+
         ApplyBackendSnapshot(
             snapshot,
             roomCode,
             runtimeBridge != null
                 ? runtimeBridge.CurrentAccountId
                 : backendLocalAccountId);
+
+        if (synchronizedRematchReturn)
+        {
+            mainMenuController ??=
+                GetComponent<AtlasBoardMainMenuController>();
+
+            mainMenuController?.ReturnOnlineMatchToLobby();
+            return;
+        }
 
         if (snapshot.LifecycleState ==
             AtlasRoomLifecycleState.Starting)
@@ -1642,6 +1747,24 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                     T(
                         "lobby.error.invalid_room_code",
                         "Invalid room code.");
+            }
+            else if (string.Equals(
+                         technical,
+                         "LOBBY_NOT_JOINABLE",
+                         StringComparison.OrdinalIgnoreCase))
+            {
+                localized =
+                    AtlasBoardOnlineRuntimeText
+                        .ActiveMatchReservedSeatOnly();
+            }
+            else if (!string.IsNullOrWhiteSpace(technical) &&
+                     technical == technical.ToUpperInvariant() &&
+                     technical.Contains("_"))
+            {
+                localized =
+                    T(
+                        "lobby.error.service_unavailable",
+                        "The room cannot be joined right now.");
             }
             else
             {
@@ -2258,6 +2381,57 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             humans,
             1,
             total);
+    }
+
+    public void PrepareLegacyControlsForOnlineMatchStart()
+    {
+        if (backendSnapshot == null ||
+            backendSnapshot.Members == null)
+        {
+            return;
+        }
+
+        int total =
+            backendSnapshot.Settings != null
+                ? Mathf.Clamp(
+                    backendSnapshot.Settings.MaxPlayers,
+                    2,
+                    4)
+                : GetPlayerCount();
+
+        for (int slotIndex = 0;
+             slotIndex < total;
+             slotIndex++)
+        {
+            AtlasLobbyMemberSnapshot member =
+                backendSnapshot.Members
+                    .FirstOrDefault(
+                        item =>
+                            item != null &&
+                            item.Active &&
+                            item.SlotIndex == slotIndex);
+
+            bool shouldBeBot =
+                member != null &&
+                member.SeatMode ==
+                    AtlasLobbySeatMode.Bot;
+
+            // Every real/local human remains a Human in the stable legacy
+            // MatchSetup layer. Phase 5 Turn authority decides which client
+            // is allowed to press Roll for that Human seat.
+            SetPlayerType(
+                slotIndex,
+                shouldBeBot);
+        }
+
+        for (int slotIndex = total;
+             slotIndex < 4;
+             slotIndex++)
+        {
+            SetPlayerType(
+                slotIndex,
+                false);
+        }
     }
 
     private void SyncHostSeatModesToLegacyControls()
@@ -3496,22 +3670,25 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         countdownActive = false;
         countdownCoroutine = null;
 
-        bool localOnly =
-            localIsHost &&
-            backendSnapshot != null &&
-            !backendSnapshot.HasRemoteHumans;
+        PrepareLegacyControlsForOnlineMatchStart();
 
-        if (localOnly)
+        AtlasBoardTurnDiceNetworkCoordinator networkCoordinator =
+            GetComponent<
+                AtlasBoardTurnDiceNetworkCoordinator>();
+
+        if (networkCoordinator != null)
         {
-            mainMenuController ??=
-                GetComponent<
-                    AtlasBoardMainMenuController>();
-
-            mainMenuController?.
-                StartMatchAfterPrivateBackendAuthorization();
-
-            yield break;
+            networkCoordinator
+                .PrepareForAuthoritativeMatchStart(
+                    backendSnapshot);
         }
+
+        mainMenuController ??=
+            GetComponent<
+                AtlasBoardMainMenuController>();
+
+        mainMenuController?.
+            StartMatchAfterPrivateBackendAuthorization();
 
         SetText(
             roomStateText,
@@ -3520,8 +3697,8 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 "START CONFIRMED"));
 
         Debug.Log(
-            "AtlasBoard authoritative online Start confirmed. " +
-            "Full remote board-state networking is intentionally deferred to Phase 5.",
+            "AtlasBoard Phase 5B authoritative online Start confirmed. " +
+            "Host drives Turn/Dice simulation; remote clients enter follower presentation.",
             this);
     }
 

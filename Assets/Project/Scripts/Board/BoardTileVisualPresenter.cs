@@ -621,14 +621,11 @@ public class BoardTileVisualPresenter : MonoBehaviour
 
     private Color ResolveGroupColor()
     {
-        if (tile != null &&
-            tile.GroupColor.a > 0.01f)
-        {
-            return tile.GroupColor;
-        }
-
-        // Safe fallback for old map assets that have not yet
-        // received explicit data-driven group colors.
+        // Property-group identity must stay visually distinct from ownership.
+        // Player ownership uses purple / turquoise / orange / red, so online
+        // gameplay always renders group bands from a neutral-safe palette
+        // instead of reusing bright map-authored colors that can be mistaken
+        // for a player's ownership marker. The group id remains data-driven.
         return GetFallbackGroupColor(
             tile != null
                 ? tile.GroupId
@@ -658,21 +655,21 @@ public class BoardTileVisualPresenter : MonoBehaviour
         return groupNumber switch
         {
             1 => new Color(
-                0.48f, 0.25f, 0.15f, 1f),
+                0.34f, 0.27f, 0.20f, 1f), // walnut
             2 => new Color(
-                0.35f, 0.74f, 0.94f, 1f),
+                0.30f, 0.40f, 0.46f, 1f), // steel
             3 => new Color(
-                0.84f, 0.24f, 0.62f, 1f),
+                0.43f, 0.49f, 0.22f, 1f), // olive
             4 => new Color(
-                0.95f, 0.45f, 0.10f, 1f),
+                0.66f, 0.57f, 0.16f, 1f), // muted gold
             5 => new Color(
-                0.90f, 0.14f, 0.15f, 1f),
+                0.20f, 0.38f, 0.25f, 1f), // forest
             6 => new Color(
-                0.96f, 0.84f, 0.10f, 1f),
+                0.18f, 0.27f, 0.43f, 1f), // navy slate
             7 => new Color(
-                0.14f, 0.64f, 0.29f, 1f),
+                0.36f, 0.39f, 0.42f, 1f), // graphite
             8 => new Color(
-                0.08f, 0.29f, 0.82f, 1f),
+                0.58f, 0.52f, 0.40f, 1f), // sand
             _ => new Color(
                 0.45f, 0.45f, 0.45f, 1f)
         };

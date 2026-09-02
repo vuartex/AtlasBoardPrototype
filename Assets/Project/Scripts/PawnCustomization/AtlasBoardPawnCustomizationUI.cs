@@ -38,16 +38,20 @@ public class AtlasBoardPawnCustomizationUI :
     private int currentSlotIndex;
     private int currentCosmeticIndex;
     private string originalCosmeticId;
+    private bool currentReadOnly;
 
     private RenderTexture previewTexture;
     private GameObject previewStage;
     private Transform previewModelRoot;
     private GameObject previewModel;
     private Camera previewCamera;
+    private AtlasBoardLobbyRuntimeBridge
+        subscribedLobbyBridge;
 
     private void Awake()
     {
         HookButtons();
+        SubscribeToLobbyBridge();
 
         if (modalRoot != null)
         {
@@ -58,6 +62,7 @@ public class AtlasBoardPawnCustomizationUI :
 
     private void OnDestroy()
     {
+        UnsubscribeFromLobbyBridge();
         UnhookButtons();
         DestroyPreviewStage();
     }
@@ -88,17 +93,28 @@ public class AtlasBoardPawnCustomizationUI :
             return;
         }
 
+        SubscribeToLobbyBridge();
+
         currentSlotIndex =
             Mathf.Clamp(
                 playerSlotIndex,
                 0,
                 3);
 
+        if (!CanOpenOnlineSlot(
+                currentSlotIndex,
+                out bool editable))
+        {
+            return;
+        }
+
+        currentReadOnly =
+            !editable;
+
         originalCosmeticId =
-            AtlasBoardPawnSelectionStore
-                .GetSelectedId(
-                    currentSlotIndex,
-                    catalog);
+            ResolveVisibleCosmeticId(
+                currentSlotIndex,
+                currentReadOnly);
 
         currentCosmeticIndex =
             catalog.IndexOf(
@@ -120,6 +136,7 @@ public class AtlasBoardPawnCustomizationUI :
             .SetAsLastSibling();
 
         EnsurePreviewStage();
+        RefreshEditability();
         RefreshPreview();
     }
 
@@ -134,6 +151,11 @@ public class AtlasBoardPawnCustomizationUI :
 
     private void SelectPrevious()
     {
+        if (currentReadOnly)
+        {
+            return;
+        }
+
         if (catalog == null ||
             catalog.Count == 0)
         {
@@ -151,6 +173,11 @@ public class AtlasBoardPawnCustomizationUI :
 
     private void SelectNext()
     {
+        if (currentReadOnly)
+        {
+            return;
+        }
+
         if (catalog == null ||
             catalog.Count == 0)
         {
@@ -165,8 +192,13 @@ public class AtlasBoardPawnCustomizationUI :
         RefreshPreview();
     }
 
-    private void ApplySelection()
+    private async void ApplySelection()
     {
+        if (currentReadOnly)
+        {
+            return;
+        }
+
         if (catalog == null ||
             catalog.Count == 0)
         {
@@ -203,11 +235,292 @@ public class AtlasBoardPawnCustomizationUI :
         originalCosmeticId =
             cosmetic.CosmeticId;
 
+        AtlasBoardLobbyRuntimeBridge bridge =
+            FindLobbyBridge();
+
+        if (bridge != null &&
+            bridge.HasLobby)
+        {
+            AtlasLobbyOperationResult syncResult =
+                await bridge.SetPawnCosmeticAsync(
+                    currentSlotIndex,
+                    cosmetic.CosmeticId);
+
+            if (!syncResult.Success)
+            {
+                Debug.LogWarning(
+                    "Pawn cosmetic was saved locally but lobby sync failed: " +
+                    syncResult.TechnicalMessage,
+                    this);
+            }
+        }
+
         if (modalRoot != null)
         {
             modalRoot.SetActive(
                 false);
         }
+    }
+
+    private void SubscribeToLobbyBridge()
+    {
+        AtlasBoardLobbyRuntimeBridge bridge =
+            FindLobbyBridge();
+
+        if (bridge == subscribedLobbyBridge)
+        {
+            return;
+        }
+
+        UnsubscribeFromLobbyBridge();
+
+        subscribedLobbyBridge = bridge;
+
+        if (subscribedLobbyBridge != null)
+        {
+            subscribedLobbyBridge.SnapshotChanged +=
+                HandleLobbySnapshotChanged;
+        }
+    }
+
+    private void UnsubscribeFromLobbyBridge()
+    {
+        if (subscribedLobbyBridge != null)
+        {
+            subscribedLobbyBridge.SnapshotChanged -=
+                HandleLobbySnapshotChanged;
+        }
+
+        subscribedLobbyBridge = null;
+    }
+
+    private void HandleLobbySnapshotChanged(
+        AtlasLobbySnapshot snapshot)
+    {
+        if (!currentReadOnly ||
+            modalRoot == null ||
+            !modalRoot.activeSelf ||
+            snapshot == null ||
+            snapshot.Members == null ||
+            catalog == null)
+        {
+            return;
+        }
+
+        AtlasLobbyMemberSnapshot member =
+            snapshot.Members.Find(
+                item =>
+                    item != null &&
+                    item.Active &&
+                    item.SlotIndex ==
+                        currentSlotIndex);
+
+        if (member == null ||
+            string.IsNullOrWhiteSpace(
+                member.PawnCosmeticId))
+        {
+            return;
+        }
+
+        int networkIndex =
+            catalog.IndexOf(
+                member.PawnCosmeticId);
+
+        if (networkIndex < 0 ||
+            networkIndex == currentCosmeticIndex)
+        {
+            return;
+        }
+
+        originalCosmeticId =
+            member.PawnCosmeticId;
+        currentCosmeticIndex =
+            networkIndex;
+        RefreshPreview();
+    }
+
+    private string ResolveVisibleCosmeticId(
+        int slotIndex,
+        bool readOnly)
+    {
+        AtlasBoardLobbyRuntimeBridge bridge =
+            FindLobbyBridge();
+
+        if (bridge != null &&
+            bridge.HasLobby &&
+            bridge.CurrentSnapshot != null &&
+            bridge.CurrentSnapshot.Members != null)
+        {
+            AtlasLobbyMemberSnapshot member =
+                bridge.CurrentSnapshot.Members.Find(
+                    item =>
+                        item != null &&
+                        item.Active &&
+                        item.SlotIndex == slotIndex);
+
+            if (member != null)
+            {
+                if (!string.IsNullOrWhiteSpace(
+                        member.PawnCosmeticId) &&
+                    (readOnly ||
+                     member.SeatMode == AtlasLobbySeatMode.Bot))
+                {
+                    return member.PawnCosmeticId;
+                }
+
+                // An online seat that has not committed a pawn yet must not
+                // borrow another device's slot-local PlayerPrefs value.
+                // Read-only viewers use the same deterministic catalog default
+                // until the owning client publishes its real selection.
+                if (readOnly &&
+                    catalog != null &&
+                    catalog.Count > 0)
+                {
+                    PawnCosmeticDefinition deterministicDefault =
+                        catalog.GetByIndex(
+                            Mathf.Clamp(
+                                slotIndex,
+                                0,
+                                catalog.Count - 1));
+
+                    if (deterministicDefault != null)
+                    {
+                        return deterministicDefault.CosmeticId;
+                    }
+                }
+            }
+        }
+
+        return AtlasBoardPawnSelectionStore
+            .GetSelectedId(
+                slotIndex,
+                catalog);
+    }
+
+    private void RefreshEditability()
+    {
+        if (previousButton != null)
+        {
+            previousButton.interactable =
+                !currentReadOnly;
+        }
+
+        if (nextButton != null)
+        {
+            nextButton.interactable =
+                !currentReadOnly;
+        }
+
+        if (applyButton != null)
+        {
+            applyButton.interactable =
+                !currentReadOnly;
+
+            applyButton.gameObject.SetActive(
+                !currentReadOnly);
+        }
+    }
+
+    private bool CanOpenOnlineSlot(
+        int slotIndex,
+        out bool editable)
+    {
+        editable = true;
+
+        AtlasBoardLobbyRuntimeBridge bridge =
+            FindLobbyBridge();
+
+        if (bridge == null ||
+            !bridge.HasLobby ||
+            bridge.CurrentSnapshot == null)
+        {
+            // Preserve existing local/offline customization behavior.
+            return true;
+        }
+
+        AtlasLobbySnapshot snapshot =
+            bridge.CurrentSnapshot;
+
+        AtlasLobbyMemberSnapshot member =
+            snapshot.Members != null
+                ? snapshot.Members.Find(
+                    item =>
+                        item != null &&
+                        item.Active &&
+                        item.SlotIndex ==
+                            slotIndex)
+                : null;
+
+        if (member == null)
+        {
+            editable = false;
+            return false;
+        }
+
+        string localAccountId =
+            bridge.CurrentAccountId ?? string.Empty;
+
+        bool localIsHost =
+            string.Equals(
+                snapshot.HostAccountId,
+                localAccountId,
+                StringComparison.Ordinal);
+
+        bool ownsRemoteHuman =
+            member.SeatMode ==
+                AtlasLobbySeatMode.RemoteHuman &&
+            string.Equals(
+                member.AccountId,
+                localAccountId,
+                StringComparison.Ordinal);
+
+        bool hostOwnedLocalHuman =
+            localIsHost &&
+            (member.SeatMode ==
+                 AtlasLobbySeatMode.HostLocal ||
+             member.SeatMode ==
+                 AtlasLobbySeatMode.LocalHuman);
+
+        bool botSeat =
+            member.SeatMode ==
+            AtlasLobbySeatMode.Bot;
+
+        if (ownsRemoteHuman ||
+            hostOwnedLocalHuman)
+        {
+            editable = true;
+            return true;
+        }
+
+        if (botSeat)
+        {
+            editable = localIsHost;
+            return localIsHost;
+        }
+
+        // Other real Human seats remain inspectable, but read-only.
+        editable = false;
+        return true;
+    }
+
+    private static AtlasBoardLobbyRuntimeBridge
+        FindLobbyBridge()
+    {
+        AtlasBoardLobbyRuntimeBridge[] bridges =
+            Resources.FindObjectsOfTypeAll<
+                AtlasBoardLobbyRuntimeBridge>();
+
+        foreach (AtlasBoardLobbyRuntimeBridge bridge
+                 in bridges)
+        {
+            if (bridge != null &&
+                bridge.gameObject.scene.IsValid())
+            {
+                return bridge;
+            }
+        }
+
+        return null;
     }
 
     private void RefreshPreview()

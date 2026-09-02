@@ -190,6 +190,8 @@ public class MatchSetupManager : MonoBehaviour
         int selectedPlayerCount =
             GetSelectedPlayerCount();
 
+        ResetBoardEconomyForNewMatch();
+
         for (int index = 0;
              index < players.Length;
              index++)
@@ -208,8 +210,16 @@ public class MatchSetupManager : MonoBehaviour
             bool participating =
                 index < selectedPlayerCount;
 
-            playerState.SetParticipating(
+            int matchStartingMoney =
+                boardGenerator != null &&
+                boardGenerator.ActiveEconomyProfile != null
+                    ? boardGenerator.ActiveEconomyProfile.StartingMoney
+                    : playerState.StartingMoney;
+
+            playerState.PrepareForMatch(
+                matchStartingMoney,
                 participating);
+            pawn.ResetForNewMatchSession();
 
             if (!participating)
             {
@@ -222,6 +232,19 @@ public class MatchSetupManager : MonoBehaviour
                 controlTypeDropdowns[index]
                     .value ==
                 (int)MatchPlayerControlType.Bot;
+
+            if (playerState.OnlineSeatStateActive)
+            {
+                AtlasBoardTurnDiceNetworkCoordinator coordinator =
+                    FindAnyObjectByType<
+                        AtlasBoardTurnDiceNetworkCoordinator>();
+
+                shouldBeBot =
+                    playerState.IsOnlineBotControlled &&
+                    (coordinator == null ||
+                     !coordinator.IsPreparedOnlineMatch ||
+                     coordinator.LocalIsHost);
+            }
 
             botController.SetBotEnabled(
                 shouldBeBot);
@@ -1006,4 +1029,49 @@ public class MatchSetupManager : MonoBehaviour
             $"Match Setup: {message}",
             this);
     }
+    public void ResetForNewMatchSession()
+    {
+        matchLaunchRequested = false;
+
+        if (boardControlsRoot != null)
+        {
+            boardControlsRoot.SetActive(false);
+        }
+
+        if (players != null)
+        {
+            foreach (PlayerPawnMover pawn in players)
+            {
+                pawn?.ResetForNewMatchSession();
+
+                BotPlayerController bot =
+                    pawn != null
+                        ? pawn.GetComponent<BotPlayerController>()
+                        : null;
+                bot?.SetBotEnabled(false);
+            }
+        }
+    }
+
+    private void ResetBoardEconomyForNewMatch()
+    {
+        BoardPath boardPath =
+            FindAnyObjectByType<BoardPath>();
+
+        if (boardPath != null)
+        {
+            for (int tileIndex = 0;
+                 tileIndex < boardPath.TileCount;
+                 tileIndex++)
+            {
+                BoardTile tile =
+                    boardPath.GetTile(tileIndex);
+                tile?.ClearOwner();
+            }
+        }
+
+        propertyDevelopmentManager
+            ?.ResetAllDevelopmentsForNewMatch();
+    }
+
 }

@@ -36,6 +36,11 @@ public class AtlasBoardMatchSetupBridge : MonoBehaviour
 
         existingMatchSetupCanvas.SetActive(true);
 
+        MatchSetupManager reusableSetup =
+            existingMatchSetupCanvas.GetComponentInChildren<
+                MatchSetupManager>(true);
+        reusableSetup?.ResetForNewMatchSession();
+
         // PASS 1 — set controls that can rebuild/activate legacy rows.
         TMP_Dropdown[] firstPass =
             existingMatchSetupCanvas

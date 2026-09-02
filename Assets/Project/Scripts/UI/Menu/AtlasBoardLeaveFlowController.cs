@@ -438,8 +438,21 @@ public class AtlasBoardLeaveFlowController : MonoBehaviour
 
     private bool IsMenuFlowVisible()
     {
-        return mainMenuCanvas != null &&
-               mainMenuCanvas.activeInHierarchy;
+        if (mainMenuCanvas == null ||
+            !mainMenuCanvas.activeInHierarchy)
+        {
+            return false;
+        }
+
+        // Phase 5 keeps Canvas_MainMenu alive so the Firebase/network
+        // runtime components on it continue polling during gameplay.
+        // The menu is only visually active when its Canvas is enabled.
+        Canvas canvas =
+            mainMenuCanvas.GetComponent<Canvas>();
+
+        return canvas != null
+            ? canvas.enabled
+            : mainMenuCanvas.activeInHierarchy;
     }
 
     private bool IsPauseVisible()

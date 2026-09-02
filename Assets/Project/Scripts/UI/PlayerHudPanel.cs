@@ -161,34 +161,51 @@ public class PlayerHudPanel : MonoBehaviour
 
         if (controlTypeText != null)
         {
-            bool isBot =
-                botController != null &&
-                botController.BotEnabled;
-
-            if (!isBot)
+            if (player.IsOnlineTemporaryBot)
             {
                 controlTypeText.text =
-                    AtlasBoardL.T(
-                        "common.human")
-                        .ToUpperInvariant();
+                    GetTemporaryBotLabel();
+            }
+            else if (player.IsOnlinePermanentBot)
+            {
+                controlTypeText.text =
+                    GetPermanentBotLabel();
             }
             else
             {
-                string personality =
-                    botController
-                        .PersonalityProfile != null
-                        ? LocalizePersonality(
-                            botController
-                                .PersonalityProfile
-                                .DisplayName)
-                        : AtlasBoardL.T(
-                            "common.bot");
+                bool isBot =
+                    player.OnlineSeatStateActive
+                        ? player.IsOnlineBotControlled
+                        : botController != null &&
+                          botController.BotEnabled;
 
-                controlTypeText.text =
-                    $"{AtlasBoardL.T("common.bot").ToUpperInvariant()} • " +
-                    $"{personality}";
+                if (!isBot)
+                {
+                    controlTypeText.text =
+                        AtlasBoardL.T(
+                            "common.human")
+                            .ToUpperInvariant();
+                }
+                else
+                {
+                    string personality =
+                        botController
+                            .PersonalityProfile != null
+                            ? LocalizePersonality(
+                                botController
+                                    .PersonalityProfile
+                                    .DisplayName)
+                            : AtlasBoardL.T(
+                                "common.bot");
+
+                    controlTypeText.text =
+                        $"{AtlasBoardL.T("common.bot").ToUpperInvariant()} • " +
+                        $"{personality}";
+                }
             }
         }
+
+        ApplyTurnBadgeLayout();
 
         if (turnBadgeRoot != null)
         {
@@ -257,6 +274,51 @@ public class PlayerHudPanel : MonoBehaviour
         }
     }
 
+    private void ApplyTurnBadgeLayout()
+    {
+        if (turnBadgeRoot == null)
+        {
+            return;
+        }
+
+        RectTransform badgeRect =
+            turnBadgeRoot.GetComponent<RectTransform>();
+
+        if (badgeRect != null)
+        {
+            // Keep TURN/SIRA inside the HUD card but pin it to the upper-right
+            // corner so it no longer covers long account display names.
+            badgeRect.anchorMin = new Vector2(1f, 1f);
+            badgeRect.anchorMax = new Vector2(1f, 1f);
+            badgeRect.pivot = new Vector2(1f, 1f);
+            badgeRect.anchoredPosition =
+                new Vector2(-4f, -2f);
+
+            // The previous top-right pin still allowed a long account name to
+            // render underneath the badge. Reserve a dedicated right-side lane
+            // for TURN/SIRA while keeping both elements inside the HUD card.
+            if (badgeRect.sizeDelta.x > 56f)
+            {
+                badgeRect.SetSizeWithCurrentAnchors(
+                    RectTransform.Axis.Horizontal,
+                    56f);
+            }
+        }
+
+        if (playerNameText != null)
+        {
+            RectTransform nameRect =
+                playerNameText.rectTransform;
+
+            if (nameRect != null)
+            {
+                Vector2 offsetMax = nameRect.offsetMax;
+                offsetMax.x = Mathf.Min(offsetMax.x, -64f);
+                nameRect.offsetMax = offsetMax;
+            }
+        }
+    }
+
     private void OnDestroy()
     {
         Unsubscribe();
@@ -290,6 +352,44 @@ public class PlayerHudPanel : MonoBehaviour
 
         return $"{AtlasBoardL.T("common.player")} " +
                $"{state.PlayerSlotIndex + 1}";
+    }
+
+    private static string GetTemporaryBotLabel()
+    {
+        string language =
+            AtlasBoardLocalizationManager.Instance != null
+                ? AtlasBoardLocalizationManager.Instance.CurrentLanguageCode
+                : "en";
+
+        return (language ?? "en").ToLowerInvariant() switch
+        {
+            "tr" => "GEÇİCİ BOT",
+            "es" => "BOT TEMPORAL",
+            "fr" => "BOT TEMPORAIRE",
+            "de" => "TEMPORÄRER BOT",
+            "ko" => "임시 봇",
+            "ru" => "ВРЕМЕННЫЙ БОТ",
+            _ => "TEMPORARY BOT"
+        };
+    }
+
+    private static string GetPermanentBotLabel()
+    {
+        string language =
+            AtlasBoardLocalizationManager.Instance != null
+                ? AtlasBoardLocalizationManager.Instance.CurrentLanguageCode
+                : "en";
+
+        return (language ?? "en").ToLowerInvariant() switch
+        {
+            "tr" => "KALICI BOT",
+            "es" => "BOT PERMANENTE",
+            "fr" => "BOT PERMANENT",
+            "de" => "PERMANENTER BOT",
+            "ko" => "영구 봇",
+            "ru" => "ПОСТОЯННЫЙ БОТ",
+            _ => "PERMANENT BOT"
+        };
     }
 
     private static string LocalizePersonality(
@@ -347,6 +447,12 @@ public class PlayerHudPanel : MonoBehaviour
         player.ParticipationChanged +=
             HandlePlayerChanged;
 
+        player.IdentityChanged +=
+            HandlePlayerChanged;
+
+        player.OnlineControlStateChanged +=
+            HandlePlayerChanged;
+
         subscribed = true;
     }
 
@@ -368,6 +474,12 @@ public class PlayerHudPanel : MonoBehaviour
             HandlePlayerChanged;
 
         player.ParticipationChanged -=
+            HandlePlayerChanged;
+
+        player.IdentityChanged -=
+            HandlePlayerChanged;
+
+        player.OnlineControlStateChanged -=
             HandlePlayerChanged;
 
         subscribed = false;

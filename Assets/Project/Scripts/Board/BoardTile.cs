@@ -240,6 +240,36 @@ public class BoardTile : MonoBehaviour
         return true;
     }
 
+    // Phase 5D Remote follower state mirror. Ownership is assigned from the
+    // Host snapshot without running purchase/rent/tile-resolution gameplay.
+    public void ApplyOnlineAuthoritativeOwner(
+        int authoritativeOwnerPlayerIndex,
+        Material ownershipMaterial)
+    {
+        if (!purchasable)
+        {
+            return;
+        }
+
+        if (authoritativeOwnerPlayerIndex < 0)
+        {
+            if (ownerPlayerIndex >= 0)
+            {
+                ClearOwner();
+            }
+
+            return;
+        }
+
+        ownerPlayerIndex =
+            authoritativeOwnerPlayerIndex;
+
+        if (ownershipMaterial != null)
+        {
+            ApplyOwnerMaterial(ownershipMaterial);
+        }
+    }
+
     public void ApplyOwnerMaterial(
         Material ownerMaterial)
     {

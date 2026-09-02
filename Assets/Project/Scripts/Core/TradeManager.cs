@@ -93,6 +93,32 @@ public class TradeManager : MonoBehaviour
 
     private Coroutine closeCoroutine;
 
+    // Online trade authority. Host owns validation/economy; Remote clients only
+    // build or respond to offers for their locally-owned Human seats.
+    private bool onlineAuthorityConfigured;
+    private bool onlineHostAuthorityMode;
+    private bool remoteTradePresentation;
+    private bool remoteTradeRequestPending;
+    private bool suppressRemoteWindowNotification;
+    private readonly HashSet<int>
+        onlineLocallyControlledHumanSlots =
+            new HashSet<int>();
+
+    public event Action<int, int, int, int, int, int>
+        RemoteTradeOfferRequested;
+
+    public event Action<int, bool>
+        RemoteTradeResponseRequested;
+
+    public event Action<int, bool>
+        RemoteTradeWindowChanged;
+
+    public bool IsRemoteTradePresentation =>
+        remoteTradePresentation;
+
+    public bool IsRemoteTradeRequestPending =>
+        remoteTradeRequestPending;
+
     public bool IsTradeClosed =>
         panelState ==
         TradePanelState.Closed;
@@ -128,6 +154,232 @@ public class TradeManager : MonoBehaviour
                (target == player ||
                 target.PlayerSlotIndex ==
                 player.PlayerSlotIndex);
+    }
+
+    public void ConfigureOnlineTradeAuthority(
+        bool hostAuthorityMode,
+        IEnumerable<int> locallyControlledHumanSlots)
+    {
+        onlineAuthorityConfigured = true;
+        onlineHostAuthorityMode = hostAuthorityMode;
+        onlineLocallyControlledHumanSlots.Clear();
+
+        if (locallyControlledHumanSlots == null)
+        {
+            return;
+        }
+
+        foreach (int slotIndex in locallyControlledHumanSlots)
+        {
+            if (slotIndex >= 0 && slotIndex < 4)
+            {
+                onlineLocallyControlledHumanSlots.Add(slotIndex);
+            }
+        }
+    }
+
+    public bool TryBeginAuthoritativeRemoteOffer(
+        PlayerGameState remoteInitiator,
+        PlayerGameState targetPlayer,
+        BoardTile propertyOffered,
+        int cashOffered,
+        BoardTile propertyRequested,
+        int cashRequested)
+    {
+        if (!onlineAuthorityConfigured ||
+            !onlineHostAuthorityMode ||
+            panelState != TradePanelState.Closed)
+        {
+            return false;
+        }
+
+        EnsureReferences();
+
+        if (turnManager == null ||
+            remoteInitiator == null ||
+            targetPlayer == null ||
+            remoteInitiator == targetPlayer ||
+            remoteInitiator.IsBankrupt ||
+            targetPlayer.IsBankrupt ||
+            IsBotPlayer(remoteInitiator) ||
+            !turnManager.TryBeginAuthoritativeNetworkManagementAction(
+                remoteInitiator))
+        {
+            return false;
+        }
+
+        initiator = remoteInitiator;
+        target = targetPlayer;
+        offeredProperty = propertyOffered;
+        requestedProperty = propertyRequested;
+        offeredCash = Mathf.Max(0, cashOffered);
+        requestedCash = Mathf.Max(0, cashRequested);
+
+        if (!ValidateOffer(out string validationMessage))
+        {
+            Debug.LogWarning(
+                $"Remote trade offer rejected by Host: {validationMessage}",
+                this);
+            CloseTradePanel();
+            return false;
+        }
+
+        BuildTargetPlayerList();
+        panelState = TradePanelState.AwaitingResponse;
+
+        bool showLocally =
+            IsLocallyControlledOnlineHuman(target) ||
+            IsLocallyControlledOnlineHuman(initiator);
+
+        SetPanelActive(showLocally);
+
+        if (showLocally)
+        {
+            if (tradeTitleText != null)
+            {
+                tradeTitleText.text =
+                    AtlasBoardL.T(
+                        "trade.title",
+                        AtlasBoardL.PlayerName(initiator));
+            }
+
+            SyncCurrentOfferToUI();
+            SetSetupControlsInteractable(false);
+            SetResponseButtonsVisible(
+                IsLocallyControlledOnlineHuman(target));
+            RefreshResponseButtonAvailability();
+            SetSummary(
+                BuildOfferSummary(
+                    includeResponsePrompt: true));
+        }
+
+        Debug.Log(
+            $"Host accepted remote trade offer from {initiator.DisplayName} " +
+            $"to {target.DisplayName}: {BuildCompactOfferDescription()}.",
+            this);
+
+        return true;
+    }
+
+    public void ShowOnlineRemoteTradeState(
+        PlayerGameState authoritativeInitiator,
+        PlayerGameState authoritativeTarget,
+        BoardTile propertyOffered,
+        int cashOffered,
+        BoardTile propertyRequested,
+        int cashRequested)
+    {
+        if (onlineHostAuthorityMode ||
+            authoritativeInitiator == null ||
+            authoritativeTarget == null)
+        {
+            ClearOnlineRemoteTradeState();
+            return;
+        }
+
+        bool localParticipant =
+            IsLocallyControlledOnlineHuman(authoritativeInitiator) ||
+            IsLocallyControlledOnlineHuman(authoritativeTarget);
+
+        if (!localParticipant)
+        {
+            ClearOnlineRemoteTradeState();
+            return;
+        }
+
+        EnsureReferences();
+
+        bool sameState =
+            remoteTradePresentation &&
+            panelState == TradePanelState.AwaitingResponse &&
+            initiator != null &&
+            target != null &&
+            initiator.PlayerSlotIndex ==
+                authoritativeInitiator.PlayerSlotIndex &&
+            target.PlayerSlotIndex ==
+                authoritativeTarget.PlayerSlotIndex &&
+            offeredProperty == propertyOffered &&
+            requestedProperty == propertyRequested &&
+            offeredCash == Mathf.Max(0, cashOffered) &&
+            requestedCash == Mathf.Max(0, cashRequested);
+
+        if (sameState)
+        {
+            remoteTradeRequestPending = false;
+            RefreshResponseButtonAvailability();
+            return;
+        }
+
+        remoteTradePresentation = true;
+        remoteTradeRequestPending = false;
+        initiator = authoritativeInitiator;
+        target = authoritativeTarget;
+        offeredProperty = propertyOffered;
+        requestedProperty = propertyRequested;
+        offeredCash = Mathf.Max(0, cashOffered);
+        requestedCash = Mathf.Max(0, cashRequested);
+        panelState = TradePanelState.AwaitingResponse;
+
+        BuildTargetPlayerList();
+        SetPanelActive(true);
+
+        if (tradeTitleText != null)
+        {
+            tradeTitleText.text =
+                AtlasBoardL.T(
+                    "trade.title",
+                    AtlasBoardL.PlayerName(initiator));
+        }
+
+        SyncCurrentOfferToUI();
+        SetSetupControlsInteractable(false);
+
+        bool localTarget =
+            IsLocallyControlledOnlineHuman(target);
+
+        SetResponseButtonsVisible(localTarget);
+        RefreshResponseButtonAvailability();
+        SetSummary(
+            BuildOfferSummary(
+                includeResponsePrompt: true));
+    }
+
+    public void ClearOnlineRemoteTradeState()
+    {
+        if (!remoteTradePresentation)
+        {
+            return;
+        }
+
+        remoteTradePresentation = false;
+        remoteTradeRequestPending = false;
+        CloseTradePanel();
+    }
+
+    public void ResetForNewMatchSession()
+    {
+        suppressRemoteWindowNotification = true;
+
+        try
+        {
+            CloseTradePanel();
+        }
+        finally
+        {
+            suppressRemoteWindowNotification = false;
+        }
+    }
+
+    public void NotifyOnlineRemoteTradeSubmitFailed()
+    {
+        if (!remoteTradePresentation &&
+            panelState != TradePanelState.AwaitingResponse)
+        {
+            return;
+        }
+
+        remoteTradeRequestPending = false;
+        RefreshResponseButtonAvailability();
     }
 
     private void Start()
@@ -277,19 +529,42 @@ public class TradeManager : MonoBehaviour
 
         EnsureReferences();
 
-        if (turnManager == null ||
-            !turnManager.TryBeginManagementAction())
+        if (turnManager == null)
+        {
+            return;
+        }
+
+        PlayerGameState currentPlayer =
+            turnManager.CurrentPlayerState;
+
+        bool beganManagement;
+
+        if (onlineAuthorityConfigured &&
+            !onlineHostAuthorityMode)
+        {
+            beganManagement =
+                currentPlayer != null &&
+                IsLocallyControlledOnlineHuman(currentPlayer) &&
+                turnManager
+                    .BeginOnlineFollowerManagementPresentation(
+                        currentPlayer);
+        }
+        else
+        {
+            beganManagement =
+                turnManager.TryBeginManagementAction();
+        }
+
+        if (!beganManagement)
         {
             Debug.LogWarning(
                 "Trade cannot open right now. " +
                 "Trades are available before rolling.",
                 this);
-
             return;
         }
 
-        initiator =
-            turnManager.CurrentPlayerState;
+        initiator = currentPlayer;
 
         if (initiator == null ||
             initiator.IsBankrupt)
@@ -311,6 +586,15 @@ public class TradeManager : MonoBehaviour
 
         panelState =
             TradePanelState.BuildingOffer;
+
+        if (onlineAuthorityConfigured &&
+            !onlineHostAuthorityMode &&
+            IsLocallyControlledOnlineHuman(initiator))
+        {
+            RemoteTradeWindowChanged?.Invoke(
+                initiator.PlayerSlotIndex,
+                true);
+        }
 
         SetPanelActive(true);
         SetSetupControlsInteractable(true);
@@ -391,6 +675,47 @@ public class TradeManager : MonoBehaviour
             return;
         }
 
+        if (onlineAuthorityConfigured &&
+            !onlineHostAuthorityMode)
+        {
+            Action<int, int, int, int, int, int> callback =
+                RemoteTradeOfferRequested;
+
+            if (callback == null ||
+                initiator == null ||
+                target == null)
+            {
+                SetSummary(
+                    "Online trade transport is not ready.");
+                return;
+            }
+
+            panelState =
+                TradePanelState.AwaitingResponse;
+            remoteTradePresentation = true;
+            remoteTradeRequestPending = true;
+
+            SetSetupControlsInteractable(false);
+            SetResponseButtonsVisible(false);
+            SetSummary(
+                BuildOfferSummary(
+                    includeResponsePrompt: true));
+
+            callback.Invoke(
+                initiator.PlayerSlotIndex,
+                target.PlayerSlotIndex,
+                offeredProperty != null
+                    ? offeredProperty.TileIndex
+                    : -1,
+                offeredCash,
+                requestedProperty != null
+                    ? requestedProperty.TileIndex
+                    : -1,
+                requestedCash);
+
+            return;
+        }
+
         panelState =
             TradePanelState.AwaitingResponse;
 
@@ -441,6 +766,14 @@ public class TradeManager : MonoBehaviour
             return;
         }
 
+        if (onlineAuthorityConfigured &&
+            !onlineHostAuthorityMode &&
+            remoteTradePresentation)
+        {
+            SubmitOnlineRemoteTradeResponse(true);
+            return;
+        }
+
         if (!ValidateOffer(
                 out string validationMessage))
         {
@@ -480,6 +813,14 @@ public class TradeManager : MonoBehaviour
         if (panelState !=
             TradePanelState.AwaitingResponse)
         {
+            return;
+        }
+
+        if (onlineAuthorityConfigured &&
+            !onlineHostAuthorityMode &&
+            remoteTradePresentation)
+        {
+            SubmitOnlineRemoteTradeResponse(false);
             return;
         }
 
@@ -1187,7 +1528,11 @@ public class TradeManager : MonoBehaviour
             panelState ==
                 TradePanelState.AwaitingResponse &&
             target != null &&
-            !IsBotPlayer(target);
+            !IsBotPlayer(target) &&
+            (!onlineAuthorityConfigured ||
+             IsLocallyControlledOnlineHuman(target)) &&
+            (!remoteTradePresentation ||
+             !remoteTradeRequestPending);
 
         if (acceptTradeButton != null)
         {
@@ -1200,6 +1545,42 @@ public class TradeManager : MonoBehaviour
             rejectTradeButton.interactable =
                 humanCanRespond;
         }
+    }
+
+    private void SubmitOnlineRemoteTradeResponse(
+        bool acceptOffer)
+    {
+        if (remoteTradeRequestPending ||
+            target == null ||
+            !IsLocallyControlledOnlineHuman(target))
+        {
+            return;
+        }
+
+        Action<int, bool> callback =
+            RemoteTradeResponseRequested;
+
+        if (callback == null)
+        {
+            Debug.LogWarning(
+                "Remote trade response has no online subscriber.",
+                this);
+            return;
+        }
+
+        remoteTradeRequestPending = true;
+        RefreshResponseButtonAvailability();
+        callback.Invoke(
+            target.PlayerSlotIndex,
+            acceptOffer);
+    }
+
+    private bool IsLocallyControlledOnlineHuman(
+        PlayerGameState player)
+    {
+        return player != null &&
+               onlineLocallyControlledHumanSlots.Contains(
+                   player.PlayerSlotIndex);
     }
 
     private bool IsBotPlayer(
@@ -1324,6 +1705,9 @@ public class TradeManager : MonoBehaviour
 
     private void CloseTradePanel()
     {
+        PlayerGameState closingInitiator =
+            initiator;
+
         if (closeCoroutine != null)
         {
             StopCoroutine(closeCoroutine);
@@ -1341,6 +1725,20 @@ public class TradeManager : MonoBehaviour
         requestedProperty = null;
         offeredCash = 0;
         requestedCash = 0;
+        remoteTradePresentation = false;
+        remoteTradeRequestPending = false;
+
+        if (!suppressRemoteWindowNotification &&
+            onlineAuthorityConfigured &&
+            !onlineHostAuthorityMode &&
+            closingInitiator != null &&
+            IsLocallyControlledOnlineHuman(
+                closingInitiator))
+        {
+            RemoteTradeWindowChanged?.Invoke(
+                closingInitiator.PlayerSlotIndex,
+                false);
+        }
 
         targetPlayers.Clear();
         offeredProperties.Clear();
@@ -1348,7 +1746,16 @@ public class TradeManager : MonoBehaviour
 
         if (turnManager != null)
         {
-            turnManager.CompleteManagementAction();
+            if (onlineAuthorityConfigured &&
+                !onlineHostAuthorityMode)
+            {
+                turnManager
+                    .EndOnlineFollowerManagementPresentation();
+            }
+            else
+            {
+                turnManager.CompleteManagementAction();
+            }
         }
     }
 

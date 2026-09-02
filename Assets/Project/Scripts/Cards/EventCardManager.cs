@@ -49,11 +49,76 @@ public class EventCardManager : MonoBehaviour
     private PlayerGameState currentEventPlayer;
     private EventCardDefinition currentCard;
 
+    // Phase 5E online authority/presentation state.
+    private bool onlineHostAuthorityMode;
+    private readonly HashSet<int> onlineLocallyControlledHumanSlots =
+        new HashSet<int>();
+    private bool remotePresentation;
+    private bool remoteContinueRequestPending;
+
+    private string onlineResultKind = string.Empty;
+    private int onlineResultValue0;
+    private int onlineResultValue1;
+    private int onlineResultValue2;
+    private string onlineResultTextValue = string.Empty;
+
+    public event Action<int> RemoteContinueRequested;
+
     public bool IsResolvingEvent =>
         isResolvingEvent;
 
+    public bool EffectExecutionCompleted =>
+        effectExecutionCompleted;
+
+    public PlayerGameState CurrentEventPlayer =>
+        currentEventPlayer;
+
+    public EventCardDefinition CurrentCard =>
+        currentCard;
+
+    public bool IsRemotePresentation =>
+        remotePresentation;
+
+    public string OnlineResultKind =>
+        onlineResultKind;
+
+    public int OnlineResultValue0 =>
+        onlineResultValue0;
+
+    public int OnlineResultValue1 =>
+        onlineResultValue1;
+
+    public int OnlineResultValue2 =>
+        onlineResultValue2;
+
+    public string OnlineResultTextValue =>
+        onlineResultTextValue;
+
     public EventDeckDefinition EventDeck =>
         eventDeck;
+
+    public void ConfigureOnlineDecisionAuthority(
+        bool hostAuthorityMode,
+        IEnumerable<int> locallyControlledHumanSlots)
+    {
+        onlineHostAuthorityMode =
+            hostAuthorityMode;
+
+        onlineLocallyControlledHumanSlots.Clear();
+
+        if (locallyControlledHumanSlots == null)
+        {
+            return;
+        }
+
+        foreach (int slotIndex in locallyControlledHumanSlots)
+        {
+            if (slotIndex >= 0 && slotIndex < 4)
+            {
+                onlineLocallyControlledHumanSlots.Add(slotIndex);
+            }
+        }
+    }
 
     public void SetEventDeck(
         EventDeckDefinition deck)
@@ -125,6 +190,15 @@ public class EventCardManager : MonoBehaviour
             eventDescriptionText.text =
                 currentCard.Description;
         }
+
+        if (remotePresentation &&
+            eventResultText != null)
+        {
+            eventResultText.text =
+                effectExecutionCompleted
+                    ? BuildLocalizedRemoteResult()
+                    : AtlasBoardL.T("event.applying");
+        }
     }
 
     public void ResolveRandomEvent(
@@ -165,6 +239,10 @@ public class EventCardManager : MonoBehaviour
             return;
         }
 
+        remotePresentation = false;
+        remoteContinueRequestPending = false;
+        ClearOnlineResultDescriptor();
+
         isResolvingEvent = true;
         effectExecutionCompleted = false;
         currentEventPlayer = player;
@@ -191,7 +269,8 @@ public class EventCardManager : MonoBehaviour
 
         if (eventPanel != null)
         {
-            eventPanel.SetActive(true);
+            eventPanel.SetActive(
+                ShouldShowAuthoritativePanelLocally(player));
         }
 
         RefreshContinueButtonAvailability();
@@ -223,7 +302,157 @@ public class EventCardManager : MonoBehaviour
             return;
         }
 
+        if (TrySubmitOnlineRemoteContinue())
+        {
+            return;
+        }
+
         CompleteEvent();
+    }
+
+    public void ShowOnlineRemoteEventDecision(
+        PlayerGameState player,
+        string cardId,
+        bool effectCompleted,
+        string resultKind,
+        int value0,
+        int value1,
+        int value2,
+        string textValue)
+    {
+        EventCardDefinition card =
+            FindCardById(cardId);
+
+        if (player == null ||
+            card == null)
+        {
+            ClearOnlineRemoteEventDecision();
+            return;
+        }
+
+        bool samePresentation =
+            remotePresentation &&
+            currentEventPlayer != null &&
+            currentEventPlayer.PlayerSlotIndex ==
+                player.PlayerSlotIndex &&
+            currentCard != null &&
+            string.Equals(
+                currentCard.CardId,
+                card.CardId,
+                StringComparison.Ordinal);
+
+        remotePresentation = true;
+
+        if (!samePresentation)
+        {
+            remoteContinueRequestPending = false;
+        }
+
+        isResolvingEvent = true;
+        effectExecutionCompleted = effectCompleted;
+        currentEventPlayer = player;
+        currentCard = card;
+        resolutionCompleted = null;
+
+        onlineResultKind = resultKind ?? string.Empty;
+        onlineResultValue0 = value0;
+        onlineResultValue1 = value1;
+        onlineResultValue2 = value2;
+        onlineResultTextValue = textValue ?? string.Empty;
+
+        if (eventTitleText != null)
+        {
+            eventTitleText.text = card.Title;
+        }
+
+        if (eventDescriptionText != null)
+        {
+            eventDescriptionText.text = card.Description;
+        }
+
+        if (eventResultText != null)
+        {
+            eventResultText.text =
+                effectCompleted
+                    ? BuildLocalizedRemoteResult()
+                    : AtlasBoardL.T("event.applying");
+        }
+
+        if (eventPanel != null)
+        {
+            eventPanel.SetActive(true);
+        }
+
+        RefreshContinueButtonAvailability();
+    }
+
+    public void ClearOnlineRemoteEventDecision()
+    {
+        if (!remotePresentation)
+        {
+            return;
+        }
+
+        remotePresentation = false;
+        remoteContinueRequestPending = false;
+        isResolvingEvent = false;
+        effectExecutionCompleted = false;
+        currentEventPlayer = null;
+        currentCard = null;
+        ClearOnlineResultDescriptor();
+        resolutionCompleted = null;
+
+        if (eventPanel != null)
+        {
+            eventPanel.SetActive(false);
+        }
+
+        if (continueButton != null)
+        {
+            continueButton.interactable = true;
+        }
+    }
+
+    public void NotifyOnlineRemoteContinueSubmitFailed()
+    {
+        if (!remotePresentation)
+        {
+            return;
+        }
+
+        remoteContinueRequestPending = false;
+        RefreshContinueButtonAvailability();
+    }
+
+    private bool TrySubmitOnlineRemoteContinue()
+    {
+        if (!remotePresentation)
+        {
+            return false;
+        }
+
+        if (remoteContinueRequestPending ||
+            currentEventPlayer == null)
+        {
+            return true;
+        }
+
+        Action<int> callback =
+            RemoteContinueRequested;
+
+        if (callback == null)
+        {
+            Debug.LogWarning(
+                "Remote Event Continue has no online subscriber.",
+                this);
+            return true;
+        }
+
+        remoteContinueRequestPending = true;
+        RefreshContinueButtonAvailability();
+        callback.Invoke(
+            currentEventPlayer.PlayerSlotIndex);
+        return true;
     }
 
     private void ApplyCardEffect(
@@ -257,6 +486,9 @@ public class EventCardManager : MonoBehaviour
                 break;
 
             default:
+                SetOnlineResultDescriptor(
+                    "effect_none");
+
                 FinishEffectExecution(
                     AtlasBoardL.T(
                         "event.effect_none"));
@@ -359,6 +591,12 @@ public class EventCardManager : MonoBehaviour
             $"{causedBankruptcy}.",
             this);
 
+        SetOnlineResultDescriptor(
+            "money",
+            appliedMoneyChange,
+            causedBankruptcy ? 1 : 0,
+            transferredProperties);
+
         FinishEffectExecution(
             resultText);
     }
@@ -381,6 +619,10 @@ public class EventCardManager : MonoBehaviour
             $"'{card.Title}' and will skip " +
             $"{turns} turn(s).",
             this);
+
+        SetOnlineResultDescriptor(
+            "skip",
+            turns);
 
         FinishEffectExecution(
             turns == 1
@@ -411,6 +653,9 @@ public class EventCardManager : MonoBehaviour
             boardPath == null ||
             boardPath.TileCount == 0)
         {
+            SetOnlineResultDescriptor(
+                "move_failed");
+
             FinishEffectExecution(
                 AtlasBoardL.T(
                     "event.move_failed"));
@@ -471,12 +716,31 @@ public class EventCardManager : MonoBehaviour
                         $"{spaces} spaces.",
                         this);
 
+                    if (landedTile != null)
+                    {
+                        SetOnlineResultDescriptor(
+                            "move_done_tile",
+                            spaces,
+                            (int)landedTile.TileType,
+                            0,
+                            landedTile.DisplayName);
+                    }
+                    else
+                    {
+                        SetOnlineResultDescriptor(
+                            "move_done",
+                            spaces);
+                    }
+
                     FinishEffectExecution(
                         result);
                 });
 
         if (!started)
         {
+            SetOnlineResultDescriptor(
+                "move_failed");
+
             FinishEffectExecution(
                 AtlasBoardL.T(
                     "event.move_failed"));
@@ -497,6 +761,9 @@ public class EventCardManager : MonoBehaviour
             boardPath == null ||
             boardPath.TileCount == 0)
         {
+            SetOnlineResultDescriptor(
+                "move_failed");
+
             FinishEffectExecution(
                 AtlasBoardL.T(
                     "event.move_failed"));
@@ -510,6 +777,9 @@ public class EventCardManager : MonoBehaviour
 
         if (targetIndex < 0)
         {
+            SetOnlineResultDescriptor(
+                "target_not_found");
+
             FinishEffectExecution(
                 AtlasBoardL.T(
                     "event.target_not_found"));
@@ -558,12 +828,30 @@ public class EventCardManager : MonoBehaviour
                         $"{card.TargetTileType} tile.",
                         this);
 
+                    if (landedTile != null)
+                    {
+                        SetOnlineResultDescriptor(
+                            "target_done_tile",
+                            (int)landedTile.TileType,
+                            0,
+                            0,
+                            landedTile.DisplayName);
+                    }
+                    else
+                    {
+                        SetOnlineResultDescriptor(
+                            "target_done");
+                    }
+
                     FinishEffectExecution(
                         result);
                 });
 
         if (!started)
         {
+            SetOnlineResultDescriptor(
+                "move_failed");
+
             FinishEffectExecution(
                 AtlasBoardL.T(
                     "event.move_failed"));
@@ -696,11 +984,208 @@ public class EventCardManager : MonoBehaviour
             return;
         }
 
+        if (remotePresentation)
+        {
+            continueButton.interactable =
+                effectExecutionCompleted &&
+                !remoteContinueRequestPending;
+            return;
+        }
+
+        bool locallyOwnedHuman =
+            currentEventPlayer == null ||
+            !onlineHostAuthorityMode ||
+            onlineLocallyControlledHumanSlots.Contains(
+                currentEventPlayer.PlayerSlotIndex);
+
         continueButton.interactable =
             effectExecutionCompleted &&
+            locallyOwnedHuman &&
             (currentEventPlayer == null ||
              !IsBotPlayer(
                 currentEventPlayer));
+    }
+
+    private bool ShouldShowAuthoritativePanelLocally(
+        PlayerGameState player)
+    {
+        if (!onlineHostAuthorityMode ||
+            player == null)
+        {
+            return true;
+        }
+
+        if (IsBotPlayer(player))
+        {
+            return false;
+        }
+
+        return onlineLocallyControlledHumanSlots.Contains(
+            player.PlayerSlotIndex);
+    }
+
+    private EventCardDefinition FindCardById(
+        string cardId)
+    {
+        if (string.IsNullOrWhiteSpace(cardId) ||
+            eventDeck == null ||
+            eventDeck.Cards == null)
+        {
+            return null;
+        }
+
+        foreach (EventCardDefinition card in eventDeck.Cards)
+        {
+            if (card != null &&
+                string.Equals(
+                    card.CardId,
+                    cardId,
+                    StringComparison.Ordinal))
+            {
+                return card;
+            }
+        }
+
+        return null;
+    }
+
+    private void SetOnlineResultDescriptor(
+        string kind,
+        int value0 = 0,
+        int value1 = 0,
+        int value2 = 0,
+        string textValue = "")
+    {
+        onlineResultKind = kind ?? string.Empty;
+        onlineResultValue0 = value0;
+        onlineResultValue1 = value1;
+        onlineResultValue2 = value2;
+        onlineResultTextValue = textValue ?? string.Empty;
+    }
+
+    private void ClearOnlineResultDescriptor()
+    {
+        onlineResultKind = string.Empty;
+        onlineResultValue0 = 0;
+        onlineResultValue1 = 0;
+        onlineResultValue2 = 0;
+        onlineResultTextValue = string.Empty;
+    }
+
+    private string BuildLocalizedRemoteResult()
+    {
+        if (string.Equals(
+                onlineResultKind,
+                "money",
+                StringComparison.Ordinal))
+        {
+            if (onlineResultValue1 != 0)
+            {
+                return AtlasBoardL.T(
+                    "event.bankrupt_result",
+                    Mathf.Abs(onlineResultValue0),
+                    onlineResultValue2);
+            }
+
+            if (onlineResultValue0 > 0)
+            {
+                return $"+{onlineResultValue0} ₵";
+            }
+
+            if (onlineResultValue0 < 0)
+            {
+                return $"{onlineResultValue0} ₵";
+            }
+
+            return AtlasBoardL.T(
+                "event.money_no_change");
+        }
+
+        if (string.Equals(
+                onlineResultKind,
+                "skip",
+                StringComparison.Ordinal))
+        {
+            return onlineResultValue0 == 1
+                ? AtlasBoardL.T("event.skip_one")
+                : AtlasBoardL.T(
+                    "event.skip_many",
+                    Mathf.Max(1, onlineResultValue0));
+        }
+
+        if (string.Equals(
+                onlineResultKind,
+                "move_done_tile",
+                StringComparison.Ordinal))
+        {
+            return AtlasBoardL.T(
+                "event.move_done_tile",
+                onlineResultValue0,
+                AtlasBoardL.TileName(
+                    (TileType)onlineResultValue1,
+                    onlineResultTextValue));
+        }
+
+        if (string.Equals(
+                onlineResultKind,
+                "move_done",
+                StringComparison.Ordinal))
+        {
+            return AtlasBoardL.T(
+                "event.move_done",
+                onlineResultValue0);
+        }
+
+        if (string.Equals(
+                onlineResultKind,
+                "target_done_tile",
+                StringComparison.Ordinal))
+        {
+            return AtlasBoardL.T(
+                "event.target_done_tile",
+                AtlasBoardL.TileName(
+                    (TileType)onlineResultValue0,
+                    onlineResultTextValue));
+        }
+
+        if (string.Equals(
+                onlineResultKind,
+                "target_done",
+                StringComparison.Ordinal))
+        {
+            return AtlasBoardL.T(
+                "event.target_done");
+        }
+
+        if (string.Equals(
+                onlineResultKind,
+                "target_not_found",
+                StringComparison.Ordinal))
+        {
+            return AtlasBoardL.T(
+                "event.target_not_found");
+        }
+
+        if (string.Equals(
+                onlineResultKind,
+                "move_failed",
+                StringComparison.Ordinal))
+        {
+            return AtlasBoardL.T(
+                "event.move_failed");
+        }
+
+        if (string.Equals(
+                onlineResultKind,
+                "effect_none",
+                StringComparison.Ordinal))
+        {
+            return AtlasBoardL.T(
+                "event.effect_none");
+        }
+
+        return AtlasBoardL.T(
+            "event.applying");
     }
 
     private void EnsureReferences()
@@ -745,8 +1230,11 @@ public class EventCardManager : MonoBehaviour
 
         isResolvingEvent = false;
         effectExecutionCompleted = false;
+        remotePresentation = false;
+        remoteContinueRequestPending = false;
         currentEventPlayer = null;
         currentCard = null;
+        ClearOnlineResultDescriptor();
 
         if (continueButton != null)
         {
@@ -761,4 +1249,17 @@ public class EventCardManager : MonoBehaviour
 
         callback?.Invoke();
     }
+    public void ResetForNewMatchSession()
+    {
+        resolutionCompleted = null;
+        isResolvingEvent = false;
+        effectExecutionCompleted = false;
+        currentEventPlayer = null;
+        remotePresentation = false;
+        remoteContinueRequestPending = false;
+
+        if (eventPanel != null) eventPanel.SetActive(false);
+        if (continueButton != null) continueButton.interactable = true;
+    }
+
 }

@@ -53995,6 +53995,8 @@ GameObject:
   - component: {fileID: 738613091}
   - component: {fileID: 738613092}
   - component: {fileID: 738613093}
+  - component: {fileID: 738613095}
+  - component: {fileID: 738613094}
   m_Layer: 0
   m_Name: Canvas_MainMenu
   m_TagString: Untagged
@@ -54367,6 +54369,34 @@ MonoBehaviour:
   runtimeBridge: {fileID: 738613092}
   mainMenuController: {fileID: 738613086}
   lobbyUiController: {fileID: 738613091}
+--- !u!114 &738613094
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 738613084}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3932f65acb6603642a486814bf24c98f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AtlasBoardTurnDiceNetworkCoordinator
+  hostIntentPollSeconds: 0.25
+  hostStatePublishCheckSeconds: 0.2
+--- !u!114 &738613095
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 738613084}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fee5ae92439be5a47a33ec1bb9cccce3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AtlasBoardMatchRuntimeBridge
+  snapshotPollSeconds: 0.25
+  autoPollAfterMatchBootstrap: 1
 --- !u!4 &741508602 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: daa9a7e990c5bbb42978f9b167377824, type: 3}
@@ -96882,6 +96912,10 @@ MonoBehaviour:
   debugForceDoubleRoll: 0
   debugForcedDoubleValue: 3
   debugForcedRoll: 0
+  onlineAuthorityConfigured: 0
+  onlineFollowerMode: 0
+  onlineFollowerActiveSlotIndex: -1
+  onlineFollowerPhase: starting
 --- !u!114 &1350547146
 MonoBehaviour:
   m_ObjectHideFlags: 0

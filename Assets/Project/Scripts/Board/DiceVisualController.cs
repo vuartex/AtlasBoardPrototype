@@ -115,6 +115,33 @@ public class DiceVisualController : MonoBehaviour
         return true;
     }
 
+    public void ResetForNewMatchSession()
+    {
+        Initialize();
+
+        if (rollCoroutine != null)
+        {
+            StopCoroutine(rollCoroutine);
+            rollCoroutine = null;
+        }
+
+        if (dieOne != null)
+        {
+            dieOne.localPosition = dieOneRestLocalPosition;
+            dieOne.localScale = dieOneRestLocalScale;
+            dieOne.localRotation = Quaternion.identity;
+        }
+
+        if (dieTwo != null)
+        {
+            dieTwo.localPosition = dieTwoRestLocalPosition;
+            dieTwo.localScale = dieTwoRestLocalScale;
+            dieTwo.localRotation = Quaternion.identity;
+        }
+
+        SetDiceVisible(false);
+    }
+
     [ContextMenu("Preview Debug Face")]
     public void PreviewDebugFace()
     {

@@ -15,6 +15,22 @@ public class PlayerGameState : MonoBehaviour
     [SerializeField]
     private PlayerVisualProfile visualProfile;
 
+    [Header("Online Seat Mirror")]
+    [SerializeField]
+    private bool onlineSeatStateActive;
+
+    [SerializeField]
+    private string onlineControllerKind = string.Empty;
+
+    [SerializeField]
+    private string onlineConnectionState = string.Empty;
+
+    [SerializeField]
+    private long onlineReconnectExpiresAtEpochMs;
+
+    [SerializeField]
+    private bool onlineAfkLockedOut;
+
     [Header("Economy")]
     [Tooltip(
         "Scene fallback only. MatchSetupManager replaces this from " +
@@ -41,6 +57,39 @@ public class PlayerGameState : MonoBehaviour
     public int PlayerSlotIndex => playerSlotIndex;
     public string DisplayName => displayName;
     public PlayerVisualProfile VisualProfile => visualProfile;
+    public bool OnlineSeatStateActive => onlineSeatStateActive;
+    public string OnlineControllerKind => onlineControllerKind;
+    public string OnlineConnectionState => onlineConnectionState;
+    public long OnlineReconnectExpiresAtEpochMs => onlineReconnectExpiresAtEpochMs;
+    public bool OnlineAfkLockedOut => onlineAfkLockedOut;
+
+    public bool IsOnlineTemporaryBot =>
+        onlineSeatStateActive &&
+        string.Equals(
+            onlineControllerKind,
+            "temporary_bot",
+            StringComparison.OrdinalIgnoreCase);
+
+    public bool IsOnlineBotControlled =>
+        onlineSeatStateActive &&
+        !string.IsNullOrWhiteSpace(
+            onlineControllerKind) &&
+        !string.Equals(
+            onlineControllerKind,
+            "human",
+            StringComparison.OrdinalIgnoreCase);
+
+    public bool IsOnlinePermanentBot =>
+        onlineSeatStateActive &&
+        (string.Equals(
+             onlineControllerKind,
+             "permanent_bot",
+             StringComparison.OrdinalIgnoreCase) ||
+         (string.Equals(
+              onlineControllerKind,
+              "bot",
+              StringComparison.OrdinalIgnoreCase) &&
+          onlineAfkLockedOut));
 
     public Material OwnershipMaterial =>
         visualProfile != null
@@ -63,6 +112,8 @@ public class PlayerGameState : MonoBehaviour
     public event Action<PlayerGameState> TurnStatusChanged;
     public event Action<PlayerGameState> BankruptcyChanged;
     public event Action<PlayerGameState> ParticipationChanged;
+    public event Action<PlayerGameState> IdentityChanged;
+    public event Action<PlayerGameState> OnlineControlStateChanged;
 
     private void Awake()
     {
@@ -135,6 +186,93 @@ public class PlayerGameState : MonoBehaviour
 
         currentMoney += amount;
         MoneyChanged?.Invoke(this);
+    }
+
+    // Phase 5D Remote follower state mirror. This assigns the Host-provided
+    // balance exactly and raises the existing presentation refresh event. It
+    // does NOT perform a purchase, rent payment, reward, or other economy rule.
+    public void ApplyOnlineAuthoritativeMoney(
+        int authoritativeMoney)
+    {
+        int sanitizedMoney =
+            Mathf.Max(0, authoritativeMoney);
+
+        if (currentMoney == sanitizedMoney)
+        {
+            return;
+        }
+
+        currentMoney = sanitizedMoney;
+        MoneyChanged?.Invoke(this);
+    }
+
+    public void ApplyOnlineIdentityAndControlState(
+        string authoritativeDisplayName,
+        string controllerKind,
+        string connectionState,
+        long reconnectExpiresAtEpochMs,
+        bool afkLockedOut)
+    {
+        bool identityChanged = false;
+
+        if (!string.IsNullOrWhiteSpace(authoritativeDisplayName) &&
+            !string.Equals(
+                displayName,
+                authoritativeDisplayName.Trim(),
+                StringComparison.Ordinal))
+        {
+            displayName = authoritativeDisplayName.Trim();
+            identityChanged = true;
+        }
+
+        string nextController =
+            controllerKind ?? string.Empty;
+        string nextConnection =
+            connectionState ?? string.Empty;
+
+        bool controlChanged =
+            !onlineSeatStateActive ||
+            !string.Equals(
+                onlineControllerKind,
+                nextController,
+                StringComparison.Ordinal) ||
+            !string.Equals(
+                onlineConnectionState,
+                nextConnection,
+                StringComparison.Ordinal) ||
+            onlineReconnectExpiresAtEpochMs != reconnectExpiresAtEpochMs ||
+            onlineAfkLockedOut != afkLockedOut;
+
+        onlineSeatStateActive = true;
+        onlineControllerKind = nextController;
+        onlineConnectionState = nextConnection;
+        onlineReconnectExpiresAtEpochMs = reconnectExpiresAtEpochMs;
+        onlineAfkLockedOut = afkLockedOut;
+
+        if (identityChanged)
+        {
+            IdentityChanged?.Invoke(this);
+        }
+
+        if (controlChanged)
+        {
+            OnlineControlStateChanged?.Invoke(this);
+        }
+    }
+
+    public void ClearOnlineSeatState()
+    {
+        if (!onlineSeatStateActive)
+        {
+            return;
+        }
+
+        onlineSeatStateActive = false;
+        onlineControllerKind = string.Empty;
+        onlineConnectionState = string.Empty;
+        onlineReconnectExpiresAtEpochMs = 0L;
+        onlineAfkLockedOut = false;
+        OnlineControlStateChanged?.Invoke(this);
     }
 
     public int TakeAllMoney()

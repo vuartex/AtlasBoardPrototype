@@ -19,7 +19,8 @@
     "test:economy": "node scripts/economy-validation-suite.mjs",
     "test:lobby": "node scripts/lobby-seat-host-start-e2e.mjs",
     "test:public-lobby": "node scripts/public-lobby-discovery-e2e.mjs",
-    "test:public-lobby-join": "node scripts/public-lobby-join-password-e2e.mjs"
+    "test:public-lobby-join": "node scripts/public-lobby-join-password-e2e.mjs",
+    "test:match-network": "node scripts/match-network-foundation-e2e.mjs"
   },
   "engines": {
     "node": "22"

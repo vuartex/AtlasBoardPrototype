@@ -38,6 +38,13 @@ public class AtlasBoardHumanDecisionTimeoutController : MonoBehaviour
     private float decisionTimeoutSeconds =
         AtlasOnlineDefaults.HumanRollTimeoutSeconds;
 
+    [Header("Trade Grace Period")]
+    [Tooltip(
+        "Trade setup and incoming trade responses get a longer online grace " +
+        "period so players have time to inspect properties and cash values.")]
+    [SerializeField, Min(1f)]
+    private float tradeDecisionTimeoutSeconds = 25f;
+
     private DecisionKind activeDecision =
         DecisionKind.None;
 
@@ -51,8 +58,14 @@ public class AtlasBoardHumanDecisionTimeoutController : MonoBehaviour
     public float RemainingSeconds =>
         Mathf.Max(
             0f,
-            decisionTimeoutSeconds -
+            ActiveTimeoutSeconds -
             elapsedSeconds);
+
+    private float ActiveTimeoutSeconds =>
+        activeDecision == DecisionKind.TradeResponse ||
+        activeDecision == DecisionKind.TradeSetup
+            ? Mathf.Max(1f, tradeDecisionTimeoutSeconds)
+            : Mathf.Max(1f, decisionTimeoutSeconds);
 
     private void Awake()
     {
@@ -89,9 +102,7 @@ public class AtlasBoardHumanDecisionTimeoutController : MonoBehaviour
             Time.deltaTime;
 
         if (elapsedSeconds <
-            Mathf.Max(
-                1f,
-                decisionTimeoutSeconds))
+            ActiveTimeoutSeconds)
         {
             return;
         }
@@ -115,10 +126,19 @@ public class AtlasBoardHumanDecisionTimeoutController : MonoBehaviour
             $"{timedOutPlayer.DisplayName} [Slot " +
             $"{timedOutPlayer.PlayerSlotIndex}] did not respond " +
             $"to {Describe(timedOutDecision)} within " +
-            $"{decisionTimeoutSeconds:0.#} seconds. " +
+            $"{GetTimeoutSeconds(timedOutDecision):0.#} seconds. " +
             $"Atlas Board applied the safe AFK default: " +
             $"{DescribeSafeAction(timedOutDecision)}.",
             this);
+    }
+
+    private float GetTimeoutSeconds(
+        DecisionKind decision)
+    {
+        return decision == DecisionKind.TradeResponse ||
+               decision == DecisionKind.TradeSetup
+            ? Mathf.Max(1f, tradeDecisionTimeoutSeconds)
+            : Mathf.Max(1f, decisionTimeoutSeconds);
     }
 
     private void ResolvePendingDecision(
