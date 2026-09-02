@@ -325,6 +325,20 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             FindSceneComponentIncludingInactive<TurnManager>();
         turn?.ResetForOnlineLobbySession();
 
+        DiceVisualController dice =
+            FindSceneComponentIncludingInactive<DiceVisualController>();
+        dice?.ResetForNewMatchSession();
+
+        PlayerHudPanel[] hudPanels =
+            Resources.FindObjectsOfTypeAll<PlayerHudPanel>();
+        foreach (PlayerHudPanel hud in hudPanels)
+        {
+            if (hud != null && hud.gameObject.scene.IsValid())
+            {
+                hud.Refresh(false);
+            }
+        }
+
         TileResolutionManager resolution =
             FindSceneComponentIncludingInactive<TileResolutionManager>();
         resolution?.ResetForNewMatchSession();

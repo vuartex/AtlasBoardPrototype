@@ -1211,8 +1211,10 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             // The one intentional reverse transition is a synchronized Rematch:
             // Host clears MatchId and moves the existing room back to Waiting.
             bool synchronizedRematchReturn =
-                currentSnapshot.LifecycleState ==
-                    AtlasRoomLifecycleState.Starting &&
+                (currentSnapshot.LifecycleState ==
+                     AtlasRoomLifecycleState.Starting ||
+                 currentSnapshot.LifecycleState ==
+                     AtlasRoomLifecycleState.InMatch) &&
                 snapshot.LifecycleState ==
                     AtlasRoomLifecycleState.Waiting &&
                 !string.IsNullOrWhiteSpace(currentSnapshot.MatchId) &&

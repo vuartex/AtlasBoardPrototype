@@ -360,13 +360,32 @@ public sealed class AtlasBoardMatchRuntimeBridge :
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(expectedMatchId) &&
-            !string.Equals(
-                expectedMatchId,
-                snapshot.MatchId,
-                StringComparison.Ordinal))
+        if (!string.IsNullOrWhiteSpace(expectedMatchId))
         {
-            return;
+            if (!string.Equals(
+                    expectedMatchId,
+                    snapshot.MatchId,
+                    StringComparison.Ordinal))
+            {
+                return;
+            }
+        }
+        else
+        {
+            // ResetForMatchSession("") intentionally means there is no
+            // active match. An HTTP poll started before that reset may finish
+            // later; never let its old snapshot resurrect dice/HUD/result or
+            // controller state in the lobby or the next match.
+            string lobbyMatchId = CurrentMatchId;
+
+            if (string.IsNullOrWhiteSpace(lobbyMatchId) ||
+                !string.Equals(
+                    lobbyMatchId,
+                    snapshot.MatchId,
+                    StringComparison.Ordinal))
+            {
+                return;
+            }
         }
 
         if (currentSnapshot != null &&

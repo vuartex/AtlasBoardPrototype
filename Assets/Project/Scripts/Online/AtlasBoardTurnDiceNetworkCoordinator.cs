@@ -4086,7 +4086,6 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
         AtlasLobbySnapshot previous = startLobbySnapshot;
         startLobbySnapshot = snapshot;
-        ApplyLobbyIdentitySnapshot(snapshot);
 
         bool returnedForRematch =
             prepared &&
@@ -4097,22 +4096,36 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             snapshot.LifecycleState == AtlasRoomLifecycleState.Waiting &&
             string.IsNullOrWhiteSpace(snapshot.MatchId);
 
-        if (!returnedForRematch)
+        if (returnedForRematch)
         {
+            prepared = false;
+            hostNetworkInitialized = false;
+            lastPublishedFrameJson = string.Empty;
+            preparedMatchId = string.Empty;
+
+            ResetRuntimePresentationForNewMatchSession(
+                string.Empty);
+
+            // Waiting-lobby membership becomes authoritative again only after
+            // the active match has been fully detached/reset.
+            ApplyLobbyIdentitySnapshot(snapshot);
+
+            AtlasBoardMainMenuController mainMenu =
+                FindSceneComponent<AtlasBoardMainMenuController>();
+            mainMenu?.ReturnOnlineMatchToLobby();
             return;
         }
 
-        prepared = false;
-        hostNetworkInitialized = false;
-        lastPublishedFrameJson = string.Empty;
-        preparedMatchId = string.Empty;
-
-        ResetRuntimePresentationForNewMatchSession(
-            string.Empty);
-
-        AtlasBoardMainMenuController mainMenu =
-            FindSceneComponent<AtlasBoardMainMenuController>();
-        mainMenu?.ReturnOnlineMatchToLobby();
+        // CRITICAL: while a match is Starting/InMatch, lobby membership is not
+        // the controller authority. matchGetSnapshot owns Human/TemporaryBot/
+        // PermanentBot. Re-applying lobby controllerKind every poll was the
+        // source of real Humans briefly becoming BOT and could cancel the
+        // active Human turn during reconnect.
+        if (!prepared ||
+            snapshot.LifecycleState == AtlasRoomLifecycleState.Waiting)
+        {
+            ApplyLobbyIdentitySnapshot(snapshot);
+        }
     }
 
     private void ResetRuntimePresentationForNewMatchSession(
@@ -4174,9 +4187,6 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             return;
         }
 
-        // Scene reuse means BotPlayerController can retain its previous match
-        // value. Clear every slot first, then apply the authoritative lobby
-        // controller kind. Followers never run local bot AI.
         for (int slotIndex = 0; slotIndex < 4; slotIndex++)
         {
             PlayerGameState existing =
@@ -4187,11 +4197,7 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     ? existing.GetComponent<BotPlayerController>()
                     : null;
 
-            if (existingBot != null)
-            {
-                existingBot.SetBotEnabled(false);
-            }
-
+            existingBot?.SetBotEnabled(false);
             existing?.ClearOnlineSeatState();
         }
 
@@ -4210,9 +4216,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 continue;
             }
 
+            string controllerWire =
+                ResolveLobbyControllerWire(member);
+
             player.ApplyOnlineIdentityAndControlState(
                 member.DisplayName,
-                ControllerKindToWire(member.ControllerKind),
+                controllerWire,
                 ConnectionStateToWire(member.ConnectionState),
                 0L,
                 member.ConnectionState == AtlasSeatConnectionState.AfkRemoved);
@@ -4224,8 +4233,7 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             {
                 bool hostShouldSimulateBot =
                     localIsHost &&
-                    member.ControllerKind !=
-                        AtlasSeatControllerKind.Human;
+                    IsBotControllerWire(controllerWire);
 
                 bot.SetBotEnabled(hostShouldSimulateBot);
             }
@@ -4280,20 +4288,18 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 seat.ReconnectExpiresAtEpochMs,
                 seat.AfkLockedOut);
 
-            if (localIsHost)
-            {
-                BotPlayerController bot =
-                    player.GetComponent<BotPlayerController>();
+            BotPlayerController bot =
+                player.GetComponent<BotPlayerController>();
 
-                if (bot != null)
-                {
-                    bool botControlled =
-                        !string.Equals(
-                            seat.ControllerKind,
-                            "human",
-                            StringComparison.OrdinalIgnoreCase);
-                    bot.SetBotEnabled(botControlled);
-                }
+            if (bot != null)
+            {
+                // Only Host simulates authoritative bot seats. Followers keep
+                // every BotPlayerController disabled even when presenting a
+                // Temporary/Permanent Bot in the HUD.
+                bool botControlled =
+                    localIsHost &&
+                    IsBotControllerWire(seat.ControllerKind);
+                bot.SetBotEnabled(botControlled);
             }
 
             bool firstObservation =
@@ -4522,6 +4528,58 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         {
             reconnectExpiryInFlight = false;
         }
+    }
+
+    private static string ResolveLobbyControllerWire(
+        AtlasLobbyMemberSnapshot member)
+    {
+        if (member == null)
+        {
+            return string.Empty;
+        }
+
+        string explicitController =
+            ControllerKindToWire(member.ControllerKind);
+
+        if (!string.IsNullOrWhiteSpace(explicitController))
+        {
+            return explicitController;
+        }
+
+        // Waiting-lobby snapshots may legitimately omit controllerKind. Seat
+        // mode is the stable fallback; never interpret an omitted controller
+        // kind as BOT for a Human seat.
+        switch (member.SeatMode)
+        {
+            case AtlasLobbySeatMode.Bot:
+                return "bot";
+
+            case AtlasLobbySeatMode.HostLocal:
+            case AtlasLobbySeatMode.LocalHuman:
+            case AtlasLobbySeatMode.RemoteHuman:
+            case AtlasLobbySeatMode.OpenOnline:
+                return "human";
+
+            default:
+                return string.Empty;
+        }
+    }
+
+    private static bool IsBotControllerWire(
+        string controllerKind)
+    {
+        return string.Equals(
+                   controllerKind,
+                   "bot",
+                   StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(
+                   controllerKind,
+                   "temporary_bot",
+                   StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(
+                   controllerKind,
+                   "permanent_bot",
+                   StringComparison.OrdinalIgnoreCase);
     }
 
     private static string ControllerKindToWire(

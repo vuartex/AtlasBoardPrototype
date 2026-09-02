@@ -240,10 +240,10 @@ public class MatchSetupManager : MonoBehaviour
                         AtlasBoardTurnDiceNetworkCoordinator>();
 
                 shouldBeBot =
-                    playerState.IsOnlineBotControlled &&
-                    (coordinator == null ||
-                     !coordinator.IsPreparedOnlineMatch ||
-                     coordinator.LocalIsHost);
+                    coordinator != null &&
+                    coordinator.IsPreparedOnlineMatch &&
+                    coordinator.LocalIsHost &&
+                    playerState.IsOnlineBotControlled;
             }
 
             botController.SetBotEnabled(

@@ -47,6 +47,8 @@ public class MatchResultManager : MonoBehaviour
 
     private bool resultShown;
     private bool onlineRematchInFlight;
+    private bool onlineResultPresentationActive;
+    private bool onlineResultLocalIsHost;
 
     public bool ResultShown =>
         resultShown;
@@ -196,6 +198,8 @@ public class MatchResultManager : MonoBehaviour
         }
 
         resultShown = true;
+        onlineResultPresentationActive = true;
+        onlineResultLocalIsHost = localIsHost;
 
         UpdateResultTitleFromSlots(
             snapshot.winnerSlots,
@@ -259,10 +263,11 @@ public class MatchResultManager : MonoBehaviour
 
             if (!localIsHost)
             {
-                summaryBuilder.AppendLine();
-                summaryBuilder.AppendLine();
-                summaryBuilder.Append(
-                    GetRemoteWaitingText());
+                summaryBuilder.Insert(
+                    0,
+                    GetRemoteWaitingText() +
+                    System.Environment.NewLine +
+                    System.Environment.NewLine);
             }
 
             resultSummaryText.text =
@@ -594,10 +599,36 @@ public class MatchResultManager : MonoBehaviour
         }
     }
 
+    private void LateUpdate()
+    {
+        if (!onlineResultPresentationActive ||
+            resultPanel == null ||
+            !resultPanel.activeInHierarchy)
+        {
+            return;
+        }
+
+        Button actionButton = FindOnlineResultActionButton();
+        if (actionButton == null)
+        {
+            return;
+        }
+
+        SetResultActionButtonText(
+            actionButton,
+            onlineRematchInFlight && onlineResultLocalIsHost
+                ? AtlasBoardOnlineRuntimeText.Rematching() + "..."
+                : onlineResultLocalIsHost
+                    ? GetHostRematchText()
+                    : GetLeaveMatchText());
+    }
+
     public void ResetForNewMatchSession()
     {
         resultShown = false;
         onlineRematchInFlight = false;
+        onlineResultPresentationActive = false;
+        onlineResultLocalIsHost = false;
 
         if (resultPanel != null)
         {

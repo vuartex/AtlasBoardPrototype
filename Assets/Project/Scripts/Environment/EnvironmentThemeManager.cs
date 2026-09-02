@@ -454,10 +454,35 @@ public class EnvironmentThemeManager : MonoBehaviour
         // renderer materials at runtime so shared theme assets are untouched.
         SetRendererColor(
             tableSurfaceRenderer,
-            new Color32(49, 91, 74, 255));
+            new Color32(214, 209, 184, 255));
         SetRendererColor(
             tableUnderlayRenderer,
-            new Color32(59, 48, 40, 255));
+            new Color32(74, 56, 42, 255));
+
+        // The saturated blue rim in the gameplay screenshot is not the
+        // Environment TableUnderlay. It is the scene's BoardBase renderer
+        // using M_BoardBase, so recolor the actual board geometry too.
+        GameObject[] sceneObjects =
+            Resources.FindObjectsOfTypeAll<GameObject>();
+
+        foreach (GameObject item in sceneObjects)
+        {
+            if (item == null ||
+                !item.scene.IsValid() ||
+                !string.Equals(
+                    item.name,
+                    "BoardBase",
+                    System.StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            Renderer boardBaseRenderer =
+                item.GetComponent<Renderer>();
+            SetRendererColor(
+                boardBaseRenderer,
+                new Color32(74, 56, 42, 255));
+        }
     }
 
     private static void SetRendererColor(

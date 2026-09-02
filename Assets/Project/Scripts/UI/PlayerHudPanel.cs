@@ -286,23 +286,15 @@ public class PlayerHudPanel : MonoBehaviour
 
         if (badgeRect != null)
         {
-            // Keep TURN/SIRA inside the HUD card but pin it to the upper-right
-            // corner so it no longer covers long account display names.
             badgeRect.anchorMin = new Vector2(1f, 1f);
             badgeRect.anchorMax = new Vector2(1f, 1f);
             badgeRect.pivot = new Vector2(1f, 1f);
+            badgeRect.SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Horizontal, 54f);
+            badgeRect.SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Vertical, 20f);
             badgeRect.anchoredPosition =
-                new Vector2(-4f, -2f);
-
-            // The previous top-right pin still allowed a long account name to
-            // render underneath the badge. Reserve a dedicated right-side lane
-            // for TURN/SIRA while keeping both elements inside the HUD card.
-            if (badgeRect.sizeDelta.x > 56f)
-            {
-                badgeRect.SetSizeWithCurrentAnchors(
-                    RectTransform.Axis.Horizontal,
-                    56f);
-            }
+                new Vector2(-5f, -2f);
         }
 
         if (playerNameText != null)
@@ -312,9 +304,19 @@ public class PlayerHudPanel : MonoBehaviour
 
             if (nameRect != null)
             {
-                Vector2 offsetMax = nameRect.offsetMax;
-                offsetMax.x = Mathf.Min(offsetMax.x, -64f);
-                nameRect.offsetMax = offsetMax;
+                // Stable dedicated name lane: icon area on the left, TURN/SIRA
+                // badge on the right. This works even when the original name
+                // RectTransform was not horizontally stretched.
+                nameRect.anchorMin = new Vector2(0f, 1f);
+                nameRect.anchorMax = new Vector2(1f, 1f);
+                nameRect.pivot = new Vector2(0f, 1f);
+                nameRect.offsetMin = new Vector2(44f, -30f);
+                nameRect.offsetMax = new Vector2(-68f, -6f);
+
+                playerNameText.enableAutoSizing = true;
+                playerNameText.fontSizeMin = 10f;
+                playerNameText.overflowMode =
+                    TextOverflowModes.Ellipsis;
             }
         }
     }

@@ -1300,7 +1300,17 @@ public class TileResolutionManager : MonoBehaviour
                     "special.rest.skip_many",
                     turnsToSkip),
             0,
-            CompleteResolution);
+            CompleteRestResolution);
+    }
+
+    private void CompleteRestResolution()
+    {
+        // Reassert at the exact acknowledgement callback. This makes Rest a
+        // hard turn-ending tile even when the landing roll was doubles.
+        TurnManager activeTurnManager =
+            FindAnyObjectByType<TurnManager>();
+        activeTurnManager?.SuppressExtraRollForCurrentTurn();
+        CompleteResolution();
     }
 
     private void ResolveVacationTile(PlayerGameState player)

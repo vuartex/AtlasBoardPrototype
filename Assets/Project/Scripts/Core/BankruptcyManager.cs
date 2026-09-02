@@ -235,15 +235,11 @@ public class BankruptcyManager : MonoBehaviour
                     creditor.OwnershipMaterial);
             }
 
+            // Development was liquidated above. Do not rebuild a marker
+            // root for the new owner; authoritative level remains zero and
+            // followers receive the same zero in the next state frame.
             EnsureDevelopmentManager();
-
-            if (propertyDevelopmentManager != null)
-            {
-                propertyDevelopmentManager
-                    .RefreshDevelopmentVisual(
-                        tile,
-                        creditor);
-            }
+            propertyDevelopmentManager?.ResetDevelopment(tile);
         }
 
         return transferredCount;
