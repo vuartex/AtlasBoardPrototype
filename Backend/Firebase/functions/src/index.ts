@@ -1538,3 +1538,9 @@ export const matchHostAcknowledgeIntents = onCall(
   },
 );
 
+export {
+  lobbyChatSend,
+  lobbyChatList,
+  matchChatSend,
+  matchChatList,
+} from "./chat/chat";
