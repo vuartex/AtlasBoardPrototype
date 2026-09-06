@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
@@ -233,17 +234,12 @@ public class MatchSetupManager : MonoBehaviour
                     .value ==
                 (int)MatchPlayerControlType.Bot;
 
-            if (playerState.OnlineSeatStateActive)
+            if (TryResolveOnlineAuthoritativeBotState(
+                    playerState,
+                    out bool authoritativeBotState))
             {
-                AtlasBoardTurnDiceNetworkCoordinator coordinator =
-                    FindAnyObjectByType<
-                        AtlasBoardTurnDiceNetworkCoordinator>();
-
                 shouldBeBot =
-                    coordinator != null &&
-                    coordinator.IsPreparedOnlineMatch &&
-                    coordinator.LocalIsHost &&
-                    playerState.IsOnlineBotControlled;
+                    authoritativeBotState;
             }
 
             botController.SetBotEnabled(
@@ -1051,6 +1047,91 @@ public class MatchSetupManager : MonoBehaviour
                 bot?.SetBotEnabled(false);
             }
         }
+    }
+
+    private bool TryResolveOnlineAuthoritativeBotState(
+        PlayerGameState playerState,
+        out bool shouldEnableLocalBot)
+    {
+        shouldEnableLocalBot = false;
+
+        if (playerState == null)
+        {
+            return false;
+        }
+
+        AtlasBoardTurnDiceNetworkCoordinator coordinator =
+            FindAnyObjectByType<
+                AtlasBoardTurnDiceNetworkCoordinator>();
+
+        if (coordinator != null &&
+            coordinator.IsPreparedOnlineMatch)
+        {
+            shouldEnableLocalBot =
+                coordinator.LocalIsHost &&
+                playerState.IsOnlineBotControlled;
+            return true;
+        }
+
+        AtlasBoardLobbyRuntimeBridge lobbyBridge =
+            FindAnyObjectByType<
+                AtlasBoardLobbyRuntimeBridge>();
+
+        AtlasLobbySnapshot snapshot =
+            lobbyBridge != null
+                ? lobbyBridge.CurrentSnapshot
+                : null;
+
+        if (snapshot == null ||
+            snapshot.Members == null ||
+            snapshot.Members.Count == 0)
+        {
+            if (playerState.OnlineSeatStateActive)
+            {
+                shouldEnableLocalBot =
+                    false;
+                return true;
+            }
+
+            return false;
+        }
+
+        bool localIsHost =
+            lobbyBridge != null &&
+            !string.IsNullOrWhiteSpace(
+                lobbyBridge.CurrentAccountId) &&
+            string.Equals(
+                snapshot.HostAccountId,
+                lobbyBridge.CurrentAccountId,
+                StringComparison.Ordinal);
+
+        foreach (AtlasLobbyMemberSnapshot member in snapshot.Members)
+        {
+            if (member == null ||
+                !member.Active ||
+                member.SlotIndex != playerState.PlayerSlotIndex)
+            {
+                continue;
+            }
+
+            bool seatIsBot =
+                member.SeatMode == AtlasLobbySeatMode.Bot ||
+                member.ControllerKind == AtlasSeatControllerKind.TemporaryBot ||
+                member.ControllerKind == AtlasSeatControllerKind.PermanentBot;
+
+            shouldEnableLocalBot =
+                localIsHost &&
+                seatIsBot;
+            return true;
+        }
+
+        if (playerState.OnlineSeatStateActive)
+        {
+            shouldEnableLocalBot = false;
+            return true;
+        }
+
+        return false;
     }
 
     private void ResetBoardEconomyForNewMatch()

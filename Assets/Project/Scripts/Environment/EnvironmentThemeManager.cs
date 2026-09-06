@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -440,49 +441,346 @@ public class EnvironmentThemeManager : MonoBehaviour
     private void ApplyClassicBoardPalette(
         EnvironmentThemeProfile theme)
     {
-        if (theme == null ||
-            !string.Equals(
-                theme.ThemeId,
-                "classic_table",
-                System.StringComparison.OrdinalIgnoreCase))
+        if (theme == null)
         {
             return;
         }
 
-        // Real table-game palette: muted felt instead of neon green and a
-        // dark warm wood/charcoal underlay instead of saturated blue. Clone
-        // renderer materials at runtime so shared theme assets are untouched.
-        SetRendererColor(
-            tableSurfaceRenderer,
-            new Color32(214, 209, 184, 255));
-        SetRendererColor(
-            tableUnderlayRenderer,
-            new Color32(74, 56, 42, 255));
+        // The board itself is intentionally theme-invariant. Theme changes
+        // may alter skybox/props/table environment, but not the physical game
+        // board's walnut edge or warm center playing surface.
+        Color centerColor =
+            new Color32(214, 209, 184, 255);
+        Color edgeColor =
+            new Color32(74, 56, 42, 255);
 
-        // The saturated blue rim in the gameplay screenshot is not the
-        // Environment TableUnderlay. It is the scene's BoardBase renderer
-        // using M_BoardBase, so recolor the actual board geometry too.
-        GameObject[] sceneObjects =
-            Resources.FindObjectsOfTypeAll<GameObject>();
+        Renderer boardBaseRenderer =
+            FindBoardBaseRenderer();
 
-        foreach (GameObject item in sceneObjects)
+        if (boardBaseRenderer == null)
         {
-            if (item == null ||
-                !item.scene.IsValid() ||
-                !string.Equals(
-                    item.name,
-                    "BoardBase",
-                    System.StringComparison.OrdinalIgnoreCase))
+            Debug.LogWarning(
+                "EnvironmentThemeManager could not find BoardBase. " +
+                "Board-only palette was not applied.",
+                this);
+            return;
+        }
+
+        SetRendererColor(
+            boardBaseRenderer,
+            edgeColor);
+
+        Renderer centerRenderer =
+            FindBoardCenterRenderer(
+                boardBaseRenderer);
+
+        if (centerRenderer != null)
+        {
+            SetRendererColor(
+                centerRenderer,
+                centerColor);
+        }
+
+        Debug.Log(
+            "EnvironmentThemeManager board-only palette applied. " +
+            $"Theme={theme.ThemeId}, " +
+            $"Edge={boardBaseRenderer.gameObject.name}, " +
+            $"Center={(centerRenderer != null ? centerRenderer.gameObject.name : "<not found>")}.",
+            this);
+    }
+
+    private static Renderer FindBoardBaseRenderer()
+    {
+        Renderer[] renderers =
+            Resources.FindObjectsOfTypeAll<Renderer>();
+
+        foreach (Renderer renderer in renderers)
+        {
+            if (renderer == null ||
+                !renderer.gameObject.scene.IsValid())
             {
                 continue;
             }
 
-            Renderer boardBaseRenderer =
-                item.GetComponent<Renderer>();
-            SetRendererColor(
-                boardBaseRenderer,
-                new Color32(74, 56, 42, 255));
+            string objectName =
+                renderer.gameObject.name;
+            string materialName =
+                GetCombinedMaterialName(renderer);
+
+            if (string.Equals(
+                    objectName,
+                    "BoardBase",
+                    StringComparison.OrdinalIgnoreCase) ||
+                materialName.Contains(
+                    "m_boardbase"))
+            {
+                return renderer;
+            }
         }
+
+        return null;
+    }
+
+    private static Renderer FindBoardCenterRenderer(
+        Renderer boardBaseRenderer)
+    {
+        if (boardBaseRenderer == null)
+        {
+            return null;
+        }
+
+        Bounds boardBounds =
+            boardBaseRenderer.bounds;
+        float boardFootprint =
+            Mathf.Max(
+                0.01f,
+                boardBounds.size.x *
+                boardBounds.size.z);
+
+        Renderer best = null;
+        float bestScore = float.MinValue;
+
+        Renderer[] renderers =
+            Resources.FindObjectsOfTypeAll<Renderer>();
+
+        foreach (Renderer renderer in renderers)
+        {
+            if (renderer == null ||
+                renderer == boardBaseRenderer ||
+                !renderer.gameObject.scene.IsValid() ||
+                IsTileOrPawnRenderer(renderer))
+            {
+                continue;
+            }
+
+            Bounds candidate =
+                renderer.bounds;
+
+            if (!IsInsideBoardFootprint(
+                    candidate,
+                    boardBounds))
+            {
+                continue;
+            }
+
+            float candidateFootprint =
+                candidate.size.x *
+                candidate.size.z;
+            float footprintRatio =
+                candidateFootprint /
+                boardFootprint;
+
+            // Center surface should cover a meaningful fraction of the board,
+            // but should not be a larger surrounding table/environment plane.
+            if (footprintRatio < 0.20f ||
+                footprintRatio > 0.92f)
+            {
+                continue;
+            }
+
+            float yDistance =
+                Mathf.Abs(
+                    candidate.max.y -
+                    boardBounds.max.y);
+
+            if (yDistance >
+                Mathf.Max(
+                    1.25f,
+                    boardBounds.size.y * 2.5f))
+            {
+                continue;
+            }
+
+            string objectName =
+                renderer.gameObject.name
+                    .ToLowerInvariant();
+            string materialName =
+                GetCombinedMaterialName(renderer);
+
+            float score =
+                footprintRatio * 10f -
+                yDistance;
+
+            if (ContainsAny(
+                    objectName,
+                    "boardcenter",
+                    "board_center",
+                    "centerboard",
+                    "centersurface",
+                    "boardsurface",
+                    "playingsurface",
+                    "playsurface") ||
+                ContainsAny(
+                    materialName,
+                    "boardcenter",
+                    "boardsurface",
+                    "playingsurface",
+                    "playsurface",
+                    "felt"))
+            {
+                score += 25f;
+            }
+
+            if (TryGetRepresentativeColor(
+                    renderer,
+                    out Color currentColor) &&
+                currentColor.g >
+                    currentColor.r + 0.05f &&
+                currentColor.g >
+                    currentColor.b + 0.05f)
+            {
+                score += 8f;
+            }
+
+            if (score > bestScore)
+            {
+                bestScore = score;
+                best = renderer;
+            }
+        }
+
+        return best;
+    }
+
+    private static bool IsInsideBoardFootprint(
+        Bounds candidate,
+        Bounds board)
+    {
+        const float tolerance = 0.35f;
+
+        return candidate.min.x >=
+                   board.min.x - tolerance &&
+               candidate.max.x <=
+                   board.max.x + tolerance &&
+               candidate.min.z >=
+                   board.min.z - tolerance &&
+               candidate.max.z <=
+                   board.max.z + tolerance;
+    }
+
+    private static bool IsTileOrPawnRenderer(
+        Renderer renderer)
+    {
+        if (renderer == null)
+        {
+            return true;
+        }
+
+        Transform current =
+            renderer.transform;
+
+        while (current != null)
+        {
+            string name =
+                current.name
+                    .ToLowerInvariant();
+
+            if (ContainsAny(
+                    name,
+                    "tile_",
+                    "tile ",
+                    "boardtile",
+                    "pawn",
+                    "playerpawn",
+                    "building",
+                    "house",
+                    "hotel"))
+            {
+                return true;
+            }
+
+            current = current.parent;
+        }
+
+        return false;
+    }
+
+    private static string GetCombinedMaterialName(
+        Renderer renderer)
+    {
+        if (renderer == null ||
+            renderer.sharedMaterials == null)
+        {
+            return string.Empty;
+        }
+
+        string combined =
+            string.Empty;
+
+        foreach (Material material in renderer.sharedMaterials)
+        {
+            if (material == null)
+            {
+                continue;
+            }
+
+            if (combined.Length > 0)
+            {
+                combined += "|";
+            }
+
+            combined += material.name
+                .ToLowerInvariant();
+        }
+
+        return combined;
+    }
+
+    private static bool ContainsAny(
+        string source,
+        params string[] keywords)
+    {
+        if (string.IsNullOrWhiteSpace(source) ||
+            keywords == null)
+        {
+            return false;
+        }
+
+        foreach (string keyword in keywords)
+        {
+            if (!string.IsNullOrWhiteSpace(keyword) &&
+                source.Contains(keyword))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryGetRepresentativeColor(
+        Renderer renderer,
+        out Color color)
+    {
+        color = Color.black;
+
+        if (renderer == null ||
+            renderer.sharedMaterials == null)
+        {
+            return false;
+        }
+
+        foreach (Material material in renderer.sharedMaterials)
+        {
+            if (material == null)
+            {
+                continue;
+            }
+
+            if (material.HasProperty("_BaseColor"))
+            {
+                color = material.GetColor("_BaseColor");
+                return true;
+            }
+
+            if (material.HasProperty("_Color"))
+            {
+                color = material.GetColor("_Color");
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void SetRendererColor(
@@ -494,20 +792,31 @@ public class EnvironmentThemeManager : MonoBehaviour
             return;
         }
 
-        Material material = target.material;
-        if (material == null)
+        Material[] materials =
+            target.materials;
+
+        if (materials == null ||
+            materials.Length == 0)
         {
             return;
         }
 
-        if (material.HasProperty("_BaseColor"))
+        foreach (Material material in materials)
         {
-            material.SetColor("_BaseColor", color);
-        }
+            if (material == null)
+            {
+                continue;
+            }
 
-        if (material.HasProperty("_Color"))
-        {
-            material.SetColor("_Color", color);
+            if (material.HasProperty("_BaseColor"))
+            {
+                material.SetColor("_BaseColor", color);
+            }
+
+            if (material.HasProperty("_Color"))
+            {
+                material.SetColor("_Color", color);
+            }
         }
     }
 

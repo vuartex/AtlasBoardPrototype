@@ -117,6 +117,8 @@ public class PlayerHudPanel : MonoBehaviour
             return;
         }
 
+        ApplyRuntimeLayout();
+
         Color playerColor =
             player.UIColor;
 
@@ -161,48 +163,8 @@ public class PlayerHudPanel : MonoBehaviour
 
         if (controlTypeText != null)
         {
-            if (player.IsOnlineTemporaryBot)
-            {
-                controlTypeText.text =
-                    GetTemporaryBotLabel();
-            }
-            else if (player.IsOnlinePermanentBot)
-            {
-                controlTypeText.text =
-                    GetPermanentBotLabel();
-            }
-            else
-            {
-                bool isBot =
-                    player.OnlineSeatStateActive
-                        ? player.IsOnlineBotControlled
-                        : botController != null &&
-                          botController.BotEnabled;
-
-                if (!isBot)
-                {
-                    controlTypeText.text =
-                        AtlasBoardL.T(
-                            "common.human")
-                            .ToUpperInvariant();
-                }
-                else
-                {
-                    string personality =
-                        botController
-                            .PersonalityProfile != null
-                            ? LocalizePersonality(
-                                botController
-                                    .PersonalityProfile
-                                    .DisplayName)
-                            : AtlasBoardL.T(
-                                "common.bot");
-
-                    controlTypeText.text =
-                        $"{AtlasBoardL.T("common.bot").ToUpperInvariant()} • " +
-                        $"{personality}";
-                }
-            }
+            controlTypeText.text =
+                ResolveControlTypeLabel();
         }
 
         ApplyTurnBadgeLayout();
@@ -290,35 +252,305 @@ public class PlayerHudPanel : MonoBehaviour
             badgeRect.anchorMax = new Vector2(1f, 1f);
             badgeRect.pivot = new Vector2(1f, 1f);
             badgeRect.SetSizeWithCurrentAnchors(
-                RectTransform.Axis.Horizontal, 54f);
+                RectTransform.Axis.Horizontal, 52f);
             badgeRect.SetSizeWithCurrentAnchors(
-                RectTransform.Axis.Vertical, 20f);
+                RectTransform.Axis.Vertical, 18f);
             badgeRect.anchoredPosition =
-                new Vector2(-5f, -2f);
+                new Vector2(-8f, -6f);
         }
+    }
 
-        if (playerNameText != null)
+    private void ApplyRuntimeLayout()
+    {
+        if (panelRect == null)
         {
-            RectTransform nameRect =
-                playerNameText.rectTransform;
-
-            if (nameRect != null)
-            {
-                // Stable dedicated name lane: icon area on the left, TURN/SIRA
-                // badge on the right. This works even when the original name
-                // RectTransform was not horizontally stretched.
-                nameRect.anchorMin = new Vector2(0f, 1f);
-                nameRect.anchorMax = new Vector2(1f, 1f);
-                nameRect.pivot = new Vector2(0f, 1f);
-                nameRect.offsetMin = new Vector2(44f, -30f);
-                nameRect.offsetMax = new Vector2(-68f, -6f);
-
-                playerNameText.enableAutoSizing = true;
-                playerNameText.fontSizeMin = 10f;
-                playerNameText.overflowMode =
-                    TextOverflowModes.Ellipsis;
-            }
+            panelRect =
+                transform as RectTransform;
         }
+
+        if (backgroundImage != null)
+        {
+            backgroundImage.type =
+                Image.Type.Sliced;
+            backgroundImage.raycastTarget = false;
+        }
+
+        if (accentImage != null)
+        {
+            RectTransform accentRect =
+                accentImage.rectTransform;
+            accentRect.anchorMin = new Vector2(0f, 0f);
+            accentRect.anchorMax = new Vector2(0f, 1f);
+            accentRect.pivot = new Vector2(0f, 0.5f);
+            accentRect.anchoredPosition =
+                new Vector2(0f, 0f);
+            accentRect.SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Horizontal,
+                6f);
+            accentRect.offsetMin =
+                new Vector2(0f, 0f);
+            accentRect.offsetMax =
+                new Vector2(6f, 0f);
+        }
+
+        if (iconImage != null)
+        {
+            RectTransform iconRect =
+                iconImage.rectTransform;
+            iconRect.anchorMin = new Vector2(0f, 0.5f);
+            iconRect.anchorMax = new Vector2(0f, 0.5f);
+            iconRect.pivot = new Vector2(0f, 0.5f);
+            iconRect.anchoredPosition =
+                new Vector2(8f, 0f);
+            iconRect.SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Horizontal,
+                38f);
+            iconRect.SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Vertical,
+                38f);
+            iconImage.raycastTarget = false;
+        }
+
+        if (iconText != null)
+        {
+            iconText.alignment =
+                TextAlignmentOptions.Center;
+            iconText.enableAutoSizing = true;
+            iconText.fontSizeMin = 12f;
+            iconText.fontSizeMax = 20f;
+            iconText.fontStyle =
+                FontStyles.Bold;
+            iconText.color = Color.white;
+            iconText.overflowMode =
+                TextOverflowModes.Ellipsis;
+        }
+
+        ConfigureTopLane(
+            playerNameText,
+            54f,
+            68f,
+            4f,
+            18f,
+            TextAlignmentOptions.TopLeft,
+            true,
+            11f,
+            18f,
+            FontStyles.Bold,
+            Color.white);
+
+        ConfigureTopLane(
+            moneyText,
+            54f,
+            12f,
+            24f,
+            20f,
+            TextAlignmentOptions.TopLeft,
+            true,
+            12f,
+            20f,
+            FontStyles.Bold,
+            new Color(0.96f, 0.95f, 0.90f, 1f));
+
+        ConfigureBottomLane(
+            controlTypeText,
+            54f,
+            12f,
+            4f,
+            16f,
+            TextAlignmentOptions.BottomLeft,
+            true,
+            8f,
+            12f,
+            FontStyles.Normal,
+            new Color(0.82f, 0.84f, 0.89f, 0.96f));
+
+        if (turnBadgeImage != null)
+        {
+            turnBadgeImage.type =
+                Image.Type.Sliced;
+            turnBadgeImage.raycastTarget = false;
+        }
+
+        if (turnBadgeText != null)
+        {
+            turnBadgeText.alignment =
+                TextAlignmentOptions.Center;
+            turnBadgeText.enableAutoSizing = true;
+            turnBadgeText.fontSizeMin = 7f;
+            turnBadgeText.fontSizeMax = 11f;
+            turnBadgeText.fontStyle =
+                FontStyles.Bold;
+            turnBadgeText.color = Color.white;
+            turnBadgeText.overflowMode =
+                TextOverflowModes.Ellipsis;
+        }
+    }
+
+    private static void ConfigureTopLane(
+        TMP_Text target,
+        float left,
+        float right,
+        float top,
+        float height,
+        TextAlignmentOptions alignment,
+        bool autoSize,
+        float minSize,
+        float maxSize,
+        FontStyles fontStyle,
+        Color color)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        RectTransform rect =
+            target.rectTransform;
+
+        if (rect != null)
+        {
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(1f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.offsetMin = new Vector2(left, -(top + height));
+            rect.offsetMax = new Vector2(-right, -top);
+        }
+
+        ConfigureTextCommon(
+            target,
+            alignment,
+            autoSize,
+            minSize,
+            maxSize,
+            fontStyle,
+            color);
+    }
+
+    private static void ConfigureBottomLane(
+        TMP_Text target,
+        float left,
+        float right,
+        float bottom,
+        float height,
+        TextAlignmentOptions alignment,
+        bool autoSize,
+        float minSize,
+        float maxSize,
+        FontStyles fontStyle,
+        Color color)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        RectTransform rect =
+            target.rectTransform;
+
+        if (rect != null)
+        {
+            rect.anchorMin = new Vector2(0f, 0f);
+            rect.anchorMax = new Vector2(1f, 0f);
+            rect.pivot = new Vector2(0f, 0f);
+            rect.offsetMin = new Vector2(left, bottom);
+            rect.offsetMax = new Vector2(-right, bottom + height);
+        }
+
+        ConfigureTextCommon(
+            target,
+            alignment,
+            autoSize,
+            minSize,
+            maxSize,
+            fontStyle,
+            color);
+    }
+
+    private static void ConfigureTextCommon(
+        TMP_Text target,
+        TextAlignmentOptions alignment,
+        bool autoSize,
+        float minSize,
+        float maxSize,
+        FontStyles fontStyle,
+        Color color)
+    {
+        if (target == null)
+        {
+            return;
+        }
+
+        target.alignment = alignment;
+        target.enableAutoSizing = autoSize;
+        target.fontSizeMin = minSize;
+        target.fontSizeMax = maxSize;
+        target.fontStyle = fontStyle;
+        target.overflowMode =
+            TextOverflowModes.Ellipsis;
+        target.textWrappingMode =
+            TextWrappingModes.NoWrap;
+        target.color = color;
+        target.raycastTarget = false;
+    }
+
+    private string ResolveControlTypeLabel()
+    {
+        if (player == null)
+        {
+            return string.Empty;
+        }
+
+        AtlasBoardTurnDiceNetworkCoordinator coordinator =
+            FindAnyObjectByType<
+                AtlasBoardTurnDiceNetworkCoordinator>();
+
+        // The local authority list is the source of truth for a Human that
+        // can actually act on this client. This prevents stale mirrored seat
+        // metadata from painting an actively-controlled Human as BOT.
+        if (coordinator != null &&
+            coordinator.IsLocallyControlledHumanSlot(
+                player.PlayerSlotIndex))
+        {
+            return AtlasBoardL.T(
+                "common.human")
+                .ToUpperInvariant();
+        }
+
+        if (player.IsOnlineTemporaryBot)
+        {
+            return GetTemporaryBotLabel();
+        }
+
+        if (player.IsOnlinePermanentBot)
+        {
+            return GetPermanentBotLabel();
+        }
+
+        bool isBot =
+            player.OnlineSeatStateActive
+                ? player.IsOnlineBotControlled
+                : botController != null &&
+                  botController.BotEnabled;
+
+        if (!isBot)
+        {
+            return AtlasBoardL.T(
+                "common.human")
+                .ToUpperInvariant();
+        }
+
+        string personality =
+            botController != null &&
+            botController.PersonalityProfile != null
+                ? LocalizePersonality(
+                    botController
+                        .PersonalityProfile
+                        .DisplayName)
+                : AtlasBoardL.T(
+                    "common.bot");
+
+        return $"{AtlasBoardL.T("common.bot").ToUpperInvariant()} • " +
+               $"{personality}";
     }
 
     private void OnDestroy()
@@ -490,7 +722,7 @@ public class PlayerHudPanel : MonoBehaviour
     private void HandlePlayerChanged(
         PlayerGameState changedPlayer)
     {
-        Refresh(false);
+        Refresh(lastIsCurrentTurn);
     }
 
 #if UNITY_EDITOR

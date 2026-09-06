@@ -155,6 +155,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     public bool IsOnlineSessionActive =>
         prepared;
 
+    public bool IsLocallyControlledHumanSlot(
+        int slotIndex)
+    {
+        return prepared &&
+               locallyControlledHumanSlots.Contains(
+                   slotIndex);
+    }
+
     private readonly List<int>
         locallyControlledHumanSlots =
             new List<int>();
