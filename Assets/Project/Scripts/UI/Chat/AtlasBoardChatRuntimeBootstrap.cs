@@ -12,6 +12,7 @@ public static class AtlasBoardChatRuntimeBootstrap
 
         if (existing != null)
         {
+            EnsureSafetyComponents(existing.gameObject);
             return;
         }
 
@@ -23,6 +24,28 @@ public static class AtlasBoardChatRuntimeBootstrap
         runtime.AddComponent<
             AtlasBoardChatRuntimeBridge>();
         runtime.AddComponent<
+            AtlasBoardChatModerationBridge>();
+        runtime.AddComponent<
             AtlasBoardChatUIController>();
+        runtime.AddComponent<
+            AtlasBoardChatSafetyUIController>();
+    }
+
+    private static void EnsureSafetyComponents(GameObject runtime)
+    {
+        if (runtime == null)
+        {
+            return;
+        }
+
+        if (runtime.GetComponent<AtlasBoardChatModerationBridge>() == null)
+        {
+            runtime.AddComponent<AtlasBoardChatModerationBridge>();
+        }
+
+        if (runtime.GetComponent<AtlasBoardChatSafetyUIController>() == null)
+        {
+            runtime.AddComponent<AtlasBoardChatSafetyUIController>();
+        }
     }
 }

@@ -22,6 +22,7 @@ public sealed class AtlasBoardChatUIController : MonoBehaviour
     private TMP_Text statusText;
     private TMP_Text counterText;
     private TMP_InputField inputField;
+    private TMP_Text placeholderText;
     private Button sendButton;
     private TMP_Text sendButtonText;
     private RectTransform messageContent;
@@ -39,6 +40,28 @@ public sealed class AtlasBoardChatUIController : MonoBehaviour
     private int maxMessageLength = DefaultMaxLength;
     private int cooldownMs = DefaultCooldownMs;
     private float localCooldownEndsAt;
+    private string lastLanguageCode = string.Empty;
+
+    public bool IsPanelOpen =>
+        panelRoot != null && panelRoot.activeSelf;
+
+    public RectTransform ChatPanelRect =>
+        panelRoot != null
+            ? panelRoot.GetComponent<RectTransform>()
+            : null;
+
+    public Transform ChatPanelTransform =>
+        panelRoot != null
+            ? panelRoot.transform
+            : null;
+
+    public void ForceReloadCurrentScope()
+    {
+        if (currentScope != null)
+        {
+            ResetScope(currentScope);
+        }
+    }
 
     private void Awake()
     {
@@ -49,6 +72,7 @@ public sealed class AtlasBoardChatUIController : MonoBehaviour
         }
 
         BuildUI();
+        lastLanguageCode = CurrentLanguage();
         SetChatAvailable(false);
     }
 
@@ -57,6 +81,16 @@ public sealed class AtlasBoardChatUIController : MonoBehaviour
         if (bridge == null)
         {
             return;
+        }
+
+        string language = CurrentLanguage();
+        if (!string.Equals(
+                language,
+                lastLanguageCode,
+                StringComparison.Ordinal))
+        {
+            lastLanguageCode = language;
+            RefreshLocalizedUi();
         }
 
         if (!bridge.TryResolveActiveScope(out AtlasBoardChatScope scope))
@@ -913,18 +947,18 @@ public sealed class AtlasBoardChatUIController : MonoBehaviour
         inputTextRect.offsetMin = new Vector2(8f, 4f);
         inputText.textWrappingMode = TextWrappingModes.NoWrap;
 
-        TMP_Text placeholder = CreateText(
+        placeholderText = CreateText(
             inputRoot.transform,
             "Placeholder",
             14f,
             FontStyles.Italic,
             TextAlignmentOptions.MidlineLeft,
             new Color(0.55f, 0.58f, 0.65f, 1f));
-        Stretch(placeholder.rectTransform, 8f);
-        placeholder.text = Localize("placeholder");
+        Stretch(placeholderText.rectTransform, 8f);
+        placeholderText.text = Localize("placeholder");
 
         inputField.textComponent = inputText;
-        inputField.placeholder = placeholder;
+        inputField.placeholder = placeholderText;
         inputField.onValueChanged.AddListener(HandleInputChanged);
         inputField.onSubmit.AddListener(HandleInputSubmit);
 
@@ -1051,6 +1085,23 @@ public sealed class AtlasBoardChatUIController : MonoBehaviour
         rect.anchorMax = Vector2.one;
         rect.offsetMin = new Vector2(padding, padding);
         rect.offsetMax = new Vector2(-padding, -padding);
+    }
+
+    private void RefreshLocalizedUi()
+    {
+        if (launcherText != null)
+        {
+            launcherText.text = Localize("chat");
+        }
+
+        UpdateTitle();
+
+        if (placeholderText != null)
+        {
+            placeholderText.text = Localize("placeholder");
+        }
+
+        RefreshButtonState();
     }
 
     private static string EscapeTmp(string value)
@@ -1191,6 +1242,76 @@ public sealed class AtlasBoardChatUIController : MonoBehaviour
         if (errorKey == "chat.error.rate_limited")
         {
             return Localize("rate");
+        }
+
+        if (errorKey == "chat.error.external_link_blocked")
+        {
+            return language switch
+            {
+                "tr" => "Sohbette bağlantı veya davet adresi paylaşamazsın.",
+                "es" => "No se permiten enlaces ni invitaciones en el chat.",
+                "fr" => "Les liens et invitations sont interdits dans le chat.",
+                "de" => "Links und Einladungen sind im Chat nicht erlaubt.",
+                "ko" => "채팅에서는 링크나 초대 주소를 보낼 수 없습니다.",
+                "ru" => "Ссылки и приглашения в чате запрещены.",
+                _ => "Links and invite addresses are not allowed in chat."
+            };
+        }
+
+        if (errorKey == "chat.error.duplicate_spam")
+        {
+            return language switch
+            {
+                "tr" => "Aynı mesajı art arda gönderemezsin.",
+                "es" => "No repitas el mismo mensaje varias veces.",
+                "fr" => "Évite de répéter le même message.",
+                "de" => "Bitte sende dieselbe Nachricht nicht wiederholt.",
+                "ko" => "같은 메시지를 반복해서 보낼 수 없습니다.",
+                "ru" => "Не отправляйте одно и то же сообщение повторно.",
+                _ => "Please do not repeat the same message."
+            };
+        }
+
+        if (errorKey == "chat.error.muted")
+        {
+            return language switch
+            {
+                "tr" => "Sohbetin geçici olarak susturuldu.",
+                "es" => "Tu chat está silenciado temporalmente.",
+                "fr" => "Votre chat est temporairement désactivé.",
+                "de" => "Dein Chat ist vorübergehend stummgeschaltet.",
+                "ko" => "채팅이 일시적으로 음소거되었습니다.",
+                "ru" => "Ваш чат временно отключён.",
+                _ => "Your chat is temporarily muted."
+            };
+        }
+
+        if (errorKey == "chat.error.banned")
+        {
+            return language switch
+            {
+                "tr" => "Sohbet erişimin yasaklandı.",
+                "es" => "Tu acceso al chat está bloqueado.",
+                "fr" => "Votre accès au chat est interdit.",
+                "de" => "Dein Chat-Zugang ist gesperrt.",
+                "ko" => "채팅 이용이 차단되었습니다.",
+                "ru" => "Доступ к чату заблокирован.",
+                _ => "Your chat access is banned."
+            };
+        }
+
+        if (errorKey == "chat.error.disabled")
+        {
+            return language switch
+            {
+                "tr" => "Bu hesap için sohbet kapalı.",
+                "es" => "El chat está desactivado para esta cuenta.",
+                "fr" => "Le chat est désactivé pour ce compte.",
+                "de" => "Chat ist für dieses Konto deaktiviert.",
+                "ko" => "이 계정에서는 채팅이 비활성화되어 있습니다.",
+                "ru" => "Чат отключён для этой учётной записи.",
+                _ => "Chat is disabled for this account."
+            };
         }
 
         if (errorKey == "chat.error.member_only")
