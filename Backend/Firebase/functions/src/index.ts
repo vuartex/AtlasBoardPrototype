@@ -24,6 +24,17 @@ import {
   PromoRedeemInput,
 } from "./economy/promo";
 import {
+  resetDevPurchasedEntitlements,
+} from "./economy/meta-dev";
+import {
+  claimDailyReward,
+  claimSeasonalChallenge,
+  claimSeasonalTrackTier,
+  getActiveSeasonalEvent,
+  getSeasonalOverview,
+  purchaseSeasonalItem,
+} from "./economy/seasonal";
+import {
   configureLobbySeats,
   createPrivateLobby,
   getLobbySnapshot,
@@ -619,6 +630,254 @@ export const promoTestRedeem = onCall(
   },
 );
 
+
+/**
+ * Server-authoritative daily reward claim.
+ * The client supplies no day, amount, or balance. UTC server day is canonical.
+ */
+export const metaDailyRewardClaim = onCall(
+  {
+    region: REGION,
+    maxInstances: 4,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+
+    const result = await claimDailyReward(
+      uid,
+      "store_daily_reward",
+    );
+
+    logger.info("AtlasBoard daily reward claim completed.", {
+      accountId: uid,
+      serverDayUtc: result.serverDayUtc,
+      applied: result.applied,
+      idempotentReplay: result.idempotentReplay,
+      balanceAfter: result.balanceAfter,
+    });
+
+    return {
+      ok: true,
+      ...result,
+    };
+  },
+);
+
+/**
+ * Read-only active seasonal event snapshot.
+ */
+export const metaSeasonalGetActive = onCall(
+  {
+    region: REGION,
+    maxInstances: 4,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    requireAuthenticatedUid(request);
+    const event = await getActiveSeasonalEvent();
+
+    return {
+      ok: true,
+      ...event,
+    };
+  },
+);
+
+/**
+ * Returns the authenticated account's seasonal event overview.
+ */
+export const metaSeasonalGetOverview = onCall(
+  {
+    region: REGION,
+    maxInstances: 4,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const result = await getSeasonalOverview(uid);
+    return {ok: true, ...result};
+  },
+);
+
+/**
+ * Claims one completed seasonal challenge.
+ */
+export const metaSeasonalClaimChallenge = onCall(
+  {
+    region: REGION,
+    maxInstances: 4,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const challengeId = readRequiredString(
+      request.data?.challengeId,
+      "challengeId",
+      2,
+      96,
+      "seasonal.error.invalid_request",
+    );
+    const result = await claimSeasonalChallenge(
+      uid,
+      challengeId,
+      "store_seasonal_challenge",
+    );
+    logger.info("AtlasBoard seasonal challenge claimed.", {
+      accountId: uid,
+      challengeId,
+      eventId: result.eventId,
+      applied: result.applied,
+      ticketBalance: result.ticketBalance,
+      eventXp: result.eventXp,
+    });
+    return {ok: true, ...result};
+  },
+);
+
+/**
+ * Claims one unlocked seasonal reward-track tier.
+ */
+export const metaSeasonalClaimTrackTier = onCall(
+  {
+    region: REGION,
+    maxInstances: 4,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const tierId = readRequiredString(
+      request.data?.tierId,
+      "tierId",
+      2,
+      96,
+      "seasonal.error.invalid_request",
+    );
+    const result = await claimSeasonalTrackTier(
+      uid,
+      tierId,
+      "store_seasonal_track",
+    );
+    logger.info("AtlasBoard seasonal track tier claimed.", {
+      accountId: uid,
+      tierId,
+      eventId: result.eventId,
+      applied: result.applied,
+      rewardType: result.rewardType,
+      rewardAmount: result.rewardAmount,
+    });
+    return {ok: true, ...result};
+  },
+);
+
+/**
+ * Purchases one limited seasonal catalog item with event tickets.
+ */
+export const metaSeasonalPurchaseLimitedItem = onCall(
+  {
+    region: REGION,
+    maxInstances: 4,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const itemId = readRequiredString(
+      request.data?.itemId,
+      "itemId",
+      2,
+      128,
+      "seasonal.error.invalid_request",
+    );
+    const idempotencyKey = readRequiredString(
+      request.data?.idempotencyKey,
+      "idempotencyKey",
+      8,
+      160,
+      "seasonal.error.invalid_request",
+    );
+    const result = await purchaseSeasonalItem(
+      uid,
+      itemId,
+      idempotencyKey,
+      "store_seasonal_purchase",
+    );
+    logger.info("AtlasBoard seasonal item purchased.", {
+      accountId: uid,
+      itemId,
+      eventId: result.eventId,
+      applied: result.applied,
+      ticketPrice: result.ticketPrice,
+      ticketBalance: result.ticketBalance,
+    });
+    return {ok: true, ...result};
+  },
+);
+
+/**
+ * Emulator-only Store development helper.
+ *
+ * Resets only CURRENT commerce-backed inventory ownership so purchase flows can
+ * be tested repeatedly. Immutable commerce history and wallet ledgers remain
+ * intact. This callable refuses to run outside Functions + Firestore emulators.
+ */
+export const metaDevResetPurchasedEntitlements = onCall(
+  {
+    region: REGION,
+    maxInstances: 2,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    requireEmulatedFirestore("meta.error.emulator_only");
+    const data = request.data ?? {};
+
+    const operationId = readRequiredString(
+      data.operationId,
+      "operationId",
+      8,
+      128,
+      "meta.error.invalid_request",
+    );
+
+    try {
+      const result = await resetDevPurchasedEntitlements(
+        uid,
+        operationId,
+      );
+
+      logger.info(
+        "AtlasBoard meta dev purchase reset completed.",
+        {
+          accountId: uid,
+          resetCount: result.resetCount,
+          auditId: result.auditId,
+        },
+      );
+
+      return {
+        ok: true,
+        resetCount: result.resetCount,
+        auditId: result.auditId,
+      };
+    } catch (error) {
+      logger.error(
+        "AtlasBoard meta dev purchase reset failed.",
+        {
+          accountId: uid,
+          error,
+        },
+      );
+
+      throw new HttpsError(
+        "internal",
+        "META_DEV_RESET_FAILED",
+        {
+          errorKey: "meta.error.dev_reset_failed",
+        },
+      );
+    }
+  },
+);
 
 /**
  * Emulator-only account bootstrap for Unity lobby integration tests.

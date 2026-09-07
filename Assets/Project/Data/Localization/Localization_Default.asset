@@ -178,31 +178,6 @@ MonoBehaviour:
     de: PROFIL
     ko: "\uD504\uB85C\uD544"
     ru: "\u041F\u0420\u041E\u0424\u0418\u041B\u042C"
-  - key: menu.profile_body
-    en: '{0}
-
-      Cash: {1:N0}
-
-      Gold: {2:N0}'
-    tr: "{0}\nPara: {1:N0}\nAlt\u0131n: {2:N0}"
-    es: '{0}
-
-      Dinero: {1:N0}
-
-      Oro: {2:N0}'
-    fr: '{0}
-
-      Argent : {1:N0}
-
-      Or : {2:N0}'
-    de: '{0}
-
-      Geld: {1:N0}
-
-      Gold: {2:N0}'
-    ko: "{0}\n\uD604\uAE08: {1:N0}\n\uACE8\uB4DC: {2:N0}"
-    ru: "{0}\n\u0414\u0435\u043D\u044C\u0433\u0438: {1:N0}\n\u0417\u043E\u043B\u043E\u0442\u043E:
-      {2:N0}"
   - key: menu.start_match_error_title
     en: START MATCH
     tr: "MA\xC7I BA\u015ELAT"
@@ -3929,3 +3904,1368 @@ MonoBehaviour:
       \u0441\u043E\u0434\u0435\u0440\u0436\u0430\u0442\u044C 4-32 \u0441\u0438\u043C\u0432\u043E\u043B\u0430;
       \u043E\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u043F\u0443\u0441\u0442\u044B\u043C
       \u0434\u043B\u044F \u0443\u0434\u0430\u043B\u0435\u043D\u0438\u044F."
+  - key: menu.profile_body
+    en: '{0}
+
+      Gold: {1:N0}
+
+      Atlas Coin: {2:N0}'
+    tr: "{0}\nAlt\u0131n: {1:N0}\nAtlas Coin: {2:N0}"
+    es: '{0}
+
+      Oro: {1:N0}
+
+      Atlas Coin: {2:N0}'
+    fr: '{0}
+
+      Or : {1:N0}
+
+      Atlas Coin : {2:N0}'
+    de: '{0}
+
+      Gold: {1:N0}
+
+      Atlas Coin: {2:N0}'
+    ko: "{0}\n\uACE8\uB4DC: {1:N0}\n\uC544\uD2C0\uB77C\uC2A4 \uCF54\uC778: {2:N0}"
+    ru: "{0}\n\u0417\u043E\u043B\u043E\u0442\u043E: {1:N0}\nAtlas Coin: {2:N0}"
+  - key: store.title
+    en: ATLAS STORE
+    tr: "ATLAS MA\u011EAZA"
+    es: TIENDA ATLAS
+    fr: BOUTIQUE ATLAS
+    de: ATLAS SHOP
+    ko: "\uC544\uD2C0\uB77C\uC2A4 \uC0C1\uC810"
+    ru: "\u041C\u0410\u0413\u0410\u0417\u0418\u041D ATLAS"
+  - key: store.tab.home
+    en: HOME
+    tr: ANA SAYFA
+    es: INICIO
+    fr: ACCUEIL
+    de: START
+    ko: "\uD648"
+    ru: "\u0413\u041B\u0410\u0412\u041D\u0410\u042F"
+  - key: store.tab.items
+    en: ITEMS
+    tr: "\xDCR\xDCNLER"
+    es: OBJETOS
+    fr: OBJETS
+    de: ARTIKEL
+    ko: "\uC544\uC774\uD15C"
+    ru: "\u041F\u0420\u0415\u0414\u041C\u0415\u0422\u042B"
+  - key: store.tab.redeem
+    en: REDEEM CODE
+    tr: KOD KULLAN
+    es: "CANJEAR C\xD3DIGO"
+    fr: UTILISER UN CODE
+    de: "CODE EINL\xD6SEN"
+    ko: "\uCF54\uB4DC \uC0AC\uC6A9"
+    ru: "\u0410\u041A\u0422\u0418\u0412\u0418\u0420\u041E\u0412\u0410\u0422\u042C
+      \u041A\u041E\u0414"
+  - key: store.tab.history
+    en: HISTORY
+    tr: "GE\xC7M\u0130\u015E"
+    es: HISTORIAL
+    fr: HISTORIQUE
+    de: VERLAUF
+    ko: "\uB0B4\uC5ED"
+    ru: "\u0418\u0421\u0422\u041E\u0420\u0418\u042F"
+  - key: store.wallet.gold
+    en: Gold
+    tr: "Alt\u0131n"
+    es: Oro
+    fr: Or
+    de: Gold
+    ko: "\uACE8\uB4DC"
+    ru: "\u0417\u043E\u043B\u043E\u0442\u043E"
+  - key: store.wallet.coin
+    en: Atlas Coin
+    tr: Atlas Coin
+    es: Atlas Coin
+    fr: Atlas Coin
+    de: Atlas Coin
+    ko: "\uC544\uD2C0\uB77C\uC2A4 \uCF54\uC778"
+    ru: Atlas Coin
+  - key: store.common.refresh
+    en: REFRESH
+    tr: "YEN\u0130LE"
+    es: ACTUALIZAR
+    fr: ACTUALISER
+    de: AKTUALISIEREN
+    ko: "\uC0C8\uB85C\uACE0\uCE68"
+    ru: "\u041E\u0411\u041D\u041E\u0412\u0418\u0422\u042C"
+  - key: store.common.cancel
+    en: CANCEL
+    tr: "\u0130PTAL"
+    es: CANCELAR
+    fr: ANNULER
+    de: ABBRECHEN
+    ko: "\uCDE8\uC18C"
+    ru: "\u041E\u0422\u041C\u0415\u041D\u0410"
+  - key: store.response.ready
+    en: Ready.
+    tr: "Haz\u0131r."
+    es: Listo.
+    fr: "Pr\xEAt."
+    de: Bereit.
+    ko: "\uC900\uBE44\uB428."
+    ru: "\u0413\u043E\u0442\u043E\u0432\u043E."
+  - key: store.response.loading
+    en: Loading store data...
+    tr: "Ma\u011Faza verileri y\xFCkleniyor..."
+    es: Cargando datos de la tienda...
+    fr: "Chargement des donn\xE9es de la boutique..."
+    de: Shop-Daten werden geladen...
+    ko: "\uC0C1\uC810 \uB370\uC774\uD130\uB97C \uBD88\uB7EC\uC624\uB294 \uC911..."
+    ru: "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430 \u0434\u0430\u043D\u043D\u044B\u0445
+      \u043C\u0430\u0433\u0430\u0437\u0438\u043D\u0430..."
+  - key: store.response.processing
+    en: Transaction is being processed...
+    tr: "\u0130\u015Flem i\u015Fleniyor..."
+    es: "La transacci\xF3n se est\xE1 procesando..."
+    fr: La transaction est en cours...
+    de: Transaktion wird verarbeitet...
+    ko: "\uAC70\uB798 \uCC98\uB9AC \uC911..."
+    ru: "\u0422\u0440\u0430\u043D\u0437\u0430\u043A\u0446\u0438\u044F \u043E\u0431\u0440\u0430\u0431\u0430\u0442\u044B\u0432\u0430\u0435\u0442\u0441\u044F..."
+  - key: store.response.wait
+    en: Wait for the current transaction to finish.
+    tr: "Mevcut i\u015Flemin tamamlanmas\u0131n\u0131 bekleyin."
+    es: "Espera a que termine la transacci\xF3n actual."
+    fr: Attendez la fin de la transaction en cours.
+    de: Warte, bis die aktuelle Transaktion abgeschlossen ist.
+    ko: "\uD604\uC7AC \uAC70\uB798\uAC00 \uB05D\uB0A0 \uB54C\uAE4C\uC9C0 \uAE30\uB2E4\uB824
+      \uC8FC\uC138\uC694."
+    ru: "\u0414\u043E\u0436\u0434\u0438\u0442\u0435\u0441\u044C \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u0438\u044F
+      \u0442\u0435\u043A\u0443\u0449\u0435\u0439 \u0442\u0440\u0430\u043D\u0437\u0430\u043A\u0446\u0438\u0438."
+  - key: store.response.cooldown
+    en: Please wait briefly before another transaction.
+    tr: "Yeni bir i\u015Flem yapmadan \xF6nce k\u0131sa bir s\xFCre bekleyin."
+    es: "Espera un momento antes de otra transacci\xF3n."
+    fr: Veuillez patienter avant une autre transaction.
+    de: "Bitte kurz vor der n\xE4chsten Transaktion warten."
+    ko: "\uB2E4\uC74C \uAC70\uB798 \uC804\uC5D0 \uC7A0\uC2DC \uAE30\uB2E4\uB824 \uC8FC\uC138\uC694."
+    ru: "\u041D\u0435\u043C\u043D\u043E\u0433\u043E \u043F\u043E\u0434\u043E\u0436\u0434\u0438\u0442\u0435
+      \u043F\u0435\u0440\u0435\u0434 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0435\u0439
+      \u0442\u0440\u0430\u043D\u0437\u0430\u043A\u0446\u0438\u0435\u0439."
+  - key: store.response.dev_wallet_done
+    en: Development wallet is ready.
+    tr: "Geli\u015Ftirme bakiyesi haz\u0131r."
+    es: "La cartera de desarrollo est\xE1 lista."
+    fr: "Le portefeuille de d\xE9veloppement est pr\xEAt."
+    de: Entwicklungs-Wallet ist bereit.
+    ko: "\uAC1C\uBC1C \uC9C0\uAC11\uC774 \uC900\uBE44\uB418\uC5C8\uC2B5\uB2C8\uB2E4."
+    ru: "\u041A\u043E\u0448\u0435\u043B\u0451\u043A \u0440\u0430\u0437\u0440\u0430\u0431\u043E\u0442\u043A\u0438
+      \u0433\u043E\u0442\u043E\u0432."
+  - key: store.response.dev_reset_done
+    en: 'Development purchase ownership reset: {0} item(s). Purchase history and
+      wallet evidence were preserved.'
+    tr: "Geli\u015Ftirme sat\u0131n al\u0131m sahipli\u011Fi s\u0131f\u0131rland\u0131:
+      {0} \xFCr\xFCn. Sat\u0131n alma ge\xE7mi\u015Fi ve c\xFCzdan kan\u0131tlar\u0131
+      korundu."
+    es: "Se restableci\xF3 la propiedad de {0} compra(s) de desarrollo. Se conservaron
+      el historial y la evidencia del monedero."
+    fr: "La propri\xE9t\xE9 de {0} achat(s) de d\xE9veloppement a \xE9t\xE9 r\xE9initialis\xE9e.
+      L\u2019historique et les preuves du portefeuille sont conserv\xE9s."
+    de: "{0} Entwicklungs-Kaufberechtigung(en) wurden zur\xFCckgesetzt. Verlauf und
+      Wallet-Nachweise bleiben erhalten."
+    ko: "\uAC1C\uBC1C \uAD6C\uB9E4 \uC18C\uC720\uAD8C {0}\uAC1C\uB97C \uCD08\uAE30\uD654\uD588\uC2B5\uB2C8\uB2E4.
+      \uAD6C\uB9E4 \uB0B4\uC5ED\uACFC \uC9C0\uAC11 \uAE30\uB85D\uC740 \uC720\uC9C0\uB429\uB2C8\uB2E4."
+    ru: "\u0421\u0431\u0440\u043E\u0448\u0435\u043D\u043E \u0442\u0435\u0441\u0442\u043E\u0432\u044B\u0445
+      \u043F\u043E\u043A\u0443\u043F\u043E\u043A: {0}. \u0418\u0441\u0442\u043E\u0440\u0438\u044F
+      \u0438 \u0437\u0430\u043F\u0438\u0441\u0438 \u043A\u043E\u0448\u0435\u043B\u044C\u043A\u0430
+      \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u044B."
+  - key: store.response.daily_already
+    en: "Today\u2019s development daily reward was already claimed."
+    tr: "Bug\xFCn\xFCn geli\u015Ftirme g\xFCnl\xFCk \xF6d\xFCl\xFC zaten al\u0131nd\u0131."
+    es: La recompensa diaria de desarrollo de hoy ya fue reclamada.
+    fr: "La r\xE9compense quotidienne de d\xE9veloppement a d\xE9j\xE0 \xE9t\xE9
+      r\xE9clam\xE9e aujourd\u2019hui."
+    de: Die heutige Entwicklungs-Tagesbelohnung wurde bereits abgeholt.
+    ko: "\uC624\uB298\uC758 \uAC1C\uBC1C \uC77C\uC77C \uBCF4\uC0C1\uC740 \uC774\uBBF8
+      \uBC1B\uC558\uC2B5\uB2C8\uB2E4."
+    ru: "\u0421\u0435\u0433\u043E\u0434\u043D\u044F\u0448\u043D\u044F\u044F \u0442\u0435\u0441\u0442\u043E\u0432\u0430\u044F
+      \u0435\u0436\u0435\u0434\u043D\u0435\u0432\u043D\u0430\u044F \u043D\u0430\u0433\u0440\u0430\u0434\u0430
+      \u0443\u0436\u0435 \u043F\u043E\u043B\u0443\u0447\u0435\u043D\u0430."
+  - key: store.response.daily_claimed
+    en: 'Daily reward claimed: +250 Gold.'
+    tr: "G\xFCnl\xFCk \xF6d\xFCl al\u0131nd\u0131: +250 Alt\u0131n."
+    es: 'Recompensa diaria obtenida: +250 Oro.'
+    fr: "R\xE9compense quotidienne obtenue : +250 Or."
+    de: 'Tagesbelohnung erhalten: +250 Gold.'
+    ko: "\uC77C\uC77C \uBCF4\uC0C1 \uD68D\uB4DD: +250 \uACE8\uB4DC."
+    ru: "\u0415\u0436\u0435\u0434\u043D\u0435\u0432\u043D\u0430\u044F \u043D\u0430\u0433\u0440\u0430\u0434\u0430
+      \u043F\u043E\u043B\u0443\u0447\u0435\u043D\u0430: +250 \u0437\u043E\u043B\u043E\u0442\u0430."
+  - key: store.response.purchase_done
+    en: Purchase completed and entitlement granted.
+    tr: "Sat\u0131n alma tamamland\u0131 ve \xFCr\xFCn hesab\u0131n\u0131za tan\u0131mland\u0131."
+    es: Compra completada y derecho concedido.
+    fr: "Achat termin\xE9 et droit accord\xE9."
+    de: Kauf abgeschlossen und Berechtigung erteilt.
+    ko: "\uAD6C\uB9E4 \uC644\uB8CC \uBC0F \uAD8C\uD55C \uC9C0\uAE09\uB428."
+    ru: "\u041F\u043E\u043A\u0443\u043F\u043A\u0430 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u0430,
+      \u043F\u0440\u0430\u0432\u043E \u043D\u0430 \u043F\u0440\u0435\u0434\u043C\u0435\u0442
+      \u0432\u044B\u0434\u0430\u043D\u043E."
+  - key: store.response.redeem_done
+    en: 'Code redeemed. Rewards: {0}'
+    tr: "Kod kullan\u0131ld\u0131. \xD6d\xFCller: {0}"
+    es: "C\xF3digo canjeado. Recompensas: {0}"
+    fr: "Code utilis\xE9. R\xE9compenses : {0}"
+    de: "Code eingel\xF6st. Belohnungen: {0}"
+    ko: "\uCF54\uB4DC \uC0AC\uC6A9 \uC644\uB8CC. \uBCF4\uC0C1: {0}"
+    ru: "\u041A\u043E\u0434 \u0430\u043A\u0442\u0438\u0432\u0438\u0440\u043E\u0432\u0430\u043D.
+      \u041D\u0430\u0433\u0440\u0430\u0434\u044B: {0}"
+  - key: store.popup.info_title
+    en: PLEASE WAIT
+    tr: "L\xDCTFEN BEKLEY\u0130N"
+    es: ESPERE
+    fr: VEUILLEZ PATIENTER
+    de: BITTE WARTEN
+    ko: "\uC7A0\uC2DC \uAE30\uB2E4\uB824 \uC8FC\uC138\uC694"
+    ru: "\u041F\u041E\u0416\u0410\u041B\u0423\u0419\u0421\u0422\u0410, \u041F\u041E\u0414\u041E\u0416\u0414\u0418\u0422\u0415"
+  - key: store.popup.error_title
+    en: TRANSACTION FAILED
+    tr: "\u0130\u015ELEM BA\u015EARISIZ"
+    es: "TRANSACCI\xD3N FALLIDA"
+    fr: "\xC9CHEC DE LA TRANSACTION"
+    de: TRANSAKTION FEHLGESCHLAGEN
+    ko: "\uAC70\uB798 \uC2E4\uD328"
+    ru: "\u041E\u041F\u0415\u0420\u0410\u0426\u0418\u042F \u041D\u0415 \u0412\u042B\u041F\u041E\u041B\u041D\u0415\u041D\u0410"
+  - key: store.popup.daily_title
+    en: DAILY REWARD
+    tr: "G\xDCNL\xDCK \xD6D\xDCL"
+    es: RECOMPENSA DIARIA
+    fr: "R\xC9COMPENSE QUOTIDIENNE"
+    de: TAGESBELOHNUNG
+    ko: "\uC77C\uC77C \uBCF4\uC0C1"
+    ru: "\u0415\u0416\u0415\u0414\u041D\u0415\u0412\u041D\u0410\u042F \u041D\u0410\u0413\u0420\u0410\u0414\u0410"
+  - key: store.popup.redeem_title
+    en: CODE REDEEMED
+    tr: KOD KULLANILDI
+    es: "C\xD3DIGO CANJEADO"
+    fr: "CODE UTILIS\xC9"
+    de: "CODE EINGEL\xD6ST"
+    ko: "\uCF54\uB4DC \uC0AC\uC6A9 \uC644\uB8CC"
+    ru: "\u041A\u041E\u0414 \u0410\u041A\u0422\u0418\u0412\u0418\u0420\u041E\u0412\u0410\u041D"
+  - key: store.popup.dev_title
+    en: DEVELOPMENT TOOL
+    tr: "GEL\u0130\u015ET\u0130RME ARACI"
+    es: HERRAMIENTA DE DESARROLLO
+    fr: "OUTIL DE D\xC9VELOPPEMENT"
+    de: ENTWICKLUNGSWERKZEUG
+    ko: "\uAC1C\uBC1C \uB3C4\uAD6C"
+    ru: "\u0418\u041D\u0421\u0422\u0420\u0423\u041C\u0415\u041D\u0422 \u0420\u0410\u0417\u0420\u0410\u0411\u041E\u0422\u041A\u0418"
+  - key: store.home.title
+    en: STORE HOME
+    tr: "MA\u011EAZA ANA SAYFA"
+    es: INICIO DE LA TIENDA
+    fr: ACCUEIL DE LA BOUTIQUE
+    de: SHOP-STARTSEITE
+    ko: "\uC0C1\uC810 \uD648"
+    ru: "\u0413\u041B\u0410\u0412\u041D\u0410\u042F \u041C\u0410\u0413\u0410\u0417\u0418\u041D\u0410"
+  - key: store.home.daily_title
+    en: DAILY REWARD
+    tr: "G\xDCNL\xDCK \xD6D\xDCL"
+    es: RECOMPENSA DIARIA
+    fr: "R\xC9COMPENSE QUOTIDIENNE"
+    de: TAGESBELOHNUNG
+    ko: "\uC77C\uC77C \uBCF4\uC0C1"
+    ru: "\u0415\u0416\u0415\u0414\u041D\u0415\u0412\u041D\u0410\u042F \u041D\u0410\u0413\u0420\u0410\u0414\u0410"
+  - key: store.home.daily_body
+    en: Claim a daily development reward here. Production rewards will later use
+      a dedicated server claim.
+    tr: "G\xFCnl\xFCk geli\u015Ftirme \xF6d\xFCl\xFCn\xFC buradan al. \xDCretim \xF6d\xFClleri
+      ileride \xF6zel sunucu claim sistemi kullanacak."
+    es: "Reclama aqu\xED una recompensa diaria de desarrollo. En producci\xF3n se
+      usar\xE1 una reclamaci\xF3n dedicada del servidor."
+    fr: "R\xE9cup\xE9rez ici une r\xE9compense quotidienne de d\xE9veloppement. La
+      production utilisera ensuite une r\xE9clamation serveur d\xE9di\xE9e."
+    de: "Hole hier eine t\xE4gliche Entwicklungsbelohnung ab. Sp\xE4ter nutzt die
+      Produktion einen eigenen Server-Claim."
+    ko: "\uC5EC\uAE30\uC11C \uAC1C\uBC1C\uC6A9 \uC77C\uC77C \uBCF4\uC0C1\uC744 \uBC1B\uC2B5\uB2C8\uB2E4.
+      \uC815\uC2DD \uBC84\uC804\uC740 \uC804\uC6A9 \uC11C\uBC84 \uC218\uB839 \uBC29\uC2DD\uC744
+      \uC0AC\uC6A9\uD569\uB2C8\uB2E4."
+    ru: "\u041F\u043E\u043B\u0443\u0447\u0430\u0439\u0442\u0435 \u0437\u0434\u0435\u0441\u044C
+      \u0442\u0435\u0441\u0442\u043E\u0432\u0443\u044E \u0435\u0436\u0435\u0434\u043D\u0435\u0432\u043D\u0443\u044E
+      \u043D\u0430\u0433\u0440\u0430\u0434\u0443. \u0412 \u0440\u0435\u043B\u0438\u0437\u0435
+      \u0431\u0443\u0434\u0435\u0442 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u044B\u0439
+      \u0441\u0435\u0440\u0432\u0435\u0440\u043D\u044B\u0439 \u043C\u0435\u0445\u0430\u043D\u0438\u0437\u043C."
+  - key: store.home.daily_claim
+    en: CLAIM DAILY
+    tr: "G\xDCNL\xDCK \xD6D\xDCL\xDC AL"
+    es: RECLAMAR
+    fr: "R\xC9CUP\xC9RER"
+    de: ABHOLEN
+    ko: "\uBC1B\uAE30"
+    ru: "\u041F\u041E\u041B\u0423\u0427\u0418\u0422\u042C"
+  - key: store.home.featured_title
+    en: ITEM CATALOG
+    tr: "\xDCR\xDCN KATALO\u011EU"
+    es: "CAT\xC1LOGO"
+    fr: CATALOGUE
+    de: ARTIKELKATALOG
+    ko: "\uC544\uC774\uD15C \uCE74\uD0C8\uB85C\uADF8"
+    ru: "\u041A\u0410\u0422\u0410\u041B\u041E\u0413"
+  - key: store.home.featured_body
+    en: Browse scalable categories and buy test cosmetics with Gold or Atlas Coin.
+    tr: "Kategorilere g\xF6z at ve test kozmetiklerini Alt\u0131n veya Atlas Coin
+      ile sat\u0131n al."
+    es: "Explora categor\xEDas y compra cosm\xE9ticos de prueba con Oro o Atlas Coin."
+    fr: "Parcourez les cat\xE9gories et achetez des cosm\xE9tiques de test avec de
+      l\u2019Or ou des Atlas Coins."
+    de: Kategorien durchsuchen und Test-Kosmetik mit Gold oder Atlas Coin kaufen.
+    ko: "\uCE74\uD14C\uACE0\uB9AC\uB97C \uBCF4\uACE0 \uACE8\uB4DC \uB610\uB294 \uC544\uD2C0\uB77C\uC2A4
+      \uCF54\uC778\uC73C\uB85C \uD14C\uC2A4\uD2B8 \uAFB8\uBBF8\uAE30 \uC544\uC774\uD15C\uC744
+      \uAD6C\uB9E4\uD569\uB2C8\uB2E4."
+    ru: "\u041F\u0440\u043E\u0441\u043C\u0430\u0442\u0440\u0438\u0432\u0430\u0439\u0442\u0435
+      \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u0438 \u0438 \u043F\u043E\u043A\u0443\u043F\u0430\u0439\u0442\u0435
+      \u0442\u0435\u0441\u0442\u043E\u0432\u0443\u044E \u043A\u043E\u0441\u043C\u0435\u0442\u0438\u043A\u0443
+      \u0437\u0430 \u0437\u043E\u043B\u043E\u0442\u043E \u0438\u043B\u0438 Atlas
+      Coin."
+  - key: store.home.browse
+    en: BROWSE ITEMS
+    tr: "\xDCR\xDCNLERE G\xD6Z AT"
+    es: VER OBJETOS
+    fr: VOIR LES OBJETS
+    de: ARTIKEL ANSEHEN
+    ko: "\uC544\uC774\uD15C \uBCF4\uAE30"
+    ru: "\u0421\u041C\u041E\u0422\u0420\u0415\u0422\u042C \u041F\u0420\u0415\u0414\u041C\u0415\u0422\u042B"
+  - key: store.home.redeem_title
+    en: REDEEM CODE
+    tr: KOD KULLAN
+    es: "CANJEAR C\xD3DIGO"
+    fr: UTILISER UN CODE
+    de: "CODE EINL\xD6SEN"
+    ko: "\uCF54\uB4DC \uC0AC\uC6A9"
+    ru: "\u0410\u041A\u0422\u0418\u0412\u0418\u0420\u041E\u0412\u0410\u0422\u042C
+      \u041A\u041E\u0414"
+  - key: store.home.redeem_body
+    en: Enter a promo/redeem code and review its server-recorded rewards and history.
+    tr: "Promosyon/redeem kodu gir ve sunucuda kaydedilen \xF6d\xFClleri ile ge\xE7mi\u015Fini
+      g\xF6r\xFCnt\xFCle."
+    es: "Introduce un c\xF3digo y revisa sus recompensas e historial registrados
+      por el servidor."
+    fr: "Saisissez un code et consultez ses r\xE9compenses et son historique enregistr\xE9s
+      par le serveur."
+    de: "Code eingeben und serverseitig erfasste Belohnungen und Verlauf pr\xFCfen."
+    ko: "\uCF54\uB4DC\uB97C \uC785\uB825\uD558\uACE0 \uC11C\uBC84\uC5D0 \uAE30\uB85D\uB41C
+      \uBCF4\uC0C1\uACFC \uB0B4\uC5ED\uC744 \uD655\uC778\uD569\uB2C8\uB2E4."
+    ru: "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043A\u043E\u0434 \u0438 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u0438\u0442\u0435
+      \u043D\u0430\u0433\u0440\u0430\u0434\u044B \u0438 \u0438\u0441\u0442\u043E\u0440\u0438\u044E,
+      \u0437\u0430\u043F\u0438\u0441\u0430\u043D\u043D\u044B\u0435 \u0441\u0435\u0440\u0432\u0435\u0440\u043E\u043C."
+  - key: store.home.redeem_open
+    en: OPEN REDEEM
+    tr: "KOD EKRANINI A\xC7"
+    es: ABRIR CANJE
+    fr: OUVRIR
+    de: "CODE \xD6FFNEN"
+    ko: "\uCF54\uB4DC \uD654\uBA74 \uC5F4\uAE30"
+    ru: "\u041E\u0422\u041A\u0420\u042B\u0422\u042C"
+  - key: store.home.dev_title
+    en: DEVELOPMENT TOOLS
+    tr: "GEL\u0130\u015ET\u0130RME ARA\xC7LARI"
+    es: HERRAMIENTAS DEV
+    fr: OUTILS DEV
+    de: ENTWICKLUNGSTOOLS
+    ko: "\uAC1C\uBC1C \uB3C4\uAD6C"
+    ru: "\u0418\u041D\u0421\u0422\u0420\u0423\u041C\u0415\u041D\u0422\u042B DEV"
+  - key: store.home.dev_body
+    en: Local emulator only. Adds test currency for purchase validation; remove/lock
+      before production.
+    tr: "Sadece local emulator. Sat\u0131n alma testleri i\xE7in deneme bakiyesi
+      ekler; production \xF6ncesi kald\u0131r\u0131lacak/kilitlenecek."
+    es: "Solo emulador local. A\xF1ade saldo de prueba; debe bloquearse antes de
+      producci\xF3n."
+    fr: "\xC9mulateur local uniquement. Ajoute un solde de test ; \xE0 verrouiller
+      avant la production."
+    de: "Nur lokaler Emulator. F\xFCgt Testguthaben hinzu; vor Produktion sperren."
+    ko: "\uB85C\uCEEC \uC5D0\uBBAC\uB808\uC774\uD130 \uC804\uC6A9. \uAD6C\uB9E4 \uD14C\uC2A4\uD2B8\uC6A9
+      \uC7AC\uD654\uB97C \uCD94\uAC00\uD558\uBA70 \uCD9C\uC2DC \uC804 \uCC28\uB2E8\uD569\uB2C8\uB2E4."
+    ru: "\u0422\u043E\u043B\u044C\u043A\u043E \u043B\u043E\u043A\u0430\u043B\u044C\u043D\u044B\u0439
+      \u044D\u043C\u0443\u043B\u044F\u0442\u043E\u0440. \u0414\u043E\u0431\u0430\u0432\u043B\u044F\u0435\u0442
+      \u0442\u0435\u0441\u0442\u043E\u0432\u0443\u044E \u0432\u0430\u043B\u044E\u0442\u0443;
+      \u043F\u0435\u0440\u0435\u0434 \u0440\u0435\u043B\u0438\u0437\u043E\u043C \u0431\u0443\u0434\u0435\u0442
+      \u0437\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D\u043E."
+  - key: store.home.dev_reset
+    en: RESET PURCHASES
+    tr: SATIN ALIMLARI SIFIRLA
+    es: RESTABLECER COMPRAS
+    fr: "R\xC9INITIALISER ACHATS"
+    de: "K\xC4UFE ZUR\xDCCKSETZEN"
+    ko: "\uAD6C\uB9E4 \uCD08\uAE30\uD654"
+    ru: "\u0421\u0411\u0420\u041E\u0421\u0418\u0422\u042C \u041F\u041E\u041A\u0423\u041F\u041A\u0418"
+  - key: store.home.dev_wallet
+    en: DEV WALLET
+    tr: "DEV BAK\u0130YE"
+    es: SALDO DEV
+    fr: SOLDE DEV
+    de: DEV-WALLET
+    ko: "DEV \uC9C0\uAC11"
+    ru: "DEV \u0411\u0410\u041B\u0410\u041D\u0421"
+  - key: store.items.title
+    en: ITEMS & COSMETICS
+    tr: "\xDCR\xDCNLER VE KOZMET\u0130KLER"
+    es: "OBJETOS Y COSM\xC9TICOS"
+    fr: "OBJETS ET COSM\xC9TIQUES"
+    de: ARTIKEL & KOSMETIK
+    ko: "\uC544\uC774\uD15C & \uAFB8\uBBF8\uAE30"
+    ru: "\u041F\u0420\u0415\u0414\u041C\u0415\u0422\u042B \u0418 \u041A\u041E\u0421\u041C\u0415\u0422\u0418\u041A\u0410"
+  - key: store.items.empty
+    en: No items in this category.
+    tr: "Bu kategoride \xFCr\xFCn yok."
+    es: "No hay objetos en esta categor\xEDa."
+    fr: "Aucun objet dans cette cat\xE9gorie."
+    de: Keine Artikel in dieser Kategorie.
+    ko: "\uC774 \uCE74\uD14C\uACE0\uB9AC\uC5D0 \uC544\uC774\uD15C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4."
+    ru: "\u0412 \u044D\u0442\u043E\u0439 \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u0438
+      \u043D\u0435\u0442 \u043F\u0440\u0435\u0434\u043C\u0435\u0442\u043E\u0432."
+  - key: store.items.owned
+    en: OWNED
+    tr: "SAH\u0130PS\u0130N"
+    es: EN PROPIEDAD
+    fr: "POSS\xC9D\xC9"
+    de: BESITZT
+    ko: "\uBCF4\uC720 \uC911"
+    ru: "\u041F\u041E\u041B\u0423\u0427\u0415\u041D\u041E"
+  - key: store.items.buy_gold
+    en: "BUY \u2022 {0:N0} G"
+    tr: "SATIN AL \u2022 {0:N0} A"
+    es: "COMPRAR \u2022 {0:N0} O"
+    fr: "ACHETER \u2022 {0:N0} O"
+    de: "KAUFEN \u2022 {0:N0} G"
+    ko: "\uAD6C\uB9E4 \u2022 {0:N0} G"
+    ru: "\u041A\u0423\u041F\u0418\u0422\u042C \u2022 {0:N0} G"
+  - key: store.items.buy_coin
+    en: "BUY \u2022 {0:N0} AC"
+    tr: "SATIN AL \u2022 {0:N0} AC"
+    es: "COMPRAR \u2022 {0:N0} AC"
+    fr: "ACHETER \u2022 {0:N0} AC"
+    de: "KAUFEN \u2022 {0:N0} AC"
+    ko: "\uAD6C\uB9E4 \u2022 {0:N0} AC"
+    ru: "\u041A\u0423\u041F\u0418\u0422\u042C \u2022 {0:N0} AC"
+  - key: store.category.all
+    en: ALL
+    tr: "T\xDCM\xDC"
+    es: TODO
+    fr: TOUT
+    de: ALLE
+    ko: "\uC804\uCCB4"
+    ru: "\u0412\u0421\u0415"
+  - key: store.category.pawns
+    en: PAWNS
+    tr: "P\u0130YONLAR"
+    es: PEONES
+    fr: PIONS
+    de: SPIELFIGUREN
+    ko: "\uB9D0"
+    ru: "\u0424\u0418\u0428\u041A\u0418"
+  - key: store.category.dice
+    en: DICE
+    tr: ZARLAR
+    es: DADOS
+    fr: "D\xC9S"
+    de: "W\xDCRFEL"
+    ko: "\uC8FC\uC0AC\uC704"
+    ru: "\u041A\u0423\u0411\u0418\u041A\u0418"
+  - key: store.category.boards
+    en: BOARDS
+    tr: TAHTALAR
+    es: TABLEROS
+    fr: PLATEAUX
+    de: BRETTER
+    ko: "\uBCF4\uB4DC"
+    ru: "\u0414\u041E\u0421\u041A\u0418"
+  - key: store.category.profile
+    en: PROFILE
+    tr: "PROF\u0130L"
+    es: PERFIL
+    fr: PROFIL
+    de: PROFIL
+    ko: "\uD504\uB85C\uD544"
+    ru: "\u041F\u0420\u041E\u0424\u0418\u041B\u042C"
+  - key: store.category.emotes
+    en: EMOTES
+    tr: EMOTELAR
+    es: EMOTES
+    fr: "\xC9MOTES"
+    de: EMOTES
+    ko: "\uC774\uBAA8\uD2B8"
+    ru: "\u042D\u041C\u041E\u0426\u0418\u0418"
+  - key: store.category.motion
+    en: MOTION
+    tr: HAREKET
+    es: MOVIMIENTO
+    fr: MOUVEMENT
+    de: BEWEGUNG
+    ko: "\uBAA8\uC158"
+    ru: "\u0410\u041D\u0418\u041C\u0410\u0426\u0418\u0418"
+  - key: store.category.items
+    en: ITEMS
+    tr: "\xDCR\xDCNLER"
+    es: OBJETOS
+    fr: OBJETS
+    de: ARTIKEL
+    ko: "\uC544\uC774\uD15C"
+    ru: "\u041F\u0420\u0415\u0414\u041C\u0415\u0422\u042B"
+  - key: store.purchase.confirm_title
+    en: CONFIRM PURCHASE
+    tr: SATIN ALMAYI ONAYLA
+    es: CONFIRMAR COMPRA
+    fr: "CONFIRMER L\u2019ACHAT"
+    de: "KAUF BEST\xC4TIGEN"
+    ko: "\uAD6C\uB9E4 \uD655\uC778"
+    ru: "\u041F\u041E\u0414\u0422\u0412\u0415\u0420\u0414\u0418\u0422\u042C \u041F\u041E\u041A\u0423\u041F\u041A\u0423"
+  - key: store.purchase.confirm_body
+    en: The server verifies catalog price and entitlement. Wait for the response;
+      repeated clicks are blocked and the operation uses an idempotency key.
+    tr: "Sunucu katalog fiyat\u0131n\u0131 ve \xFCr\xFCn hakk\u0131n\u0131 do\u011Frular.
+      Yan\u0131t\u0131 bekleyin; tekrar t\u0131klamalar engellenir ve i\u015Flem
+      idempotency anahtar\u0131 kullan\u0131r."
+    es: El servidor verifica precio y derecho. Espera la respuesta; se bloquean clics
+      repetidos y se usa una clave de idempotencia.
+    fr: "Le serveur v\xE9rifie le prix et le droit. Attendez la r\xE9ponse ; les
+      clics r\xE9p\xE9t\xE9s sont bloqu\xE9s et une cl\xE9 d\u2019idempotence est
+      utilis\xE9e."
+    de: "Der Server pr\xFCft Preis und Berechtigung. Auf Antwort warten; Mehrfachklicks
+      werden blockiert und ein Idempotenzschl\xFCssel wird verwendet."
+    ko: "\uC11C\uBC84\uAC00 \uAC00\uACA9\uACFC \uAD8C\uD55C\uC744 \uD655\uC778\uD569\uB2C8\uB2E4.
+      \uC751\uB2F5\uC744 \uAE30\uB2E4\uB9AC\uBA70 \uC911\uBCF5 \uD074\uB9AD\uC740
+      \uCC28\uB2E8\uB418\uACE0 \uBA71\uB4F1\uC131 \uD0A4\uB97C \uC0AC\uC6A9\uD569\uB2C8\uB2E4."
+    ru: "\u0421\u0435\u0440\u0432\u0435\u0440 \u043F\u0440\u043E\u0432\u0435\u0440\u044F\u0435\u0442
+      \u0446\u0435\u043D\u0443 \u0438 \u043F\u0440\u0430\u0432\u043E. \u0414\u043E\u0436\u0434\u0438\u0442\u0435\u0441\u044C
+      \u043E\u0442\u0432\u0435\u0442\u0430; \u043F\u043E\u0432\u0442\u043E\u0440\u043D\u044B\u0435
+      \u043D\u0430\u0436\u0430\u0442\u0438\u044F \u0431\u043B\u043E\u043A\u0438\u0440\u0443\u044E\u0442\u0441\u044F,
+      \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0435\u0442\u0441\u044F \u043A\u043B\u044E\u0447
+      \u0438\u0434\u0435\u043C\u043F\u043E\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442\u0438."
+  - key: store.purchase.buy
+    en: BUY
+    tr: SATIN AL
+    es: COMPRAR
+    fr: ACHETER
+    de: KAUFEN
+    ko: "\uAD6C\uB9E4"
+    ru: "\u041A\u0423\u041F\u0418\u0422\u042C"
+  - key: store.purchase.success_title
+    en: PURCHASE COMPLETE
+    tr: SATIN ALMA TAMAMLANDI
+    es: COMPRA COMPLETADA
+    fr: "ACHAT TERMIN\xC9"
+    de: KAUF ABGESCHLOSSEN
+    ko: "\uAD6C\uB9E4 \uC644\uB8CC"
+    ru: "\u041F\u041E\u041A\u0423\u041F\u041A\u0410 \u0417\u0410\u0412\u0415\u0420\u0428\u0415\u041D\u0410"
+  - key: store.purchase.success_body
+    en: '{0} was purchased successfully for {1:N0} {2}.'
+    tr: "{0}, {1:N0} {2} kar\u015F\u0131l\u0131\u011F\u0131nda ba\u015Far\u0131yla
+      sat\u0131n al\u0131nd\u0131."
+    es: "{0} se compr\xF3 correctamente por {1:N0} {2}."
+    fr: "{0} a \xE9t\xE9 achet\xE9 avec succ\xE8s pour {1:N0} {2}."
+    de: "{0} wurde erfolgreich f\xFCr {1:N0} {2} gekauft."
+    ko: "{0}\uC744(\uB97C) {1:N0} {2}\uC5D0 \uC131\uACF5\uC801\uC73C\uB85C \uAD6C\uB9E4\uD588\uC2B5\uB2C8\uB2E4."
+    ru: "{0} \u0443\u0441\u043F\u0435\u0448\u043D\u043E \u043F\u0440\u0438\u043E\u0431\u0440\u0435\u0442\u0451\u043D
+      \u0437\u0430 {1:N0} {2}."
+  - key: store.purchase.success_balance
+    en: 'Remaining balance: {0:N0} {1}'
+    tr: 'Kalan bakiye: {0:N0} {1}'
+    es: 'Saldo restante: {0:N0} {1}'
+    fr: 'Solde restant : {0:N0} {1}'
+    de: 'Verbleibendes Guthaben: {0:N0} {1}'
+    ko: "\uB0A8\uC740 \uC794\uC561: {0:N0} {1}"
+    ru: "\u041E\u0441\u0442\u0430\u0442\u043E\u043A: {0:N0} {1}"
+  - key: store.purchase.failed_title
+    en: PURCHASE FAILED
+    tr: "SATIN ALMA BA\u015EARISIZ"
+    es: COMPRA FALLIDA
+    fr: "\xC9CHEC DE L'ACHAT"
+    de: KAUF FEHLGESCHLAGEN
+    ko: "\uAD6C\uB9E4 \uC2E4\uD328"
+    ru: "\u041F\u041E\u041A\u0423\u041F\u041A\u0410 \u041D\u0415 \u0423\u0414\u0410\u041B\u0410\u0421\u042C"
+  - key: store.purchase.failed_body
+    en: '{0} could not be purchased.
+
+      Reason: {1}'
+    tr: "{0} sat\u0131n al\u0131namad\u0131.\nNeden: {1}"
+    es: 'No se pudo comprar {0}.
+
+      Motivo: {1}'
+    fr: 'Impossible d''acheter {0}.
+
+      Raison : {1}'
+    de: '{0} konnte nicht gekauft werden.
+
+      Grund: {1}'
+    ko: "{0}\uC744(\uB97C) \uAD6C\uB9E4\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.\n\uC0AC\uC720:
+      {1}"
+    ru: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u0440\u0438\u043E\u0431\u0440\u0435\u0441\u0442\u0438
+      {0}.\n\u041F\u0440\u0438\u0447\u0438\u043D\u0430: {1}"
+  - key: store.purchase.no_charge
+    en: No successful charge was completed for this attempt.
+    tr: "Bu denemede ba\u015Far\u0131l\u0131 bir \xFCcret kesintisi yap\u0131lmad\u0131."
+    es: "No se complet\xF3 ning\xFAn cargo correcto en este intento."
+    fr: "Aucun d\xE9bit r\xE9ussi n'a \xE9t\xE9 effectu\xE9 pour cette tentative."
+    de: "F\xFCr diesen Versuch wurde keine erfolgreiche Abbuchung durchgef\xFChrt."
+    ko: "\uC774\uBC88 \uC2DC\uB3C4\uC5D0\uC11C\uB294 \uACB0\uC81C\uAC00 \uC644\uB8CC\uB418\uC9C0
+      \uC54A\uC558\uC2B5\uB2C8\uB2E4."
+    ru: "\u041F\u0440\u0438 \u044D\u0442\u043E\u0439 \u043F\u043E\u043F\u044B\u0442\u043A\u0435
+      \u0443\u0441\u043F\u0435\u0448\u043D\u043E\u0433\u043E \u0441\u043F\u0438\u0441\u0430\u043D\u0438\u044F
+      \u043D\u0435 \u043F\u0440\u043E\u0438\u0437\u043E\u0448\u043B\u043E."
+  - key: store.purchase.result_ok
+    en: OK
+    tr: TAMAM
+    es: ACEPTAR
+    fr: OK
+    de: OK
+    ko: "\uD655\uC778"
+    ru: "\u041E\u041A"
+  - key: store.redeem.title
+    en: REDEEM CODE
+    tr: KOD KULLAN
+    es: "CANJEAR C\xD3DIGO"
+    fr: UTILISER UN CODE
+    de: "CODE EINL\xD6SEN"
+    ko: "\uCF54\uB4DC \uC0AC\uC6A9"
+    ru: "\u0410\u041A\u0422\u0418\u0412\u0418\u0420\u041E\u0412\u0410\u0422\u042C
+      \u041A\u041E\u0414"
+  - key: store.redeem.enter_title
+    en: ENTER CODE
+    tr: "KODU G\u0130R"
+    es: "INTRODUCIR C\xD3DIGO"
+    fr: SAISIR LE CODE
+    de: CODE EINGEBEN
+    ko: "\uCF54\uB4DC \uC785\uB825"
+    ru: "\u0412\u0412\u0415\u0421\u0422\u0418 \u041A\u041E\u0414"
+  - key: store.redeem.enter_body
+    en: Codes are validated by the server. Rewards are granted atomically and recorded
+      under your authenticated account.
+    tr: "Kodlar sunucu taraf\u0131ndan do\u011Frulan\u0131r. \xD6d\xFCller atomik
+      olarak verilir ve do\u011Frulanm\u0131\u015F hesab\u0131n\u0131z alt\u0131nda
+      kaydedilir."
+    es: "Los c\xF3digos se validan en el servidor. Las recompensas se conceden de
+      forma at\xF3mica y se registran en tu cuenta."
+    fr: "Les codes sont valid\xE9s par le serveur. Les r\xE9compenses sont accord\xE9es
+      atomiquement et enregistr\xE9es sur votre compte."
+    de: "Codes werden serverseitig gepr\xFCft. Belohnungen werden atomar vergeben
+      und dem authentifizierten Konto zugeordnet."
+    ko: "\uCF54\uB4DC\uB294 \uC11C\uBC84\uC5D0\uC11C \uAC80\uC99D\uB418\uBA70 \uBCF4\uC0C1\uC740
+      \uC6D0\uC790\uC801\uC73C\uB85C \uC9C0\uAE09\uB418\uACE0 \uC778\uC99D \uACC4\uC815\uC5D0
+      \uAE30\uB85D\uB429\uB2C8\uB2E4."
+    ru: "\u041A\u043E\u0434\u044B \u043F\u0440\u043E\u0432\u0435\u0440\u044F\u044E\u0442\u0441\u044F
+      \u0441\u0435\u0440\u0432\u0435\u0440\u043E\u043C. \u041D\u0430\u0433\u0440\u0430\u0434\u044B
+      \u0432\u044B\u0434\u0430\u044E\u0442\u0441\u044F \u0430\u0442\u043E\u043C\u0430\u0440\u043D\u043E
+      \u0438 \u0437\u0430\u043F\u0438\u0441\u044B\u0432\u0430\u044E\u0442\u0441\u044F
+      \u0432 \u0432\u0430\u0448 \u0430\u043A\u043A\u0430\u0443\u043D\u0442."
+  - key: store.redeem.placeholder
+    en: ENTER CODE
+    tr: "KODU G\u0130R"
+    es: "INTRODUCE EL C\xD3DIGO"
+    fr: SAISISSEZ LE CODE
+    de: CODE EINGEBEN
+    ko: "\uCF54\uB4DC \uC785\uB825"
+    ru: "\u0412\u0412\u0415\u0414\u0418\u0422\u0415 \u041A\u041E\u0414"
+  - key: store.redeem.button
+    en: REDEEM
+    tr: KULLAN
+    es: CANJEAR
+    fr: UTILISER
+    de: "EINL\xD6SEN"
+    ko: "\uC0AC\uC6A9"
+    ru: "\u0410\u041A\u0422\u0418\u0412\u0418\u0420\u041E\u0412\u0410\u0422\u042C"
+  - key: store.redeem.audit_note
+    en: Do not spam the button. The client waits for a response and the server enforces
+      code limits/idempotency.
+    tr: "Butona spam yapmay\u0131n. \u0130stemci yan\u0131t bekler; sunucu kod limitlerini/idempotency
+      kurallar\u0131n\u0131 uygular."
+    es: "No pulses repetidamente. El cliente espera la respuesta y el servidor aplica
+      l\xEDmites e idempotencia."
+    fr: "Ne spammez pas le bouton. Le client attend la r\xE9ponse et le serveur applique
+      les limites et l\u2019idempotence."
+    de: Button nicht spammen. Client wartet auf Antwort; Server erzwingt Limits und
+      Idempotenz.
+    ko: "\uBC84\uD2BC\uC744 \uBC18\uBCF5\uD574\uC11C \uB204\uB974\uC9C0 \uB9C8\uC138\uC694.
+      \uD074\uB77C\uC774\uC5B8\uD2B8\uB294 \uC751\uB2F5\uC744 \uAE30\uB2E4\uB9AC\uACE0
+      \uC11C\uBC84\uAC00 \uC81C\uD55C\uACFC \uBA71\uB4F1\uC131\uC744 \uC801\uC6A9\uD569\uB2C8\uB2E4."
+    ru: "\u041D\u0435 \u043D\u0430\u0436\u0438\u043C\u0430\u0439\u0442\u0435 \u043A\u043D\u043E\u043F\u043A\u0443
+      \u043C\u043D\u043E\u0433\u043E\u043A\u0440\u0430\u0442\u043D\u043E. \u041A\u043B\u0438\u0435\u043D\u0442
+      \u0436\u0434\u0451\u0442 \u043E\u0442\u0432\u0435\u0442, \u0441\u0435\u0440\u0432\u0435\u0440
+      \u043F\u0440\u0438\u043C\u0435\u043D\u044F\u0435\u0442 \u043B\u0438\u043C\u0438\u0442\u044B
+      \u0438 \u0438\u0434\u0435\u043C\u043F\u043E\u0442\u0435\u043D\u0442\u043D\u043E\u0441\u0442\u044C."
+  - key: store.redeem.history_title
+    en: USED CODES / REWARDS
+    tr: "KULLANILAN KODLAR / \xD6D\xDCLLER"
+    es: "C\xD3DIGOS USADOS / PREMIOS"
+    fr: "CODES UTILIS\xC9S / R\xC9COMPENSES"
+    de: VERWENDETE CODES / BELOHNUNGEN
+    ko: "\uC0AC\uC6A9 \uCF54\uB4DC / \uBCF4\uC0C1"
+    ru: "\u0418\u0421\u041F\u041E\u041B\u042C\u0417\u041E\u0412\u0410\u041D\u041D\u042B\u0415
+      \u041A\u041E\u0414\u042B / \u041D\u0410\u0413\u0420\u0410\u0414\u042B"
+  - key: store.redeem.history_empty
+    en: No redeemed codes yet.
+    tr: "Hen\xFCz kullan\u0131lan kod yok."
+    es: "A\xFAn no hay c\xF3digos canjeados."
+    fr: "Aucun code utilis\xE9 pour le moment."
+    de: "Noch keine Codes eingel\xF6st."
+    ko: "\uC0AC\uC6A9\uD55C \uCF54\uB4DC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4."
+    ru: "\u041A\u043E\u0434\u044B \u0435\u0449\u0451 \u043D\u0435 \u0430\u043A\u0442\u0438\u0432\u0438\u0440\u043E\u0432\u0430\u043B\u0438\u0441\u044C."
+  - key: store.redeem.reward_generic
+    en: Reward
+    tr: "\xD6d\xFCl"
+    es: Recompensa
+    fr: "R\xE9compense"
+    de: Belohnung
+    ko: "\uBCF4\uC0C1"
+    ru: "\u041D\u0430\u0433\u0440\u0430\u0434\u0430"
+  - key: store.history.title
+    en: TRANSACTION HISTORY
+    tr: "\u0130\u015ELEM GE\xC7M\u0130\u015E\u0130"
+    es: HISTORIAL DE TRANSACCIONES
+    fr: HISTORIQUE DES TRANSACTIONS
+    de: TRANSAKTIONSVERLAUF
+    ko: "\uAC70\uB798 \uB0B4\uC5ED"
+    ru: "\u0418\u0421\u0422\u041E\u0420\u0418\u042F \u0422\u0420\u0410\u041D\u0417\u0410\u041A\u0426\u0418\u0419"
+  - key: store.history.audit_note
+    en: Purchases, redeem codes and daily rewards are shown in one evidence-oriented
+      timeline using server timestamps and canonical transaction IDs.
+    tr: "Sat\u0131n almalar, redeem kodlar\u0131 ve g\xFCnl\xFCk \xF6d\xFCller; sunucu
+      zamanlar\u0131 ve kanonik i\u015Flem kimlikleriyle tek kan\u0131t odakl\u0131
+      zaman \xE7izelgesinde g\xF6sterilir."
+    es: "Compras, c\xF3digos y recompensas diarias se muestran en una sola l\xEDnea
+      temporal con hora del servidor e ID can\xF3nicos."
+    fr: "Achats, codes et r\xE9compenses quotidiennes sont r\xE9unis dans une chronologie
+      avec horodatage serveur et ID canoniques."
+    de: "K\xE4ufe, Codes und Tagesbelohnungen erscheinen in einer gemeinsamen Zeitleiste
+      mit Serverzeit und kanonischen IDs."
+    ko: "\uAD6C\uB9E4, \uCF54\uB4DC, \uC77C\uC77C \uBCF4\uC0C1\uC744 \uC11C\uBC84
+      \uC2DC\uAC04\uACFC \uC815\uADDC \uAC70\uB798 ID \uAE30\uBC18\uC758 \uB2E8\uC77C
+      \uB0B4\uC5ED\uC73C\uB85C \uD45C\uC2DC\uD569\uB2C8\uB2E4."
+    ru: "\u041F\u043E\u043A\u0443\u043F\u043A\u0438, \u043A\u043E\u0434\u044B \u0438
+      \u0435\u0436\u0435\u0434\u043D\u0435\u0432\u043D\u044B\u0435 \u043D\u0430\u0433\u0440\u0430\u0434\u044B
+      \u043F\u043E\u043A\u0430\u0437\u0430\u043D\u044B \u0432 \u0435\u0434\u0438\u043D\u043E\u0439
+      \u0438\u0441\u0442\u043E\u0440\u0438\u0438 \u0441 \u0441\u0435\u0440\u0432\u0435\u0440\u043D\u044B\u043C
+      \u0432\u0440\u0435\u043C\u0435\u043D\u0435\u043C \u0438 \u043A\u0430\u043D\u043E\u043D\u0438\u0447\u0435\u0441\u043A\u0438\u043C\u0438
+      ID."
+  - key: store.history.empty
+    en: No transactions yet.
+    tr: "Hen\xFCz i\u015Flem yok."
+    es: "A\xFAn no hay transacciones."
+    fr: Aucune transaction pour le moment.
+    de: Noch keine Transaktionen.
+    ko: "\uAC70\uB798 \uB0B4\uC5ED\uC774 \uC5C6\uC2B5\uB2C8\uB2E4."
+    ru: "\u0422\u0440\u0430\u043D\u0437\u0430\u043A\u0446\u0438\u0439 \u043F\u043E\u043A\u0430
+      \u043D\u0435\u0442."
+  - key: store.history.type_purchase
+    en: PURCHASE
+    tr: SATIN ALMA
+    es: COMPRA
+    fr: ACHAT
+    de: KAUF
+    ko: "\uAD6C\uB9E4"
+    ru: "\u041F\u041E\u041A\u0423\u041F\u041A\u0410"
+  - key: store.history.type_redeem
+    en: REDEEM CODE
+    tr: KOD
+    es: "C\xD3DIGO"
+    fr: CODE
+    de: CODE
+    ko: "\uCF54\uB4DC"
+    ru: "\u041A\u041E\u0414"
+  - key: store.history.type_daily
+    en: DAILY REWARD
+    tr: "G\xDCNL\xDCK \xD6D\xDCL"
+    es: RECOMPENSA DIARIA
+    fr: "R\xC9COMPENSE QUOTIDIENNE"
+    de: TAGESBELOHNUNG
+    ko: "\uC77C\uC77C \uBCF4\uC0C1"
+    ru: "\u0415\u0416\u0415\u0414\u041D\u0415\u0412\u041D\u0410\u042F \u041D\u0410\u0413\u0420\u0410\u0414\u0410"
+  - key: store.history.transaction_id
+    en: Transaction ID
+    tr: "\u0130\u015Flem Kimli\u011Fi"
+    es: "ID de transacci\xF3n"
+    fr: ID de transaction
+    de: Transaktions-ID
+    ko: "\uAC70\uB798 ID"
+    ru: "ID \u0442\u0440\u0430\u043D\u0437\u0430\u043A\u0446\u0438\u0438"
+  - key: store.history.time_pending
+    en: Server time pending
+    tr: "Sunucu zaman\u0131 bekleniyor"
+    es: Hora del servidor pendiente
+    fr: Heure serveur en attente
+    de: Serverzeit ausstehend
+    ko: "\uC11C\uBC84 \uC2DC\uAC04 \uB300\uAE30 \uC911"
+    ru: "\u041E\u0436\u0438\u0434\u0430\u043D\u0438\u0435 \u0432\u0440\u0435\u043C\u0435\u043D\u0438
+      \u0441\u0435\u0440\u0432\u0435\u0440\u0430"
+  - key: store.error.insufficient
+    en: Insufficient balance.
+    tr: Yetersiz bakiye.
+    es: Saldo insuficiente.
+    fr: Solde insuffisant.
+    de: Unzureichendes Guthaben.
+    ko: "\uC794\uC561\uC774 \uBD80\uC871\uD569\uB2C8\uB2E4."
+    ru: "\u041D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u043E\u0447\u043D\u043E
+      \u0441\u0440\u0435\u0434\u0441\u0442\u0432."
+  - key: store.error.already_owned
+    en: You already own this item.
+    tr: "Bu \xFCr\xFCne zaten sahipsin."
+    es: Ya posees este objeto.
+    fr: "Vous poss\xE9dez d\xE9j\xE0 cet objet."
+    de: Du besitzt diesen Artikel bereits.
+    ko: "\uC774\uBBF8 \uBCF4\uC720\uD55C \uC544\uC774\uD15C\uC785\uB2C8\uB2E4."
+    ru: "\u042D\u0442\u043E\u0442 \u043F\u0440\u0435\u0434\u043C\u0435\u0442 \u0443\u0436\u0435
+      \u043F\u0440\u0438\u043D\u0430\u0434\u043B\u0435\u0436\u0438\u0442 \u0432\u0430\u043C."
+  - key: store.error.catalog
+    en: Catalog item or trusted server price is unavailable.
+    tr: "Katalog \xFCr\xFCn\xFC veya g\xFCvenilir sunucu fiyat\u0131 kullan\u0131lam\u0131yor."
+    es: "El objeto o precio del servidor no est\xE1 disponible."
+    fr: "L\u2019objet ou le prix serveur est indisponible."
+    de: "Katalogartikel oder Serverpreis ist nicht verf\xFCgbar."
+    ko: "\uCE74\uD0C8\uB85C\uADF8 \uC544\uC774\uD15C \uB610\uB294 \uC11C\uBC84 \uAC00\uACA9\uC744
+      \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4."
+    ru: "\u041F\u0440\u0435\u0434\u043C\u0435\u0442 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430
+      \u0438\u043B\u0438 \u0441\u0435\u0440\u0432\u0435\u0440\u043D\u0430\u044F \u0446\u0435\u043D\u0430
+      \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u044B."
+  - key: store.error.promo_invalid
+    en: The code format is invalid.
+    tr: "Kod format\u0131 ge\xE7ersiz."
+    es: "El formato del c\xF3digo no es v\xE1lido."
+    fr: Le format du code est invalide.
+    de: "Das Codeformat ist ung\xFCltig."
+    ko: "\uCF54\uB4DC \uD615\uC2DD\uC774 \uC62C\uBC14\uB974\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4."
+    ru: "\u041D\u0435\u0432\u0435\u0440\u043D\u044B\u0439 \u0444\u043E\u0440\u043C\u0430\u0442
+      \u043A\u043E\u0434\u0430."
+  - key: store.error.promo_not_found
+    en: Code not found.
+    tr: "Kod bulunamad\u0131."
+    es: "C\xF3digo no encontrado."
+    fr: Code introuvable.
+    de: Code nicht gefunden.
+    ko: "\uCF54\uB4DC\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4."
+    ru: "\u041A\u043E\u0434 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D."
+  - key: store.error.promo_disabled
+    en: This code is disabled.
+    tr: "Bu kod devre d\u0131\u015F\u0131."
+    es: "Este c\xF3digo est\xE1 desactivado."
+    fr: "Ce code est d\xE9sactiv\xE9."
+    de: Dieser Code ist deaktiviert.
+    ko: "\uBE44\uD65C\uC131\uD654\uB41C \uCF54\uB4DC\uC785\uB2C8\uB2E4."
+    ru: "\u042D\u0442\u043E\u0442 \u043A\u043E\u0434 \u043E\u0442\u043A\u043B\u044E\u0447\u0451\u043D."
+  - key: store.error.promo_not_started
+    en: This code is not active yet.
+    tr: "Bu kod hen\xFCz aktif de\u011Fil."
+    es: "Este c\xF3digo a\xFAn no est\xE1 activo."
+    fr: "Ce code n\u2019est pas encore actif."
+    de: Dieser Code ist noch nicht aktiv.
+    ko: "\uC544\uC9C1 \uD65C\uC131\uD654\uB418\uC9C0 \uC54A\uC740 \uCF54\uB4DC\uC785\uB2C8\uB2E4."
+    ru: "\u042D\u0442\u043E\u0442 \u043A\u043E\u0434 \u0435\u0449\u0451 \u043D\u0435
+      \u0430\u043A\u0442\u0438\u0432\u0435\u043D."
+  - key: store.error.promo_expired
+    en: This code has expired.
+    tr: "Bu kodun s\xFCresi doldu."
+    es: "Este c\xF3digo ha caducado."
+    fr: "Ce code a expir\xE9."
+    de: Dieser Code ist abgelaufen.
+    ko: "\uB9CC\uB8CC\uB41C \uCF54\uB4DC\uC785\uB2C8\uB2E4."
+    ru: "\u0421\u0440\u043E\u043A \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044F
+      \u043A\u043E\u0434\u0430 \u0438\u0441\u0442\u0451\u043A."
+  - key: store.error.promo_global_limit
+    en: This code reached its global redemption limit.
+    tr: "Bu kod genel kullan\u0131m limitine ula\u015Ft\u0131."
+    es: "Este c\xF3digo alcanz\xF3 su l\xEDmite global."
+    fr: Ce code a atteint sa limite globale.
+    de: Dieser Code hat sein globales Limit erreicht.
+    ko: "\uC804\uCCB4 \uC0AC\uC6A9 \uD55C\uB3C4\uC5D0 \uB3C4\uB2EC\uD55C \uCF54\uB4DC\uC785\uB2C8\uB2E4."
+    ru: "\u0414\u043E\u0441\u0442\u0438\u0433\u043D\u0443\u0442 \u043E\u0431\u0449\u0438\u0439
+      \u043B\u0438\u043C\u0438\u0442 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u044F
+      \u043A\u043E\u0434\u0430."
+  - key: store.error.promo_account_limit
+    en: "Your account has already reached this code\u2019s limit."
+    tr: "Hesab\u0131n\u0131z bu kodun kullan\u0131m limitine ula\u015Ft\u0131."
+    es: "Tu cuenta alcanz\xF3 el l\xEDmite de este c\xF3digo."
+    fr: Votre compte a atteint la limite de ce code.
+    de: Dein Konto hat das Limit dieses Codes erreicht.
+    ko: "\uC774 \uACC4\uC815\uC758 \uCF54\uB4DC \uC0AC\uC6A9 \uD55C\uB3C4\uC5D0 \uB3C4\uB2EC\uD588\uC2B5\uB2C8\uB2E4."
+    ru: "\u0412\u0430\u0448 \u0430\u043A\u043A\u0430\u0443\u043D\u0442 \u0434\u043E\u0441\u0442\u0438\u0433
+      \u043B\u0438\u043C\u0438\u0442\u0430 \u044D\u0442\u043E\u0433\u043E \u043A\u043E\u0434\u0430."
+  - key: store.error.emulator_only
+    en: This development storefront currently works only with local emulators.
+    tr: "Bu geli\u015Ftirme ma\u011Fazas\u0131 \u015Fu anda yaln\u0131zca local emulator
+      ile \xE7al\u0131\u015F\u0131r."
+    es: Esta tienda de desarrollo solo funciona con emuladores locales.
+    fr: "Cette boutique de d\xE9veloppement fonctionne uniquement avec les \xE9mulateurs
+      locaux."
+    de: Dieser Entwicklungs-Shop funktioniert derzeit nur mit lokalen Emulatoren.
+    ko: "\uD604\uC7AC \uAC1C\uBC1C \uC0C1\uC810\uC740 \uB85C\uCEEC \uC5D0\uBBAC\uB808\uC774\uD130\uC5D0\uC11C\uB9CC
+      \uC791\uB3D9\uD569\uB2C8\uB2E4."
+    ru: "\u042D\u0442\u0430 \u0442\u0435\u0441\u0442\u043E\u0432\u0430\u044F \u0432\u0435\u0440\u0441\u0438\u044F
+      \u043C\u0430\u0433\u0430\u0437\u0438\u043D\u0430 \u0440\u0430\u0431\u043E\u0442\u0430\u0435\u0442
+      \u0442\u043E\u043B\u044C\u043A\u043E \u0441 \u043B\u043E\u043A\u0430\u043B\u044C\u043D\u044B\u043C\u0438
+      \u044D\u043C\u0443\u043B\u044F\u0442\u043E\u0440\u0430\u043C\u0438."
+  - key: store.error.identity
+    en: Authenticated development identity is unavailable.
+    tr: "Do\u011Frulanm\u0131\u015F geli\u015Ftirme kimli\u011Fi kullan\u0131lam\u0131yor."
+    es: "La identidad autenticada de desarrollo no est\xE1 disponible."
+    fr: "L\u2019identit\xE9 de d\xE9veloppement authentifi\xE9e est indisponible."
+    de: "Authentifizierte Entwicklungsidentit\xE4t ist nicht verf\xFCgbar."
+    ko: "\uC778\uC99D\uB41C \uAC1C\uBC1C ID\uB97C \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4."
+    ru: "\u0410\u0443\u0442\u0435\u043D\u0442\u0438\u0444\u0438\u0446\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u0430\u044F
+      \u0442\u0435\u0441\u0442\u043E\u0432\u0430\u044F \u0443\u0447\u0451\u0442\u043D\u0430\u044F
+      \u0437\u0430\u043F\u0438\u0441\u044C \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u0430."
+  - key: store.error.invalid_purchase
+    en: Purchase request is invalid.
+    tr: "Sat\u0131n alma iste\u011Fi ge\xE7ersiz."
+    es: "La solicitud de compra no es v\xE1lida."
+    fr: "La demande d\u2019achat est invalide."
+    de: "Kaufanfrage ist ung\xFCltig."
+    ko: "\uAD6C\uB9E4 \uC694\uCCAD\uC774 \uC62C\uBC14\uB974\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4."
+    ru: "\u041D\u0435\u0432\u0435\u0440\u043D\u044B\u0439 \u0437\u0430\u043F\u0440\u043E\u0441
+      \u043F\u043E\u043A\u0443\u043F\u043A\u0438."
+  - key: store.error.refresh
+    en: Store data could not be refreshed.
+    tr: "Ma\u011Faza verileri yenilenemedi."
+    es: No se pudieron actualizar los datos.
+    fr: "Impossible d\u2019actualiser les donn\xE9es de la boutique."
+    de: Shop-Daten konnten nicht aktualisiert werden.
+    ko: "\uC0C1\uC810 \uB370\uC774\uD130\uB97C \uC0C8\uB85C\uACE0\uCE60 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4."
+    ru: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043E\u0431\u043D\u043E\u0432\u0438\u0442\u044C
+      \u0434\u0430\u043D\u043D\u044B\u0435 \u043C\u0430\u0433\u0430\u0437\u0438\u043D\u0430."
+  - key: store.error.dev_reset
+    en: Development purchase reset failed.
+    tr: "Geli\u015Ftirme sat\u0131n al\u0131m s\u0131f\u0131rlamas\u0131 ba\u015Far\u0131s\u0131z
+      oldu."
+    es: No se pudieron restablecer las compras de desarrollo.
+    fr: "La r\xE9initialisation des achats de d\xE9veloppement a \xE9chou\xE9."
+    de: "Das Zur\xFCcksetzen der Entwicklungsk\xE4ufe ist fehlgeschlagen."
+    ko: "\uAC1C\uBC1C \uAD6C\uB9E4 \uCD08\uAE30\uD654\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4."
+    ru: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0441\u0431\u0440\u043E\u0441\u0438\u0442\u044C
+      \u0442\u0435\u0441\u0442\u043E\u0432\u044B\u0435 \u043F\u043E\u043A\u0443\u043F\u043A\u0438."
+  - key: store.error.generic
+    en: Transaction failed. No value was confirmed.
+    tr: "\u0130\u015Flem ba\u015Far\u0131s\u0131z. Herhangi bir de\u011Fer onaylanmad\u0131."
+    es: "La transacci\xF3n fall\xF3. No se confirm\xF3 ning\xFAn valor."
+    fr: "La transaction a \xE9chou\xE9. Aucune valeur n\u2019a \xE9t\xE9 confirm\xE9e."
+    de: "Transaktion fehlgeschlagen. Kein Wert wurde best\xE4tigt."
+    ko: "\uAC70\uB798 \uC2E4\uD328. \uAC12\uC774 \uD655\uC815\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4."
+    ru: "\u0422\u0440\u0430\u043D\u0437\u0430\u043A\u0446\u0438\u044F \u043D\u0435
+      \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0430. \u0418\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u0435
+      \u0446\u0435\u043D\u043D\u043E\u0441\u0442\u0438 \u043D\u0435 \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u043E."
+  - key: store.error.idempotency_conflict
+    en: This transaction no longer matches its original request. Please try again.
+    tr: "Bu i\u015Flem ilk iste\u011Fiyle art\u0131k e\u015Fle\u015Fmiyor. L\xFCtfen
+      tekrar deneyin."
+    es: "La transacci\xF3n ya no coincide con la solicitud original. Int\xE9ntalo
+      de nuevo."
+    fr: "La transaction ne correspond plus \xE0 la demande initiale. R\xE9essayez."
+    de: "Die Transaktion stimmt nicht mehr mit der urspr\xFCnglichen Anfrage \xFCberein.
+      Bitte erneut versuchen."
+    ko: "\uAC70\uB798\uAC00 \uC6D0\uB798 \uC694\uCCAD\uACFC \uC77C\uCE58\uD558\uC9C0
+      \uC54A\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694."
+    ru: "\u0422\u0440\u0430\u043D\u0437\u0430\u043A\u0446\u0438\u044F \u0431\u043E\u043B\u044C\u0448\u0435
+      \u043D\u0435 \u0441\u043E\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0443\u0435\u0442
+      \u0438\u0441\u0445\u043E\u0434\u043D\u043E\u043C\u0443 \u0437\u0430\u043F\u0440\u043E\u0441\u0443.
+      \u041F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u0441\u043D\u043E\u0432\u0430."
+  - key: store.item.pawn_explorer
+    en: Explorer Pawn
+    tr: "Ka\u015Fif Piyonu"
+    es: "Pe\xF3n Explorador"
+    fr: Pion Explorateur
+    de: Entdecker-Spielfigur
+    ko: "\uD0D0\uD5D8\uAC00 \uB9D0"
+    ru: "\u0424\u0438\u0448\u043A\u0430 \u0418\u0441\u0441\u043B\u0435\u0434\u043E\u0432\u0430\u0442\u0435\u043B\u044C"
+  - key: store.item.dice_midnight
+    en: Midnight Dice
+    tr: "Gece Yar\u0131s\u0131 Zar\u0131"
+    es: Dados Medianoche
+    fr: "D\xE9s de Minuit"
+    de: "Mitternachtsw\xFCrfel"
+    ko: "\uBBF8\uB4DC\uB098\uC787 \uC8FC\uC0AC\uC704"
+    ru: "\u041F\u043E\u043B\u0443\u043D\u043E\u0447\u043D\u044B\u0435 \u043A\u0443\u0431\u0438\u043A\u0438"
+  - key: store.item.board_walnut
+    en: Walnut Board
+    tr: Ceviz Tahta
+    es: Tablero Nogal
+    fr: Plateau Noyer
+    de: Walnussbrett
+    ko: "\uD638\uB450\uB098\uBB34 \uBCF4\uB4DC"
+    ru: "\u041E\u0440\u0435\u0445\u043E\u0432\u0430\u044F \u0434\u043E\u0441\u043A\u0430"
+  - key: store.item.frame_founder
+    en: Founder Frame
+    tr: "Kurucu \xC7er\xE7evesi"
+    es: Marco Fundador
+    fr: Cadre Fondateur
+    de: "Gr\xFCnderrahmen"
+    ko: "\uD30C\uC6B4\uB354 \uD504\uB808\uC784"
+    ru: "\u0420\u0430\u043C\u043A\u0430 \u041E\u0441\u043D\u043E\u0432\u0430\u0442\u0435\u043B\u044F"
+  - key: store.item.emote_wave
+    en: Wave Emote
+    tr: El Sallama Emote
+    es: Emote Saludo
+    fr: "\xC9mote Salut"
+    de: Winken-Emote
+    ko: "\uC190\uD754\uB4E4\uAE30 \uC774\uBAA8\uD2B8"
+    ru: "\u042D\u043C\u043E\u0446\u0438\u044F \u041F\u0440\u0438\u0432\u0435\u0442\u0441\u0442\u0432\u0438\u0435"
+  - key: store.item.motion_bounce
+    en: Bounce Motion
+    tr: "Z\u0131plama Hareketi"
+    es: Movimiento Rebote
+    fr: Mouvement Rebond
+    de: "H\xFCpfbewegung"
+    ko: "\uBC14\uC6B4\uC2A4 \uBAA8\uC158"
+    ru: "\u0410\u043D\u0438\u043C\u0430\u0446\u0438\u044F \u041F\u0440\u044B\u0436\u043E\u043A"
+  - key: seasonal.tab.event
+    en: EVENT
+    tr: "ETK\u0130NL\u0130K"
+    es: EVENTO
+    fr: "\xC9V\xC9NEMENT"
+    de: EVENT
+    ko: "\uC774\uBCA4\uD2B8"
+    ru: "\u0421\u041E\u0411\u042B\u0422\u0418\u0415"
+  - key: seasonal.home.title
+    en: SEASONAL EVENT
+    tr: "SEZON ETK\u0130NL\u0130\u011E\u0130"
+    es: EVENTO DE TEMPORADA
+    fr: "\xC9V\xC9NEMENT SAISONNIER"
+    de: SAISON-EVENT
+    ko: "\uC2DC\uC98C \uC774\uBCA4\uD2B8"
+    ru: "\u0421\u0415\u0417\u041E\u041D\u041D\u041E\u0415 \u0421\u041E\u0411\u042B\u0422\u0418\u0415"
+  - key: seasonal.home.inactive
+    en: No seasonal event is active right now.
+    tr: "\u015Eu anda aktif bir sezon etkinli\u011Fi yok."
+    es: "No hay ning\xFAn evento de temporada activo."
+    fr: "Aucun \xE9v\xE9nement saisonnier n\u2019est actif."
+    de: Derzeit ist kein Saison-Event aktiv.
+    ko: "\uD604\uC7AC \uD65C\uC131 \uC2DC\uC98C \uC774\uBCA4\uD2B8\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4."
+    ru: "\u0421\u0435\u0439\u0447\u0430\u0441 \u043D\u0435\u0442 \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0433\u043E
+      \u0441\u0435\u0437\u043E\u043D\u043D\u043E\u0433\u043E \u0441\u043E\u0431\u044B\u0442\u0438\u044F."
+  - key: seasonal.home.open
+    en: OPEN EVENT
+    tr: "ETK\u0130NL\u0130\u011E\u0130 A\xC7"
+    es: ABRIR EVENTO
+    fr: "OUVRIR L\u2019\xC9V\xC9NEMENT"
+    de: "EVENT \xD6FFNEN"
+    ko: "\uC774\uBCA4\uD2B8 \uC5F4\uAE30"
+    ru: "\u041E\u0422\u041A\u0420\u042B\u0422\u042C \u0421\u041E\u0411\u042B\u0422\u0418\u0415"
+  - key: seasonal.page.title
+    en: SEASONAL EVENT
+    tr: "SEZON ETK\u0130NL\u0130\u011E\u0130"
+    es: EVENTO DE TEMPORADA
+    fr: "\xC9V\xC9NEMENT SAISONNIER"
+    de: SAISON-EVENT
+    ko: "\uC2DC\uC98C \uC774\uBCA4\uD2B8"
+    ru: "\u0421\u0415\u0417\u041E\u041D\u041D\u041E\u0415 \u0421\u041E\u0411\u042B\u0422\u0418\u0415"
+  - key: seasonal.harvest.title
+    en: ATLAS HARVEST
+    tr: ATLAS HASAT
+    es: COSECHA ATLAS
+    fr: "R\xC9COLTE ATLAS"
+    de: ATLAS-ERNTE
+    ko: "\uC544\uD2C0\uB77C\uC2A4 \uC218\uD655"
+    ru: "\u0423\u0420\u041E\u0416\u0410\u0419 ATLAS"
+  - key: seasonal.harvest.subtitle
+    en: Complete challenges, earn event tickets and unlock limited cosmetics.
+    tr: "G\xF6revleri tamamla, etkinlik bileti kazan ve s\u0131n\u0131rl\u0131 kozmetikleri
+      a\xE7."
+    es: "Completa desaf\xEDos, gana boletos y desbloquea cosm\xE9ticos limitados."
+    fr: "Terminez des d\xE9fis, gagnez des tickets et d\xE9bloquez des cosm\xE9tiques
+      limit\xE9s."
+    de: "Schlie\xDFe Herausforderungen ab, verdiene Tickets und schalte limitierte
+      Kosmetik frei."
+    ko: "\uB3C4\uC804\uC744 \uC644\uB8CC\uD558\uACE0 \uC774\uBCA4\uD2B8 \uD2F0\uCF13\uACFC
+      \uD55C\uC815 \uAFB8\uBBF8\uAE30 \uC544\uC774\uD15C\uC744 \uD68D\uB4DD\uD558\uC138\uC694."
+    ru: "\u0412\u044B\u043F\u043E\u043B\u043D\u044F\u0439\u0442\u0435 \u0437\u0430\u0434\u0430\u043D\u0438\u044F,
+      \u043F\u043E\u043B\u0443\u0447\u0430\u0439\u0442\u0435 \u0431\u0438\u043B\u0435\u0442\u044B
+      \u0438 \u043E\u0442\u043A\u0440\u044B\u0432\u0430\u0439\u0442\u0435 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u043D\u0443\u044E
+      \u043A\u043E\u0441\u043C\u0435\u0442\u0438\u043A\u0443."
+  - key: seasonal.summary
+    en: "Tickets: {0:N0}   \u2022   Event XP: {1:N0}   \u2022   Ends: {2}"
+    tr: "Bilet: {0:N0}   \u2022   Etkinlik XP: {1:N0}   \u2022   Biti\u015F: {2}"
+    es: "Boletos: {0:N0}   \u2022   XP: {1:N0}   \u2022   Termina: {2}"
+    fr: "Tickets : {0:N0}   \u2022   XP : {1:N0}   \u2022   Fin : {2}"
+    de: "Tickets: {0:N0}   \u2022   Event-XP: {1:N0}   \u2022   Ende: {2}"
+    ko: "\uD2F0\uCF13: {0:N0}   \u2022   \uC774\uBCA4\uD2B8 XP: {1:N0}   \u2022  
+      \uC885\uB8CC: {2}"
+    ru: "\u0411\u0438\u043B\u0435\u0442\u044B: {0:N0}   \u2022   XP \u0441\u043E\u0431\u044B\u0442\u0438\u044F:
+      {1:N0}   \u2022   \u0414\u043E: {2}"
+  - key: seasonal.ticket
+    en: Event Ticket
+    tr: Etkinlik Bileti
+    es: Boleto del evento
+    fr: "Ticket d\u2019\xE9v\xE9nement"
+    de: Event-Ticket
+    ko: "\uC774\uBCA4\uD2B8 \uD2F0\uCF13"
+    ru: "\u0411\u0438\u043B\u0435\u0442 \u0441\u043E\u0431\u044B\u0442\u0438\u044F"
+  - key: seasonal.challenges.title
+    en: CHALLENGES
+    tr: "G\xD6REVLER"
+    es: "DESAF\xCDOS"
+    fr: "D\xC9FIS"
+    de: HERAUSFORDERUNGEN
+    ko: "\uB3C4\uC804 \uACFC\uC81C"
+    ru: "\u0417\u0410\u0414\u0410\u041D\u0418\u042F"
+  - key: seasonal.challenges.empty
+    en: No challenges are available.
+    tr: "Kullan\u0131labilir g\xF6rev yok."
+    es: "No hay desaf\xEDos disponibles."
+    fr: "Aucun d\xE9fi disponible."
+    de: "Keine Herausforderungen verf\xFCgbar."
+    ko: "\uC0AC\uC6A9 \uAC00\uB2A5\uD55C \uB3C4\uC804 \uACFC\uC81C\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4."
+    ru: "\u041D\u0435\u0442 \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u044B\u0445
+      \u0437\u0430\u0434\u0430\u043D\u0438\u0439."
+  - key: seasonal.challenge.daily.title
+    en: Daily Check-In
+    tr: "G\xFCnl\xFCk Giri\u015F"
+    es: Registro diario
+    fr: Connexion quotidienne
+    de: "T\xE4glicher Check-in"
+    ko: "\uC77C\uC77C \uCCB4\uD06C\uC778"
+    ru: "\u0415\u0436\u0435\u0434\u043D\u0435\u0432\u043D\u044B\u0439 \u0432\u0445\u043E\u0434"
+  - key: seasonal.challenge.daily.body
+    en: "Claim today\u2019s daily reward."
+    tr: "Bug\xFCn\xFCn g\xFCnl\xFCk \xF6d\xFCl\xFCn\xFC al."
+    es: "Obt\xE9n la recompensa diaria."
+    fr: "R\xE9cup\xE9rez la r\xE9compense quotidienne."
+    de: Hole die heutige Tagesbelohnung ab.
+    ko: "\uC624\uB298\uC758 \uC77C\uC77C \uBCF4\uC0C1\uC744 \uBC1B\uC73C\uC138\uC694."
+    ru: "\u041F\u043E\u043B\u0443\u0447\u0438\u0442\u0435 \u0441\u0435\u0433\u043E\u0434\u043D\u044F\u0448\u043D\u044E\u044E
+      \u0435\u0436\u0435\u0434\u043D\u0435\u0432\u043D\u0443\u044E \u043D\u0430\u0433\u0440\u0430\u0434\u0443."
+  - key: seasonal.challenge.weekly.title
+    en: Weekly Collector
+    tr: "Haftal\u0131k Koleksiyoncu"
+    es: Coleccionista semanal
+    fr: Collectionneur hebdomadaire
+    de: "W\xF6chentlicher Sammler"
+    ko: "\uC8FC\uAC04 \uC218\uC9D1\uAC00"
+    ru: "\u0415\u0436\u0435\u043D\u0435\u0434\u0435\u043B\u044C\u043D\u044B\u0439
+      \u043A\u043E\u043B\u043B\u0435\u043A\u0446\u0438\u043E\u043D\u0435\u0440"
+  - key: seasonal.challenge.weekly.body
+    en: Own at least two cosmetic items.
+    tr: "En az iki kozmetik \xFCr\xFCne sahip ol."
+    es: "Posee al menos dos cosm\xE9ticos."
+    fr: "Poss\xE9dez au moins deux cosm\xE9tiques."
+    de: Besitze mindestens zwei Kosmetikartikel.
+    ko: "\uAFB8\uBBF8\uAE30 \uC544\uC774\uD15C\uC744 2\uAC1C \uC774\uC0C1 \uBCF4\uC720\uD558\uC138\uC694."
+    ru: "\u0418\u043C\u0435\u0439\u0442\u0435 \u043C\u0438\u043D\u0438\u043C\u0443\u043C
+      \u0434\u0432\u0430 \u043A\u043E\u0441\u043C\u0435\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0445
+      \u043F\u0440\u0435\u0434\u043C\u0435\u0442\u0430."
+  - key: seasonal.challenge.reward
+    en: "+{0} tickets \u2022 +{1} XP"
+    tr: "+{0} bilet \u2022 +{1} XP"
+    es: "+{0} boletos \u2022 +{1} XP"
+    fr: "+{0} tickets \u2022 +{1} XP"
+    de: "+{0} Tickets \u2022 +{1} XP"
+    ko: "+{0} \uD2F0\uCF13 \u2022 +{1} XP"
+    ru: "+{0} \u0431\u0438\u043B\u0435\u0442\u043E\u0432 \u2022 +{1} XP"
+  - key: seasonal.track.title
+    en: REWARD TRACK
+    tr: "\xD6D\xDCL YOLU"
+    es: RUTA DE RECOMPENSAS
+    fr: "PARCOURS DE R\xC9COMPENSES"
+    de: BELOHNUNGSPFAD
+    ko: "\uBCF4\uC0C1 \uD2B8\uB799"
+    ru: "\u041B\u0418\u041D\u0415\u0419\u041A\u0410 \u041D\u0410\u0413\u0420\u0410\u0414"
+  - key: seasonal.track.tier_1
+    en: Tier 1
+    tr: Seviye 1
+    es: Nivel 1
+    fr: Palier 1
+    de: Stufe 1
+    ko: "1\uB2E8\uACC4"
+    ru: "\u0423\u0440\u043E\u0432\u0435\u043D\u044C 1"
+  - key: seasonal.track.tier_2
+    en: Tier 2
+    tr: Seviye 2
+    es: Nivel 2
+    fr: Palier 2
+    de: Stufe 2
+    ko: "2\uB2E8\uACC4"
+    ru: "\u0423\u0440\u043E\u0432\u0435\u043D\u044C 2"
+  - key: seasonal.track.tier_3
+    en: Tier 3
+    tr: Seviye 3
+    es: Nivel 3
+    fr: Palier 3
+    de: Stufe 3
+    ko: "3\uB2E8\uACC4"
+    ru: "\u0423\u0440\u043E\u0432\u0435\u043D\u044C 3"
+  - key: seasonal.track.requirement
+    en: Requires {0} XP
+    tr: '{0} XP gerekir'
+    es: Requiere {0} XP
+    fr: "N\xE9cessite {0} XP"
+    de: "Ben\xF6tigt {0} XP"
+    ko: "{0} XP \uD544\uC694"
+    ru: "\u0422\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F {0} XP"
+  - key: seasonal.track.reward
+    en: 'Reward: {0} {1}'
+    tr: "\xD6d\xFCl: {0} {1}"
+    es: 'Recompensa: {0} {1}'
+    fr: "R\xE9compense : {0} {1}"
+    de: 'Belohnung: {0} {1}'
+    ko: "\uBCF4\uC0C1: {0} {1}"
+    ru: "\u041D\u0430\u0433\u0440\u0430\u0434\u0430: {0} {1}"
+  - key: seasonal.items.title
+    en: LIMITED ITEMS
+    tr: "SINIRLI \xDCR\xDCNLER"
+    es: OBJETOS LIMITADOS
+    fr: "OBJETS LIMIT\xC9S"
+    de: LIMITIERTE ARTIKEL
+    ko: "\uD55C\uC815 \uC544\uC774\uD15C"
+    ru: "\u041E\u0413\u0420\u0410\u041D\u0418\u0427\u0415\u041D\u041D\u042B\u0415
+      \u041F\u0420\u0415\u0414\u041C\u0415\u0422\u042B"
+  - key: seasonal.item.price
+    en: '{0} tickets'
+    tr: '{0} bilet'
+    es: '{0} boletos'
+    fr: '{0} tickets'
+    de: '{0} Tickets'
+    ko: "{0} \uD2F0\uCF13"
+    ru: "{0} \u0431\u0438\u043B\u0435\u0442\u043E\u0432"
+  - key: seasonal.item.buy
+    en: BUY
+    tr: SATIN AL
+    es: COMPRAR
+    fr: ACHETER
+    de: KAUFEN
+    ko: "\uAD6C\uB9E4"
+    ru: "\u041A\u0423\u041F\u0418\u0422\u042C"
+  - key: seasonal.claim
+    en: CLAIM
+    tr: AL
+    es: RECLAMAR
+    fr: "R\xC9CUP\xC9RER"
+    de: ABHOLEN
+    ko: "\uBC1B\uAE30"
+    ru: "\u041F\u041E\u041B\u0423\u0427\u0418\u0422\u042C"
+  - key: seasonal.claimed
+    en: CLAIMED
+    tr: ALINDI
+    es: OBTENIDO
+    fr: "R\xC9CUP\xC9R\xC9"
+    de: ABGEHOLT
+    ko: "\uC218\uB839 \uC644\uB8CC"
+    ru: "\u041F\u041E\u041B\u0423\u0427\u0415\u041D\u041E"
+  - key: seasonal.response.loading
+    en: Loading seasonal event...
+    tr: "Sezon etkinli\u011Fi y\xFCkleniyor..."
+    es: Cargando evento...
+    fr: "Chargement de l\u2019\xE9v\xE9nement..."
+    de: Saison-Event wird geladen...
+    ko: "\uC2DC\uC98C \uC774\uBCA4\uD2B8 \uBD88\uB7EC\uC624\uB294 \uC911..."
+    ru: "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430 \u0441\u0435\u0437\u043E\u043D\u043D\u043E\u0433\u043E
+      \u0441\u043E\u0431\u044B\u0442\u0438\u044F..."
+  - key: seasonal.response.challenge_claimed
+    en: Challenge reward claimed.
+    tr: "G\xF6rev \xF6d\xFCl\xFC al\u0131nd\u0131."
+    es: "Recompensa del desaf\xEDo obtenida."
+    fr: "R\xE9compense du d\xE9fi r\xE9cup\xE9r\xE9e."
+    de: Herausforderungsbelohnung erhalten.
+    ko: "\uB3C4\uC804 \uBCF4\uC0C1\uC744 \uBC1B\uC558\uC2B5\uB2C8\uB2E4."
+    ru: "\u041D\u0430\u0433\u0440\u0430\u0434\u0430 \u0437\u0430 \u0437\u0430\u0434\u0430\u043D\u0438\u0435
+      \u043F\u043E\u043B\u0443\u0447\u0435\u043D\u0430."
+  - key: seasonal.response.track_claimed
+    en: Reward-track prize claimed.
+    tr: "\xD6d\xFCl yolu \xF6d\xFCl\xFC al\u0131nd\u0131."
+    es: Premio de la ruta obtenido.
+    fr: "R\xE9compense du parcours r\xE9cup\xE9r\xE9e."
+    de: Belohnungspfad-Preis erhalten.
+    ko: "\uBCF4\uC0C1 \uD2B8\uB799 \uBCF4\uC0C1\uC744 \uBC1B\uC558\uC2B5\uB2C8\uB2E4."
+    ru: "\u041D\u0430\u0433\u0440\u0430\u0434\u0430 \u043B\u0438\u043D\u0435\u0439\u043A\u0438
+      \u043F\u043E\u043B\u0443\u0447\u0435\u043D\u0430."
+  - key: seasonal.response.purchase_done
+    en: 'Seasonal item purchased: {0}'
+    tr: "Sezon \xFCr\xFCn\xFC sat\u0131n al\u0131nd\u0131: {0}"
+    es: 'Objeto de temporada comprado: {0}'
+    fr: "Objet saisonnier achet\xE9 : {0}"
+    de: 'Saisonartikel gekauft: {0}'
+    ko: "\uC2DC\uC98C \uC544\uC774\uD15C \uAD6C\uB9E4 \uC644\uB8CC: {0}"
+    ru: "\u0421\u0435\u0437\u043E\u043D\u043D\u044B\u0439 \u043F\u0440\u0435\u0434\u043C\u0435\u0442
+      \u043A\u0443\u043F\u043B\u0435\u043D: {0}"
+  - key: seasonal.popup.challenge_title
+    en: CHALLENGE COMPLETE
+    tr: "G\xD6REV TAMAMLANDI"
+    es: "DESAF\xCDO COMPLETADO"
+    fr: "D\xC9FI TERMIN\xC9"
+    de: HERAUSFORDERUNG ERLEDIGT
+    ko: "\uB3C4\uC804 \uC644\uB8CC"
+    ru: "\u0417\u0410\u0414\u0410\u041D\u0418\u0415 \u0412\u042B\u041F\u041E\u041B\u041D\u0415\u041D\u041E"
+  - key: seasonal.popup.track_title
+    en: REWARD CLAIMED
+    tr: "\xD6D\xDCL ALINDI"
+    es: RECOMPENSA OBTENIDA
+    fr: "R\xC9COMPENSE R\xC9CUP\xC9R\xC9E"
+    de: BELOHNUNG ERHALTEN
+    ko: "\uBCF4\uC0C1 \uD68D\uB4DD"
+    ru: "\u041D\u0410\u0413\u0420\u0410\u0414\u0410 \u041F\u041E\u041B\u0423\u0427\u0415\u041D\u0410"
+  - key: seasonal.popup.purchase_title
+    en: SEASONAL PURCHASE
+    tr: SEZON SATIN ALIMI
+    es: COMPRA DE TEMPORADA
+    fr: ACHAT SAISONNIER
+    de: SAISONKAUF
+    ko: "\uC2DC\uC98C \uAD6C\uB9E4"
+    ru: "\u0421\u0415\u0417\u041E\u041D\u041D\u0410\u042F \u041F\u041E\u041A\u0423\u041F\u041A\u0410"
+  - key: seasonal.error.event_inactive
+    en: The seasonal event is not active.
+    tr: "Sezon etkinli\u011Fi aktif de\u011Fil."
+    es: "El evento no est\xE1 activo."
+    fr: "L\u2019\xE9v\xE9nement n\u2019est pas actif."
+    de: Das Saison-Event ist nicht aktiv.
+    ko: "\uC2DC\uC98C \uC774\uBCA4\uD2B8\uAC00 \uD65C\uC131\uD654\uB418\uC5B4 \uC788\uC9C0
+      \uC54A\uC2B5\uB2C8\uB2E4."
+    ru: "\u0421\u0435\u0437\u043E\u043D\u043D\u043E\u0435 \u0441\u043E\u0431\u044B\u0442\u0438\u0435
+      \u043D\u0435 \u0430\u043A\u0442\u0438\u0432\u043D\u043E."
+  - key: seasonal.error.challenge_not_complete
+    en: Challenge requirements are not complete yet.
+    tr: "G\xF6rev \u015Fartlar\u0131 hen\xFCz tamamlanmad\u0131."
+    es: "Los requisitos del desaf\xEDo a\xFAn no se completaron."
+    fr: "Les conditions du d\xE9fi ne sont pas encore remplies."
+    de: Die Herausforderung ist noch nicht abgeschlossen.
+    ko: "\uB3C4\uC804 \uC870\uAC74\uC774 \uC544\uC9C1 \uC644\uB8CC\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4."
+    ru: "\u0423\u0441\u043B\u043E\u0432\u0438\u044F \u0437\u0430\u0434\u0430\u043D\u0438\u044F
+      \u0435\u0449\u0451 \u043D\u0435 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u044B."
+  - key: seasonal.error.challenge_unavailable
+    en: This challenge is unavailable.
+    tr: "Bu g\xF6rev kullan\u0131lam\u0131yor."
+    es: "Este desaf\xEDo no est\xE1 disponible."
+    fr: "Ce d\xE9fi est indisponible."
+    de: "Diese Herausforderung ist nicht verf\xFCgbar."
+    ko: "\uC774 \uB3C4\uC804 \uACFC\uC81C\uB97C \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4."
+    ru: "\u042D\u0442\u043E \u0437\u0430\u0434\u0430\u043D\u0438\u0435 \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E."
+  - key: seasonal.error.track_locked
+    en: This reward-track tier is still locked.
+    tr: "Bu \xF6d\xFCl yolu seviyesi hen\xFCz kilitli."
+    es: "Este nivel a\xFAn est\xE1 bloqueado."
+    fr: "Ce palier est encore verrouill\xE9."
+    de: Diese Belohnungsstufe ist noch gesperrt.
+    ko: "\uC774 \uBCF4\uC0C1 \uB2E8\uACC4\uB294 \uC544\uC9C1 \uC7A0\uACA8 \uC788\uC2B5\uB2C8\uB2E4."
+    ru: "\u042D\u0442\u043E\u0442 \u0443\u0440\u043E\u0432\u0435\u043D\u044C \u043D\u0430\u0433\u0440\u0430\u0434
+      \u0435\u0449\u0451 \u0437\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D."
+  - key: seasonal.error.item_unavailable
+    en: This limited item is unavailable.
+    tr: "Bu s\u0131n\u0131rl\u0131 \xFCr\xFCn kullan\u0131lam\u0131yor."
+    es: "Este objeto limitado no est\xE1 disponible."
+    fr: "Cet objet limit\xE9 est indisponible."
+    de: "Dieser limitierte Artikel ist nicht verf\xFCgbar."
+    ko: "\uC774 \uD55C\uC815 \uC544\uC774\uD15C\uC740 \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4."
+    ru: "\u042D\u0442\u043E\u0442 \u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u043D\u044B\u0439
+      \u043F\u0440\u0435\u0434\u043C\u0435\u0442 \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D."
+  - key: seasonal.error.insufficient_tickets
+    en: You do not have enough event tickets.
+    tr: Yeterli etkinlik biletin yok.
+    es: No tienes suficientes boletos del evento.
+    fr: "Vous n\u2019avez pas assez de tickets."
+    de: Du hast nicht genug Event-Tickets.
+    ko: "\uC774\uBCA4\uD2B8 \uD2F0\uCF13\uC774 \uBD80\uC871\uD569\uB2C8\uB2E4."
+    ru: "\u041D\u0435\u0434\u043E\u0441\u0442\u0430\u0442\u043E\u0447\u043D\u043E
+      \u0431\u0438\u043B\u0435\u0442\u043E\u0432 \u0441\u043E\u0431\u044B\u0442\u0438\u044F."
+  - key: store.item.pawn_harvest_fox
+    en: Harvest Fox Pawn
+    tr: Hasat Tilkisi Piyonu
+    es: "Pe\xF3n Zorro de Cosecha"
+    fr: Pion Renard des Moissons
+    de: Erntefuchs-Spielfigur
+    ko: "\uC218\uD655 \uC5EC\uC6B0 \uB9D0"
+    ru: "\u0424\u0438\u0448\u043A\u0430 \u0423\u0440\u043E\u0436\u0430\u0439\u043D\u0430\u044F
+      \u041B\u0438\u0441\u0430"
+  - key: store.item.dice_harvest_leaf
+    en: Harvest Leaf Dice
+    tr: "Hasat Yapra\u011F\u0131 Zar\u0131"
+    es: Dados Hoja de Cosecha
+    fr: "D\xE9s Feuille des Moissons"
+    de: "Ernteblatt-W\xFCrfel"
+    ko: "\uC218\uD655 \uC78E \uC8FC\uC0AC\uC704"
+    ru: "\u041A\u0443\u0431\u0438\u043A\u0438 \u041B\u0438\u0441\u0442 \u0423\u0440\u043E\u0436\u0430\u044F"

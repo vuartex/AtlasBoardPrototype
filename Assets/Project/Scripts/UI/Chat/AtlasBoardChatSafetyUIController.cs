@@ -30,6 +30,13 @@ public sealed class AtlasBoardChatSafetyUIController : MonoBehaviour
     private TMP_Text reasonButtonText;
     private TMP_Text statusText;
     private TMP_Text scaleText;
+    private GameObject reportPopupRoot;
+    private TMP_Text reportPopupTitleText;
+    private TMP_Text reportPopupBodyText;
+    private TMP_Text reportPopupOkText;
+    private string lastReportTargetName = string.Empty;
+    private string lastReportId = string.Empty;
+    private bool lastReportWasMessage;
 
     private AtlasBoardChatScope currentScope;
     private AtlasBoardChatSafetyState safetyState;
@@ -110,6 +117,7 @@ public sealed class AtlasBoardChatSafetyUIController : MonoBehaviour
             (mainChat == null || !mainChat.IsPanelOpen))
         {
             panelRoot.SetActive(false);
+            HideReportPopup();
         }
 
         if (!chatBridge.TryResolveActiveScope(out AtlasBoardChatScope scope))
@@ -173,6 +181,8 @@ public sealed class AtlasBoardChatSafetyUIController : MonoBehaviour
         {
             panelRoot.SetActive(false);
         }
+
+        HideReportPopup();
     }
 
     private async void RefreshAsync()
@@ -366,7 +376,7 @@ public sealed class AtlasBoardChatSafetyUIController : MonoBehaviour
             new Vector2(208f, -62f),
             new Vector2(-96f, -34f));
         reportButton.onClick.AddListener(
-            () => ReportPlayerAsync(accountId));
+            () => ReportPlayerAsync(accountId, displayName));
 
         if (safetyState != null && safetyState.CanModerate)
         {
@@ -477,7 +487,9 @@ public sealed class AtlasBoardChatSafetyUIController : MonoBehaviour
             new Vector2(8f, -66f),
             new Vector2(-220f, -42f));
         reportButton.onClick.AddListener(
-            () => ReportMessageAsync(message.messageId));
+            () => ReportMessageAsync(
+                message.messageId,
+                message.displayName));
 
         if (safetyState != null && safetyState.CanModerate)
         {
@@ -547,7 +559,9 @@ public sealed class AtlasBoardChatSafetyUIController : MonoBehaviour
         RefreshAsync();
     }
 
-    private async void ReportPlayerAsync(string targetAccountId)
+    private async void ReportPlayerAsync(
+        string targetAccountId,
+        string targetDisplayName)
     {
         if (currentScope == null)
         {
@@ -560,13 +574,23 @@ public sealed class AtlasBoardChatSafetyUIController : MonoBehaviour
                 currentScope,
                 targetAccountId,
                 CurrentReason());
-        SetStatus(
-            result.Success
-                ? BuildReportSuccess(result.ReportId)
-                : LocalizeError(result.ErrorKey));
+
+        if (!result.Success)
+        {
+            SetStatus(LocalizeError(result.ErrorKey));
+            return;
+        }
+
+        SetStatus(BuildReportSuccess(result.ReportId));
+        ShowReportPopup(
+            targetDisplayName,
+            result.ReportId,
+            false);
     }
 
-    private async void ReportMessageAsync(string messageId)
+    private async void ReportMessageAsync(
+        string messageId,
+        string targetDisplayName)
     {
         if (currentScope == null)
         {
@@ -579,10 +603,18 @@ public sealed class AtlasBoardChatSafetyUIController : MonoBehaviour
                 currentScope,
                 messageId,
                 CurrentReason());
-        SetStatus(
-            result.Success
-                ? BuildReportSuccess(result.ReportId)
-                : LocalizeError(result.ErrorKey));
+
+        if (!result.Success)
+        {
+            SetStatus(LocalizeError(result.ErrorKey));
+            return;
+        }
+
+        SetStatus(BuildReportSuccess(result.ReportId));
+        ShowReportPopup(
+            targetDisplayName,
+            result.ReportId,
+            true);
     }
 
     private async void ModeratorMuteAsync(string targetAccountId)
@@ -883,9 +915,160 @@ public sealed class AtlasBoardChatSafetyUIController : MonoBehaviour
         statusRect.offsetMin = new Vector2(14f, 8f);
         statusRect.offsetMax = new Vector2(-14f, 42f);
 
+        BuildReportPopup(canvasObject.transform);
+
         panelRoot.SetActive(false);
+        reportPopupRoot.SetActive(false);
         UpdateScaleLabel();
         UpdateLayout();
+    }
+
+    private void BuildReportPopup(Transform parent)
+    {
+        reportPopupRoot = new GameObject(
+            "ReportConfirmationPopup",
+            typeof(RectTransform),
+            typeof(Image),
+            typeof(Outline));
+        reportPopupRoot.transform.SetParent(parent, false);
+
+        RectTransform popupRect =
+            reportPopupRoot.GetComponent<RectTransform>();
+        popupRect.anchorMin = new Vector2(0.5f, 0.5f);
+        popupRect.anchorMax = new Vector2(0.5f, 0.5f);
+        popupRect.pivot = new Vector2(0.5f, 0.5f);
+        popupRect.anchoredPosition = Vector2.zero;
+        popupRect.sizeDelta = new Vector2(650f, 320f);
+
+        Image background = reportPopupRoot.GetComponent<Image>();
+        background.color =
+            new Color(0.035f, 0.045f, 0.060f, 0.995f);
+
+        Outline outline = reportPopupRoot.GetComponent<Outline>();
+        outline.effectColor =
+            new Color(0.82f, 0.42f, 0.12f, 0.95f);
+        outline.effectDistance = new Vector2(3f, -3f);
+
+        reportPopupTitleText = CreateText(
+            reportPopupRoot.transform,
+            "PopupTitle",
+            24f,
+            FontStyles.Bold,
+            TextAlignmentOptions.Center,
+            Color.white);
+        RectTransform titleRect =
+            reportPopupTitleText.rectTransform;
+        titleRect.anchorMin = new Vector2(0f, 1f);
+        titleRect.anchorMax = new Vector2(1f, 1f);
+        titleRect.pivot = new Vector2(0.5f, 1f);
+        titleRect.offsetMin = new Vector2(24f, -64f);
+        titleRect.offsetMax = new Vector2(-24f, -18f);
+
+        reportPopupBodyText = CreateText(
+            reportPopupRoot.transform,
+            "PopupBody",
+            16f,
+            FontStyles.Normal,
+            TextAlignmentOptions.TopLeft,
+            new Color(0.92f, 0.94f, 0.97f, 1f));
+        RectTransform bodyRect =
+            reportPopupBodyText.rectTransform;
+        bodyRect.anchorMin = new Vector2(0f, 0f);
+        bodyRect.anchorMax = new Vector2(1f, 1f);
+        bodyRect.offsetMin = new Vector2(34f, 78f);
+        bodyRect.offsetMax = new Vector2(-34f, -76f);
+        reportPopupBodyText.textWrappingMode =
+            TextWrappingModes.Normal;
+        reportPopupBodyText.overflowMode =
+            TextOverflowModes.Overflow;
+
+        GameObject okRoot = CreateButton(
+            reportPopupRoot.transform,
+            "PopupOk",
+            "OK",
+            out Button okButton,
+            new Color(0.08f, 0.38f, 0.50f, 1f));
+        RectTransform okRect =
+            okRoot.GetComponent<RectTransform>();
+        okRect.anchorMin = new Vector2(0.5f, 0f);
+        okRect.anchorMax = new Vector2(0.5f, 0f);
+        okRect.pivot = new Vector2(0.5f, 0f);
+        okRect.anchoredPosition = new Vector2(0f, 24f);
+        okRect.sizeDelta = new Vector2(170f, 48f);
+        reportPopupOkText = okRoot
+            .transform
+            .Find("Label")
+            ?.GetComponent<TMP_Text>();
+        okButton.onClick.AddListener(HideReportPopup);
+    }
+
+    private void ShowReportPopup(
+        string targetDisplayName,
+        string reportId,
+        bool messageReport)
+    {
+        if (reportPopupRoot == null)
+        {
+            return;
+        }
+
+        lastReportTargetName =
+            string.IsNullOrWhiteSpace(targetDisplayName)
+                ? Loc("unknown_player")
+                : targetDisplayName.Trim();
+        lastReportId = reportId ?? string.Empty;
+        lastReportWasMessage = messageReport;
+
+        RefreshReportPopupLocalizedUi();
+        reportPopupRoot.SetActive(true);
+        reportPopupRoot.transform.SetAsLastSibling();
+    }
+
+    private void HideReportPopup()
+    {
+        if (reportPopupRoot != null)
+        {
+            reportPopupRoot.SetActive(false);
+        }
+    }
+
+    private void RefreshReportPopupLocalizedUi()
+    {
+        if (reportPopupTitleText == null ||
+            reportPopupBodyText == null)
+        {
+            return;
+        }
+
+        reportPopupTitleText.text = Loc("report_popup_title");
+
+        string target = EscapeTmp(lastReportTargetName);
+        string intro = lastReportWasMessage
+            ? string.Format(Loc("report_popup_message_intro"), target)
+            : string.Format(Loc("report_popup_player_intro"), target);
+
+        string reportReference = string.Empty;
+        if (!string.IsNullOrWhiteSpace(lastReportId))
+        {
+            string shortId = lastReportId.Length > 8
+                ? lastReportId.Substring(0, 8)
+                : lastReportId;
+            reportReference =
+                "\n\n" + string.Format(
+                    Loc("report_popup_reference"),
+                    EscapeTmp(shortId));
+        }
+
+        reportPopupBodyText.text =
+            intro +
+            "\n\n" + Loc("report_popup_review") +
+            "\n\n" + Loc("report_popup_warning") +
+            reportReference;
+
+        if (reportPopupOkText != null)
+        {
+            reportPopupOkText.text = Loc("ok");
+        }
     }
 
     private void BuildScaleRow(Transform parent)
@@ -1261,6 +1444,11 @@ public sealed class AtlasBoardChatSafetyUIController : MonoBehaviour
         UpdateReasonLabel();
         UpdateScaleLabel();
 
+        if (reportPopupRoot != null && reportPopupRoot.activeSelf)
+        {
+            RefreshReportPopupLocalizedUi();
+        }
+
         if (panelRoot != null && panelRoot.activeSelf)
         {
             RebuildPlayers();
@@ -1291,6 +1479,7 @@ public sealed class AtlasBoardChatSafetyUIController : MonoBehaviour
         if (!available && panelRoot != null)
         {
             panelRoot.SetActive(false);
+            HideReportPopup();
         }
     }
 
@@ -1455,6 +1644,14 @@ public sealed class AtlasBoardChatSafetyUIController : MonoBehaviour
             case "reason_profanity": return "Profanity";
             case "reason_cheating": return "Cheating";
             case "reason_other": return "Other";
+            case "report_popup_title": return "REPORT SUBMITTED";
+            case "report_popup_player_intro": return "<b>{0}</b> has been reported.";
+            case "report_popup_message_intro": return "A message from <b>{0}</b> has been reported.";
+            case "report_popup_review": return "The report will be reviewed. If a violation is confirmed, the appropriate action will be taken. Thank you for helping keep Atlas Board safe.";
+            case "report_popup_warning": return "Please do not submit unnecessary or false reports. Deliberately false or abusive reports may result in penalties on your account.";
+            case "report_popup_reference": return "Report ID: {0}";
+            case "unknown_player": return "Player";
+            case "ok": return "OK";
             default: return "Action failed.";
         }
     }
@@ -1503,6 +1700,14 @@ public sealed class AtlasBoardChatSafetyUIController : MonoBehaviour
             case "reason_profanity": return "Küfür";
             case "reason_cheating": return "Hile";
             case "reason_other": return "Diğer";
+            case "report_popup_title": return "RAPOR GÖNDERİLDİ";
+            case "report_popup_player_intro": return "<b>{0}</b> adlı oyuncu rapor edildi.";
+            case "report_popup_message_intro": return "<b>{0}</b> adlı oyuncunun mesajı rapor edildi.";
+            case "report_popup_review": return "Rapor incelenecek ve ihlal doğrulanırsa ilgili ceza uygulanacaktır. Atlas Board topluluğunu güvenli tutmamıza yardımcı olduğunuz için teşekkür ederiz.";
+            case "report_popup_warning": return "Lütfen gereksiz veya haksız raporlama yapmayın. Kasıtlı olarak yanlış ya da kötüye kullanılan raporlar hesabınızın ceza almasına neden olabilir.";
+            case "report_popup_reference": return "Rapor No: {0}";
+            case "unknown_player": return "Oyuncu";
+            case "ok": return "TAMAM";
             default: return "İşlem başarısız.";
         }
     }
@@ -1526,6 +1731,14 @@ public sealed class AtlasBoardChatSafetyUIController : MonoBehaviour
             case "block": return "BLOQUEAR";
             case "unblock": return "DESBLOQ.";
             case "remove": return "BORRAR";
+            case "report_popup_title": return "REPORTE ENVIADO";
+            case "report_popup_player_intro": return "<b>{0}</b> ha sido reportado.";
+            case "report_popup_message_intro": return "Se reportó un mensaje de <b>{0}</b>.";
+            case "report_popup_review": return "El reporte será revisado y, si se confirma una infracción, se aplicará la medida correspondiente. Gracias por ayudar a mantener Atlas Board seguro.";
+            case "report_popup_warning": return "No envíes reportes innecesarios o falsos. El abuso deliberado del sistema de reportes puede causar sanciones en tu cuenta.";
+            case "report_popup_reference": return "ID del reporte: {0}";
+            case "unknown_player": return "Jugador";
+            case "ok": return "OK";
             default: return English(key);
         }
     }
@@ -1549,6 +1762,14 @@ public sealed class AtlasBoardChatSafetyUIController : MonoBehaviour
             case "block": return "BLOQUER";
             case "unblock": return "DÉBLOQ.";
             case "remove": return "SUPPR.";
+            case "report_popup_title": return "SIGNALEMENT ENVOYÉ";
+            case "report_popup_player_intro": return "<b>{0}</b> a été signalé.";
+            case "report_popup_message_intro": return "Un message de <b>{0}</b> a été signalé.";
+            case "report_popup_review": return "Le signalement sera examiné et, si une infraction est confirmée, la sanction appropriée sera appliquée. Merci de contribuer à la sécurité d’Atlas Board.";
+            case "report_popup_warning": return "N’envoyez pas de signalements inutiles ou mensongers. L’abus volontaire du système de signalement peut entraîner des sanctions sur votre compte.";
+            case "report_popup_reference": return "ID du signalement : {0}";
+            case "unknown_player": return "Joueur";
+            case "ok": return "OK";
             default: return English(key);
         }
     }
@@ -1572,6 +1793,14 @@ public sealed class AtlasBoardChatSafetyUIController : MonoBehaviour
             case "block": return "BLOCK";
             case "unblock": return "FREIGEBEN";
             case "remove": return "LÖSCHEN";
+            case "report_popup_title": return "MELDUNG GESENDET";
+            case "report_popup_player_intro": return "<b>{0}</b> wurde gemeldet.";
+            case "report_popup_message_intro": return "Eine Nachricht von <b>{0}</b> wurde gemeldet.";
+            case "report_popup_review": return "Die Meldung wird geprüft. Wird ein Verstoß bestätigt, werden geeignete Maßnahmen ergriffen. Danke, dass du Atlas Board sicherer machst.";
+            case "report_popup_warning": return "Bitte sende keine unnötigen oder falschen Meldungen. Vorsätzlicher Missbrauch des Meldesystems kann zu Maßnahmen gegen dein Konto führen.";
+            case "report_popup_reference": return "Meldungs-ID: {0}";
+            case "unknown_player": return "Spieler";
+            case "ok": return "OK";
             default: return English(key);
         }
     }
@@ -1595,6 +1824,14 @@ public sealed class AtlasBoardChatSafetyUIController : MonoBehaviour
             case "block": return "차단";
             case "unblock": return "차단 해제";
             case "remove": return "삭제";
+            case "report_popup_title": return "신고가 접수되었습니다";
+            case "report_popup_player_intro": return "<b>{0}</b> 플레이어를 신고했습니다.";
+            case "report_popup_message_intro": return "<b>{0}</b> 플레이어의 메시지를 신고했습니다.";
+            case "report_popup_review": return "신고 내용을 검토한 뒤 위반이 확인되면 적절한 조치가 적용됩니다. Atlas Board를 안전하게 만드는 데 도움을 주셔서 감사합니다.";
+            case "report_popup_warning": return "불필요하거나 허위 신고를 하지 마세요. 고의적인 허위 신고나 신고 기능 악용은 계정 제재로 이어질 수 있습니다.";
+            case "report_popup_reference": return "신고 ID: {0}";
+            case "unknown_player": return "플레이어";
+            case "ok": return "확인";
             default: return English(key);
         }
     }
@@ -1618,6 +1855,14 @@ public sealed class AtlasBoardChatSafetyUIController : MonoBehaviour
             case "block": return "БЛОК";
             case "unblock": return "РАЗБЛОК";
             case "remove": return "УДАЛИТЬ";
+            case "report_popup_title": return "ЖАЛОБА ОТПРАВЛЕНА";
+            case "report_popup_player_intro": return "Игрок <b>{0}</b> отправлен на проверку.";
+            case "report_popup_message_intro": return "Сообщение игрока <b>{0}</b> отправлено на проверку.";
+            case "report_popup_review": return "Жалоба будет рассмотрена. Если нарушение подтвердится, будут приняты соответствующие меры. Спасибо, что помогаете сохранять Atlas Board безопасным.";
+            case "report_popup_warning": return "Не отправляйте лишние или ложные жалобы. Намеренно ложные жалобы или злоупотребление системой могут привести к санкциям против вашего аккаунта.";
+            case "report_popup_reference": return "ID жалобы: {0}";
+            case "unknown_player": return "Игрок";
+            case "ok": return "OK";
             default: return English(key);
         }
     }
