@@ -1,0 +1,15 @@
+AtlasAchievementId,SteamApiName
+first_match,ATLAS_FIRST_MATCH
+first_win,ATLAS_FIRST_WIN
+win_streak_3,ATLAS_WIN_STREAK_3
+matches_10,ATLAS_MATCHES_10
+wins_10,ATLAS_WINS_10
+dice_100,ATLAS_DICE_100
+doubles_10,ATLAS_DOUBLES_10
+properties_25,ATLAS_PROPERTIES_25
+builder_20,ATLAS_BUILDER_20
+networth_5000,ATLAS_NETWORTH_5000
+turkey_explorer,ATLAS_TURKEY_EXPLORER
+colorado_explorer,ATLAS_COLORADO_EXPLORER
+usa_explorer,ATLAS_USA_EXPLORER
+atlas_traveler,ATLAS_TRAVELER

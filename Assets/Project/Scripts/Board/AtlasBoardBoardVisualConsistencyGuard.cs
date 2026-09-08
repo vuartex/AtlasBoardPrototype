@@ -59,8 +59,7 @@ public sealed class AtlasBoardBoardVisualConsistencyGuard :
     {
         BoardTile[] tiles =
             FindObjectsByType<BoardTile>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None);
+                FindObjectsInactive.Include);
 
         int cleanedThisPass = 0;
 

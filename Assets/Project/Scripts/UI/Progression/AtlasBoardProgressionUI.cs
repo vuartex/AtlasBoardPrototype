@@ -111,7 +111,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             Time.unscaledTime >= nextProfileRefreshAt)
         {
             nextProfileRefreshAt = Time.unscaledTime + 5f;
-            RefreshProfileAsync(false);
+            _ = RefreshProfileAsync(false);
         }
     }
 

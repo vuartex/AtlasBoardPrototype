@@ -3904,6 +3904,14 @@ MonoBehaviour:
       \u0441\u043E\u0434\u0435\u0440\u0436\u0430\u0442\u044C 4-32 \u0441\u0438\u043C\u0432\u043E\u043B\u0430;
       \u043E\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u043F\u0443\u0441\u0442\u044B\u043C
       \u0434\u043B\u044F \u0443\u0434\u0430\u043B\u0435\u043D\u0438\u044F."
+  - key: platform.steam.invite_friends
+    en: INVITE FRIENDS
+    tr: "ARKADA\u015E DAVET ET"
+    es: INVITAR AMIGOS
+    fr: INVITER DES AMIS
+    de: FREUNDE EINLADEN
+    ko: "\uCE5C\uAD6C \uCD08\uB300"
+    ru: "\u041F\u0420\u0418\u0413\u041B\u0410\u0421\u0418\u0422\u042C \u0414\u0420\u0423\u0417\u0415\u0419"
   - key: progression.menu.title
     en: CAREER
     tr: "KAR\u0130YER"
