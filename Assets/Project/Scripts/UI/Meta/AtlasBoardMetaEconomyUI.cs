@@ -181,11 +181,13 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
 
     private void HandleLanguageChanged()
     {
+        ApplyResolvedStoreFonts();
         UpdateWalletText();
 
         if (storeRoot != null && storeRoot.activeSelf)
         {
             RefreshLanguageAndPage();
+            ApplyResolvedStoreFonts();
         }
     }
 
@@ -207,6 +209,8 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         {
             resultOkText.text = T("store.purchase.result_ok");
         }
+
+        ApplyResolvedStoreFonts();
     }
 
     private bool CanStartOperation()
@@ -1369,6 +1373,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
 
         BuildConfirmation(storeRoot.transform);
         BuildResultPopup(storeRoot.transform);
+        ApplyResolvedStoreFonts();
     }
 
     private void BuildNavigationButtons(Transform parent)
@@ -2224,6 +2229,14 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             typeof(TextMeshProUGUI));
         root.transform.SetParent(parent, false);
         TextMeshProUGUI text = root.GetComponent<TextMeshProUGUI>();
+
+        AtlasBoardLocalizationManager localization =
+            AtlasBoardLocalizationManager.Instance;
+        if (localization != null)
+        {
+            text.font = localization.ResolveFont(text.font);
+        }
+
         text.fontSize = size;
         text.fontStyle = style;
         text.alignment = alignment;
@@ -2231,6 +2244,36 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         text.raycastTarget = false;
         text.overflowMode = TextOverflowModes.Ellipsis;
         return text;
+    }
+
+    private void ApplyResolvedStoreFonts()
+    {
+        AtlasBoardLocalizationManager localization =
+            AtlasBoardLocalizationManager.Instance;
+
+        if (localization == null || canvas == null)
+        {
+            return;
+        }
+
+        TMP_Text[] texts =
+            canvas.GetComponentsInChildren<TMP_Text>(true);
+
+        foreach (TMP_Text text in texts)
+        {
+            if (text == null)
+            {
+                continue;
+            }
+
+            TMP_FontAsset resolved =
+                localization.ResolveFont(text.font);
+
+            if (resolved != null && text.font != resolved)
+            {
+                text.font = resolved;
+            }
+        }
     }
 
     private static void SetAnchored(

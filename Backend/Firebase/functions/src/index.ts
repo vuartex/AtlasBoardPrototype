@@ -35,6 +35,11 @@ import {
   purchaseSeasonalItem,
 } from "./economy/seasonal";
 import {
+  getProgressionProfile,
+  ProgressionSlotTelemetryInput,
+  recordCompletedMatch,
+} from "./progression/progression";
+import {
   configureLobbySeats,
   createPrivateLobby,
   getLobbySnapshot,
@@ -810,6 +815,91 @@ export const metaSeasonalPurchaseLimitedItem = onCall(
       ticketBalance: result.ticketBalance,
     });
     return {ok: true, ...result};
+  },
+);
+
+/**
+ * Returns the authenticated account progression, achievements and retained
+ * recent match history.
+ */
+export const progressionGetProfile = onCall(
+  {
+    region: REGION,
+    maxInstances: 30,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const result = await getProgressionProfile({uid});
+
+    logger.info("AtlasBoard progression profile loaded.", {
+      accountId: uid,
+      level: result.level,
+      recentMatchCount:
+        Array.isArray(result.recentMatches) ? result.recentMatches.length : 0,
+    });
+
+    return {
+      projectId: PROJECT_ID,
+      region: REGION,
+      backendSchemaVersion: BACKEND_SCHEMA_VERSION,
+      protocolVersion: PROTOCOL_VERSION,
+      ...result,
+    };
+  },
+);
+
+/**
+ * Host-only completed-match progression finalization. Canonical outcome and
+ * economy fields are read from the final match network snapshot; bounded dice
+ * counters are stored as unranked telemetry for player-facing statistics.
+ */
+export const progressionRecordCompletedMatch = onCall(
+  {
+    region: REGION,
+    maxInstances: 30,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const data = request.data ?? {};
+    const telemetry = Array.isArray(data.telemetry) ?
+      data.telemetry.map((item: unknown) => {
+        const value = item && typeof item === "object" ?
+          item as Record<string, unknown> :
+          {};
+        return {
+          slotIndex: Number(value.slotIndex ?? -1),
+          diceRolls: Number(value.diceRolls ?? 0),
+          doublesRolled: Number(value.doublesRolled ?? 0),
+          totalDiceValue: Number(value.totalDiceValue ?? 0),
+          highestRoll: Number(value.highestRoll ?? 0),
+        } as ProgressionSlotTelemetryInput;
+      }) :
+      [];
+
+    const result = await recordCompletedMatch({
+      uid,
+      matchId: typeof data.matchId === "string" ? data.matchId : "",
+      completedTurns: Number(data.completedTurns ?? 0),
+      telemetry,
+    });
+
+    logger.info("AtlasBoard completed match progression finalized.", {
+      accountId: uid,
+      matchId: result.matchId,
+      applied: result.applied,
+      idempotentReplay: result.idempotentReplay,
+      affectedAccountCount: result.affectedAccountCount,
+    });
+
+    return {
+      projectId: PROJECT_ID,
+      region: REGION,
+      backendSchemaVersion: BACKEND_SCHEMA_VERSION,
+      protocolVersion: PROTOCOL_VERSION,
+      ...result,
+    };
   },
 );
 
