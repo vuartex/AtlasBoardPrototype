@@ -1893,3 +1893,9 @@ export {
   matchChatSend,
   matchChatList,
 } from "./chat/chat";
+
+export {
+  platformSteamDevLinkCurrentAccount,
+  platformSteamGetLinkStatus,
+  platformSteamLinkCurrentAccount,
+} from "./platform/steam-link";
