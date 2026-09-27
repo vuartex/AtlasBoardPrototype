@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Firebase.Auth;
 using Steamworks;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -25,6 +26,9 @@ public sealed class AtlasBoardSteamAccountLinkBridge :
 
     private const int FunctionsPort =
         5001;
+
+    private const int AuthEmulatorPort =
+        9099;
 
     private const float TicketTimeoutSeconds =
         12f;
@@ -55,6 +59,14 @@ public sealed class AtlasBoardSteamAccountLinkBridge :
         get;
         private set;
     } = AtlasBoardSteamLinkStatus.Unlinked();
+
+    public AtlasBoardSteamReturningSignInResult
+        LastReturningSignIn
+    {
+        get;
+        private set;
+    } =
+        AtlasBoardSteamReturningSignInResult.Empty();
 
     public string LastErrorKey
     {
@@ -270,6 +282,91 @@ public sealed class AtlasBoardSteamAccountLinkBridge :
                     envelope.result);
 
             return CurrentStatus;
+        }
+        finally
+        {
+            CancelTicket(
+                ticket.Handle);
+        }
+    }
+
+    public async Task<AtlasBoardSteamReturningSignInResult>
+        DevReturningSignInCurrentSteamAsync()
+    {
+        ResolveReferences();
+
+        if (!UsingLocalEmulators)
+        {
+            return ReturningSignInFailure(
+                "platform.error.emulator_only",
+                "DEV returning Steam sign-in requires local emulators.");
+        }
+
+        if (!IsSteamReady())
+        {
+            return ReturningSignInFailure(
+                LastErrorKey,
+                LastTechnicalMessage);
+        }
+
+        ReturningEnvelope envelope =
+            await CallUnauthenticatedFunctionAsync<
+                DevReturningRequest,
+                ReturningEnvelope>(
+                "platformSteamDevReturningSignIn",
+                new DevReturningRequest
+                {
+                    steamId =
+                        platformRuntime
+                            .SteamId
+                            .ToString()
+                });
+
+        return await ApplyReturningEnvelopeAsync(
+            envelope,
+            true);
+    }
+
+    public async Task<AtlasBoardSteamReturningSignInResult>
+        ReturningSignInCurrentSteamAsync()
+    {
+        ResolveReferences();
+
+        if (!IsSteamReady())
+        {
+            return ReturningSignInFailure(
+                LastErrorKey,
+                LastTechnicalMessage);
+        }
+
+        WebApiTicketResult ticket =
+            await RequestWebApiTicketAsync();
+
+        if (!ticket.Success ||
+            string.IsNullOrWhiteSpace(
+                ticket.TicketHex))
+        {
+            return ReturningSignInFailure(
+                "platform.error.steam_ticket_unavailable",
+                ticket.TechnicalMessage);
+        }
+
+        try
+        {
+            ReturningEnvelope envelope =
+                await CallUnauthenticatedFunctionAsync<
+                    VerifiedLinkRequest,
+                    ReturningEnvelope>(
+                    "platformSteamReturningSignIn",
+                    new VerifiedLinkRequest
+                    {
+                        ticket =
+                            ticket.TicketHex
+                    });
+
+            return await ApplyReturningEnvelopeAsync(
+                envelope,
+                false);
         }
         finally
         {
@@ -625,6 +722,195 @@ public sealed class AtlasBoardSteamAccountLinkBridge :
         return envelope;
     }
 
+    private async Task<TEnvelope>
+        CallUnauthenticatedFunctionAsync<TRequest, TEnvelope>(
+            string functionName,
+            TRequest payload)
+        where TEnvelope : class
+    {
+        ResetError();
+        ResolveReferences();
+
+        bool local =
+            UsingLocalEmulators;
+
+        string url =
+            local
+                ? $"http://{EmulatorHost}:{FunctionsPort}/" +
+                  $"{ProjectId}/{Region}/{functionName}"
+                : $"https://{Region}-{ProjectId}" +
+                  $".cloudfunctions.net/{functionName}";
+
+        string requestJson =
+            JsonUtility.ToJson(payload);
+
+        string callableJson =
+            "{\"data\":" +
+            requestJson +
+            "}";
+
+        using UnityWebRequest request =
+            new UnityWebRequest(
+                url,
+                UnityWebRequest.kHttpVerbPOST);
+
+        request.uploadHandler =
+            new UploadHandlerRaw(
+                Encoding.UTF8.GetBytes(
+                    callableJson));
+
+        request.downloadHandler =
+            new DownloadHandlerBuffer();
+
+        request.SetRequestHeader(
+            "Content-Type",
+            "application/json");
+
+        request.timeout = 20;
+
+        await SendRequestAsync(
+            request);
+
+        string body =
+            request.downloadHandler != null
+                ? request.downloadHandler.text
+                : string.Empty;
+
+        if (request.result !=
+            UnityWebRequest.Result.Success)
+        {
+            CallableErrorEnvelope error =
+                SafeFromJson<
+                    CallableErrorEnvelope>(
+                        body);
+
+            SetError(
+                error?.error?.details?.errorKey ??
+                "platform.error.service_unavailable",
+                error?.error?.message ??
+                $"HTTP {request.responseCode}: " +
+                request.error);
+
+            return null;
+        }
+
+        TEnvelope envelope =
+            SafeFromJson<TEnvelope>(
+                body);
+
+        if (envelope == null)
+        {
+            SetError(
+                "platform.error.service_unavailable",
+                "Returning Steam sign-in response could not be parsed.");
+        }
+
+        return envelope;
+    }
+
+    private async Task<AtlasBoardSteamReturningSignInResult>
+        ApplyReturningEnvelopeAsync(
+            ReturningEnvelope envelope,
+            bool useAuthEmulator)
+    {
+        if (envelope?.result == null ||
+            !envelope.result.ok ||
+            string.IsNullOrWhiteSpace(
+                envelope.result.customToken) ||
+            string.IsNullOrWhiteSpace(
+                envelope.result.accountId))
+        {
+            return ReturningSignInFailure(
+                string.IsNullOrWhiteSpace(
+                    LastErrorKey)
+                    ? "platform.error.returning_signin_failed"
+                    : LastErrorKey,
+                string.IsNullOrWhiteSpace(
+                    LastTechnicalMessage)
+                    ? "Returning Steam sign-in returned no valid token."
+                    : LastTechnicalMessage);
+        }
+
+        try
+        {
+            FirebaseAuth auth =
+                FirebaseAuth.DefaultInstance;
+
+            if (useAuthEmulator)
+            {
+                auth.UseEmulator(
+                    EmulatorHost,
+                    AuthEmulatorPort);
+            }
+
+            AuthResult authResult =
+                await auth
+                    .SignInWithCustomTokenAsync(
+                        envelope.result.customToken);
+
+            string firebaseUid =
+                authResult?.User != null
+                    ? authResult.User.UserId
+                    : string.Empty;
+
+            if (!string.Equals(
+                    firebaseUid,
+                    envelope.result.accountId,
+                    StringComparison.Ordinal))
+            {
+                auth.SignOut();
+
+                return ReturningSignInFailure(
+                    "platform.error.returning_signin_uid_mismatch",
+                    "Firebase Auth UID did not match the linked Atlas account.");
+            }
+
+            LastReturningSignIn =
+                new AtlasBoardSteamReturningSignInResult
+                {
+                    Success = true,
+                    AccountId =
+                        firebaseUid,
+                    SteamId =
+                        envelope.result.steamId ??
+                        string.Empty,
+                    Verified =
+                        envelope.result.verified,
+                    DevelopmentOnly =
+                        envelope.result.developmentOnly,
+                    VerificationMode =
+                        envelope.result.verificationMode ??
+                        string.Empty,
+                    FirebaseAuthApplied = true
+                };
+
+            return LastReturningSignIn;
+        }
+        catch (Exception exception)
+        {
+            return ReturningSignInFailure(
+                "platform.error.firebase_custom_token_signin_failed",
+                exception.Message);
+        }
+    }
+
+    private AtlasBoardSteamReturningSignInResult
+        ReturningSignInFailure(
+            string errorKey,
+            string technicalMessage)
+    {
+        SetError(
+            errorKey,
+            technicalMessage);
+
+        LastReturningSignIn =
+            AtlasBoardSteamReturningSignInResult.Fail(
+                errorKey,
+                technicalMessage);
+
+        return LastReturningSignIn;
+    }
+
     private static AtlasBoardSteamLinkStatus BuildStatus(
         LinkWire wire)
     {
@@ -760,6 +1046,33 @@ public sealed class AtlasBoardSteamAccountLinkBridge :
     }
 
     [Serializable]
+    private sealed class DevReturningRequest
+    {
+        public string steamId;
+    }
+
+    [Serializable]
+    private sealed class ReturningEnvelope
+    {
+        public ReturningWire result;
+    }
+
+    [Serializable]
+    private sealed class ReturningWire
+    {
+        public bool ok;
+        public string accountId;
+        public string provider;
+        public string steamId;
+        public string ownerSteamId;
+        public int appId;
+        public bool verified;
+        public bool developmentOnly;
+        public string verificationMode;
+        public string customToken;
+    }
+
+    [Serializable]
     private sealed class StatusEnvelope
     {
         public LinkWire result;
@@ -892,3 +1205,44 @@ public sealed class AtlasBoardSteamLinkStatus
 
 
 }
+
+[Serializable]
+public sealed class AtlasBoardSteamReturningSignInResult
+{
+    public bool Success;
+    public string AccountId =
+        string.Empty;
+    public string SteamId =
+        string.Empty;
+    public bool Verified;
+    public bool DevelopmentOnly;
+    public string VerificationMode =
+        string.Empty;
+    public bool FirebaseAuthApplied;
+    public string ErrorKey =
+        string.Empty;
+    public string TechnicalMessage =
+        string.Empty;
+
+    public static AtlasBoardSteamReturningSignInResult Empty()
+    {
+        return new AtlasBoardSteamReturningSignInResult();
+    }
+
+    public static AtlasBoardSteamReturningSignInResult Fail(
+        string errorKey,
+        string technicalMessage)
+    {
+        return new AtlasBoardSteamReturningSignInResult
+        {
+            Success = false,
+            ErrorKey =
+                errorKey ??
+                string.Empty,
+            TechnicalMessage =
+                technicalMessage ??
+                string.Empty
+        };
+    }
+}
+

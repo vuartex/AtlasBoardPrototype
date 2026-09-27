@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System.Threading.Tasks;
+using Firebase.Auth;
 using UnityEditor;
 using UnityEngine;
 
@@ -83,6 +84,22 @@ public sealed class AtlasBoardSteamAccountLinkDiagnosticsWindow :
                 ? "YES"
                 : "NO");
 
+        FirebaseAuth firebaseAuth =
+            FirebaseAuth.DefaultInstance;
+
+        string firebaseUid =
+            firebaseAuth != null &&
+            firebaseAuth.CurrentUser != null
+                ? firebaseAuth.CurrentUser.UserId
+                : string.Empty;
+
+        EditorGUILayout.LabelField(
+            "Firebase Auth UID",
+            string.IsNullOrWhiteSpace(
+                firebaseUid)
+                ? "SIGNED OUT"
+                : firebaseUid);
+
         EditorGUILayout.Space(8f);
 
         DrawStatus(
@@ -131,6 +148,57 @@ public sealed class AtlasBoardSteamAccountLinkDiagnosticsWindow :
             }
         }
 
+        EditorGUILayout.Space(10f);
+
+        EditorGUILayout.LabelField(
+            "PHASE 11D RETURNING STEAM SIGN-IN",
+            EditorStyles.boldLabel);
+
+        using (new EditorGUI.DisabledScope(
+                   operationInFlight))
+        {
+            if (GUILayout.Button(
+                    "SIGN OUT FIREBASE AUTH (TEST ONLY)"))
+            {
+                FirebaseAuth.DefaultInstance.SignOut();
+
+                statusMessage =
+                    "Firebase Auth signed out for returning-user testing.";
+
+                statusType =
+                    MessageType.Info;
+            }
+
+            using (new EditorGUI.DisabledScope(
+                       !bridge.UsingLocalEmulators ||
+                       !platform.SteamInitialized))
+            {
+                if (GUILayout.Button(
+                        "DEV RETURNING STEAM SIGN-IN (EMULATOR)"))
+                {
+                    _ =
+                        DevReturningSignInAsync(
+                            bridge);
+                }
+            }
+
+            bool realReturningReady =
+                platform.SteamInitialized &&
+                platform.SteamAppId != 480;
+
+            using (new EditorGUI.DisabledScope(
+                       !realReturningReady))
+            {
+                if (GUILayout.Button(
+                        "VERIFY + RETURNING STEAM SIGN-IN"))
+                {
+                    _ =
+                        ReturningSignInAsync(
+                            bridge);
+                }
+            }
+        }
+
         if (platform.SteamAppId == 480)
         {
             EditorGUILayout.HelpBox(
@@ -140,6 +208,45 @@ public sealed class AtlasBoardSteamAccountLinkDiagnosticsWindow :
                 "enabled when the actual AtlasBoard Steam AppID and server " +
                 "publisher key are configured.",
                 MessageType.Info);
+        }
+
+        AtlasBoardSteamReturningSignInResult
+            returning =
+                bridge.LastReturningSignIn;
+
+        if (returning != null &&
+            (returning.Success ||
+             !string.IsNullOrWhiteSpace(
+                 returning.ErrorKey)))
+        {
+            EditorGUILayout.Space(8f);
+
+            EditorGUILayout.LabelField(
+                "Last Returning Sign-In",
+                returning.Success
+                    ? "PASS"
+                    : "FAILED");
+
+            EditorGUILayout.LabelField(
+                "Recovered Atlas AccountId",
+                returning.AccountId ??
+                string.Empty);
+
+            EditorGUILayout.LabelField(
+                "Recovered SteamID",
+                returning.SteamId ??
+                string.Empty);
+
+            EditorGUILayout.LabelField(
+                "Firebase Custom Token Applied",
+                returning.FirebaseAuthApplied
+                    ? "YES"
+                    : "NO");
+
+            EditorGUILayout.LabelField(
+                "Returning Verification Mode",
+                returning.VerificationMode ??
+                string.Empty);
         }
 
         EditorGUILayout.Space(6f);
@@ -220,6 +327,82 @@ public sealed class AtlasBoardSteamAccountLinkDiagnosticsWindow :
         await RunAsync(
             "Verified Steam account link completed.",
             () => bridge.VerifyAndLinkCurrentSteamAsync());
+    }
+
+    private async Task DevReturningSignInAsync(
+        AtlasBoardSteamAccountLinkBridge bridge)
+    {
+        await RunReturningAsync(
+            "Emulator returning Steam sign-in completed.",
+            () => bridge.DevReturningSignInCurrentSteamAsync());
+    }
+
+    private async Task ReturningSignInAsync(
+        AtlasBoardSteamAccountLinkBridge bridge)
+    {
+        await RunReturningAsync(
+            "Verified returning Steam sign-in completed.",
+            () => bridge.ReturningSignInCurrentSteamAsync());
+    }
+
+    private async Task RunReturningAsync(
+        string successMessage,
+        System.Func<
+            Task<AtlasBoardSteamReturningSignInResult>> action)
+    {
+        if (operationInFlight)
+        {
+            return;
+        }
+
+        operationInFlight = true;
+        statusMessage =
+            "Recovering the linked Atlas account...";
+        statusType =
+            MessageType.Info;
+
+        Repaint();
+
+        try
+        {
+            AtlasBoardSteamReturningSignInResult result =
+                await action();
+
+            if (result != null &&
+                result.Success)
+            {
+                statusMessage =
+                    successMessage +
+                    " AccountId=" +
+                    result.AccountId +
+                    ", SteamID=" +
+                    result.SteamId +
+                    ", FirebaseAuthApplied=" +
+                    result.FirebaseAuthApplied +
+                    ".";
+
+                statusType =
+                    MessageType.Info;
+            }
+            else
+            {
+                statusMessage =
+                    "Returning sign-in failed: " +
+                    (result?.ErrorKey ??
+                     "unknown") +
+                    " | " +
+                    (result?.TechnicalMessage ??
+                     string.Empty);
+
+                statusType =
+                    MessageType.Warning;
+            }
+        }
+        finally
+        {
+            operationInFlight = false;
+            Repaint();
+        }
     }
 
     private async Task RunAsync(

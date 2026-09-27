@@ -1896,6 +1896,8 @@ export {
 
 export {
   platformSteamDevLinkCurrentAccount,
+  platformSteamDevReturningSignIn,
   platformSteamGetLinkStatus,
   platformSteamLinkCurrentAccount,
+  platformSteamReturningSignIn,
 } from "./platform/steam-link";

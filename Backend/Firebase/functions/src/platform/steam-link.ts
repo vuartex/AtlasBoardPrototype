@@ -1,5 +1,6 @@
 import {createHash} from "node:crypto";
 import {getApps, initializeApp} from "firebase-admin/app";
+import {getAuth} from "firebase-admin/auth";
 import {
   FieldValue,
   getFirestore,
@@ -75,6 +76,16 @@ interface LinkStatus {
   integrityOk: boolean;
 }
 
+interface ReturningSignInMapping {
+  accountId: string;
+  steamId: string;
+  ownerSteamId: string;
+  appId: number;
+  verified: boolean;
+  developmentOnly: boolean;
+  verificationMode: string;
+}
+
 interface SteamAuthPayload {
   response?: {
     params?: {
@@ -128,6 +139,87 @@ function requireEmulatedFirestore(): void {
       },
     );
   }
+}
+
+/**
+ * Requires the local Firebase Authentication emulator.
+ */
+function requireEmulatedAuth(): void {
+  if (!process.env.FIREBASE_AUTH_EMULATOR_HOST) {
+    throw new HttpsError(
+      "failed-precondition",
+      "AUTH_EMULATOR_ONLY",
+      {
+        errorKey: "platform.error.emulator_only",
+      },
+    );
+  }
+}
+
+/**
+ * Base64url-encodes UTF-8 text.
+ * @param {string} value Input text.
+ * @return {string} Encoded text.
+ */
+function encodeBase64Url(
+  value: string,
+): string {
+  return Buffer
+    .from(value, "utf8")
+    .toString("base64url");
+}
+
+/**
+ * Creates an emulator-only custom token.
+ *
+ * The Firebase Auth emulator does not validate custom-token signatures.
+ * This token must never be used outside emulator mode.
+ * @param {string} uid Canonical Atlas account id.
+ * @return {string} Emulator-only custom token.
+ */
+function createEmulatorCustomToken(
+  uid: string,
+): string {
+  const now =
+    Math.floor(Date.now() / 1000);
+
+  const projectId =
+    process.env.GCLOUD_PROJECT ??
+    process.env.GOOGLE_CLOUD_PROJECT ??
+    "atlasboard-usa";
+
+  const issuer =
+    `firebase-auth-emulator@${projectId}` +
+    ".iam.gserviceaccount.com";
+
+  const header =
+    encodeBase64Url(
+      JSON.stringify({
+        alg: "RS256",
+        typ: "JWT",
+      }),
+    );
+
+  const payload =
+    encodeBase64Url(
+      JSON.stringify({
+        iss: issuer,
+        sub: issuer,
+        aud:
+          "https://identitytoolkit.googleapis.com/" +
+          "google.identity.identitytoolkit.v1.IdentityToolkit",
+        iat: now,
+        exp: now + 3600,
+        uid,
+      }),
+    );
+
+  const signature =
+    encodeBase64Url(
+      "atlasboard-auth-emulator-only",
+    );
+
+  return `${header}.${payload}.${signature}`;
 }
 
 /**
@@ -575,6 +667,136 @@ export async function applySteamIdentityLink(
 }
 
 /**
+ * Resolves Steam -> Atlas mapping and verifies both lookup directions.
+ * @param {string} steamId Steam identity.
+ * @param {boolean} requireVerified Whether production verification is required.
+ * @return {Promise<ReturningSignInMapping>} Canonical mapping.
+ */
+async function resolveSteamReturningMapping(
+  steamId: string,
+  requireVerified: boolean,
+): Promise<ReturningSignInMapping> {
+  const db =
+    getFirestore();
+
+  const providerRef =
+    db
+      .collection("platform_identity_links")
+      .doc(providerDocumentId(steamId));
+
+  const providerSnapshot =
+    await providerRef.get();
+
+  if (!providerSnapshot.exists) {
+    throw new HttpsError(
+      "not-found",
+      "STEAM_ACCOUNT_NOT_LINKED",
+      {
+        errorKey:
+          "platform.error.steam_not_linked",
+      },
+    );
+  }
+
+  const providerData =
+    providerSnapshot.data() ?? {};
+
+  const accountId =
+    typeof providerData.accountId === "string" ?
+      providerData.accountId :
+      "";
+
+  if (!accountId) {
+    throw new HttpsError(
+      "internal",
+      "PLATFORM_LINK_INTEGRITY_ERROR",
+      {
+        errorKey:
+          "platform.error.link_integrity",
+      },
+    );
+  }
+
+  const accountRef =
+    db
+      .collection("account_platform_links")
+      .doc(accountDocumentId(accountId));
+
+  const accountSnapshot =
+    await accountRef.get();
+
+  if (!accountSnapshot.exists) {
+    throw new HttpsError(
+      "internal",
+      "PLATFORM_LINK_INTEGRITY_ERROR",
+      {
+        errorKey:
+          "platform.error.link_integrity",
+      },
+    );
+  }
+
+  const accountData =
+    accountSnapshot.data() ?? {};
+
+  if (
+    accountData.accountId !== accountId ||
+    accountData.providerUserId !== steamId ||
+    providerData.providerUserId !== steamId
+  ) {
+    throw new HttpsError(
+      "internal",
+      "PLATFORM_LINK_INTEGRITY_ERROR",
+      {
+        errorKey:
+          "platform.error.link_integrity",
+      },
+    );
+  }
+
+  const verified =
+    providerData.verified === true &&
+    accountData.verified === true;
+
+  const developmentOnly =
+    providerData.developmentOnly === true ||
+    accountData.developmentOnly === true;
+
+  if (
+    requireVerified &&
+    (!verified || developmentOnly)
+  ) {
+    throw new HttpsError(
+      "permission-denied",
+      "STEAM_LINK_NOT_VERIFIED",
+      {
+        errorKey:
+          "platform.error.steam_link_not_verified",
+      },
+    );
+  }
+
+  return {
+    accountId,
+    steamId,
+    ownerSteamId:
+      typeof accountData.ownerProviderUserId === "string" ?
+        accountData.ownerProviderUserId :
+        steamId,
+    appId:
+      typeof accountData.appId === "number" ?
+        accountData.appId :
+        0,
+    verified,
+    developmentOnly,
+    verificationMode:
+      typeof accountData.verificationMode === "string" ?
+        accountData.verificationMode :
+        "",
+  };
+}
+
+/**
  * Verifies a Steam Web API ticket through Valve's secure publisher endpoint.
  * @param {string} ticketHex Hex-encoded Web API ticket.
  * @return {Promise<VerifiedSteamIdentity>} Verified identity.
@@ -880,6 +1102,146 @@ export const platformSteamDevLinkCurrentAccount = onCall(
     return {
       ok: true,
       ...result,
+    };
+  },
+);
+/**
+ * Verifies Steam server-side and returns a Firebase custom token for an
+ * already-linked canonical Atlas account.
+ */
+export const platformSteamReturningSignIn = onCall(
+  {
+    region: REGION,
+    maxInstances: 10,
+    enforceAppCheck: false,
+    secrets: [
+      STEAM_PUBLISHER_WEB_API_KEY,
+    ],
+  },
+  async (request) => {
+    const ticketHex =
+      readTicketHex(
+        request.data?.ticket,
+      );
+
+    const identity =
+      await verifySteamWebApiTicket(
+        ticketHex,
+      );
+
+    const mapping =
+      await resolveSteamReturningMapping(
+        identity.steamId,
+        true,
+      );
+
+    if (
+      mapping.appId > 0 &&
+      mapping.appId !== identity.appId
+    ) {
+      throw new HttpsError(
+        "permission-denied",
+        "STEAM_APP_ID_MISMATCH",
+        {
+          errorKey:
+            "platform.error.steam_app_mismatch",
+        },
+      );
+    }
+
+    const customToken =
+      await getAuth().createCustomToken(
+        mapping.accountId,
+        {
+          atlasProvider: PROVIDER,
+          atlasSteamId: identity.steamId,
+        },
+      );
+
+    logger.info(
+      "AtlasBoard returning Steam sign-in token issued.",
+      {
+        accountId: mapping.accountId,
+        provider: PROVIDER,
+        steamId: identity.steamId,
+        appId: identity.appId,
+        verified: true,
+      },
+    );
+
+    return {
+      ok: true,
+      accountId: mapping.accountId,
+      provider: PROVIDER,
+      steamId: identity.steamId,
+      ownerSteamId: mapping.ownerSteamId,
+      appId: identity.appId,
+      verified: true,
+      developmentOnly: false,
+      verificationMode:
+        "steam_webapi_ticket_v1",
+      customToken,
+    };
+  },
+);
+
+/**
+ * Emulator-only returning-user proof.
+ *
+ * This callable is intentionally unauthenticated because its purpose is to
+ * restore the already-linked Atlas account. It is hard-gated to local
+ * Functions + Firestore + Auth emulators.
+ */
+export const platformSteamDevReturningSignIn = onCall(
+  {
+    region: REGION,
+    maxInstances: 2,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    requireEmulatedFirestore();
+    requireEmulatedAuth();
+
+    const steamId =
+      readSteamId(
+        request.data?.steamId,
+      );
+
+    const mapping =
+      await resolveSteamReturningMapping(
+        steamId,
+        false,
+      );
+
+    const customToken =
+      createEmulatorCustomToken(
+        mapping.accountId,
+      );
+
+    logger.info(
+      "AtlasBoard emulator returning Steam sign-in issued.",
+      {
+        accountId: mapping.accountId,
+        provider: PROVIDER,
+        steamId,
+        verified: mapping.verified,
+        developmentOnly:
+          mapping.developmentOnly,
+      },
+    );
+
+    return {
+      ok: true,
+      accountId: mapping.accountId,
+      provider: PROVIDER,
+      steamId,
+      ownerSteamId: mapping.ownerSteamId,
+      appId: mapping.appId,
+      verified: mapping.verified,
+      developmentOnly: true,
+      verificationMode:
+        "emulator_returning_signin",
+      customToken,
     };
   },
 );

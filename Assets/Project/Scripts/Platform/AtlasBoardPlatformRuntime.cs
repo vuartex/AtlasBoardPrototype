@@ -11,6 +11,8 @@ public sealed class AtlasBoardPlatformRuntime :
 {
     private const float PresencePollSeconds = 1f;
     private const float AchievementPollSeconds = 30f;
+    private const float ProviderSignInRetryInitialSeconds = 5f;
+    private const float ProviderSignInRetryMaxSeconds = 30f;
 
     private static AtlasBoardPlatformRuntime instance;
 
@@ -38,6 +40,9 @@ public sealed class AtlasBoardPlatformRuntime :
     private bool presenceSyncInFlight;
     private bool achievementSyncInFlight;
     private bool providerSignInStarted;
+    private bool providerSignInComplete;
+    private int providerSignInFailureCount;
+    private float nextProviderSignInAttemptAt;
 
     private string pendingStartupJoinCode =
         string.Empty;
@@ -172,7 +177,9 @@ public sealed class AtlasBoardPlatformRuntime :
         ResolveRuntimeBridges();
         RefreshCanonicalIdentityBinding();
 
-        if (!providerSignInStarted)
+        if (!providerSignInStarted &&
+            !providerSignInComplete &&
+            Time.unscaledTime >= nextProviderSignInAttemptAt)
         {
             _ = EnsureProviderSignedInAsync();
         }
@@ -366,14 +373,40 @@ public sealed class AtlasBoardPlatformRuntime :
                 await identityProvider
                     .EnsureSignedInAsync();
 
-            if (!signedIn &&
-                IsSteamProviderActive)
+            if (signedIn)
+            {
+                providerSignInComplete = true;
+                providerSignInFailureCount = 0;
+                nextProviderSignInAttemptAt =
+                    float.PositiveInfinity;
+                return;
+            }
+
+            providerSignInFailureCount++;
+
+            float retryDelaySeconds =
+                Mathf.Min(
+                    ProviderSignInRetryMaxSeconds,
+                    ProviderSignInRetryInitialSeconds *
+                    Mathf.Pow(
+                        2f,
+                        Mathf.Min(
+                            providerSignInFailureCount - 1,
+                            3)));
+
+            nextProviderSignInAttemptAt =
+                Time.unscaledTime + retryDelaySeconds;
+
+            if (IsSteamProviderActive)
             {
                 Debug.LogWarning(
                     "AtlasBoard Steam provider is selected but Steam " +
                     "identity is not ready. The game remains playable " +
                     "through canonical Firebase identity. " +
-                    SteamLastError);
+                    SteamLastError +
+                    " Next Steam sign-in retry in " +
+                    retryDelaySeconds.ToString("0") +
+                    " seconds.");
             }
         }
         finally
