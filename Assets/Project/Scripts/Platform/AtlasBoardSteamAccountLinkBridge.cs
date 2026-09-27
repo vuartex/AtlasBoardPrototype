@@ -48,6 +48,9 @@ public sealed class AtlasBoardSteamAccountLinkBridge :
     private TaskCompletionSource<WebApiTicketResult>
         pendingTicketSource;
 
+    private Task<AtlasBoardSteamReturningSignInResult>
+        automaticReturningSignInTask;
+
     private HAuthTicket pendingTicket =
         HAuthTicket.Invalid;
 
@@ -325,6 +328,52 @@ public sealed class AtlasBoardSteamAccountLinkBridge :
         return await ApplyReturningEnvelopeAsync(
             envelope,
             true);
+    }
+
+    public async Task<AtlasBoardSteamReturningSignInResult>
+        AutomaticReturningSignInCurrentSteamAsync()
+    {
+        if (automaticReturningSignInTask == null)
+        {
+            automaticReturningSignInTask =
+                AutomaticReturningSignInCoreAsync();
+        }
+
+        return await automaticReturningSignInTask;
+    }
+
+    private async Task<AtlasBoardSteamReturningSignInResult>
+        AutomaticReturningSignInCoreAsync()
+    {
+        ResolveReferences();
+
+        AtlasBoardSteamReturningSignInResult result =
+            UsingLocalEmulators
+                ? await DevReturningSignInCurrentSteamAsync()
+                : await ReturningSignInCurrentSteamAsync();
+
+        if (!result.Success)
+        {
+            return result;
+        }
+
+        ResolveReferences();
+
+        if (lobbyBridge != null)
+        {
+            bool rebound =
+                await lobbyBridge
+                    .RebindIdentityFromFirebaseAuthAsync();
+
+            if (!rebound)
+            {
+                return ReturningSignInFailure(
+                    "platform.error.identity_rebind_failed",
+                    "Steam returning sign-in succeeded, but the lobby identity could not rebind to Firebase Auth.");
+            }
+        }
+
+        return result;
     }
 
     public async Task<AtlasBoardSteamReturningSignInResult>

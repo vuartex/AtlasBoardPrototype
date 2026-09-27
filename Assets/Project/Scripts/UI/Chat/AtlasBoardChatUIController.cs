@@ -143,11 +143,7 @@ public sealed class AtlasBoardChatUIController : MonoBehaviour
                     currentScope,
                     lastMessageEpochMs);
 
-            if (currentScope == null ||
-                !string.Equals(
-                    expectedScopeKey,
-                    currentScope.StableKey,
-                    StringComparison.Ordinal))
+            if (!CanApplyAsyncResult(expectedScopeKey))
             {
                 return;
             }
@@ -191,6 +187,11 @@ public sealed class AtlasBoardChatUIController : MonoBehaviour
 
                 AddMessageBubble(message);
 
+                if (!CanApplyAsyncResult(expectedScopeKey))
+                {
+                    return;
+                }
+
                 if (!wasInitialLoad &&
                     !panelRoot.activeSelf &&
                     !string.Equals(
@@ -200,6 +201,11 @@ public sealed class AtlasBoardChatUIController : MonoBehaviour
                 {
                     unreadCount++;
                 }
+            }
+
+            if (!CanApplyAsyncResult(expectedScopeKey))
+            {
+                return;
             }
 
             initialSnapshotLoaded = true;
@@ -222,6 +228,19 @@ public sealed class AtlasBoardChatUIController : MonoBehaviour
         {
             pollInFlight = false;
         }
+    }
+
+    private bool CanApplyAsyncResult(string expectedScopeKey)
+    {
+        return this != null &&
+               isActiveAndEnabled &&
+               currentScope != null &&
+               panelRoot != null &&
+               bridge != null &&
+               string.Equals(
+                   expectedScopeKey,
+                   currentScope.StableKey,
+                   StringComparison.Ordinal);
     }
 
     private async void SendAsync()

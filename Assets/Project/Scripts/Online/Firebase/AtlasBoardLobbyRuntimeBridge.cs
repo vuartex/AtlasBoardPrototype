@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using Firebase;
+using Firebase.Auth;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -57,6 +58,48 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             await EnsureIdentityAsync();
 
         return result.Success;
+    }
+
+    public async Task<bool> RebindIdentityFromFirebaseAuthAsync()
+    {
+        try
+        {
+            DependencyStatus dependencyStatus =
+                await FirebaseApp.CheckAndFixDependenciesAsync();
+
+            if (dependencyStatus != DependencyStatus.Available)
+            {
+                return false;
+            }
+
+            FirebaseAuth auth = FirebaseAuth.DefaultInstance;
+            FirebaseUser user = auth != null
+                ? auth.CurrentUser
+                : null;
+
+            if (user == null ||
+                string.IsNullOrWhiteSpace(user.UserId))
+            {
+                return false;
+            }
+
+            string token = await user.TokenAsync(false);
+
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return false;
+            }
+
+            idToken = token;
+            currentAccountId = user.UserId;
+            initialized = true;
+
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
     public string CurrentRoomCode => currentRoomCode;
     public AtlasLobbySnapshot CurrentSnapshot => currentSnapshot;
@@ -905,6 +948,38 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
 
     private async Task<AtlasLobbyOperationResult> EnsureLocalEmulatorIdentityAsync()
     {
+        AtlasBoardPlatformRuntime platformRuntime =
+            AtlasBoardPlatformRuntime.Instance;
+
+        AtlasBoardSteamAccountLinkBridge steamLinkBridge =
+            AtlasBoardSteamAccountLinkBridge.Instance;
+
+        if (platformRuntime != null &&
+            steamLinkBridge != null &&
+            platformRuntime.IsSteamProviderActive &&
+            platformRuntime.SteamInitialized &&
+            platformRuntime.SteamId != 0)
+        {
+            AtlasBoardSteamReturningSignInResult steamResult =
+                await steamLinkBridge
+                    .AutomaticReturningSignInCurrentSteamAsync();
+
+            if (steamResult != null &&
+                steamResult.Success &&
+                initialized &&
+                !string.IsNullOrWhiteSpace(idToken) &&
+                !string.IsNullOrWhiteSpace(currentAccountId))
+            {
+                Debug.Log(
+                    "AtlasBoard Lobby Runtime Bridge: existing Steam-linked " +
+                    "Atlas identity restored before emulator fallback. " +
+                    $"UID={currentAccountId}.",
+                    this);
+
+                return AtlasLobbyOperationResult.Ok(null);
+            }
+        }
+
         DependencyStatus dependencyStatus =
             await FirebaseApp.CheckAndFixDependenciesAsync();
 

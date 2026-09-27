@@ -43,6 +43,11 @@ public sealed class AtlasBoardPlatformRuntime :
     private bool providerSignInComplete;
     private int providerSignInFailureCount;
     private float nextProviderSignInAttemptAt;
+    private bool returningSteamSignInStarted;
+    private bool returningSteamSignInComplete;
+    private bool steamRecoveryAchievementResyncPending;
+    private string steamRecoveryAchievementAccountId =
+        string.Empty;
 
     private string pendingStartupJoinCode =
         string.Empty;
@@ -205,6 +210,22 @@ public sealed class AtlasBoardPlatformRuntime :
                 PresencePollSeconds;
 
             _ = RefreshPresenceAsync();
+        }
+
+        if (steamRecoveryAchievementResyncPending &&
+            !achievementSyncInFlight &&
+            achievementProvider != null &&
+            achievementProvider.SupportsAchievementProjection &&
+            progressionBridge != null)
+        {
+            string accountId =
+                steamRecoveryAchievementAccountId;
+
+            steamRecoveryAchievementResyncPending = false;
+            steamRecoveryAchievementAccountId = string.Empty;
+
+            _ = SynchronizeAchievementsAfterSteamRecoveryAsync(
+                accountId);
         }
 
         if (Time.unscaledTime >=
@@ -379,6 +400,14 @@ public sealed class AtlasBoardPlatformRuntime :
                 providerSignInFailureCount = 0;
                 nextProviderSignInAttemptAt =
                     float.PositiveInfinity;
+
+                if (IsSteamProviderActive &&
+                    !returningSteamSignInStarted &&
+                    !returningSteamSignInComplete)
+                {
+                    _ = TryAutomaticReturningSteamSignInAsync();
+                }
+
                 return;
             }
 
@@ -413,6 +442,100 @@ public sealed class AtlasBoardPlatformRuntime :
         {
             providerSignInStarted = false;
         }
+    }
+
+    private async Task TryAutomaticReturningSteamSignInAsync()
+    {
+        if (returningSteamSignInStarted ||
+            returningSteamSignInComplete ||
+            !IsSteamProviderActive ||
+            !SteamInitialized ||
+            SteamId == 0)
+        {
+            return;
+        }
+
+        returningSteamSignInStarted = true;
+
+        try
+        {
+            AtlasBoardSteamAccountLinkBridge bridge =
+                AtlasBoardSteamAccountLinkBridge.Instance;
+
+            if (bridge == null)
+            {
+                return;
+            }
+
+            AtlasBoardSteamReturningSignInResult result =
+                await bridge
+                    .AutomaticReturningSignInCurrentSteamAsync();
+
+            if (result != null && result.Success)
+            {
+                returningSteamSignInComplete = true;
+                Debug.Log(
+                    "AtlasBoard automatic Steam returning sign-in restored " +
+                    "canonical Atlas account " + result.AccountId + ".",
+                    this);
+
+                steamRecoveryAchievementAccountId =
+                    result.AccountId ?? string.Empty;
+                steamRecoveryAchievementResyncPending = true;
+            }
+            else
+            {
+                Debug.Log(
+                    "AtlasBoard automatic Steam returning sign-in did not " +
+                    "restore an existing account. Continuing with the " +
+                    "current Atlas identity.",
+                    this);
+            }
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning(
+                "AtlasBoard automatic Steam returning sign-in failed without " +
+                "blocking gameplay: " + exception.Message,
+                this);
+        }
+        finally
+        {
+            returningSteamSignInStarted = false;
+        }
+    }
+
+    private async Task SynchronizeAchievementsAfterSteamRecoveryAsync(
+        string accountId)
+    {
+        AtlasBoardAchievementProjectionResult result =
+            await SynchronizeAchievementsNowAsync();
+
+        string safeAccountId =
+            accountId ?? string.Empty;
+
+        if (result != null && result.Success)
+        {
+            Debug.Log(
+                "AtlasBoard Steam recovery achievement re-sync completed. " +
+                "AccountId=" + safeAccountId +
+                ", Requested=" + result.RequestedCount +
+                ", NewlyProjected=" + result.NewlyProjectedCount +
+                ", TotalProjected=" + result.TotalProjectedCount + ".",
+                this);
+            return;
+        }
+
+        string technicalMessage =
+            result != null
+                ? result.TechnicalMessage
+                : "Achievement synchronization returned no result.";
+
+        Debug.LogWarning(
+            "AtlasBoard Steam recovery achievement re-sync attempted but " +
+            "did not complete. AccountId=" + safeAccountId +
+            ". " + technicalMessage,
+            this);
     }
 
     private void ConfigureProviders()
