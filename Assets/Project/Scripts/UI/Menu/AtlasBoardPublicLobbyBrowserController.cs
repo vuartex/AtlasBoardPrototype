@@ -45,6 +45,17 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
     [SerializeField] private Button backButton;
     [SerializeField] private Button refreshButton;
     [SerializeField] private Button createPublicRoomButton;
+    private Button joinByCodeButton;
+
+    private GameObject joinByCodePromptRoot;
+    private TMP_InputField joinByCodeCodeInput;
+    private TMP_InputField joinByCodePasswordInput;
+    private TMP_Text joinByCodeStatus;
+    private TMP_Text joinByCodeTitle;
+    private TMP_Text joinByCodeBody;
+    private Button joinByCodeJoinButton;
+    private Button joinByCodeCancelButton;
+
     [SerializeField] private RoomRow[] rows = Array.Empty<RoomRow>();
 
     [Header("Password Prompt")]
@@ -80,6 +91,8 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
     private void Awake()
     {
         ResolveReferences();
+        EnsureJoinByCodeButton();
+        EnsureJoinByCodePrompt();
         HookControls();
         SetActive(browserRoot, false);
         SetActive(passwordPromptRoot, false);
@@ -94,6 +107,14 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
 
     private void Update()
     {
+        if (joinByCodePromptRoot != null &&
+            joinByCodePromptRoot.activeSelf &&
+            WasEscapePressedThisFrame())
+        {
+            HideJoinByCodePrompt();
+            return;
+        }
+
         if (passwordPromptRoot != null &&
             passwordPromptRoot.activeSelf &&
             WasEscapePressedThisFrame())
@@ -120,9 +141,12 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
         }
 
         ResolveReferences();
+        EnsureJoinByCodeButton();
+        EnsureJoinByCodePrompt();
         SetActive(mainMenuRoot, false);
         SetActive(browserRoot, true);
         SetActive(passwordPromptRoot, false);
+        SetActive(joinByCodePromptRoot, false);
         RebuildFilterLabels();
         ClearRows();
         SetText(statusText, T("public_browser.loading", "Loading public rooms..."));
@@ -174,6 +198,9 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
         AddClick(backButton, BackToMainMenu);
         AddClick(refreshButton, RefreshRooms);
         AddClick(createPublicRoomButton, CreatePublicRoom);
+        AddClick(joinByCodeButton, OpenJoinByCode);
+        AddClick(joinByCodeJoinButton, ConfirmJoinByCode);
+        AddClick(joinByCodeCancelButton, HideJoinByCodePrompt);
         AddClick(passwordPromptJoinButton, ConfirmPasswordJoin);
         AddClick(passwordPromptCancelButton, HidePasswordPrompt);
 
@@ -212,6 +239,9 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
         RemoveClick(backButton, BackToMainMenu);
         RemoveClick(refreshButton, RefreshRooms);
         RemoveClick(createPublicRoomButton, CreatePublicRoom);
+        RemoveClick(joinByCodeButton, OpenJoinByCode);
+        RemoveClick(joinByCodeJoinButton, ConfirmJoinByCode);
+        RemoveClick(joinByCodeCancelButton, HideJoinByCodePrompt);
         RemoveClick(passwordPromptJoinButton, ConfirmPasswordJoin);
         RemoveClick(passwordPromptCancelButton, HidePasswordPrompt);
 
@@ -232,6 +262,602 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
         }
 
         hooked = false;
+    }
+
+    private void EnsureJoinByCodeButton()
+    {
+        if (joinByCodeButton != null ||
+            createPublicRoomButton == null)
+        {
+            return;
+        }
+
+        Transform parent =
+            createPublicRoomButton.transform.parent;
+
+        Transform existing =
+            parent != null
+                ? parent.Find("Button_JoinByCode")
+                : null;
+
+        if (existing != null)
+        {
+            joinByCodeButton =
+                existing.GetComponent<Button>();
+        }
+        else if (parent != null)
+        {
+            GameObject clone =
+                Instantiate(
+                    createPublicRoomButton.gameObject,
+                    parent,
+                    false);
+
+            clone.name = "Button_JoinByCode";
+
+            AtlasBoardLocalizedText inheritedLocalization =
+                clone.GetComponentInChildren<
+                    AtlasBoardLocalizedText>(
+                    true);
+
+            if (inheritedLocalization != null)
+            {
+                inheritedLocalization.enabled = false;
+            }
+
+            joinByCodeButton =
+                clone.GetComponent<Button>();
+        }
+
+        RectTransform createRect =
+            createPublicRoomButton.GetComponent<
+                RectTransform>();
+
+        RectTransform joinRect =
+            joinByCodeButton != null
+                ? joinByCodeButton.GetComponent<
+                    RectTransform>()
+                : null;
+
+        if (createRect != null)
+        {
+            createRect.anchoredPosition =
+                new Vector2(
+                    -320f,
+                    createRect.anchoredPosition.y);
+
+            createRect.sizeDelta =
+                new Vector2(
+                    340f,
+                    createRect.sizeDelta.y);
+        }
+
+        if (joinRect != null)
+        {
+            joinRect.anchoredPosition =
+                new Vector2(
+                    100f,
+                    joinRect.anchoredPosition.y);
+
+            joinRect.sizeDelta =
+                new Vector2(
+                    340f,
+                    joinRect.sizeDelta.y);
+        }
+
+        RefreshJoinByCodeLabel();
+    }
+
+    private void RefreshJoinByCodeLabel()
+    {
+        if (joinByCodeButton == null)
+        {
+            return;
+        }
+
+        TMP_Text label =
+            joinByCodeButton
+                .GetComponentInChildren<TMP_Text>(
+                    true);
+
+        SetText(
+            label,
+            T(
+                "lobby.online.join_by_code",
+                "JOIN BY CODE"));
+    }
+
+    private void EnsureJoinByCodePrompt()
+    {
+        if (joinByCodePromptRoot != null ||
+            browserRoot == null ||
+            passwordPromptRoot == null)
+        {
+            return;
+        }
+
+        joinByCodePromptRoot =
+            Instantiate(
+                passwordPromptRoot,
+                browserRoot.transform,
+                false);
+
+        joinByCodePromptRoot.name =
+            "PublicJoinByCodePrompt";
+
+        DisableLocalizedTextBindings(
+            joinByCodePromptRoot);
+
+        Transform panel =
+            FindChildRecursive(
+                joinByCodePromptRoot.transform,
+                "PasswordPromptPanel");
+
+        if (panel is RectTransform panelRect)
+        {
+            panelRect.sizeDelta =
+                new Vector2(
+                    700f,
+                    500f);
+        }
+
+        joinByCodeTitle =
+            FindChildRecursive(
+                joinByCodePromptRoot.transform,
+                "PasswordPromptTitle")
+            ?.GetComponent<TMP_Text>();
+
+        joinByCodeBody =
+            FindChildRecursive(
+                joinByCodePromptRoot.transform,
+                "PasswordPromptBody")
+            ?.GetComponent<TMP_Text>();
+
+        joinByCodePasswordInput =
+            FindChildRecursive(
+                joinByCodePromptRoot.transform,
+                "Input_PublicRoomPassword")
+            ?.GetComponent<TMP_InputField>();
+
+        joinByCodeStatus =
+            FindChildRecursive(
+                joinByCodePromptRoot.transform,
+                "PasswordPromptStatus")
+            ?.GetComponent<TMP_Text>();
+
+        joinByCodeJoinButton =
+            FindChildRecursive(
+                joinByCodePromptRoot.transform,
+                "Button_PasswordJoin")
+            ?.GetComponent<Button>();
+
+        joinByCodeCancelButton =
+            FindChildRecursive(
+                joinByCodePromptRoot.transform,
+                "Button_PasswordCancel")
+            ?.GetComponent<Button>();
+
+        if (joinByCodeJoinButton != null)
+        {
+            joinByCodeJoinButton.name =
+                "Button_JoinByCodeConfirm";
+        }
+
+        if (joinByCodeCancelButton != null)
+        {
+            joinByCodeCancelButton.name =
+                "Button_JoinByCodeCancel";
+        }
+
+        if (joinByCodePasswordInput != null &&
+            panel != null)
+        {
+            joinByCodePasswordInput.name =
+                "Input_JoinByCodePassword";
+
+            RectTransform passwordRect =
+                joinByCodePasswordInput
+                    .GetComponent<RectTransform>();
+
+            if (passwordRect != null)
+            {
+                passwordRect.anchoredPosition =
+                    new Vector2(
+                        0f,
+                        -35f);
+            }
+
+            joinByCodeCodeInput =
+                Instantiate(
+                    joinByCodePasswordInput,
+                    panel,
+                    false);
+
+            joinByCodeCodeInput.name =
+                "Input_JoinByCodeRoomCode";
+
+            joinByCodeCodeInput.contentType =
+                TMP_InputField.ContentType.IntegerNumber;
+
+            joinByCodeCodeInput.characterLimit =
+                6;
+
+            joinByCodeCodeInput.text =
+                string.Empty;
+
+            joinByCodeCodeInput.onValueChanged =
+                new TMP_InputField.OnChangeEvent();
+
+            joinByCodeCodeInput.onSubmit =
+                new TMP_InputField.SubmitEvent();
+
+            RectTransform codeRect =
+                joinByCodeCodeInput
+                    .GetComponent<RectTransform>();
+
+            if (codeRect != null)
+            {
+                codeRect.anchoredPosition =
+                    new Vector2(
+                        0f,
+                        45f);
+            }
+        }
+
+        if (joinByCodeTitle != null)
+        {
+            joinByCodeTitle.rectTransform.anchoredPosition =
+                new Vector2(
+                    0f,
+                    175f);
+        }
+
+        if (joinByCodeBody != null)
+        {
+            joinByCodeBody.rectTransform.anchoredPosition =
+                new Vector2(
+                    0f,
+                    115f);
+        }
+
+        if (joinByCodeStatus != null)
+        {
+            joinByCodeStatus.rectTransform.anchoredPosition =
+                new Vector2(
+                    0f,
+                    -105f);
+        }
+
+        MoveButtonY(
+            joinByCodeJoinButton,
+            -175f);
+
+        MoveButtonY(
+            joinByCodeCancelButton,
+            -175f);
+
+        RefreshJoinByCodePromptLocalizedText();
+        SetActive(joinByCodePromptRoot, false);
+    }
+
+    private void RefreshJoinByCodePromptLocalizedText()
+    {
+        SetText(
+            joinByCodeTitle,
+            T(
+                "lobby.online.join_by_code",
+                "JOIN BY CODE"));
+
+        SetText(
+            joinByCodeBody,
+            T(
+                "lobby.online.invalid_code",
+                "Enter exactly 6 digits."));
+
+        SetInputPlaceholder(
+            joinByCodeCodeInput,
+            T(
+                "lobby.online.room_code",
+                "ROOM CODE"));
+
+        SetInputPlaceholder(
+            joinByCodePasswordInput,
+            T(
+                "lobby.access.password_optional",
+                "PASSWORD (OPTIONAL)"));
+
+        SetButtonLabel(
+            joinByCodeJoinButton,
+            T(
+                "lobby.online.join_room",
+                "JOIN ROOM"));
+
+        SetButtonLabel(
+            joinByCodeCancelButton,
+            T(
+                "common.cancel",
+                "CANCEL"));
+    }
+
+    private void OpenJoinByCode()
+    {
+        if (busy)
+        {
+            return;
+        }
+
+        EnsureJoinByCodePrompt();
+
+        if (joinByCodePromptRoot == null)
+        {
+            SetText(
+                statusText,
+                T(
+                    "public_browser.unavailable",
+                    "Public room service is unavailable."));
+            return;
+        }
+
+        if (joinByCodeCodeInput != null)
+        {
+            joinByCodeCodeInput.text =
+                string.Empty;
+        }
+
+        if (joinByCodePasswordInput != null)
+        {
+            joinByCodePasswordInput.text =
+                string.Empty;
+        }
+
+        SetText(
+            joinByCodeStatus,
+            string.Empty);
+
+        RefreshJoinByCodePromptLocalizedText();
+
+        SetActive(
+            joinByCodePromptRoot,
+            true);
+
+        joinByCodePromptRoot.transform
+            .SetAsLastSibling();
+
+        joinByCodeCodeInput?
+            .ActivateInputField();
+    }
+
+    private void HideJoinByCodePrompt()
+    {
+        if (busy)
+        {
+            return;
+        }
+
+        SetActive(
+            joinByCodePromptRoot,
+            false);
+
+        SetText(
+            joinByCodeStatus,
+            string.Empty);
+    }
+
+    private async void ConfirmJoinByCode()
+    {
+        if (busy ||
+            runtimeBridge == null ||
+            lobbyUiController == null)
+        {
+            return;
+        }
+
+        string code =
+            SanitizeRoomCode(
+                joinByCodeCodeInput != null
+                    ? joinByCodeCodeInput.text
+                    : string.Empty);
+
+        if (code.Length != 6)
+        {
+            SetText(
+                joinByCodeStatus,
+                T(
+                    "lobby.online.invalid_code",
+                    "Enter exactly 6 digits."));
+            return;
+        }
+
+        string password =
+            joinByCodePasswordInput != null
+                ? joinByCodePasswordInput.text
+                : string.Empty;
+
+        busy = true;
+        SetControlsInteractable(false);
+
+        if (joinByCodeJoinButton != null)
+        {
+            joinByCodeJoinButton.interactable =
+                false;
+        }
+
+        if (joinByCodeCancelButton != null)
+        {
+            joinByCodeCancelButton.interactable =
+                false;
+        }
+
+        SetText(
+            joinByCodeStatus,
+            T(
+                "public_browser.joining",
+                "Joining room..."));
+
+        try
+        {
+            AtlasLobbyOperationResult result =
+                await runtimeBridge.JoinByCodeAsync(
+                    code,
+                    password);
+
+            if (!result.Success ||
+                result.Snapshot == null)
+            {
+                SetText(
+                    joinByCodeStatus,
+                    TranslateError(
+                        result.ErrorLocalizationKey,
+                        "Could not join this room."));
+                return;
+            }
+
+            SetActive(
+                joinByCodePromptRoot,
+                false);
+
+            SetActive(
+                browserRoot,
+                false);
+
+            await lobbyUiController
+                .EnterJoinedRoomFromExternalCodeAsync(
+                    result);
+        }
+        finally
+        {
+            busy = false;
+            SetControlsInteractable(true);
+
+            if (joinByCodeJoinButton != null)
+            {
+                joinByCodeJoinButton.interactable =
+                    true;
+            }
+
+            if (joinByCodeCancelButton != null)
+            {
+                joinByCodeCancelButton.interactable =
+                    true;
+            }
+        }
+    }
+
+    private static string SanitizeRoomCode(
+        string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        return new string(
+            value.Where(char.IsDigit)
+                .Take(6)
+                .ToArray());
+    }
+
+    private static Transform FindChildRecursive(
+        Transform root,
+        string name)
+    {
+        if (root == null)
+        {
+            return null;
+        }
+
+        if (root.name == name)
+        {
+            return root;
+        }
+
+        for (int index = 0;
+             index < root.childCount;
+             index++)
+        {
+            Transform found =
+                FindChildRecursive(
+                    root.GetChild(index),
+                    name);
+
+            if (found != null)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
+    private static void DisableLocalizedTextBindings(
+        GameObject root)
+    {
+        if (root == null)
+        {
+            return;
+        }
+
+        AtlasBoardLocalizedText[] bindings =
+            root.GetComponentsInChildren<
+                AtlasBoardLocalizedText>(
+                true);
+
+        foreach (AtlasBoardLocalizedText binding
+                 in bindings)
+        {
+            if (binding != null)
+            {
+                binding.enabled = false;
+            }
+        }
+    }
+
+    private static void MoveButtonY(
+        Button button,
+        float y)
+    {
+        RectTransform rect =
+            button != null
+                ? button.GetComponent<
+                    RectTransform>()
+                : null;
+
+        if (rect == null)
+        {
+            return;
+        }
+
+        rect.anchoredPosition =
+            new Vector2(
+                rect.anchoredPosition.x,
+                y);
+    }
+
+    private static void SetInputPlaceholder(
+        TMP_InputField input,
+        string value)
+    {
+        if (input?.placeholder is TMP_Text text)
+        {
+            text.text =
+                value ?? string.Empty;
+        }
+    }
+
+    private static void SetButtonLabel(
+        Button button,
+        string value)
+    {
+        TMP_Text label =
+            button != null
+                ? button.GetComponentInChildren<
+                    TMP_Text>(
+                        true)
+                : null;
+
+        SetText(
+            label,
+            value);
     }
 
     private void RefreshRooms()
@@ -647,6 +1273,8 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
     private void HandleLanguageChanged()
     {
         RebuildFilterLabels();
+        RefreshJoinByCodeLabel();
+        RefreshJoinByCodePromptLocalizedText();
         ApplyFilters();
     }
 
@@ -686,6 +1314,7 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
         if (backButton != null) backButton.interactable = interactable;
         if (refreshButton != null) refreshButton.interactable = interactable;
         if (createPublicRoomButton != null) createPublicRoomButton.interactable = interactable;
+        if (joinByCodeButton != null) joinByCodeButton.interactable = interactable;
         if (searchInput != null) searchInput.interactable = interactable;
         if (mapFilter != null) mapFilter.interactable = interactable;
         if (playersFilter != null) playersFilter.interactable = interactable;

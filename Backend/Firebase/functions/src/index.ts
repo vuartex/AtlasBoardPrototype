@@ -58,6 +58,7 @@ import {
   LobbyVersionInfo,
   createPublicLobby,
   listPublicLobbies,
+  touchLobbyHostHeartbeat,
 } from "./lobby/lobby";
 import {
   acknowledgeMatchIntents,
@@ -1339,6 +1340,28 @@ export const lobbyCloseRoom = onCall(
     });
 
     return {ok: true, applied: result.applied, snapshot: result.snapshot};
+  },
+);
+
+/**
+ * Lightweight Host presence lease for lobby ownership.
+ */
+export const lobbyHostHeartbeat = onCall(
+  {
+    region: REGION,
+    maxInstances: 30,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const data = request.data ?? {};
+
+    await touchLobbyHostHeartbeat({
+      uid,
+      lobbyId: data.lobbyId as string,
+    });
+
+    return {ok: true};
   },
 );
 

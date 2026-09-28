@@ -77,6 +77,10 @@ public class PlayerGameState : MonoBehaviour
         !string.Equals(
             onlineControllerKind,
             "human",
+            StringComparison.OrdinalIgnoreCase) &&
+        !string.Equals(
+            onlineControllerKind,
+            "local_human",
             StringComparison.OrdinalIgnoreCase);
 
     public bool IsOnlinePermanentBot =>

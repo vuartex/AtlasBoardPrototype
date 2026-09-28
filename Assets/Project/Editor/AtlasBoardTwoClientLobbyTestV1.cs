@@ -116,9 +116,28 @@ public static class AtlasBoardTwoClientLobbyTestV1
             "AtlasBoard 3D.3C: building standalone Guest development client. " +
             $"Output={executable}");
 
-        BuildReport report =
-            BuildPipeline.BuildPlayer(
-                options);
+        InsecureHttpOption previousInsecureHttpOption =
+            PlayerSettings.insecureHttpOption;
+
+        BuildReport report;
+
+        try
+        {
+            // Shared-development emulator traffic is intentionally plain HTTP.
+            // Permit it only in Development Builds; release builds remain HTTPS-only.
+            PlayerSettings.insecureHttpOption =
+                InsecureHttpOption.DevelopmentOnly;
+
+            report =
+                BuildPipeline.BuildPlayer(
+                    options);
+        }
+        finally
+        {
+            // Do not leave the project-wide Player setting relaxed after the test build.
+            PlayerSettings.insecureHttpOption =
+                previousInsecureHttpOption;
+        }
 
         if (report.summary.result !=
             BuildResult.Succeeded)
@@ -135,7 +154,8 @@ public static class AtlasBoardTwoClientLobbyTestV1
         Debug.Log(
             "AtlasBoard 3D.3C guest build PASSED. " +
             $"Size={report.summary.totalSize} bytes. " +
-            "The build is outside the Unity repository and uses local Firebase emulators only when launched with the supplied test arguments.");
+            "Development-only HTTP is enabled inside this build for shared Firebase emulator testing. " +
+            "The project PlayerSettings value was restored immediately after the build.");
     }
 
     [MenuItem(

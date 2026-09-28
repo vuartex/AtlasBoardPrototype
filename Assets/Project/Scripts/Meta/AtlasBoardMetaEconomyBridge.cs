@@ -11,7 +11,6 @@ public sealed class AtlasBoardMetaEconomyBridge : MonoBehaviour
 {
     private const string ProjectId = "atlasboard-usa";
     private const string Region = "europe-west1";
-    private const string EmulatorHost = "127.0.0.1";
     private const int FunctionsPort = 5001;
     private const int FirestorePort = 8080;
 
@@ -1091,7 +1090,7 @@ public sealed class AtlasBoardMetaEconomyBridge : MonoBehaviour
 
         string token = lobbyBridge.AuthTokenForOnlineSubsystems;
         string url =
-            $"http://{EmulatorHost}:{FunctionsPort}/" +
+            $"http://{lobbyBridge.EmulatorHostForOnlineSubsystems}:{FunctionsPort}/" +
             $"{ProjectId}/{Region}/{functionName}";
         string callableJson =
             "{\"data\":" + JsonUtility.ToJson(requestBody) + "}";
@@ -1172,7 +1171,7 @@ public sealed class AtlasBoardMetaEconomyBridge : MonoBehaviour
         string token)
     {
         string url =
-            $"http://{EmulatorHost}:{FirestorePort}/v1/projects/" +
+            $"http://{lobbyBridge.EmulatorHostForOnlineSubsystems}:{FirestorePort}/v1/projects/" +
             $"{ProjectId}/databases/(default)/documents/" +
             $"{collectionPath}?pageSize=100";
 
@@ -1200,9 +1199,9 @@ public sealed class AtlasBoardMetaEconomyBridge : MonoBehaviour
                new FirestoreListEnvelope();
     }
 
-    private static string FirestoreDocumentUrl(string documentPath)
+    private string FirestoreDocumentUrl(string documentPath)
     {
-        return $"http://{EmulatorHost}:{FirestorePort}/v1/projects/" +
+        return $"http://{lobbyBridge.EmulatorHostForOnlineSubsystems}:{FirestorePort}/v1/projects/" +
                $"{ProjectId}/databases/(default)/documents/{documentPath}";
     }
 

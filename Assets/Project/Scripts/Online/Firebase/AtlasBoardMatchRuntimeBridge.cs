@@ -16,9 +16,6 @@ public sealed class AtlasBoardMatchRuntimeBridge :
     private const string Region =
         "europe-west1";
 
-    private const string EmulatorHost =
-        "127.0.0.1";
-
     private const int FunctionsEmulatorPort =
         5001;
 
@@ -503,7 +500,7 @@ public sealed class AtlasBoardMatchRuntimeBridge :
 
         string url =
             lobbyBridge.UsingLocalEmulators
-                ? $"http://{EmulatorHost}:" +
+                ? $"http://{lobbyBridge.EmulatorHostForOnlineSubsystems}:" +
                   $"{FunctionsEmulatorPort}/" +
                   $"{ProjectId}/{Region}/" +
                   functionName

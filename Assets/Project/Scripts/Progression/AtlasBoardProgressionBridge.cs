@@ -10,7 +10,6 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
 {
     private const string ProjectId = "atlasboard-usa";
     private const string Region = "europe-west1";
-    private const string EmulatorHost = "127.0.0.1";
     private const int FunctionsPort = 5001;
 
     private AtlasBoardLobbyRuntimeBridge lobbyBridge;
@@ -197,7 +196,7 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
         lastTechnicalMessage = string.Empty;
 
         string url = lobbyBridge.UsingLocalEmulators
-            ? $"http://{EmulatorHost}:{FunctionsPort}/" +
+            ? $"http://{lobbyBridge.EmulatorHostForOnlineSubsystems}:{FunctionsPort}/" +
               $"{ProjectId}/{Region}/{functionName}"
             : $"https://{Region}-{ProjectId}.cloudfunctions.net/" +
               functionName;

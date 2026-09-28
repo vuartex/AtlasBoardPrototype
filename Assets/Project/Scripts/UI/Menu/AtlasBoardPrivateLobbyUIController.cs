@@ -168,6 +168,13 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
     private bool voluntaryLeaveInFlight;
     private bool hostCloseInFlight;
 
+    // The room-entry popup normally belongs to MainMenu. Public Rooms can
+    // temporarily host the same popup so JOIN BY CODE behaves as an in-place
+    // modal instead of navigating the player away from the browser.
+    private Transform roomEntryHomeParent;
+    private int roomEntryHomeSiblingIndex = -1;
+    private GameObject roomEntryExternalRoot;
+
     private void Awake()
     {
         mainMenuController =
@@ -349,7 +356,100 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             backendLocalAccountId);
     }
 
+    public async System.Threading.Tasks.Task EnterJoinedRoomFromExternalCodeAsync(
+        AtlasLobbyOperationResult result)
+    {
+        if (result == null ||
+            !result.Success ||
+            result.Snapshot == null)
+        {
+            return;
+        }
+
+        privateMode = true;
+        roomActive = true;
+        localIsHost = false;
+        codeVisible = false;
+        roomCode =
+            result.RoomCode ?? string.Empty;
+        backendLocalAccountId =
+            runtimeBridge != null
+                ? runtimeBridge.CurrentAccountId
+                : string.Empty;
+
+        hostConfigurationDirty = false;
+        hostConfigurationSyncQueued = false;
+        hostConfigurationSyncAt = 0f;
+        openSeatChoiceIndex = -1;
+
+        SetActive(roomEntryOverlay, false);
+
+        mainMenuController ??=
+            GetComponent<AtlasBoardMainMenuController>();
+
+        if (result.Snapshot.Visibility ==
+            AtlasRoomVisibility.Public)
+        {
+            mainMenuController?
+                .OpenPublicLobbyAfterRoomChoice();
+        }
+        else
+        {
+            mainMenuController?
+                .OpenPrivateLobbyAfterRoomChoice();
+        }
+
+        SetActive(privateOnlineRoot, true);
+        SetActive(roomPanel, true);
+
+        ApplyBackendSnapshot(
+            result.Snapshot,
+            result.RoomCode,
+            backendLocalAccountId);
+
+        if (IsActiveMatchReconnectSnapshot(
+                result.Snapshot))
+        {
+            await ResumeActiveMatchAfterReconnectAsync(
+                result.Snapshot);
+        }
+    }
+
     public void ShowRoomEntryFromMainMenu()
+    {
+        RestoreRoomEntryHome();
+        roomEntryExternalRoot = null;
+        PrepareRoomEntryChooser();
+    }
+
+    public void ShowRoomEntryOverScreen(
+        GameObject screenRoot)
+    {
+        if (roomEntryOverlay == null ||
+            screenRoot == null)
+        {
+            ShowRoomEntryFromMainMenu();
+            return;
+        }
+
+        CacheRoomEntryHome();
+
+        roomEntryExternalRoot =
+            screenRoot;
+
+        roomEntryOverlay.transform.SetParent(
+            screenRoot.transform,
+            false);
+
+        PrepareRoomEntryChooser();
+
+        // The browser stays visible; this is a true modal over the current
+        // screen, not a hidden navigation back to Main Menu.
+        SetActive(screenRoot, true);
+        roomEntryOverlay.transform.SetAsLastSibling();
+    }
+
+    private void PrepareRoomEntryChooser()
     {
         privateMode = true;
         roomActive = false;
@@ -380,10 +480,13 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         SetActive(roomPanel, false);
         SetActive(roomEntryOverlay, true);
 
+        roomEntryOverlay?.transform.SetAsLastSibling();
+
         if (joinCodeInput != null)
         {
             joinCodeInput.text = string.Empty;
         }
+
         if (joinPasswordInput != null)
         {
             joinPasswordInput.text = string.Empty;
@@ -396,6 +499,62 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 "Create a room or enter a 6-digit code."));
 
         RefreshLocalizedText();
+    }
+
+    private void CacheRoomEntryHome()
+    {
+        if (roomEntryOverlay == null ||
+            roomEntryHomeParent != null)
+        {
+            return;
+        }
+
+        roomEntryHomeParent =
+            roomEntryOverlay.transform.parent;
+
+        roomEntryHomeSiblingIndex =
+            roomEntryOverlay.transform.GetSiblingIndex();
+    }
+
+    private void RestoreRoomEntryHome()
+    {
+        if (roomEntryOverlay == null ||
+            roomEntryHomeParent == null)
+        {
+            return;
+        }
+
+        roomEntryOverlay.transform.SetParent(
+            roomEntryHomeParent,
+            false);
+
+        int sibling =
+            Mathf.Clamp(
+                roomEntryHomeSiblingIndex,
+                0,
+                Mathf.Max(
+                    0,
+                    roomEntryHomeParent.childCount - 1));
+
+        roomEntryOverlay.transform.SetSiblingIndex(
+            sibling);
+    }
+
+    private void LeaveExternalRoomEntryContext(
+        bool hideExternalRoot)
+    {
+        GameObject external =
+            roomEntryExternalRoot;
+
+        roomEntryExternalRoot = null;
+
+        RestoreRoomEntryHome();
+
+        if (hideExternalRoot &&
+            external != null)
+        {
+            SetActive(external, false);
+        }
     }
 
     public void NotifyMainMenuShown()
@@ -812,8 +971,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
     private void CancelRoomEntry()
     {
+        bool openedOverExternalScreen =
+            roomEntryExternalRoot != null;
+
         SetActive(roomEntryOverlay, false);
         ResetPrivateState(false);
+
+        if (openedOverExternalScreen)
+        {
+            LeaveExternalRoomEntryContext(
+                false);
+        }
     }
 
     private async void CreateRoomPreview()
@@ -855,6 +1023,9 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             backendLocalAccountId = runtimeBridge.CurrentAccountId;
 
             SetActive(roomEntryOverlay, false);
+
+            LeaveExternalRoomEntryContext(
+                true);
 
             mainMenuController ??=
                 GetComponent<AtlasBoardMainMenuController>();
@@ -937,6 +1108,9 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             backendLocalAccountId = runtimeBridge.CurrentAccountId;
 
             SetActive(roomEntryOverlay, false);
+
+            LeaveExternalRoomEntryContext(
+                true);
 
             mainMenuController ??=
                 GetComponent<AtlasBoardMainMenuController>();
@@ -1288,10 +1462,34 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
     private void HandleHostToggleChanged(bool ignoredValue)
     {
-        if (!roomActive ||
+        if (suppressSeatEvents ||
+            !roomActive ||
             !localIsHost)
         {
             return;
+        }
+
+        // Triple Double Penalty requires Doubles. If Doubles is turned OFF,
+        // turn the dependent option OFF locally before the debounced backend
+        // write so the whole settings update is not rejected.
+        if (hostSettingsToggles != null &&
+            hostSettingsToggles.Length > 2 &&
+            hostSettingsToggles[1] != null &&
+            hostSettingsToggles[2] != null &&
+            !hostSettingsToggles[1].isOn &&
+            hostSettingsToggles[2].isOn)
+        {
+            suppressSeatEvents = true;
+
+            try
+            {
+                hostSettingsToggles[2]
+                    .SetIsOnWithoutNotify(false);
+            }
+            finally
+            {
+                suppressSeatEvents = false;
+            }
         }
 
         QueueHostConfigurationSync();
@@ -1653,6 +1851,34 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                     TripleDoublePenaltyEnabled = true
                 };
 
+        // The private/public lobby owns the visible rule toggles. The legacy
+        // Main Menu still exposes ToggleProxy values, which can lag behind the
+        // real controls during a backend poll/debounce boundary. Serialize the
+        // exact visible host intent instead of a hidden/stale proxy value.
+        if (hostSettingsToggles != null)
+        {
+            if (hostSettingsToggles.Length > 0 &&
+                hostSettingsToggles[0] != null)
+            {
+                selection.BalancedDevelopment =
+                    hostSettingsToggles[0].isOn;
+            }
+
+            if (hostSettingsToggles.Length > 1 &&
+                hostSettingsToggles[1] != null)
+            {
+                selection.DoublesEnabled =
+                    hostSettingsToggles[1].isOn;
+            }
+
+            if (hostSettingsToggles.Length > 2 &&
+                hostSettingsToggles[2] != null)
+            {
+                selection.TripleDoublePenaltyEnabled =
+                    hostSettingsToggles[2].isOn;
+            }
+        }
+
         return selection;
     }
 
@@ -1876,7 +2102,13 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                     });
             }
 
-            if (hostSettingsToggles != null)
+            bool preservePendingHostRuleIntent =
+                localIsHost &&
+                (hostConfigurationDirty ||
+                 hostConfigurationSyncQueued);
+
+            if (hostSettingsToggles != null &&
+                !preservePendingHostRuleIntent)
             {
                 if (hostSettingsToggles.Length > 0 &&
                     hostSettingsToggles[0] != null)
@@ -3772,6 +4004,12 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         RestoreRowsFromPlayerCount();
         SetHostSettingsInteractable(true);
         SetPlayerTypeInteractable(0, true);
+
+        if (!preserveEntry &&
+            roomEntryExternalRoot == null)
+        {
+            RestoreRoomEntryHome();
+        }
     }
 
     private void BindRuntimeEvents()

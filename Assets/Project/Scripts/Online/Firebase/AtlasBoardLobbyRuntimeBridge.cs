@@ -11,7 +11,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
 {
     private const string ProjectId = "atlasboard-usa";
     private const string Region = "europe-west1";
-    private const string EmulatorHost = "127.0.0.1";
+    private const string DefaultEmulatorHost = "127.0.0.1";
     private const int AuthEmulatorPort = 9099;
     private const int FunctionsEmulatorPort = 5001;
 
@@ -21,12 +21,18 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     private const string DevelopmentNameCommandLineSwitch =
         "-atlasDevName";
 
+    private const string EmulatorHostCommandLineSwitch =
+        "-atlasEmulatorHost";
+
     [Header("Development")]
     [SerializeField]
     private bool useLocalEmulatorsInEditor = true;
 
     [SerializeField, Min(0.25f)]
     private float snapshotPollSeconds = 1f;
+
+    [SerializeField, Min(2f)]
+    private float hostHeartbeatSeconds = 5f;
 
     [SerializeField]
     private string developmentDisplayName = "Unity Editor Player";
@@ -41,6 +47,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     private bool initializing;
     private bool pollInFlight;
     private float nextPollAt;
+    private bool hostHeartbeatInFlight;
+    private float nextHostHeartbeatAt;
     private bool pawnCosmeticSyncInFlight;
 
     public event Action<AtlasLobbySnapshot> SnapshotChanged;
@@ -115,9 +123,9 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
 #if UNITY_EDITOR
             return useLocalEmulatorsInEditor;
 #elif DEVELOPMENT_BUILD
-            // Standalone test clients may use localhost emulators only when
-            // explicitly launched with the dedicated development switch.
-            // Normal/release builds cannot enter this path.
+            // Standalone development clients may use the emulator suite only
+            // when explicitly launched with the dedicated development switch.
+            // Release builds cannot enter this path.
             return HasCommandLineSwitch(
                 LocalEmulatorCommandLineSwitch);
 #else
@@ -126,10 +134,28 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
     }
 
+    public string EmulatorHostForOnlineSubsystems =>
+        ResolveEmulatorHost();
+
     private async void Update()
     {
-        if (!HasLobby ||
-            pollInFlight ||
+        if (!HasLobby)
+        {
+            return;
+        }
+
+        if (!hostHeartbeatInFlight &&
+            IsCurrentLocalHost() &&
+            Time.unscaledTime >= nextHostHeartbeatAt)
+        {
+            nextHostHeartbeatAt =
+                Time.unscaledTime +
+                Mathf.Max(2f, hostHeartbeatSeconds);
+
+            _ = SendHostHeartbeatAsync();
+        }
+
+        if (pollInFlight ||
             Time.unscaledTime < nextPollAt)
         {
             return;
@@ -165,6 +191,43 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         finally
         {
             pollInFlight = false;
+        }
+    }
+
+    private bool IsCurrentLocalHost()
+    {
+        return currentSnapshot != null &&
+               !string.IsNullOrWhiteSpace(
+                   currentAccountId) &&
+               string.Equals(
+                   currentSnapshot.HostAccountId,
+                   currentAccountId,
+                   StringComparison.Ordinal);
+    }
+
+    private async Task SendHostHeartbeatAsync()
+    {
+        if (hostHeartbeatInFlight ||
+            !HasLobby ||
+            !IsCurrentLocalHost())
+        {
+            return;
+        }
+
+        hostHeartbeatInFlight = true;
+
+        try
+        {
+            await CallLobbyFunctionAsync(
+                "lobbyHostHeartbeat",
+                new LobbyHeartbeatRequest
+                {
+                    lobbyId = currentLobbyId
+                });
+        }
+        finally
+        {
+            hostHeartbeatInFlight = false;
         }
     }
 
@@ -235,7 +298,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
 
         string url =
             UsingLocalEmulators
-                ? $"http://{EmulatorHost}:{FunctionsEmulatorPort}/" +
+                ? $"http://{EmulatorHostForOnlineSubsystems}:{FunctionsEmulatorPort}/" +
                   $"{ProjectId}/{Region}/{functionName}"
                 : $"https://{Region}-{ProjectId}.cloudfunctions.net/{functionName}";
 
@@ -864,6 +927,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         currentRoomCode = string.Empty;
         joinIdempotencyKey = string.Empty;
         currentSnapshot = null;
+        hostHeartbeatInFlight = false;
+        nextHostHeartbeatAt = 0f;
         pawnCosmeticSyncInFlight = false;
     }
 
@@ -1016,7 +1081,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             };
 
         string authUrl =
-            $"http://{EmulatorHost}:{AuthEmulatorPort}/" +
+            $"http://{EmulatorHostForOnlineSubsystems}:{AuthEmulatorPort}/" +
             "identitytoolkit.googleapis.com/v1/accounts:signUp?key=" +
             UnityWebRequest.EscapeURL(app.Options.ApiKey ?? "fake-api-key");
 
@@ -1065,7 +1130,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             "AtlasBoard Lobby Runtime Bridge: local emulator identity ready. " +
             $"Name={ResolveDevelopmentDisplayName()}, " +
             $"UID={currentAccountId}, " +
-            $"Client={(Application.isEditor ? "EDITOR" : "DEVELOPMENT BUILD")}. " +
+            $"Client={(Application.isEditor ? "EDITOR" : "DEVELOPMENT BUILD")}, " +
+            $"EmulatorHost={EmulatorHostForOnlineSubsystems}. " +
             "No production Auth/Firestore data was used.",
             this);
 
@@ -1110,7 +1176,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
 
         string url =
             UsingLocalEmulators
-                ? $"http://{EmulatorHost}:{FunctionsEmulatorPort}/" +
+                ? $"http://{EmulatorHostForOnlineSubsystems}:{FunctionsEmulatorPort}/" +
                   $"{ProjectId}/{Region}/{functionName}"
                 : $"https://{Region}-{ProjectId}.cloudfunctions.net/{functionName}";
 
@@ -1305,9 +1371,48 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             }
         }
 
+        bool currentSnapshotIsActiveMatch =
+            currentSnapshot != null &&
+            (currentSnapshot.LifecycleState ==
+                 AtlasRoomLifecycleState.Starting ||
+             currentSnapshot.LifecycleState ==
+                 AtlasRoomLifecycleState.InMatch);
+
+        bool incomingSnapshotIsActiveMatch =
+            snapshot.LifecycleState ==
+                AtlasRoomLifecycleState.Starting ||
+            snapshot.LifecycleState ==
+                AtlasRoomLifecycleState.InMatch;
+
+        bool suppressActiveMatchMemberOnlyBroadcast =
+            currentSnapshotIsActiveMatch &&
+            incomingSnapshotIsActiveMatch &&
+            string.Equals(
+                currentSnapshot.LobbyId,
+                snapshot.LobbyId,
+                StringComparison.Ordinal) &&
+            string.Equals(
+                currentSnapshot.MatchId,
+                snapshot.MatchId,
+                StringComparison.Ordinal) &&
+            currentSnapshot.SettingsRevision ==
+                snapshot.SettingsRevision;
+
         currentSnapshot = snapshot;
         currentLobbyId = snapshot.LobbyId;
-        SnapshotChanged?.Invoke(snapshot);
+
+        // During an active match, matchGetSnapshot is authoritative for
+        // Human/TemporaryBot/PermanentBot lifecycle. The backend currently keeps
+        // a started lobby in Starting while the match is active, so suppress
+        // same-match Starting->Starting (and future InMatch->InMatch) member
+        // churn. Re-broadcasting those snapshots re-entered the start-countdown
+        // path and rebuilt local gameplay from round one when somebody left,
+        // reconnected, or was AFK-removed. Lifecycle/match/settings transitions
+        // are still broadcast normally.
+        if (!suppressActiveMatchMemberOnlyBroadcast)
+        {
+            SnapshotChanged?.Invoke(snapshot);
+        }
 
         if (snapshot.LifecycleState ==
             AtlasRoomLifecycleState.Waiting)
@@ -1534,6 +1639,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         return value switch
         {
             "human" => AtlasSeatControllerKind.Human,
+            "local_human" => AtlasSeatControllerKind.Human,
             "temporary_bot" => AtlasSeatControllerKind.TemporaryBot,
             "permanent_bot" => AtlasSeatControllerKind.PermanentBot,
             _ => AtlasSeatControllerKind.None
@@ -1645,6 +1751,57 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
         return string.Empty;
+    }
+
+    private string ResolveEmulatorHost()
+    {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        string commandLineHost =
+            ReadCommandLineValue(
+                EmulatorHostCommandLineSwitch);
+
+        if (TryNormalizeEmulatorHost(
+                commandLineHost,
+                out string normalized))
+        {
+            return normalized;
+        }
+#endif
+
+        return DefaultEmulatorHost;
+    }
+
+    private static bool TryNormalizeEmulatorHost(
+        string value,
+        out string normalized)
+    {
+        normalized = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        string candidate = value.Trim();
+
+        // The port is owned by AtlasBoard's emulator configuration. Accept only
+        // a host/IP here so a launch argument cannot redirect individual paths
+        // or inject a scheme. IPv4, localhost and private DNS/Tailscale names are
+        // supported.
+        if (candidate.Contains("://") ||
+            candidate.Contains("/") ||
+            candidate.Contains("\\") ||
+            candidate.Contains("?") ||
+            candidate.Contains("#") ||
+            candidate.Contains(":") ||
+            candidate.IndexOfAny(
+                new[] { ' ', '\t', '\r', '\n' }) >= 0)
+        {
+            return false;
+        }
+
+        normalized = candidate;
+        return true;
     }
 
     private static string CurrentGameVersion()
@@ -1860,6 +2017,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
 
     [Serializable]
     private sealed class LobbyCloseRequest
+    {
+        public string lobbyId;
+    }
+
+    [Serializable]
+    private sealed class LobbyHeartbeatRequest
     {
         public string lobbyId;
     }

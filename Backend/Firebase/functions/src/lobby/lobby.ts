@@ -19,6 +19,7 @@ const MAX_PLAYERS = 4;
 const INVALID_ATTEMPT_LIMIT = 5;
 const INVALID_ATTEMPT_WINDOW_MS = 5 * 60 * 1000;
 const INVALID_ATTEMPT_BLOCK_MS = 60 * 1000;
+const HOST_HEARTBEAT_STALE_MS = 30 * 1000;
 const LOCAL_JOIN_CODE_PEPPER =
   "atlasboard-local-emulator-lobby-code-pepper-v1";
 
@@ -95,6 +96,11 @@ export interface UpdateLobbyPasswordInput {
 }
 
 export interface CloseLobbyInput {
+  uid: string;
+  lobbyId: string;
+}
+
+export interface LobbyHostHeartbeatInput {
   uid: string;
   lobbyId: string;
 }
@@ -875,6 +881,7 @@ function hostDisplayName(snapshot: LobbySnapshot): string {
 function publicDiscoveryData(
   snapshot: LobbySnapshot,
   createdAtEpochMs: number,
+  hostHeartbeatAtEpochMs: number,
 ): FirebaseFirestore.DocumentData {
   return {
     lobbyId: snapshot.lobbyId,
@@ -898,6 +905,7 @@ function publicDiscoveryData(
     settingsRevision: snapshot.settingsRevision,
     hasPassword: snapshot.hasPassword,
     createdAtEpochMs,
+    hostHeartbeatAtEpochMs,
     updatedAtEpochMs: Date.now(),
     discoverySchemaVersion: PUBLIC_DISCOVERY_SCHEMA_VERSION,
     updatedAt: FieldValue.serverTimestamp(),
@@ -935,9 +943,18 @@ function syncPublicDiscovery(
       lobby.createdAtEpochMs :
       Date.now();
 
+  const hostHeartbeatAtEpochMs =
+    typeof lobby.hostHeartbeatAtEpochMs === "number" ?
+      lobby.hostHeartbeatAtEpochMs :
+      Date.now();
+
   transaction.set(
     discoveryRef,
-    publicDiscoveryData(snapshot, createdAtEpochMs),
+    publicDiscoveryData(
+      snapshot,
+      createdAtEpochMs,
+      hostHeartbeatAtEpochMs,
+    ),
   );
 }
 
@@ -1158,6 +1175,7 @@ async function createLobby(
           startCountdownEndsAtEpochMs: 0,
           hasPassword: false,
           passwordHash: "",
+          hostHeartbeatAtEpochMs: createdAtEpochMs,
           schemaVersion: LOBBY_SCHEMA_VERSION,
           createdAtEpochMs,
           createdAt: serverTimestamp,
@@ -1409,6 +1427,181 @@ function assertCompatible(
   }
 }
 
+function hostHeartbeatEpochMs(
+  data: FirebaseFirestore.DocumentData,
+): number {
+  if (typeof data.hostHeartbeatAtEpochMs === "number") {
+    return data.hostHeartbeatAtEpochMs;
+  }
+
+  if (typeof data.updatedAtEpochMs === "number") {
+    return data.updatedAtEpochMs;
+  }
+
+  if (typeof data.createdAtEpochMs === "number") {
+    return data.createdAtEpochMs;
+  }
+
+  return 0;
+}
+
+function hostHeartbeatIsStale(
+  data: FirebaseFirestore.DocumentData,
+  now = Date.now(),
+): boolean {
+  const heartbeat = hostHeartbeatEpochMs(data);
+
+  return heartbeat <= 0 ||
+    now - heartbeat > HOST_HEARTBEAT_STALE_MS;
+}
+
+async function closeStaleWaitingLobbyIfNeeded(
+  lobbyId: string,
+  now = Date.now(),
+): Promise<boolean> {
+  const db = getFirestore();
+  const lobbyRef = db.collection("lobbies").doc(lobbyId);
+
+  return db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(lobbyRef);
+
+    if (!snapshot.exists) {
+      transaction.delete(
+        db.collection("lobby_discovery").doc(lobbyId),
+      );
+      return true;
+    }
+
+    const lobby = snapshot.data() ?? {};
+
+    if (
+      lobby.lifecycleState !== "waiting" ||
+      !hostHeartbeatIsStale(lobby, now)
+    ) {
+      return false;
+    }
+
+    const timestamp = FieldValue.serverTimestamp();
+
+    transaction.update(
+      lobbyRef,
+      {
+        lifecycleState: "closed",
+        updatedAt: timestamp,
+      },
+    );
+
+    transaction.delete(
+      db.collection("lobby_discovery").doc(lobbyId),
+    );
+
+    const codeHash =
+      typeof lobby.joinCodeHash === "string" ?
+        lobby.joinCodeHash :
+        "";
+
+    if (codeHash) {
+      transaction.set(
+        db.collection("join_codes").doc(codeHash),
+        {
+          active: false,
+          lookupActive: false,
+          joinOpen: false,
+          lifecycleState: "closed",
+          updatedAt: timestamp,
+        },
+        {merge: true},
+      );
+    }
+
+    return true;
+  });
+}
+
+async function assertWaitingHostAlive(
+  lobbyId: string,
+): Promise<void> {
+  const db = getFirestore();
+  const lobbyRef = db.collection("lobbies").doc(lobbyId);
+  const snapshot = await lobbyRef.get();
+
+  if (!snapshot.exists) {
+    return;
+  }
+
+  const lobby = snapshot.data() ?? {};
+
+  if (
+    lobby.lifecycleState !== "waiting" ||
+    !hostHeartbeatIsStale(lobby)
+  ) {
+    return;
+  }
+
+  await closeStaleWaitingLobbyIfNeeded(lobbyId);
+
+  throw new HttpsError(
+    "failed-precondition",
+    "LOBBY_HOST_OFFLINE",
+    {errorKey: "lobby.error.not_joinable"},
+  );
+}
+
+/**
+ * Host presence lease. The client renews this periodically.
+ */
+export async function touchLobbyHostHeartbeat(
+  input: LobbyHostHeartbeatInput,
+): Promise<void> {
+  const db = getFirestore();
+  const lobbyRef = db.collection("lobbies").doc(input.lobbyId);
+  const now = Date.now();
+
+  await db.runTransaction(async (transaction) => {
+    const state = await readLobbyState(transaction, lobbyRef);
+    const lobby = state.lobbyData;
+
+    if (lobby.hostAccountId !== input.uid) {
+      throw new HttpsError(
+        "permission-denied",
+        "HOST_REQUIRED",
+        {errorKey: "lobby.error.host_required"},
+      );
+    }
+
+    if (
+      lobby.lifecycleState !== "waiting" &&
+      lobby.lifecycleState !== "starting" &&
+      lobby.lifecycleState !== "in_match"
+    ) {
+      return;
+    }
+
+    transaction.update(
+      lobbyRef,
+      {
+        hostHeartbeatAtEpochMs: now,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+    );
+
+    if (
+      lobby.visibility === "public" &&
+      lobby.lifecycleState === "waiting"
+    ) {
+      transaction.set(
+        db.collection("lobby_discovery").doc(input.lobbyId),
+        {
+          hostHeartbeatAtEpochMs: now,
+          updatedAtEpochMs: now,
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        {merge: true},
+      );
+    }
+  });
+}
+
 /**
  * Lists sanitized, compatible, currently joinable public lobbies.
  * This is discovery only. A browser card is NEVER authority for a future Join;
@@ -1437,9 +1630,18 @@ export async function listPublicLobbies(
     .get();
 
   const cards: PublicLobbyCard[] = [];
+  const staleLobbyIds: string[] = [];
+  const now = Date.now();
 
   for (const document of snapshot.docs) {
-    const card = discoveryCardFromData(document.data());
+    const discovery = document.data();
+
+    if (hostHeartbeatIsStale(discovery, now)) {
+      staleLobbyIds.push(document.id);
+      continue;
+    }
+
+    const card = discoveryCardFromData(discovery);
     if (!card) {
       continue;
     }
@@ -1467,6 +1669,13 @@ export async function listPublicLobbies(
 
   cards.sort(
     (left, right) => right.createdAtEpochMs - left.createdAtEpochMs,
+  );
+
+  await Promise.all(
+    staleLobbyIds.map((lobbyId) =>
+      closeStaleWaitingLobbyIfNeeded(lobbyId, now)
+        .catch(() => false),
+    ),
   );
 
   return cards.slice(0, resultLimit);
@@ -1530,6 +1739,8 @@ export async function joinLobbyByCode(
     );
   }
 
+  await assertWaitingHostAlive(lobbyId);
+
   const lobbyRef = db.collection("lobbies").doc(lobbyId);
 
   const result = await db.runTransaction(async (transaction) => {
@@ -1562,7 +1773,10 @@ export async function joinLobbyByCode(
     // authenticated account to already own this exact seat. Other accounts
     // continue to receive the normal not-joinable response.
     if (
-      lobby.lifecycleState === "starting" &&
+      (
+        lobby.lifecycleState === "starting" ||
+        lobby.lifecycleState === "in_match"
+      ) &&
       existingMember &&
       typeof lobby.matchId === "string" &&
       lobby.matchId.length > 0
@@ -1641,6 +1855,15 @@ export async function joinLobbyByCode(
         },
         {merge: true},
       );
+
+      const reclaimedMember = state.snapshot.members.find(
+        (member) => member.seatId === existingMember.data.seatId,
+      );
+
+      if (reclaimedMember) {
+        reclaimedMember.controllerKind = "human";
+        reclaimedMember.connectionState = "connected";
+      }
 
       return {
         snapshot: state.snapshot,
@@ -1775,6 +1998,9 @@ export async function joinPublicLobby(
   validateVersions(input.versions);
   const account = await loadActiveAccount(input.uid);
   const db = getFirestore();
+
+  await assertWaitingHostAlive(input.lobbyId);
+
   const lobbyRef = db.collection("lobbies").doc(input.lobbyId);
 
   const result = await db.runTransaction(async (transaction) => {
@@ -2688,6 +2914,9 @@ export async function getLobbySnapshot(
   input: GetLobbySnapshotInput,
 ): Promise<LobbySnapshot> {
   const db = getFirestore();
+
+  await assertWaitingHostAlive(input.lobbyId);
+
   const lobbyRef = db.collection("lobbies").doc(input.lobbyId);
 
   return db.runTransaction(async (transaction) => {
@@ -3032,6 +3261,14 @@ function createMatchSeatData(
   hostUid: string,
   lobbyId: string,
 ): FirebaseFirestore.DocumentData {
+  // Lobby-local humans use "local_human" while waiting. Once a match exists,
+  // every real human seat uses the canonical match controller wire "human".
+  // Otherwise remote clients classify the Host as bot-controlled.
+  const matchControllerKind =
+    member.controllerKind === "local_human" ?
+      "human" :
+      member.controllerKind;
+
   return {
     seatId: member.seatId,
     slotIndex: member.slotIndex,
@@ -3044,7 +3281,7 @@ function createMatchSeatData(
         "",
     displayName: member.displayName,
     isHost: member.isHost,
-    controllerKind: member.controllerKind,
+    controllerKind: matchControllerKind,
     connectionState: member.connectionState,
     sourceLobbyId: lobbyId,
     schemaVersion: LOBBY_SCHEMA_VERSION,

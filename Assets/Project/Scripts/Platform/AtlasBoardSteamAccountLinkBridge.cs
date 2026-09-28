@@ -21,9 +21,6 @@ public sealed class AtlasBoardSteamAccountLinkBridge :
     private const string Region =
         "europe-west1";
 
-    private const string EmulatorHost =
-        "127.0.0.1";
-
     private const int FunctionsPort =
         5001;
 
@@ -693,7 +690,7 @@ public sealed class AtlasBoardSteamAccountLinkBridge :
 
         string url =
             lobbyBridge.UsingLocalEmulators
-                ? $"http://{EmulatorHost}:{FunctionsPort}/" +
+                ? $"http://{lobbyBridge.EmulatorHostForOnlineSubsystems}:{FunctionsPort}/" +
                   $"{ProjectId}/{Region}/{functionName}"
                 : $"https://{Region}-{ProjectId}" +
                   $".cloudfunctions.net/{functionName}";
@@ -785,7 +782,7 @@ public sealed class AtlasBoardSteamAccountLinkBridge :
 
         string url =
             local
-                ? $"http://{EmulatorHost}:{FunctionsPort}/" +
+                ? $"http://{lobbyBridge.EmulatorHostForOnlineSubsystems}:{FunctionsPort}/" +
                   $"{ProjectId}/{Region}/{functionName}"
                 : $"https://{Region}-{ProjectId}" +
                   $".cloudfunctions.net/{functionName}";
@@ -887,8 +884,15 @@ public sealed class AtlasBoardSteamAccountLinkBridge :
 
             if (useAuthEmulator)
             {
+                ResolveReferences();
+
+                string emulatorHost =
+                    lobbyBridge != null
+                        ? lobbyBridge.EmulatorHostForOnlineSubsystems
+                        : "127.0.0.1";
+
                 auth.UseEmulator(
-                    EmulatorHost,
+                    emulatorHost,
                     AuthEmulatorPort);
             }
 
