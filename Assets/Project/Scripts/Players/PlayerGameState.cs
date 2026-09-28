@@ -195,6 +195,29 @@ public class PlayerGameState : MonoBehaviour
     // Phase 5D Remote follower state mirror. This assigns the Host-provided
     // balance exactly and raises the existing presentation refresh event. It
     // does NOT perform a purchase, rent payment, reward, or other economy rule.
+    public void ApplyOnlineAuthoritativeBankruptcy(
+        bool authoritativeBankrupt)
+    {
+        if (isBankrupt ==
+            authoritativeBankrupt)
+        {
+            return;
+        }
+
+        isBankrupt =
+            authoritativeBankrupt;
+
+        if (isBankrupt)
+        {
+            currentMoney = 0;
+            turnsToSkip = 0;
+            MoneyChanged?.Invoke(this);
+            TurnStatusChanged?.Invoke(this);
+        }
+
+        BankruptcyChanged?.Invoke(this);
+    }
+
     public void ApplyOnlineAuthoritativeMoney(
         int authoritativeMoney)
     {

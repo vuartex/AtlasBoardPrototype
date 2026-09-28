@@ -1101,14 +1101,25 @@ public class TileResolutionManager : MonoBehaviour
                     owner));
 
         string bankruptcyResult =
-            AtlasBoardL.T(
-                "rent.bankrupt.result",
-                payment.AmountPaid,
-                payment.UnpaidAmount,
-                payment.TransferredPropertyCount);
+            SpecialTileManager
+                .BuildRentBankruptcyResult(
+                    payment.AmountPaid,
+                    payment.UnpaidAmount,
+                    payment.TransferredPropertyCount,
+                    payment.ReleasedPropertyCount);
 
         if (specialTileManager != null)
         {
+            specialTileManager
+                .SetOnlinePresentationDescriptor(
+                    "rent_bankrupt",
+                    payment.AmountDue,
+                    payment.AmountPaid,
+                    payment.TransferredPropertyCount,
+                    payment.ReleasedPropertyCount,
+                    tile.TileIndex,
+                    owner.PlayerSlotIndex);
+
             specialTileManager.ShowResultMessage(
                 player,
                 AtlasBoardL.T(

@@ -261,6 +261,8 @@ public class AtlasBoardLeaveFlowController : MonoBehaviour
             return;
         }
 
+        RestoreLeaveConfirmationPresentation();
+
         CaptureGameplayState();
         KeepGameplayShortcutDisabled();
 
@@ -275,6 +277,150 @@ public class AtlasBoardLeaveFlowController : MonoBehaviour
         }
 
         AtlasBoardAudioManager.Instance?.PlayUiOpen();
+    }
+
+    private void ShowHostMigrationPendingPresentation()
+    {
+        if (leaveConfirmationRoot == null)
+        {
+            return;
+        }
+
+        TMP_Text title =
+            FindChildRecursive(
+                leaveConfirmationRoot.transform,
+                "ConfirmTitle")
+            ?.GetComponent<TMP_Text>();
+
+        TMP_Text body =
+            FindChildRecursive(
+                leaveConfirmationRoot.transform,
+                "ConfirmBody")
+            ?.GetComponent<TMP_Text>();
+
+        DisableLocalizedBinding(title);
+        DisableLocalizedBinding(body);
+
+        if (title != null)
+        {
+            title.text =
+                AtlasBoardOnlineRuntimeText
+                    .HostMigrationLeaveQueuedTitle();
+        }
+
+        if (body != null)
+        {
+            body.text =
+                AtlasBoardOnlineRuntimeText
+                    .HostMigrationLeaveQueuedBody();
+        }
+
+        if (confirmLeaveButton != null)
+        {
+            confirmLeaveButton.interactable =
+                false;
+
+            TMP_Text label =
+                confirmLeaveButton
+                    .GetComponentInChildren<
+                        TMP_Text>(
+                        true);
+
+            DisableLocalizedBinding(label);
+
+            if (label != null)
+            {
+                label.text =
+                    AtlasBoardOnlineRuntimeText
+                        .HostMigrationLeaveQueuedButton();
+            }
+        }
+
+        if (cancelLeaveButton != null)
+        {
+            cancelLeaveButton.interactable =
+                false;
+        }
+
+        leaveConfirmationRoot.SetActive(true);
+        KeepGameplayShortcutDisabled();
+    }
+
+    private void RestoreLeaveConfirmationPresentation()
+    {
+        if (confirmLeaveButton != null)
+        {
+            confirmLeaveButton.interactable =
+                true;
+
+            RestoreLocalizedBinding(
+                confirmLeaveButton
+                    .GetComponentInChildren<
+                        TMP_Text>(
+                        true));
+        }
+
+        if (cancelLeaveButton != null)
+        {
+            cancelLeaveButton.interactable =
+                true;
+        }
+
+        if (leaveConfirmationRoot == null)
+        {
+            return;
+        }
+
+        RestoreLocalizedBinding(
+            FindChildRecursive(
+                leaveConfirmationRoot.transform,
+                "ConfirmTitle")
+            ?.GetComponent<TMP_Text>());
+
+        RestoreLocalizedBinding(
+            FindChildRecursive(
+                leaveConfirmationRoot.transform,
+                "ConfirmBody")
+            ?.GetComponent<TMP_Text>());
+    }
+
+    private static void DisableLocalizedBinding(
+        TMP_Text text)
+    {
+        if (text == null)
+        {
+            return;
+        }
+
+        AtlasBoardLocalizedText localized =
+            text.GetComponent<
+                AtlasBoardLocalizedText>();
+
+        if (localized != null)
+        {
+            localized.enabled = false;
+        }
+    }
+
+    private static void RestoreLocalizedBinding(
+        TMP_Text text)
+    {
+        if (text == null)
+        {
+            return;
+        }
+
+        AtlasBoardLocalizedText localized =
+            text.GetComponent<
+                AtlasBoardLocalizedText>();
+
+        if (localized == null)
+        {
+            return;
+        }
+
+        localized.enabled = true;
+        localized.Apply();
     }
 
     public void CancelLeaveMatch()
@@ -296,11 +442,30 @@ public class AtlasBoardLeaveFlowController : MonoBehaviour
 
         if (onlineHandler != null)
         {
-            RestoreGameplayState();
+            AtlasBoardTurnDiceNetworkCoordinator coordinator =
+                onlineHandler as
+                    AtlasBoardTurnDiceNetworkCoordinator;
+
+            bool gracefulHostMigration =
+                coordinator != null &&
+                coordinator.LocalIsHost;
+
+            if (!gracefulHostMigration)
+            {
+                RestoreGameplayState();
+            }
 
             if (onlineHandler.TryHandleLeaveMatch())
             {
-                HideLeaveFlowImmediate();
+                if (gracefulHostMigration)
+                {
+                    ShowHostMigrationPendingPresentation();
+                }
+                else
+                {
+                    HideLeaveFlowImmediate();
+                }
+
                 return;
             }
 
@@ -567,6 +732,9 @@ public class AtlasBoardLeaveFlowController : MonoBehaviour
     private void HideLeaveFlowImmediate()
     {
         resumeFromEscapeRequested = false;
+
+        RestoreLeaveConfirmationPresentation();
+
         roomCodeRevealed = false;
         currentPauseRoomCode = string.Empty;
 

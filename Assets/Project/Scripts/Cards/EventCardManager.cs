@@ -539,7 +539,7 @@ public class EventCardManager : MonoBehaviour
                     result.DebtorBankrupt;
 
                 transferredProperties =
-                    result.TransferredPropertyCount;
+                    result.LiquidatedPropertyCount;
             }
             else
             {

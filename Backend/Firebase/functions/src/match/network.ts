@@ -10,6 +10,12 @@ const MAX_STATE_JSON_LENGTH = 64 * 1024;
 const MAX_INTENT_JSON_LENGTH = 4 * 1024;
 const MAX_PENDING_INTENTS = 50;
 
+const recoverySafePhases = new Set([
+  "awaiting_roll",
+  "turn_complete",
+  "match_complete",
+]);
+
 const allowedPhases = new Set([
   "starting",
   "starting_order",
@@ -400,6 +406,18 @@ export async function getMatchNetworkSnapshot(
         "{}",
     updatedAtEpochMs:
       timestampMillis(state.updatedAt),
+    hostHeartbeatAtEpochMs:
+      typeof match.hostHeartbeatAtEpochMs === "number" ?
+        match.hostHeartbeatAtEpochMs :
+        0,
+    authorityEpoch:
+      typeof match.authorityEpoch === "number" ?
+        match.authorityEpoch :
+        0,
+    authorityHandoffReason:
+      typeof state.authorityHandoffReason === "string" ?
+        state.authorityHandoffReason :
+        "",
     seats:
       context.seats.map(seatSnapshot),
     networkSchemaVersion:
@@ -887,9 +905,11 @@ export async function publishMatchNetworkState(
           "complete" :
           "active";
 
-      transaction.set(
-        stateRef,
-        {
+      const serverTimestamp =
+        FieldValue.serverTimestamp();
+
+      const stateUpdate:
+        FirebaseFirestore.DocumentData = {
           revision: nextRevision,
           phase,
           turnSeatId,
@@ -898,10 +918,29 @@ export async function publishMatchNetworkState(
           authorityHostAccountId:
             input.uid,
           updatedAt:
-            FieldValue.serverTimestamp(),
+            serverTimestamp,
           schemaVersion:
             NETWORK_SCHEMA_VERSION,
-        },
+        };
+
+      if (recoverySafePhases.has(phase)) {
+        stateUpdate.recoveryRevision =
+          nextRevision;
+        stateUpdate.recoveryPhase =
+          phase;
+        stateUpdate.recoveryTurnSeatId =
+          turnSeatId;
+        stateUpdate.recoveryEventSequence =
+          eventSequence;
+        stateUpdate.recoverySnapshotJson =
+          snapshotJson;
+        stateUpdate.recoveryUpdatedAt =
+          serverTimestamp;
+      }
+
+      transaction.set(
+        stateRef,
+        stateUpdate,
         {
           merge: true,
         },
@@ -913,8 +952,10 @@ export async function publishMatchNetworkState(
           status: matchStatus,
           networkRevision:
             nextRevision,
+          hostHeartbeatAtEpochMs:
+            Date.now(),
           updatedAt:
-            FieldValue.serverTimestamp(),
+            serverTimestamp,
         },
       );
 

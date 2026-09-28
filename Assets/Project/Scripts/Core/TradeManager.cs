@@ -686,7 +686,14 @@ public class TradeManager : MonoBehaviour
                 target == null)
             {
                 SetSummary(
-                    "Online trade transport is not ready.");
+                    AtlasBoardL.R(
+                        "Online trade is not ready yet.",
+                        "Çevrimiçi takas henüz hazır değil.",
+                        "El intercambio en línea aún no está listo.",
+                        "L’échange en ligne n’est pas encore prêt.",
+                        "Der Online-Handel ist noch nicht bereit.",
+                        "온라인 거래가 아직 준비되지 않았습니다.",
+                        "Онлайн-обмен ещё не готов."));
                 return;
             }
 
@@ -1181,7 +1188,14 @@ public class TradeManager : MonoBehaviour
             initiator == target)
         {
             message =
-                "Geçerli bir hedef oyuncu seçilmedi.";
+                AtlasBoardL.R(
+                    "Select a valid player to trade with.",
+                    "Takas için geçerli bir oyuncu seç.",
+                    "Selecciona un jugador válido para el intercambio.",
+                    "Sélectionnez un joueur valide pour l’échange.",
+                    "Wähle einen gültigen Spieler für den Handel.",
+                    "거래할 유효한 플레이어를 선택하세요.",
+                    "Выберите подходящего игрока для обмена.");
 
             return false;
         }
@@ -1190,7 +1204,14 @@ public class TradeManager : MonoBehaviour
             target.IsBankrupt)
         {
             message =
-                "İflas etmiş oyuncular takas yapamaz.";
+                AtlasBoardL.R(
+                    "Bankrupt players cannot trade.",
+                    "İflas etmiş oyuncular takas yapamaz.",
+                    "Los jugadores en bancarrota no pueden intercambiar.",
+                    "Les joueurs en faillite ne peuvent pas échanger.",
+                    "Bankrotte Spieler können nicht handeln.",
+                    "파산한 플레이어는 거래할 수 없습니다.",
+                    "Игроки-банкроты не могут участвовать в обмене.");
 
             return false;
         }
@@ -1199,9 +1220,14 @@ public class TradeManager : MonoBehaviour
             requestedCash > 0)
         {
             message =
-                "Aynı teklifte iki yönde nakit " +
-                "kullanılamaz. Yalnızca teklif edilen " +
-                "veya talep edilen nakdi doldur.";
+                AtlasBoardL.R(
+                    "Cash cannot move in both directions in one trade. Enter cash on only one side.",
+                    "Aynı takasta iki yönde nakit kullanılamaz. Yalnızca bir tarafta nakit gir.",
+                    "El efectivo no puede moverse en ambas direcciones en un mismo intercambio. Introduce efectivo solo en un lado.",
+                    "L’argent ne peut pas circuler dans les deux sens dans un même échange. Saisissez de l’argent d’un seul côté.",
+                    "Bargeld kann in einem Handel nicht in beide Richtungen fließen. Gib Bargeld nur auf einer Seite ein.",
+                    "한 거래에서 현금을 양쪽 방향으로 동시에 보낼 수 없습니다. 한쪽에만 현금을 입력하세요.",
+                    "Нельзя передавать наличные в обе стороны в одном обмене. Укажите наличные только с одной стороны.");
 
             return false;
         }
@@ -1218,8 +1244,14 @@ public class TradeManager : MonoBehaviour
             !targetContribution)
         {
             message =
-                "Her iki taraf da en az bir mülk " +
-                "veya nakit sunmalıdır.";
+                AtlasBoardL.R(
+                    "Both sides must contribute at least one property or some cash.",
+                    "Her iki taraf da en az bir mülk veya bir miktar nakit sunmalıdır.",
+                    "Ambas partes deben aportar al menos una propiedad o algo de efectivo.",
+                    "Les deux parties doivent proposer au moins une propriété ou de l’argent.",
+                    "Beide Seiten müssen mindestens ein Grundstück oder Bargeld anbieten.",
+                    "양쪽 모두 최소 한 개의 부동산 또는 현금을 제시해야 합니다.",
+                    "Обе стороны должны предложить хотя бы одну собственность или наличные.");
 
             return false;
         }
@@ -1246,8 +1278,15 @@ public class TradeManager : MonoBehaviour
             initiator.CurrentMoney)
         {
             message =
-                $"{initiator.DisplayName} için " +
-                "teklif edilen nakit bakiyeyi aşıyor.";
+                AtlasBoardL.R(
+                    "{0} does not have enough cash for this offer.",
+                    "{0} bu teklif için yeterli nakde sahip değil.",
+                    "{0} no tiene suficiente efectivo para esta oferta.",
+                    "{0} n’a pas assez d’argent pour cette offre.",
+                    "{0} hat nicht genug Bargeld für dieses Angebot.",
+                    "{0}에게 이 제안을 위한 현금이 부족합니다.",
+                    "У {0} недостаточно наличных для этого предложения.",
+                    AtlasBoardL.PlayerName(initiator));
 
             return false;
         }
@@ -1256,8 +1295,15 @@ public class TradeManager : MonoBehaviour
             target.CurrentMoney)
         {
             message =
-                $"{target.DisplayName} için talep edilen " +
-                "nakit bakiyeyi aşıyor.";
+                AtlasBoardL.R(
+                    "{0} does not have enough cash for the requested amount.",
+                    "{0} talep edilen miktar için yeterli nakde sahip değil.",
+                    "{0} no tiene suficiente efectivo para la cantidad solicitada.",
+                    "{0} n’a pas assez d’argent pour le montant demandé.",
+                    "{0} hat nicht genug Bargeld für den verlangten Betrag.",
+                    "{0}에게 요청된 금액만큼의 현금이 없습니다.",
+                    "У {0} недостаточно наличных для запрошенной суммы.",
+                    AtlasBoardL.PlayerName(target));
 
             return false;
         }
@@ -1279,8 +1325,14 @@ public class TradeManager : MonoBehaviour
             expectedOwner.PlayerSlotIndex)
         {
             message =
-                "Seçilen mülk artık beklenen oyuncuya " +
-                "ait değil.";
+                AtlasBoardL.R(
+                    "The selected property is no longer owned by the expected player.",
+                    "Seçilen mülk artık beklenen oyuncuya ait değil.",
+                    "La propiedad seleccionada ya no pertenece al jugador esperado.",
+                    "La propriété sélectionnée n’appartient plus au joueur attendu.",
+                    "Das ausgewählte Grundstück gehört nicht mehr dem erwarteten Spieler.",
+                    "선택한 부동산의 소유자가 더 이상 예상한 플레이어가 아닙니다.",
+                    "Выбранная собственность больше не принадлежит ожидаемому игроку.");
 
             return false;
         }
@@ -1294,8 +1346,15 @@ public class TradeManager : MonoBehaviour
         if (developmentLevel > 0)
         {
             message =
-                $"{tile.DisplayName} geliştirilmiş olduğu " +
-                "için bu sürümde takas edilemez.";
+                AtlasBoardL.R(
+                    "{0} has development on it and cannot be traded in this version.",
+                    "{0} üzerinde geliştirme olduğu için bu sürümde takas edilemez.",
+                    "{0} tiene mejoras y no se puede intercambiar en esta versión.",
+                    "{0} possède des améliorations et ne peut pas être échangée dans cette version.",
+                    "{0} ist bebaut und kann in dieser Version nicht gehandelt werden.",
+                    "{0}에는 개발이 있어 현재 버전에서는 거래할 수 없습니다.",
+                    "На {0} есть улучшения, поэтому в этой версии объект нельзя обменять.",
+                    tile.DisplayName);
 
             return false;
         }

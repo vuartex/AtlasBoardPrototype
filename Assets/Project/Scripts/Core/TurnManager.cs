@@ -910,6 +910,190 @@ public class TurnManager : MonoBehaviour
         RefreshTurnPresentationForControlChange();
     }
 
+    public int CurrentTurnOrderPosition =>
+        currentTurnOrderIndex;
+
+    public int ConsecutiveDoublesThisTurn =>
+        consecutiveDoublesThisTurn;
+
+    public int[] BuildOnlineMigrationTurnOrderSlotIndices()
+    {
+        if (turnOrder == null ||
+            turnOrder.Length == 0)
+        {
+            return new int[0];
+        }
+
+        List<int> stableSlots =
+            new List<int>();
+
+        foreach (int playerArrayIndex in turnOrder)
+        {
+            PlayerGameState player =
+                GetPlayerState(
+                    playerArrayIndex);
+
+            if (player == null)
+            {
+                continue;
+            }
+
+            stableSlots.Add(
+                player.PlayerSlotIndex);
+        }
+
+        return stableSlots.ToArray();
+    }
+
+    public int[] BuildOnlineMigrationCompletedSlotsThisRound()
+    {
+        return completedActiveSlotsThisRound
+            .OrderBy(slot => slot)
+            .ToArray();
+    }
+
+    public void ApplyOnlineMigrationSchedulerCheckpoint(
+        int activeSlotIndex,
+        int networkRound,
+        int networkCompletedTurns,
+        int[] turnOrderSlotIndices,
+        int networkTurnOrderPosition,
+        int[] completedSlotsThisRound,
+        int networkConsecutiveDoubles)
+    {
+        if (!isMatchStarted)
+        {
+            return;
+        }
+
+        List<int> restoredOrder =
+            new List<int>();
+
+        if (turnOrderSlotIndices != null)
+        {
+            foreach (int stableSlot
+                     in turnOrderSlotIndices)
+            {
+                int playerArrayIndex =
+                    GetPlayerArrayIndexBySlotIndex(
+                        stableSlot);
+
+                if (playerArrayIndex >= 0 &&
+                    !restoredOrder.Contains(
+                        playerArrayIndex))
+                {
+                    restoredOrder.Add(
+                        playerArrayIndex);
+                }
+            }
+        }
+
+        if (restoredOrder.Count >= 2)
+        {
+            turnOrder =
+                restoredOrder.ToArray();
+        }
+
+        int activeArrayIndex =
+            GetPlayerArrayIndexBySlotIndex(
+                activeSlotIndex);
+
+        if (activeArrayIndex >= 0)
+        {
+            currentPlayerIndex =
+                activeArrayIndex;
+        }
+
+        if (turnOrder != null &&
+            turnOrder.Length > 0)
+        {
+            int resolvedPosition = -1;
+
+            if (networkTurnOrderPosition >= 0 &&
+                networkTurnOrderPosition <
+                    turnOrder.Length &&
+                activeArrayIndex >= 0 &&
+                turnOrder[
+                    networkTurnOrderPosition] ==
+                    activeArrayIndex)
+            {
+                resolvedPosition =
+                    networkTurnOrderPosition;
+            }
+            else if (activeArrayIndex >= 0)
+            {
+                for (int index = 0;
+                     index < turnOrder.Length;
+                     index++)
+                {
+                    if (turnOrder[index] ==
+                        activeArrayIndex)
+                    {
+                        resolvedPosition =
+                            index;
+                        break;
+                    }
+                }
+            }
+
+            if (resolvedPosition >= 0)
+            {
+                currentTurnOrderIndex =
+                    resolvedPosition;
+            }
+        }
+
+        currentRound =
+            Mathf.Max(
+                1,
+                networkRound);
+
+        completedTurns =
+            Mathf.Max(
+                0,
+                networkCompletedTurns);
+
+        consecutiveDoublesThisTurn =
+            Mathf.Max(
+                0,
+                networkConsecutiveDoubles);
+
+        completedActiveSlotsThisRound.Clear();
+
+        if (completedSlotsThisRound != null)
+        {
+            foreach (int stableSlot
+                     in completedSlotsThisRound)
+            {
+                if (GetPlayerArrayIndexBySlotIndex(
+                        stableSlot) >= 0)
+                {
+                    completedActiveSlotsThisRound.Add(
+                        stableSlot);
+                }
+            }
+        }
+
+        // 11G promotes only at an idle authoritative checkpoint.
+        // Keep the exact turn scheduler while clearing follower/transient locks.
+        gamePhase = GamePhase.Playing;
+        isMatchFinished = false;
+        waitingForMovement = false;
+        resolvingDiceVisual = false;
+        resolvingTurnStart = false;
+        resolvingManagementAction = false;
+        onlineRollRequestPending = false;
+        onlineFollowerManagementPresentation = false;
+        onlineFollowerHoldLastRollResult = false;
+        onlineFollowerPenaltySubmitPending = false;
+        suppressExtraRollForCurrentTurn = false;
+
+        if (!onlineFollowerMode)
+        {
+            RefreshTurnPresentationForControlChange();
+        }
+    }
+
     public void ClearOnlineTurnAuthority()
     {
         onlineAuthorityConfigured = false;

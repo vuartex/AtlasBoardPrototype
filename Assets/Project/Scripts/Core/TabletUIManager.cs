@@ -57,6 +57,7 @@ public class TabletUIManager : MonoBehaviour
         AtlasBoardLocalizationManager.LanguageChanged +=
             HandleLanguageChanged;
 
+        RefreshLegacyStaticTabletLocalization();
         HideTabletShell();
     }
 
@@ -68,6 +69,8 @@ public class TabletUIManager : MonoBehaviour
 
     private void HandleLanguageChanged()
     {
+        RefreshLegacyStaticTabletLocalization();
+
         if (currentPanel != null)
         {
             UpdateTabletTitle(
@@ -90,6 +93,7 @@ public class TabletUIManager : MonoBehaviour
         if (currentPanel != requestedPanel)
         {
             currentPanel = requestedPanel;
+            RefreshLegacyStaticTabletLocalization();
         }
 
         // Several gameplay managers still write to panel/header text.
@@ -297,6 +301,154 @@ public class TabletUIManager : MonoBehaviour
         onlineSeatNoticePanel.SetActive(false);
     }
 
+    private void RefreshLegacyStaticTabletLocalization()
+    {
+        if (tradePanel != null)
+        {
+            SetNamedText(
+                tradePanel,
+                "Text_TradeTargetLabel",
+                AtlasBoardL.R(
+                    "TRADE WITH",
+                    "TAKAS YAPILACAK OYUNCU",
+                    "INTERCAMBIAR CON",
+                    "ÉCHANGER AVEC",
+                    "HANDEL MIT",
+                    "거래 상대",
+                    "ОБМЕН С"));
+
+            SetNamedText(
+                tradePanel,
+                "Text_TradeOfferHeader",
+                AtlasBoardL.R(
+                    "YOU GIVE",
+                    "SEN VERİRSİN",
+                    "TÚ DAS",
+                    "VOUS DONNEZ",
+                    "DU GIBST",
+                    "내가 주는 것",
+                    "ВЫ ОТДАЁТЕ"));
+
+            SetNamedText(
+                tradePanel,
+                "Text_TradeRequestHeader",
+                AtlasBoardL.R(
+                    "OTHER PLAYER GIVES",
+                    "KARŞI OYUNCU VERİR",
+                    "EL OTRO JUGADOR DA",
+                    "L’AUTRE JOUEUR DONNE",
+                    "ANDERER SPIELER GIBT",
+                    "상대가 주는 것",
+                    "ДРУГОЙ ИГРОК ОТДАЁТ"));
+
+            string cashPlaceholder =
+                AtlasBoardL.R(
+                    "Cash amount",
+                    "Nakit miktarı",
+                    "Cantidad de efectivo",
+                    "Montant en espèces",
+                    "Bargeldbetrag",
+                    "현금 금액",
+                    "Сумма наличных");
+
+            SetNamedInputPlaceholder(
+                tradePanel,
+                "Input_TradeOfferedCash",
+                cashPlaceholder);
+
+            SetNamedInputPlaceholder(
+                tradePanel,
+                "Input_TradeRequestedCash",
+                cashPlaceholder);
+        }
+    }
+
+    private static void SetNamedText(
+        GameObject root,
+        string objectName,
+        string value)
+    {
+        Transform child =
+            FindChildRecursive(
+                root != null
+                    ? root.transform
+                    : null,
+                objectName);
+
+        TMP_Text text =
+            child != null
+                ? child.GetComponent<TMP_Text>()
+                : null;
+
+        if (text != null)
+        {
+            text.text =
+                value ?? string.Empty;
+        }
+    }
+
+    private static void SetNamedInputPlaceholder(
+        GameObject root,
+        string objectName,
+        string value)
+    {
+        Transform child =
+            FindChildRecursive(
+                root != null
+                    ? root.transform
+                    : null,
+                objectName);
+
+        TMP_InputField input =
+            child != null
+                ? child.GetComponent<TMP_InputField>()
+                : null;
+
+        if (input != null &&
+            input.placeholder is TMP_Text placeholder)
+        {
+            placeholder.text =
+                value ?? string.Empty;
+        }
+    }
+
+    private static Transform FindChildRecursive(
+        Transform root,
+        string objectName)
+    {
+        if (root == null ||
+            string.IsNullOrWhiteSpace(
+                objectName))
+        {
+            return null;
+        }
+
+        if (string.Equals(
+                root.name,
+                objectName,
+                System.StringComparison.Ordinal))
+        {
+            return root;
+        }
+
+        for (int index = 0;
+             index < root.childCount;
+             index++)
+        {
+            Transform found =
+                FindChildRecursive(
+                    root.GetChild(index),
+                    objectName);
+
+            if (found != null)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
     private GameObject FindRequestedPanel()
     {
         if (IsPanelRequested(onlineSeatNoticePanel))
@@ -453,15 +605,15 @@ public class TabletUIManager : MonoBehaviour
 
         if (panel == onlineSeatNoticePanel)
         {
-            string language =
-                AtlasBoardLocalizationManager.Instance != null
-                    ? AtlasBoardLocalizationManager.Instance.CurrentLanguageCode
-                    : "en";
-
             tabletTitleText.text =
-                (language ?? "en").ToLowerInvariant() == "tr"
-                    ? "OYUNCU DURUMU"
-                    : "PLAYER STATUS";
+                AtlasBoardL.R(
+                    "PLAYER STATUS",
+                    "OYUNCU DURUMU",
+                    "ESTADO DEL JUGADOR",
+                    "STATUT DU JOUEUR",
+                    "SPIELERSTATUS",
+                    "플레이어 상태",
+                    "СТАТУС ИГРОКА");
             return;
         }
 

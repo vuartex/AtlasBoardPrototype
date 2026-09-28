@@ -78,6 +78,36 @@ public static class AtlasBoardOnlineRuntimeText
             "로비 호스트의 결정을 기다리는 중입니다.",
             "Ожидание решения владельца лобби.");
 
+    public static string HostMigrationLeaveQueuedTitle() =>
+        Select(
+            "LEAVING MATCH",
+            "MAÇTAN AYRILIYORSUN",
+            "SALIENDO DE LA PARTIDA",
+            "SORTIE DE LA PARTIE",
+            "SPIEL WIRD VERLASSEN",
+            "경기에서 나가는 중",
+            "ВЫХОД ИЗ МАТЧА");
+
+    public static string HostMigrationLeaveQueuedBody() =>
+        Select(
+            "Your leave request was received. You will exit automatically as soon as the current gameplay action reaches a safe checkpoint.",
+            "Ayrılma isteğin alındı. Devam eden oyun işlemi güvenli bir noktaya ulaşır ulaşmaz otomatik olarak ayrılacaksın.",
+            "Se recibió tu solicitud de salida. Saldrás automáticamente cuando la acción actual llegue a un punto seguro.",
+            "Votre demande de sortie a été reçue. Vous quitterez automatiquement dès que l'action en cours atteindra un point sûr.",
+            "Deine Anfrage zum Verlassen wurde empfangen. Du verlässt das Spiel automatisch, sobald die aktuelle Aktion einen sicheren Übergabepunkt erreicht.",
+            "나가기 요청이 접수되었습니다. 현재 게임 동작이 안전한 지점에 도달하면 자동으로 나갑니다.",
+            "Запрос на выход принят. Вы автоматически покинете матч, как только текущее действие достигнет безопасной точки.");
+
+    public static string HostMigrationLeaveQueuedButton() =>
+        Select(
+            "PLEASE WAIT",
+            "LÜTFEN BEKLE",
+            "ESPERA",
+            "VEUILLEZ PATIENTER",
+            "BITTE WARTEN",
+            "잠시 기다려 주세요",
+            "ПОЖАЛУЙСТА, ПОДОЖДИТЕ");
+
     public static string LeaveMatch() =>
         Select(
             "LEAVE MATCH",

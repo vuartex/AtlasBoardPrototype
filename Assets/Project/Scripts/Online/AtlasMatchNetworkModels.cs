@@ -30,6 +30,9 @@ public sealed class AtlasMatchNetworkSnapshot
     public int EventSequence;
     public string SnapshotJson;
     public long UpdatedAtEpochMs;
+    public long HostHeartbeatAtEpochMs;
+    public int AuthorityEpoch;
+    public string AuthorityHandoffReason;
     public int NetworkSchemaVersion;
 
     public List<AtlasMatchNetworkSeat> Seats =

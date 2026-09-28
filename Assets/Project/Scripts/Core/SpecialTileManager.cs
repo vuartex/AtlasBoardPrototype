@@ -45,6 +45,9 @@ public class SpecialTileManager : MonoBehaviour
     private int onlineValue0;
     private int onlineValue1;
     private int onlineValue2;
+    private int onlineValue3;
+    private int onlineContextTileIndex = -1;
+    private int onlineContextPlayerSlotIndex = -1;
     private string onlineFallbackTitle = string.Empty;
     private string onlineFallbackDescription = string.Empty;
     private string onlineFallbackResult = string.Empty;
@@ -71,6 +74,15 @@ public class SpecialTileManager : MonoBehaviour
 
     public int OnlineValue2 =>
         onlineValue2;
+
+    public int OnlineValue3 =>
+        onlineValue3;
+
+    public int OnlineContextTileIndex =>
+        onlineContextTileIndex;
+
+    public int OnlineContextPlayerSlotIndex =>
+        onlineContextPlayerSlotIndex;
 
     public string OnlineFallbackTitle =>
         onlineFallbackTitle;
@@ -108,13 +120,21 @@ public class SpecialTileManager : MonoBehaviour
         string kind,
         int value0 = 0,
         int value1 = 0,
-        int value2 = 0)
+        int value2 = 0,
+        int value3 = 0,
+        int contextTileIndex = -1,
+        int contextPlayerSlotIndex = -1)
     {
         onlinePresentationKind =
             kind ?? string.Empty;
         onlineValue0 = value0;
         onlineValue1 = value1;
         onlineValue2 = value2;
+        onlineValue3 = value3;
+        onlineContextTileIndex =
+            contextTileIndex;
+        onlineContextPlayerSlotIndex =
+            contextPlayerSlotIndex;
     }
 
     public bool HasPendingSpecialFor(
@@ -164,6 +184,7 @@ public class SpecialTileManager : MonoBehaviour
         int appliedMoneyChange;
         bool causedBankruptcy = false;
         int transferredProperties = 0;
+        int releasedProperties = 0;
 
         if (requestedMoneyChange > 0)
         {
@@ -193,6 +214,9 @@ public class SpecialTileManager : MonoBehaviour
 
                 transferredProperties =
                     result.TransferredPropertyCount;
+
+                releasedProperties =
+                    result.ReleasedPropertyCount;
             }
             else
             {
@@ -226,13 +250,15 @@ public class SpecialTileManager : MonoBehaviour
 
         onlineValue1 = causedBankruptcy ? 1 : 0;
         onlineValue2 = transferredProperties;
+        onlineValue3 = releasedProperties;
 
         UpdateUI(
             title,
             description,
             appliedMoneyChange,
             causedBankruptcy,
-            transferredProperties);
+            transferredProperties,
+            releasedProperties);
 
         onlineFallbackResult =
             specialResultText != null
@@ -317,6 +343,9 @@ public class SpecialTileManager : MonoBehaviour
         int value0,
         int value1,
         int value2,
+        int value3,
+        string contextTileName,
+        PlayerGameState contextPlayer,
         string fallbackTitle,
         string fallbackDescription,
         string fallbackResult)
@@ -352,6 +381,7 @@ public class SpecialTileManager : MonoBehaviour
         onlineValue0 = value0;
         onlineValue1 = value1;
         onlineValue2 = value2;
+        onlineValue3 = value3;
         onlineFallbackTitle = fallbackTitle ?? string.Empty;
         onlineFallbackDescription = fallbackDescription ?? string.Empty;
         onlineFallbackResult = fallbackResult ?? string.Empty;
@@ -371,7 +401,8 @@ public class SpecialTileManager : MonoBehaviour
                 description,
                 onlineValue0,
                 onlineValue1 != 0,
-                onlineValue2);
+                onlineValue2,
+                onlineValue3);
         }
         else if (string.Equals(
                      onlinePresentationKind,
@@ -385,7 +416,8 @@ public class SpecialTileManager : MonoBehaviour
                 description,
                 onlineValue0,
                 onlineValue1 != 0,
-                onlineValue2);
+                onlineValue2,
+                onlineValue3);
         }
         else if (string.Equals(
                      onlinePresentationKind,
@@ -399,7 +431,8 @@ public class SpecialTileManager : MonoBehaviour
                 description,
                 onlineValue0,
                 onlineValue1 != 0,
-                onlineValue2);
+                onlineValue2,
+                onlineValue3);
         }
         else if (string.Equals(
                      onlinePresentationKind,
@@ -419,7 +452,58 @@ public class SpecialTileManager : MonoBehaviour
                 description,
                 0,
                 false,
+                0,
                 0);
+        }
+        else if (string.Equals(
+                     onlinePresentationKind,
+                     "rent_bankrupt",
+                     StringComparison.Ordinal))
+        {
+            title =
+                AtlasBoardL.T(
+                    "rent.bankrupt.title");
+
+            description =
+                AtlasBoardL.T(
+                    "rent.bankrupt.description",
+                    AtlasBoardL.PlayerName(
+                        player),
+                    string.IsNullOrWhiteSpace(
+                        contextTileName)
+                        ? AtlasBoardL.T(
+                            "tablet.property")
+                        : contextTileName,
+                    Mathf.Max(
+                        0,
+                        onlineValue0),
+                    AtlasBoardL.PlayerName(
+                        contextPlayer));
+
+            if (specialTitleText != null)
+            {
+                specialTitleText.text =
+                    title;
+            }
+
+            if (specialDescriptionText != null)
+            {
+                specialDescriptionText.text =
+                    description;
+            }
+
+            if (specialResultText != null)
+            {
+                specialResultText.text =
+                    BuildRentBankruptcyResult(
+                        onlineValue1,
+                        Mathf.Max(
+                            0,
+                            onlineValue0 -
+                            onlineValue1),
+                        onlineValue2,
+                        onlineValue3);
+            }
         }
         else
         {
@@ -590,7 +674,8 @@ public class SpecialTileManager : MonoBehaviour
         string description,
         int appliedMoneyChange,
         bool causedBankruptcy,
-        int transferredProperties)
+        int transferredProperties,
+        int releasedProperties)
     {
         if (specialTitleText != null)
         {
@@ -611,11 +696,18 @@ public class SpecialTileManager : MonoBehaviour
         if (causedBankruptcy)
         {
             specialResultText.text =
-                AtlasBoardL.T(
-                    "special.result.bankrupt",
+                AtlasBoardL.R(
+                    "BANKRUPT\nPaid: {0} ₵\nTransferred properties: {1}\nReleased properties: {2}",
+                    "İFLAS\nÖdenen: {0} ₵\nDevredilen mülk: {1}\nBoşa çıkan mülk: {2}",
+                    "BANCARROTA\nPagado: {0} ₵\nPropiedades transferidas: {1}\nPropiedades liberadas: {2}",
+                    "FAILLITE\nPayé : {0} ₵\nPropriétés transférées : {1}\nPropriétés libérées : {2}",
+                    "INSOLVENT\nBezahlt: {0} ₵\nÜbertragene Grundstücke: {1}\nFreigegebene Grundstücke: {2}",
+                    "파산\n지불: {0} ₵\n이전된 부동산: {1}\n해제된 부동산: {2}",
+                    "БАНКРОТ\nОплачено: {0} ₵\nПередано объектов: {1}\nОсвобождено объектов: {2}",
                     Mathf.Abs(
                         appliedMoneyChange),
-                    transferredProperties);
+                    transferredProperties,
+                    releasedProperties);
 
             return;
         }
@@ -636,6 +728,26 @@ public class SpecialTileManager : MonoBehaviour
                 AtlasBoardL.T(
                     "special.result.no_money_change");
         }
+    }
+
+    public static string BuildRentBankruptcyResult(
+        int amountPaid,
+        int unpaidAmount,
+        int transferredProperties,
+        int releasedProperties)
+    {
+        return AtlasBoardL.R(
+            "Paid: {0} ₵\nUnpaid: {1} ₵\nTransferred properties: {2}\nReleased properties: {3}",
+            "Ödenen: {0} ₵\nKarşılanamayan: {1} ₵\nDevredilen mülk: {2}\nBoşa çıkan mülk: {3}",
+            "Pagado: {0} ₵\nPendiente: {1} ₵\nPropiedades transferidas: {2}\nPropiedades liberadas: {3}",
+            "Payé : {0} ₵\nImpayé : {1} ₵\nPropriétés transférées : {2}\nPropriétés libérées : {3}",
+            "Bezahlt: {0} ₵\nOffen: {1} ₵\nÜbertragene Grundstücke: {2}\nFreigegebene Grundstücke: {3}",
+            "지불: {0} ₵\n미지급: {1} ₵\n이전된 부동산: {2}\n해제된 부동산: {3}",
+            "Оплачено: {0} ₵\nНе оплачено: {1} ₵\nПередано объектов: {2}\nОсвобождено объектов: {3}",
+            Mathf.Max(0, amountPaid),
+            Mathf.Max(0, unpaidAmount),
+            Mathf.Max(0, transferredProperties),
+            Mathf.Max(0, releasedProperties));
     }
 
     private void RefreshContinueButtonAvailability()
@@ -712,6 +824,9 @@ public class SpecialTileManager : MonoBehaviour
         onlineValue0 = 0;
         onlineValue1 = 0;
         onlineValue2 = 0;
+        onlineValue3 = 0;
+        onlineContextTileIndex = -1;
+        onlineContextPlayerSlotIndex = -1;
         onlineFallbackTitle = string.Empty;
         onlineFallbackDescription = string.Empty;
         onlineFallbackResult = string.Empty;

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class BankruptcyManager : MonoBehaviour
@@ -10,7 +11,9 @@ public class BankruptcyManager : MonoBehaviour
             int unpaidAmount,
             bool paidInFull,
             bool debtorBankrupt,
-            int transferredPropertyCount)
+            int transferredPropertyCount,
+            int releasedPropertyCount = 0,
+            int transferredPropertyValue = 0)
         {
             AmountDue = amountDue;
             AmountPaid = amountPaid;
@@ -19,6 +22,10 @@ public class BankruptcyManager : MonoBehaviour
             DebtorBankrupt = debtorBankrupt;
             TransferredPropertyCount =
                 transferredPropertyCount;
+            ReleasedPropertyCount =
+                releasedPropertyCount;
+            TransferredPropertyValue =
+                transferredPropertyValue;
         }
 
         public int AmountDue { get; }
@@ -27,6 +34,11 @@ public class BankruptcyManager : MonoBehaviour
         public bool PaidInFull { get; }
         public bool DebtorBankrupt { get; }
         public int TransferredPropertyCount { get; }
+        public int ReleasedPropertyCount { get; }
+        public int TransferredPropertyValue { get; }
+        public int LiquidatedPropertyCount =>
+            TransferredPropertyCount +
+            ReleasedPropertyCount;
     }
 
     [Header("References")]
@@ -112,10 +124,18 @@ public class BankruptcyManager : MonoBehaviour
             creditor.AddMoney(amountPaid);
         }
 
-        int transferredPropertyCount =
-            TransferOwnedProperties(
-                debtor,
-                creditor);
+        int unpaidAmount =
+            Mathf.Max(
+                0,
+                amountDue - amountPaid);
+
+        LiquidateOwnedProperties(
+            debtor,
+            creditor,
+            unpaidAmount,
+            out int transferredPropertyCount,
+            out int releasedPropertyCount,
+            out int transferredPropertyValue);
 
         debtor.DeclareBankrupt();
 
@@ -127,11 +147,6 @@ public class BankruptcyManager : MonoBehaviour
                 debtor);
         }
 
-        int unpaidAmount =
-            Mathf.Max(
-                0,
-                amountDue - amountPaid);
-
         string creditorDescription =
             creditor != null
                 ? creditor.DisplayName
@@ -141,8 +156,9 @@ public class BankruptcyManager : MonoBehaviour
             $"{debtor.DisplayName} could not fully pay " +
             $"{amountDue} for {reason}. " +
             $"Paid: {amountPaid}, unpaid: {unpaidAmount}, " +
-            $"properties transferred/released: " +
-            $"{transferredPropertyCount}, destination: " +
+            $"properties transferred: {transferredPropertyCount} " +
+            $"(value {transferredPropertyValue}), released: " +
+            $"{releasedPropertyCount}, destination: " +
             $"{creditorDescription}.",
             this);
 
@@ -152,25 +168,38 @@ public class BankruptcyManager : MonoBehaviour
             unpaidAmount,
             false,
             true,
-            transferredPropertyCount);
+            transferredPropertyCount,
+            releasedPropertyCount,
+            transferredPropertyValue);
     }
 
-    private int TransferOwnedProperties(
+    private void LiquidateOwnedProperties(
         PlayerGameState debtor,
-        PlayerGameState creditor)
+        PlayerGameState creditor,
+        int unpaidAmount,
+        out int transferredCount,
+        out int releasedCount,
+        out int transferredValue)
     {
+        transferredCount = 0;
+        releasedCount = 0;
+        transferredValue = 0;
+
         EnsureBoardPath();
 
-        if (boardPath == null || debtor == null)
+        if (boardPath == null ||
+            debtor == null)
         {
-            return 0;
+            return;
         }
 
         bool transferToCreditor =
             creditor != null &&
-            !creditor.IsBankrupt;
+            !creditor.IsBankrupt &&
+            unpaidAmount > 0;
 
-        int transferredCount = 0;
+        List<BoardTile> ownedProperties =
+            new List<BoardTile>();
 
         for (int tileIndex = 0;
              tileIndex < boardPath.TileCount;
@@ -179,70 +208,93 @@ public class BankruptcyManager : MonoBehaviour
             BoardTile tile =
                 boardPath.GetTile(tileIndex);
 
-            if (tile == null ||
-                !tile.IsOwned ||
-                tile.OwnerPlayerIndex !=
-                debtor.PlayerSlotIndex)
+            if (tile != null &&
+                tile.IsOwned &&
+                tile.OwnerPlayerIndex ==
+                    debtor.PlayerSlotIndex)
             {
-                continue;
+                ownedProperties.Add(tile);
             }
-
-            // Development is liquidated when a player goes bankrupt. Even if
-            // the property itself transfers to a creditor, old house/hotel
-            // visuals and rent-development state must not survive the bankrupt
-            // owner.
-            EnsureDevelopmentManager();
-
-            if (propertyDevelopmentManager != null)
-            {
-                propertyDevelopmentManager
-                    .ResetDevelopment(tile);
-            }
-
-            tile.ClearOwner();
-            transferredCount++;
-
-            if (!transferToCreditor)
-            {
-                continue;
-            }
-
-            bool assigned =
-                tile.TrySetOwner(
-                    creditor.PlayerSlotIndex);
-
-            if (!assigned)
-            {
-                Debug.LogWarning(
-                    $"Could not transfer {tile.DisplayName} " +
-                    $"to {creditor.DisplayName}.",
-                    tile);
-
-                EnsureDevelopmentManager();
-
-                if (propertyDevelopmentManager != null)
-                {
-                    propertyDevelopmentManager
-                        .ResetDevelopment(tile);
-                }
-
-                continue;
-            }
-
-            if (creditor.OwnershipMaterial != null)
-            {
-                tile.ApplyOwnerMaterial(
-                    creditor.OwnershipMaterial);
-            }
-
-            // Development was liquidated above. Do not rebuild a marker
-            // root for the new owner; authoritative level remains zero and
-            // followers receive the same zero in the next state frame.
-            EnsureDevelopmentManager();
-            propertyDevelopmentManager?.ResetDevelopment(tile);
         }
 
-        return transferredCount;
+        // Deterministic and intentionally debtor-friendly liquidation:
+        // cheapest property first; tile index is the stable tie-breaker.
+        ownedProperties.Sort(
+            (left, right) =>
+            {
+                int valueCompare =
+                    Mathf.Max(0, left.PurchasePrice)
+                        .CompareTo(
+                            Mathf.Max(
+                                0,
+                                right.PurchasePrice));
+
+                return valueCompare != 0
+                    ? valueCompare
+                    : left.TileIndex
+                        .CompareTo(
+                            right.TileIndex);
+            });
+
+        int coveredValue = 0;
+
+        foreach (BoardTile tile
+                 in ownedProperties)
+        {
+            EnsureDevelopmentManager();
+
+            propertyDevelopmentManager
+                ?.ResetDevelopment(tile);
+
+            tile.ClearOwner();
+
+            bool shouldTransfer =
+                transferToCreditor &&
+                coveredValue < unpaidAmount;
+
+            if (shouldTransfer)
+            {
+                bool assigned =
+                    tile.TrySetOwner(
+                        creditor.PlayerSlotIndex);
+
+                if (assigned)
+                {
+                    int propertyValue =
+                        Mathf.Max(
+                            0,
+                            tile.PurchasePrice);
+
+                    transferredCount++;
+                    transferredValue +=
+                        propertyValue;
+                    coveredValue +=
+                        propertyValue;
+
+                    if (creditor.OwnershipMaterial != null)
+                    {
+                        tile.ApplyOwnerMaterial(
+                            creditor.OwnershipMaterial);
+                    }
+
+                    // Bankruptcy liquidates all development. Ownership may
+                    // transfer, but houses/hotels never transfer with it.
+                    propertyDevelopmentManager
+                        ?.ResetDevelopment(tile);
+
+                    continue;
+                }
+
+                Debug.LogWarning(
+                    $"Could not transfer {tile.DisplayName} " +
+                    $"to {creditor.DisplayName}; property was released.",
+                    tile);
+            }
+
+            // No creditor, debt already covered by cheaper properties, or an
+            // assignment failure: return the property to the unowned pool.
+            releasedCount++;
+        }
     }
 
     private void EnsureBoardPath()

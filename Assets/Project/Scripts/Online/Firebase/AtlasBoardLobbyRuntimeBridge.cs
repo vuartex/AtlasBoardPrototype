@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Firebase;
@@ -1067,42 +1068,69 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 "Default Firebase project is not atlasboard-usa.");
         }
 
-        string unique =
-            Guid.NewGuid().ToString("N");
+        string devIdentityKey =
+            BuildDeterministicDevelopmentIdentityKey(
+                ResolveDevelopmentDisplayName());
 
-        AuthSignupRequest signupRequest =
+        string devEmail =
+            $"atlasboard.dev.{devIdentityKey}@example.com";
+
+        string devPassword =
+            $"AtlasBoardDev!{devIdentityKey}";
+
+        AuthSignupRequest authRequest =
             new AuthSignupRequest
             {
-                email =
-                    $"atlasboard.unity.{unique}@example.com",
-                password =
-                    $"AtlasBoardUnity!{unique}",
+                email = devEmail,
+                password = devPassword,
                 returnSecureToken = true
             };
 
-        string authUrl =
-            $"http://{EmulatorHostForOnlineSubsystems}:{AuthEmulatorPort}/" +
-            "identitytoolkit.googleapis.com/v1/accounts:signUp?key=" +
-            UnityWebRequest.EscapeURL(app.Options.ApiKey ?? "fake-api-key");
+        string apiKey =
+            UnityWebRequest.EscapeURL(
+                app.Options.ApiKey ?? "fake-api-key");
 
-        HttpJsonResult<AuthSignupResponse> signup =
+        string signInUrl =
+            $"http://{EmulatorHostForOnlineSubsystems}:{AuthEmulatorPort}/" +
+            "identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" +
+            apiKey;
+
+        HttpJsonResult<AuthSignupResponse> auth =
             await SendJsonAsync<AuthSignupRequest, AuthSignupResponse>(
-                authUrl,
-                signupRequest,
+                signInUrl,
+                authRequest,
                 string.Empty);
 
-        if (!signup.Success ||
-            signup.Value == null ||
-            string.IsNullOrWhiteSpace(signup.Value.idToken) ||
-            string.IsNullOrWhiteSpace(signup.Value.localId))
+        if (!auth.Success ||
+            auth.Value == null ||
+            string.IsNullOrWhiteSpace(auth.Value.idToken) ||
+            string.IsNullOrWhiteSpace(auth.Value.localId))
+        {
+            string signupUrl =
+                $"http://{EmulatorHostForOnlineSubsystems}:{AuthEmulatorPort}/" +
+                "identitytoolkit.googleapis.com/v1/accounts:signUp?key=" +
+                apiKey;
+
+            auth =
+                await SendJsonAsync<AuthSignupRequest, AuthSignupResponse>(
+                    signupUrl,
+                    authRequest,
+                    string.Empty);
+        }
+
+        if (!auth.Success ||
+            auth.Value == null ||
+            string.IsNullOrWhiteSpace(auth.Value.idToken) ||
+            string.IsNullOrWhiteSpace(auth.Value.localId))
         {
             return AtlasLobbyOperationResult.Fail(
                 "account.error.service_unavailable",
-                "Auth Emulator sign-up failed: " + signup.Error);
+                "Stable Auth Emulator sign-in/sign-up failed: " +
+                auth.Error);
         }
 
-        idToken = signup.Value.idToken;
-        currentAccountId = signup.Value.localId;
+        idToken = auth.Value.idToken;
+        currentAccountId = auth.Value.localId;
 
         DevBootstrapRequest bootstrap =
             new DevBootstrapRequest
@@ -1657,6 +1685,38 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             "kicked" => AtlasSeatConnectionState.Kicked,
             _ => AtlasSeatConnectionState.Empty
         };
+    }
+
+    private static string BuildDeterministicDevelopmentIdentityKey(
+        string displayName)
+    {
+        string normalized =
+            string.IsNullOrWhiteSpace(displayName)
+                ? "atlasboard-development-player"
+                : displayName.Trim().ToLowerInvariant();
+
+        using SHA256 sha256 =
+            SHA256.Create();
+
+        byte[] bytes =
+            sha256.ComputeHash(
+                Encoding.UTF8.GetBytes(
+                    "atlasboard-local-emulator|" +
+                    normalized));
+
+        StringBuilder builder =
+            new StringBuilder(24);
+
+        for (int index = 0;
+             index < 12 &&
+             index < bytes.Length;
+             index++)
+        {
+            builder.Append(
+                bytes[index].ToString("x2"));
+        }
+
+        return builder.ToString();
     }
 
     private string ResolveDevelopmentDisplayName()

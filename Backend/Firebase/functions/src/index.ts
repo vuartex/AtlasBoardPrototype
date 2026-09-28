@@ -71,7 +71,10 @@ import {
   hostExpireReconnects,
   hostMarkAfkRemoved,
   hostPrepareRematch,
+  hostSweepDisconnectedMatchSeats,
   leaveActiveMatch,
+  touchMatchPresence,
+  tryRecoverCrashedHost,
 } from "./match/lifecycle";
 
 const REGION = "europe-west1";
@@ -1704,6 +1707,70 @@ export const matchGetSnapshot = onCall(
       ok: true,
       snapshot,
     };
+  },
+);
+
+/**
+ * Phase 11G.2 process presence lease.
+ */
+export const matchTouchPresence = onCall(
+  {
+    region: REGION,
+    maxInstances: 40,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const data = request.data ?? {};
+    const snapshot = await touchMatchPresence({
+      uid,
+      matchId: data.matchId,
+    });
+
+    return {ok: true, snapshot};
+  },
+);
+
+/**
+ * Phase 11G.2 Host-side abrupt RemoteHuman disconnect sweep.
+ */
+export const matchHostSweepDisconnected = onCall(
+  {
+    region: REGION,
+    maxInstances: 30,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const data = request.data ?? {};
+    const snapshot =
+      await hostSweepDisconnectedMatchSeats({
+        uid,
+        matchId: data.matchId,
+      });
+
+    return {ok: true, snapshot};
+  },
+);
+
+/**
+ * Phase 11G.2 crashed-Host failover probe.
+ */
+export const matchTryRecoverCrashedHost = onCall(
+  {
+    region: REGION,
+    maxInstances: 40,
+    enforceAppCheck: false,
+  },
+  async (request) => {
+    const uid = requireAuthenticatedUid(request);
+    const data = request.data ?? {};
+    const snapshot = await tryRecoverCrashedHost({
+      uid,
+      matchId: data.matchId,
+    });
+
+    return {ok: true, snapshot};
   },
 );
 

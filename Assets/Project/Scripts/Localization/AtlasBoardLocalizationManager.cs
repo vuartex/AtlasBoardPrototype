@@ -275,6 +275,58 @@ public static class AtlasBoardL
             : localized;
     }
 
+    public static string R(
+        string en,
+        string tr,
+        string es,
+        string fr,
+        string de,
+        string ko,
+        string ru,
+        params object[] args)
+    {
+        AtlasBoardLocalizationManager manager =
+            AtlasBoardLocalizationManager.Instance;
+
+        string language =
+            manager != null
+                ? manager.CurrentLanguageCode
+                : "en";
+
+        string format =
+            (language ?? "en")
+                .ToLowerInvariant() switch
+            {
+                "tr" => tr,
+                "es" => es,
+                "fr" => fr,
+                "de" => de,
+                "ko" => ko,
+                "ru" => ru,
+                _ => en
+            };
+
+        if (args == null ||
+            args.Length == 0)
+        {
+            return format ?? string.Empty;
+        }
+
+        try
+        {
+            return string.Format(
+                manager != null
+                    ? manager.GetCulture()
+                    : CultureInfo.InvariantCulture,
+                format ?? string.Empty,
+                args);
+        }
+        catch (FormatException)
+        {
+            return format ?? string.Empty;
+        }
+    }
+
     public static string T(
         string key,
         params object[] args)

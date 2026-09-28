@@ -16,6 +16,9 @@ public sealed class AtlasBoardMatchRuntimeBridge :
     private const string Region =
         "europe-west1";
 
+    private const string EmulatorHost =
+        "127.0.0.1";
+
     private const int FunctionsEmulatorPort =
         5001;
 
@@ -193,6 +196,54 @@ public sealed class AtlasBoardMatchRuntimeBridge :
 
         return await CallAsync(
             "matchLeaveActive",
+            new MatchIdRequest
+            {
+                matchId = resolvedMatchId
+            },
+            ParseSnapshotEnvelope);
+    }
+
+    public async Task<AtlasMatchNetworkResult>
+        TouchPresenceAsync(
+            string matchId = "")
+    {
+        string resolvedMatchId =
+            ResolveMatchId(matchId);
+
+        return await CallAsync(
+            "matchTouchPresence",
+            new MatchIdRequest
+            {
+                matchId = resolvedMatchId
+            },
+            ParseSnapshotEnvelope);
+    }
+
+    public async Task<AtlasMatchNetworkResult>
+        HostSweepDisconnectedAsync(
+            string matchId = "")
+    {
+        string resolvedMatchId =
+            ResolveMatchId(matchId);
+
+        return await CallAsync(
+            "matchHostSweepDisconnected",
+            new MatchIdRequest
+            {
+                matchId = resolvedMatchId
+            },
+            ParseSnapshotEnvelope);
+    }
+
+    public async Task<AtlasMatchNetworkResult>
+        TryRecoverCrashedHostAsync(
+            string matchId = "")
+    {
+        string resolvedMatchId =
+            ResolveMatchId(matchId);
+
+        return await CallAsync(
+            "matchTryRecoverCrashedHost",
             new MatchIdRequest
             {
                 matchId = resolvedMatchId
@@ -410,10 +461,20 @@ public sealed class AtlasBoardMatchRuntimeBridge :
                 currentSnapshot.SnapshotJson,
                 snapshot.SnapshotJson,
                 StringComparison.Ordinal) &&
+            currentSnapshot.AuthorityEpoch ==
+                snapshot.AuthorityEpoch &&
+            string.Equals(
+                currentSnapshot.AuthorityHandoffReason,
+                snapshot.AuthorityHandoffReason,
+                StringComparison.Ordinal) &&
             SeatSnapshotsEquivalent(
                 currentSnapshot.Seats,
                 snapshot.Seats))
         {
+            currentSnapshot.HostHeartbeatAtEpochMs =
+                snapshot.HostHeartbeatAtEpochMs;
+            currentSnapshot.UpdatedAtEpochMs =
+                snapshot.UpdatedAtEpochMs;
             return;
         }
 
@@ -500,7 +561,7 @@ public sealed class AtlasBoardMatchRuntimeBridge :
 
         string url =
             lobbyBridge.UsingLocalEmulators
-                ? $"http://{lobbyBridge.EmulatorHostForOnlineSubsystems}:" +
+                ? $"http://{EmulatorHost}:" +
                   $"{FunctionsEmulatorPort}/" +
                   $"{ProjectId}/{Region}/" +
                   functionName
@@ -815,6 +876,13 @@ public sealed class AtlasBoardMatchRuntimeBridge :
                     "{}",
                 UpdatedAtEpochMs =
                     wire.updatedAtEpochMs,
+                HostHeartbeatAtEpochMs =
+                    wire.hostHeartbeatAtEpochMs,
+                AuthorityEpoch =
+                    wire.authorityEpoch,
+                AuthorityHandoffReason =
+                    wire.authorityHandoffReason ??
+                    string.Empty,
                 NetworkSchemaVersion =
                     wire.networkSchemaVersion
             };
@@ -973,6 +1041,9 @@ public sealed class AtlasBoardMatchRuntimeBridge :
         public int eventSequence;
         public string snapshotJson;
         public long updatedAtEpochMs;
+        public long hostHeartbeatAtEpochMs;
+        public int authorityEpoch;
+        public string authorityHandoffReason;
         public int networkSchemaVersion;
         public WireSeat[] seats;
     }
