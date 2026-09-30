@@ -1877,6 +1877,14 @@ export const matchSubmitIntent = onCall(
           data.intentType as string,
         payloadJson:
           data.payloadJson as string,
+        observedRevision:
+          data.observedRevision as number,
+        observedEventSequence:
+          data.observedEventSequence as number,
+        observedAuthorityEpoch:
+          data.observedAuthorityEpoch as number,
+        observedPhase:
+          data.observedPhase as string,
       });
 
     return {

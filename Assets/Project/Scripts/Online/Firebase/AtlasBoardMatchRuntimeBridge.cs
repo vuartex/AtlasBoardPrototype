@@ -168,6 +168,20 @@ public sealed class AtlasBoardMatchRuntimeBridge :
         string resolvedMatchId =
             ResolveMatchId(matchId);
 
+        AtlasMatchNetworkSnapshot observed =
+            currentSnapshot;
+
+        if (observed == null ||
+            !string.Equals(
+                observed.MatchId,
+                resolvedMatchId,
+                StringComparison.Ordinal))
+        {
+            return AtlasMatchNetworkResult.Fail(
+                "match.error.stale_client_state",
+                "No current authoritative match snapshot is available for this command.");
+        }
+
         return await CallAsync(
             "matchSubmitIntent",
             new SubmitIntentRequest
@@ -182,7 +196,15 @@ public sealed class AtlasBoardMatchRuntimeBridge :
                         ? "{}"
                         : payloadJson,
                 clientCommandId =
-                    clientCommandId ?? string.Empty
+                    clientCommandId ?? string.Empty,
+                observedRevision =
+                    observed.Revision,
+                observedEventSequence =
+                    observed.EventSequence,
+                observedAuthorityEpoch =
+                    observed.AuthorityEpoch,
+                observedPhase =
+                    observed.Phase ?? string.Empty
             },
             ParseIntentResultEnvelope);
     }
@@ -973,6 +995,10 @@ public sealed class AtlasBoardMatchRuntimeBridge :
         public string clientCommandId;
         public string intentType;
         public string payloadJson;
+        public int observedRevision;
+        public int observedEventSequence;
+        public int observedAuthorityEpoch;
+        public string observedPhase;
     }
 
     [Serializable]

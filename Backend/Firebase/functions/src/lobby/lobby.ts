@@ -1810,11 +1810,67 @@ export async function joinLobbyByCode(
         );
       }
 
-      if (
-        matchSeat.controllerKind === "temporary_bot" &&
+      const now = Date.now();
+      const controllerKind =
+        typeof matchSeat.controllerKind === "string" ?
+          matchSeat.controllerKind :
+          "";
+      const connectionState =
+        typeof matchSeat.connectionState === "string" ?
+          matchSeat.connectionState :
+          "";
+      const removalReason =
+        typeof matchSeat.removalReason === "string" ?
+          matchSeat.removalReason :
+          "";
+
+      const alreadyConnectedHuman =
+        controllerKind === "human" &&
+        connectionState === "connected";
+
+      if (alreadyConnectedHuman) {
+        // Duplicate/replayed Join by Code while this account already controls
+        // the seat is harmless and must not create or replace a seat.
+        return {
+          snapshot: state.snapshot,
+          idempotentReplay: true,
+          reconnectExpired: false,
+        };
+      }
+
+      const expiredPermanentBot =
+        controllerKind === "permanent_bot" &&
+        (
+          connectionState === "reconnect_expired" ||
+          removalReason === "reconnect_expired"
+        );
+
+      if (expiredPermanentBot) {
+        return {
+          snapshot: state.snapshot,
+          idempotentReplay: true,
+          reconnectExpired: true,
+        };
+      }
+
+      const validTemporaryReservation =
+        controllerKind === "temporary_bot" &&
+        connectionState === "reconnecting" &&
+        expiresAt > now;
+
+      const expiredTemporaryReservation =
+        controllerKind === "temporary_bot" &&
+        connectionState === "reconnecting" &&
         expiresAt > 0 &&
-        expiresAt < Date.now()
-      ) {
+        expiresAt <= now;
+
+      if (expiredTemporaryReservation) {
+        // IMPORTANT: do not throw from inside this transaction after writes.
+        // Firestore would roll the writes back. Commit the permanent conversion
+        // first, return a sentinel, then throw after the transaction completes.
+        const serverTimestamp =
+          FieldValue.serverTimestamp();
+
         transaction.set(
           matchSeatRef,
           {
@@ -1822,17 +1878,52 @@ export async function joinLobbyByCode(
             connectionState: "reconnect_expired",
             reconnectExpiresAtEpochMs: 0,
             removalReason: "reconnect_expired",
-            updatedAt: FieldValue.serverTimestamp(),
+            updatedAt: serverTimestamp,
           },
           {merge: true},
         );
 
+        transaction.set(
+          existingMember.ref,
+          {
+            controllerKind: "permanent_bot",
+            connectionState: "reconnect_expired",
+            updatedAt: serverTimestamp,
+          },
+          {merge: true},
+        );
+
+        const expiredMember =
+          state.snapshot.members.find(
+            (member) =>
+              member.seatId ===
+                existingMember.data.seatId,
+          );
+
+        if (expiredMember) {
+          expiredMember.controllerKind =
+            "permanent_bot";
+          expiredMember.connectionState =
+            "reconnect_expired";
+        }
+
+        return {
+          snapshot: state.snapshot,
+          idempotentReplay: true,
+          reconnectExpired: true,
+        };
+      }
+
+      if (!validTemporaryReservation) {
         throw new HttpsError(
           "failed-precondition",
-          "RECONNECT_WINDOW_EXPIRED",
+          "MATCH_SEAT_NOT_RECONNECTABLE",
           {errorKey: "match.error.reconnect_expired"},
         );
       }
+
+      const serverTimestamp =
+        FieldValue.serverTimestamp();
 
       transaction.set(
         matchSeatRef,
@@ -1841,8 +1932,8 @@ export async function joinLobbyByCode(
           connectionState: "connected",
           reconnectExpiresAtEpochMs: 0,
           removalReason: "",
-          lastHeartbeatAtEpochMs: Date.now(),
-          updatedAt: FieldValue.serverTimestamp(),
+          lastHeartbeatAtEpochMs: now,
+          updatedAt: serverTimestamp,
         },
         {merge: true},
       );
@@ -1852,7 +1943,7 @@ export async function joinLobbyByCode(
         {
           controllerKind: "human",
           connectionState: "connected",
-          updatedAt: FieldValue.serverTimestamp(),
+          updatedAt: serverTimestamp,
         },
         {merge: true},
       );
@@ -1869,6 +1960,7 @@ export async function joinLobbyByCode(
       return {
         snapshot: state.snapshot,
         idempotentReplay: true,
+        reconnectExpired: false,
       };
     }
 
@@ -1978,8 +2070,23 @@ export async function joinLobbyByCode(
     };
   });
 
+  if (
+    "reconnectExpired" in result &&
+    result.reconnectExpired === true
+  ) {
+    throw new HttpsError(
+      "failed-precondition",
+      "RECONNECT_WINDOW_EXPIRED",
+      {errorKey: "match.error.reconnect_expired"},
+    );
+  }
+
   await clearJoinAttemptState(input.uid);
-  return result;
+  return {
+    snapshot: result.snapshot,
+    idempotentReplay:
+      result.idempotentReplay,
+  };
 }
 
 /**

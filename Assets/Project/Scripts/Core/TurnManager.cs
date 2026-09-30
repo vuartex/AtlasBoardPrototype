@@ -2776,6 +2776,18 @@ public class TurnManager : MonoBehaviour
         HandleResolvedLanding();
     }
 
+    public void CompleteRecoveredAuthoritativeTileResolution()
+    {
+        if (!isMatchStarted ||
+            isMatchFinished ||
+            gamePhase != GamePhase.Playing)
+        {
+            return;
+        }
+
+        HandleResolvedLanding();
+    }
+
     private void HandleResolvedLanding()
     {
         if (isMatchFinished)

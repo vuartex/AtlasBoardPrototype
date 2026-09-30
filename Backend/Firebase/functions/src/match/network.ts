@@ -9,9 +9,11 @@ const NETWORK_SCHEMA_VERSION = 1;
 const MAX_STATE_JSON_LENGTH = 64 * 1024;
 const MAX_INTENT_JSON_LENGTH = 4 * 1024;
 const MAX_PENDING_INTENTS = 50;
+const MAX_PENDING_INTENT_AGE_MS = 30 * 1000;
 
 const recoverySafePhases = new Set([
   "awaiting_roll",
+  "awaiting_decision",
   "turn_complete",
   "match_complete",
 ]);
@@ -57,6 +59,10 @@ export interface SubmitMatchIntentInput {
   clientCommandId: string;
   intentType: string;
   payloadJson: string;
+  observedRevision: number;
+  observedEventSequence: number;
+  observedAuthorityEpoch: number;
+  observedPhase: string;
 }
 
 export interface PublishMatchNetworkInput {
@@ -138,6 +144,24 @@ function requireInteger(
   }
 
   return value;
+}
+
+/**
+ * Converts a Firestore Timestamp-like value into epoch milliseconds.
+ * @param {unknown} value Timestamp-like value.
+ * @return {number} Epoch milliseconds, or zero when unavailable.
+ */
+function staleClientState(
+  details: Record<string, unknown>,
+): never {
+  throw new HttpsError(
+    "aborted",
+    "STALE_MATCH_CLIENT_STATE",
+    {
+      errorKey: "match.error.stale_client_state",
+      ...details,
+    },
+  );
 }
 
 /**
@@ -469,6 +493,39 @@ export async function submitMatchIntent(
       MAX_INTENT_JSON_LENGTH,
     );
 
+  const observedRevision =
+    requireInteger(
+      input.observedRevision,
+      "observedRevision",
+      0,
+    );
+
+  const observedEventSequence =
+    requireInteger(
+      input.observedEventSequence,
+      "observedEventSequence",
+      0,
+    );
+
+  const observedAuthorityEpoch =
+    requireInteger(
+      input.observedAuthorityEpoch,
+      "observedAuthorityEpoch",
+      0,
+    );
+
+  const observedPhase =
+    requireString(
+      input.observedPhase,
+      "observedPhase",
+      3,
+      64,
+    );
+
+  if (!allowedPhases.has(observedPhase)) {
+    invalidRequest("observedPhase");
+  }
+
   const context =
     await readMemberContext(
       input.uid,
@@ -500,11 +557,41 @@ export async function submitMatchIntent(
       .collection("intents")
       .doc(intentId);
 
+  const stateRef =
+    matchRef
+      .collection("network")
+      .doc("state");
+
+  const localSeat =
+    context.seats.find((seat) => {
+      const data = seat.data();
+
+      return seat.id === context.localSeatId ||
+        data.seatId === context.localSeatId;
+    });
+
+  if (!localSeat) {
+    throw new HttpsError(
+      "failed-precondition",
+      "MATCH_SEAT_REQUIRED",
+      {
+        errorKey: "match.error.seat_required",
+      },
+    );
+  }
+
   return db.runTransaction(
     async (transaction) => {
-      const [matchSnap, existing] =
+      const [
+        matchSnap,
+        stateSnap,
+        seatSnap,
+        existing,
+      ] =
         await Promise.all([
           transaction.get(matchRef),
+          transaction.get(stateRef),
+          transaction.get(localSeat.ref),
           transaction.get(intentRef),
         ]);
 
@@ -539,12 +626,113 @@ export async function submitMatchIntent(
         );
       }
 
+      // A retry of the exact same command remains idempotent even if the
+      // authoritative state advanced after the original write.
       if (existing.exists) {
         return {
           intentId,
           accepted: true,
           idempotentReplay: true,
         };
+      }
+
+      if (!stateSnap.exists || !seatSnap.exists) {
+        throw new HttpsError(
+          "failed-precondition",
+          "MATCH_NETWORK_NOT_INITIALIZED",
+          {
+            errorKey:
+              "match.error.network_not_initialized",
+          },
+        );
+      }
+
+      const state =
+        stateSnap.data() ?? {};
+
+      const seat =
+        seatSnap.data() ?? {};
+
+      const seatAccountId =
+        typeof seat.accountId === "string" ?
+          seat.accountId :
+          "";
+
+      const localOwnerAccountId =
+        typeof seat.localOwnerAccountId === "string" ?
+          seat.localOwnerAccountId :
+          "";
+
+      const controllerKind =
+        typeof seat.controllerKind === "string" ?
+          seat.controllerKind :
+          "";
+
+      const connectionState =
+        typeof seat.connectionState === "string" ?
+          seat.connectionState :
+          "";
+
+      const seatOwnedByCaller =
+        seatAccountId === input.uid ||
+        localOwnerAccountId === input.uid;
+
+      const humanControlled =
+        controllerKind === "human" ||
+        controllerKind === "local_human";
+
+      if (
+        !seatOwnedByCaller ||
+        !humanControlled ||
+        connectionState !== "connected" ||
+        seat.afkLockedOut === true
+      ) {
+        throw new HttpsError(
+          "failed-precondition",
+          "MATCH_SEAT_NOT_ACTIVE_HUMAN",
+          {
+            errorKey:
+              "match.error.seat_not_active_human",
+          },
+        );
+      }
+
+      const currentRevision =
+        typeof state.revision === "number" ?
+          state.revision :
+          0;
+
+      const currentEventSequence =
+        typeof state.eventSequence === "number" ?
+          state.eventSequence :
+          0;
+
+      const currentPhase =
+        typeof state.phase === "string" ?
+          state.phase :
+          "starting";
+
+      const currentAuthorityEpoch =
+        typeof match.authorityEpoch === "number" ?
+          match.authorityEpoch :
+          0;
+
+      if (
+        observedRevision !== currentRevision ||
+        observedEventSequence !== currentEventSequence ||
+        observedAuthorityEpoch !== currentAuthorityEpoch ||
+        observedPhase !== currentPhase
+      ) {
+        staleClientState({
+          observedRevision,
+          currentRevision,
+          observedEventSequence,
+          currentEventSequence,
+          observedAuthorityEpoch,
+          currentAuthorityEpoch,
+          observedPhase,
+          currentPhase,
+        });
       }
 
       transaction.create(
@@ -556,6 +744,14 @@ export async function submitMatchIntent(
           seatId: context.localSeatId,
           intentType,
           payloadJson,
+          submittedRevision:
+            currentRevision,
+          submittedEventSequence:
+            currentEventSequence,
+          submittedAuthorityEpoch:
+            currentAuthorityEpoch,
+          submittedPhase:
+            currentPhase,
           status: "pending",
           createdAt:
             FieldValue.serverTimestamp(),
@@ -609,19 +805,217 @@ export async function listPendingMatchIntents(
 
   const db = getFirestore();
 
-  const query =
-    await db
-      .collection("matches")
-      .doc(matchId)
-      .collection("intents")
-      .where("status", "==", "pending")
-      .limit(MAX_PENDING_INTENTS)
-      .get();
+  const matchRef =
+    db.collection("matches").doc(matchId);
 
-  return query.docs.map((doc) => {
+  const [matchSnap, stateSnap, query] =
+    await Promise.all([
+      matchRef.get(),
+      matchRef
+        .collection("network")
+        .doc("state")
+        .get(),
+      matchRef
+        .collection("intents")
+        .where("status", "==", "pending")
+        .limit(MAX_PENDING_INTENTS)
+        .get(),
+    ]);
+
+  if (!matchSnap.exists || !stateSnap.exists) {
+    throw new HttpsError(
+      "failed-precondition",
+      "MATCH_NETWORK_NOT_INITIALIZED",
+      {
+        errorKey:
+          "match.error.network_not_initialized",
+      },
+    );
+  }
+
+  const match =
+    matchSnap.data() ?? {};
+
+  if (match.hostAccountId !== input.uid) {
+    throw new HttpsError(
+      "permission-denied",
+      "HOST_ONLY",
+      {
+        errorKey: "match.error.host_only",
+      },
+    );
+  }
+
+  const state =
+    stateSnap.data() ?? {};
+
+  const currentRevision =
+    typeof state.revision === "number" ?
+      state.revision :
+      0;
+
+  const currentEventSequence =
+    typeof state.eventSequence === "number" ?
+      state.eventSequence :
+      0;
+
+  const currentPhase =
+    typeof state.phase === "string" ?
+      state.phase :
+      "starting";
+
+  const currentAuthorityEpoch =
+    typeof match.authorityEpoch === "number" ?
+      match.authorityEpoch :
+      0;
+
+  const now = Date.now();
+  const valid:
+    Record<string, unknown>[] = [];
+  const stale:
+    Array<{
+      ref: FirebaseFirestore.DocumentReference;
+      reason: string;
+    }> = [];
+
+  for (const doc of query.docs) {
     const data = doc.data();
 
-    return {
+    const createdAtEpochMs =
+      timestampMillis(data.createdAt);
+
+    const submittedRevision =
+      typeof data.submittedRevision === "number" ?
+        data.submittedRevision :
+        -1;
+
+    const submittedEventSequence =
+      typeof data.submittedEventSequence === "number" ?
+        data.submittedEventSequence :
+        -1;
+
+    const submittedAuthorityEpoch =
+      typeof data.submittedAuthorityEpoch === "number" ?
+        data.submittedAuthorityEpoch :
+        -1;
+
+    const submittedPhase =
+      typeof data.submittedPhase === "string" ?
+        data.submittedPhase :
+        "";
+
+    const accountId =
+      typeof data.accountId === "string" ?
+        data.accountId :
+        "";
+
+    const seatId =
+      typeof data.seatId === "string" ?
+        data.seatId :
+        "";
+
+    const seat =
+      context.seats.find((candidate) => {
+        const seatData = candidate.data();
+
+        return candidate.id === seatId ||
+          seatData.seatId === seatId;
+      });
+
+    let staleReason = "";
+
+    if (
+      submittedRevision < 0 ||
+      submittedEventSequence < 0 ||
+      submittedAuthorityEpoch < 0 ||
+      !submittedPhase
+    ) {
+      staleReason =
+        "legacy_or_missing_envelope";
+    } else if (
+      submittedAuthorityEpoch !==
+        currentAuthorityEpoch
+    ) {
+      staleReason =
+        "authority_epoch_changed";
+    } else if (
+      submittedRevision !== currentRevision
+    ) {
+      staleReason =
+        "network_revision_changed";
+    } else if (
+      submittedEventSequence !==
+        currentEventSequence
+    ) {
+      staleReason =
+        "event_sequence_changed";
+    } else if (
+      submittedPhase !== currentPhase
+    ) {
+      staleReason =
+        "phase_changed";
+    } else if (
+      createdAtEpochMs <= 0 ||
+      now - createdAtEpochMs >
+        MAX_PENDING_INTENT_AGE_MS
+    ) {
+      staleReason =
+        "intent_expired";
+    } else if (!seat) {
+      staleReason =
+        "seat_missing";
+    } else {
+      const seatData =
+        seat.data();
+
+      const seatAccountId =
+        typeof seatData.accountId === "string" ?
+          seatData.accountId :
+          "";
+
+      const localOwnerAccountId =
+        typeof seatData.localOwnerAccountId === "string" ?
+          seatData.localOwnerAccountId :
+          "";
+
+      const controllerKind =
+        typeof seatData.controllerKind === "string" ?
+          seatData.controllerKind :
+          "";
+
+      const connectionState =
+        typeof seatData.connectionState === "string" ?
+          seatData.connectionState :
+          "";
+
+      const ownedByIntentAccount =
+        seatAccountId === accountId ||
+        localOwnerAccountId === accountId;
+
+      const humanControlled =
+        controllerKind === "human" ||
+        controllerKind === "local_human";
+
+      if (
+        !ownedByIntentAccount ||
+        !humanControlled ||
+        connectionState !== "connected" ||
+        seatData.afkLockedOut === true
+      ) {
+        staleReason =
+          "seat_no_longer_active_human";
+      }
+    }
+
+    if (staleReason) {
+      stale.push({
+        ref: doc.ref,
+        reason: staleReason,
+      });
+      continue;
+    }
+
+    valid.push({
       intentId:
         typeof data.intentId === "string" ?
           data.intentId :
@@ -630,14 +1024,8 @@ export async function listPendingMatchIntents(
         typeof data.clientCommandId === "string" ?
           data.clientCommandId :
           "",
-      accountId:
-        typeof data.accountId === "string" ?
-          data.accountId :
-          "",
-      seatId:
-        typeof data.seatId === "string" ?
-          data.seatId :
-          "",
+      accountId,
+      seatId,
       intentType:
         typeof data.intentType === "string" ?
           data.intentType :
@@ -646,10 +1034,33 @@ export async function listPendingMatchIntents(
         typeof data.payloadJson === "string" ?
           data.payloadJson :
           "{}",
-      createdAtEpochMs:
-        timestampMillis(data.createdAt),
-    };
-  });
+      createdAtEpochMs,
+    });
+  }
+
+  if (stale.length > 0) {
+    const batch =
+      db.batch();
+
+    for (const item of stale) {
+      batch.set(
+        item.ref,
+        {
+          status: "stale",
+          staleReason: item.reason,
+          staleAt:
+            FieldValue.serverTimestamp(),
+          updatedAt:
+            FieldValue.serverTimestamp(),
+        },
+        {merge: true},
+      );
+    }
+
+    await batch.commit();
+  }
+
+  return valid;
 }
 
 /**

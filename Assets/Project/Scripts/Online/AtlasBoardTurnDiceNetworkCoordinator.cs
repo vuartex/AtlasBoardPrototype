@@ -1346,65 +1346,72 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 return;
             }
 
-            List<string> consumed =
-                new List<string>();
+            // Phase 12A intentionally serializes remote gameplay commands.
+            // Apply at most ONE current intent, then let the normal Host state
+            // publish advance the authoritative revision before another queued
+            // command can be considered. This prevents two clients (or a
+            // duplicate click) from mutating the same decision revision inside
+            // one Unity frame.
+            AtlasMatchIntent intent =
+                result.Intents.FirstOrDefault(
+                    candidate =>
+                        candidate != null &&
+                        !string.IsNullOrWhiteSpace(
+                            candidate.IntentId));
 
-            foreach (AtlasMatchIntent intent
-                     in result.Intents)
+            if (intent == null)
             {
-                if (intent == null ||
-                    string.IsNullOrWhiteSpace(
-                        intent.IntentId))
-                {
-                    continue;
-                }
-
-                if (string.Equals(
-                        intent.IntentType,
-                        "request_roll",
-                        StringComparison.Ordinal))
-                {
-                    int slotIndex =
-                        ResolveSlotIndex(
-                            intent.SeatId);
-
-                    PlayerGameState player =
-                        turnManager
-                            .GetPlayerStateBySlotIndex(
-                                slotIndex);
-
-                    bool accepted =
-                        player != null &&
-                        turnManager
-                            .TryRequestAuthoritativeNetworkRoll(
-                                player);
-
-                    Debug.Log(
-                        accepted
-                            ? $"Phase 5B Host accepted remote Roll for P{slotIndex + 1}."
-                            : $"Phase 5B Host rejected stale/invalid remote Roll for P{slotIndex + 1}.",
-                        this);
-                }
-                else if (string.Equals(
-                             intent.IntentType,
-                             "submit_decision",
-                             StringComparison.Ordinal))
-                {
-                    HandleHostDecisionIntent(intent);
-                }
-
-                // Invalid/stale intents are also consumed so a client cannot
-                // permanently poison the host queue with an old command.
-                consumed.Add(
-                    intent.IntentId);
+                return;
             }
 
-            if (consumed.Count > 0)
+            if (string.Equals(
+                    intent.IntentType,
+                    "request_roll",
+                    StringComparison.Ordinal))
             {
-                await matchBridge
-                    .HostAcknowledgeIntentsAsync(
-                        consumed);
+                int slotIndex =
+                    ResolveSlotIndex(
+                        intent.SeatId);
+
+                PlayerGameState player =
+                    turnManager
+                        .GetPlayerStateBySlotIndex(
+                            slotIndex);
+
+                bool accepted =
+                    player != null &&
+                    turnManager
+                        .TryRequestAuthoritativeNetworkRoll(
+                            player);
+
+                Debug.Log(
+                    accepted
+                        ? $"Phase 12A Host accepted serialized remote Roll for P{slotIndex + 1}."
+                        : $"Phase 12A Host rejected stale/invalid serialized remote Roll for P{slotIndex + 1}.",
+                    this);
             }
+            else if (string.Equals(
+                         intent.IntentType,
+                         "submit_decision",
+                         StringComparison.Ordinal))
+            {
+                HandleHostDecisionIntent(intent);
+            }
+
+            // Invalid/mismatched current intents are consumed as well. Truly
+            // stale revision/epoch/seat intents never reach this point because
+            // the backend marks them stale before returning the queue.
+            await matchBridge
+                .HostAcknowledgeIntentsAsync(
+                    new[]
+                    {
+                        intent.IntentId
+                    });
+
+            // If the command mutated gameplay, the same Update continues into
+            // PublishHostStateIfChangedAsync and establishes the next revision
+            // before another remote command can be processed.
+            nextPublishCheckAt = 0f;
         }
         finally
         {
@@ -2656,6 +2663,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         {
             SeedMigratedHostTelemetry(frame);
             ApplyMigratedAuthorityRole(snapshot);
+
+            if (localIsHost)
+            {
+                RestoreMigratedHostDecisionState(
+                    frame);
+            }
         }
     }
 
@@ -2713,6 +2726,64 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     string.Empty;
             }
         }
+    }
+
+    private void RestoreMigratedHostDecisionState(
+        TurnDiceFrame frame)
+    {
+        if (!localIsHost ||
+            frame == null ||
+            turnManager == null)
+        {
+            return;
+        }
+
+        if (!string.Equals(
+                frame.decisionKind,
+                "purchase",
+                StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        ResolveTileResolutionManager();
+        ResolveBoardPath();
+
+        if (tileResolutionManager == null ||
+            boardPath == null)
+        {
+            return;
+        }
+
+        PlayerGameState decisionPlayer =
+            turnManager
+                .GetPlayerStateBySlotIndex(
+                    frame.decisionPlayerSlotIndex);
+
+        BoardTile decisionTile =
+            GetBoardTile(
+                frame.decisionTileIndex);
+
+        if (decisionPlayer == null ||
+            decisionTile == null ||
+            decisionPlayer.IsBankrupt ||
+            decisionTile.IsOwned)
+        {
+            return;
+        }
+
+        tileResolutionManager
+            .RestoreOnlineAuthoritativePurchaseDecision(
+                decisionPlayer,
+                decisionTile,
+                turnManager
+                    .CompleteRecoveredAuthoritativeTileResolution);
+
+        Debug.Log(
+            "AtlasBoard Phase 12D.1: restored unresolved authoritative " +
+            $"purchase after Host failover for P{decisionPlayer.PlayerSlotIndex + 1} " +
+            $"on tile {decisionTile.TileIndex}.",
+            this);
     }
 
     private void ApplyMigratedAuthorityRole(

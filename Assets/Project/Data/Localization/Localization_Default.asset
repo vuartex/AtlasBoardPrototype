@@ -3904,1018 +3904,6 @@ MonoBehaviour:
       \u0441\u043E\u0434\u0435\u0440\u0436\u0430\u0442\u044C 4-32 \u0441\u0438\u043C\u0432\u043E\u043B\u0430;
       \u043E\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u043F\u0443\u0441\u0442\u044B\u043C
       \u0434\u043B\u044F \u0443\u0434\u0430\u043B\u0435\u043D\u0438\u044F."
-  - key: platform.steam.invite_friends
-    en: INVITE FRIENDS
-    tr: "ARKADA\u015E DAVET ET"
-    es: INVITAR AMIGOS
-    fr: INVITER DES AMIS
-    de: FREUNDE EINLADEN
-    ko: "\uCE5C\uAD6C \uCD08\uB300"
-    ru: "\u041F\u0420\u0418\u0413\u041B\u0410\u0421\u0418\u0422\u042C \u0414\u0420\u0423\u0417\u0415\u0419"
-  - key: progression.menu.title
-    en: CAREER
-    tr: "KAR\u0130YER"
-    es: CARRERA
-    fr: "CARRI\xC8RE"
-    de: KARRIERE
-    ko: "\uCEE4\uB9AC\uC5B4"
-    ru: "\u041A\u0410\u0420\u042C\u0415\u0420\u0410"
-  - key: progression.menu.subtitle
-    en: STATS / MATCHES / ACHIEVEMENTS
-    tr: "\u0130STAT\u0130ST\u0130K / MA\xC7 / BA\u015EARIM"
-    es: "ESTAD\xCDSTICAS / PARTIDAS / LOGROS"
-    fr: "STATS / PARTIES / SUCC\xC8S"
-    de: STATS / SPIELE / ERFOLGE
-    ko: "\uD1B5\uACC4 / \uACBD\uAE30 / \uC5C5\uC801"
-    ru: "\u0421\u0422\u0410\u0422\u0418\u0421\u0422\u0418\u041A\u0410 / \u041C\u0410\u0422\u0427\u0418
-      / \u0414\u041E\u0421\u0422\u0418\u0416\u0415\u041D\u0418\u042F"
-  - key: progression.title
-    en: ATLAS CAREER
-    tr: "ATLAS KAR\u0130YER"
-    es: CARRERA ATLAS
-    fr: "CARRI\xC8RE ATLAS"
-    de: ATLAS KARRIERE
-    ko: "\uC544\uD2C0\uB77C\uC2A4 \uCEE4\uB9AC\uC5B4"
-    ru: "\u041A\u0410\u0420\u042C\u0415\u0420\u0410 ATLAS"
-  - key: progression.tab.overview
-    en: OVERVIEW
-    tr: "GENEL BAKI\u015E"
-    es: RESUMEN
-    fr: "APER\xC7U"
-    de: "\xDCBERSICHT"
-    ko: "\uAC1C\uC694"
-    ru: "\u041E\u0411\u0417\u041E\u0420"
-  - key: progression.tab.history
-    en: MATCH HISTORY
-    tr: "MA\xC7 GE\xC7M\u0130\u015E\u0130"
-    es: HISTORIAL
-    fr: HISTORIQUE
-    de: SPIELVERLAUF
-    ko: "\uACBD\uAE30 \uAE30\uB85D"
-    ru: "\u0418\u0421\u0422\u041E\u0420\u0418\u042F \u041C\u0410\u0422\u0427\u0415\u0419"
-  - key: progression.tab.achievements
-    en: ACHIEVEMENTS
-    tr: "BA\u015EARIMLAR"
-    es: LOGROS
-    fr: "SUCC\xC8S"
-    de: ERFOLGE
-    ko: "\uC5C5\uC801"
-    ru: "\u0414\u041E\u0421\u0422\u0418\u0416\u0415\u041D\u0418\u042F"
-  - key: progression.overview.title
-    en: PLAYER PROGRESSION
-    tr: "OYUNCU \u0130LERLEMES\u0130"
-    es: PROGRESO DEL JUGADOR
-    fr: PROGRESSION DU JOUEUR
-    de: SPIELERFORTSCHRITT
-    ko: "\uD50C\uB808\uC774\uC5B4 \uC9C4\uD589\uB3C4"
-    ru: "\u041F\u0420\u041E\u0413\u0420\u0415\u0421\u0421 \u0418\u0413\u0420\u041E\u041A\u0410"
-  - key: progression.loading
-    en: Loading career data...
-    tr: "Kariyer verileri y\xFCkleniyor..."
-    es: Cargando datos de carrera...
-    fr: "Chargement des donn\xE9es de carri\xE8re..."
-    de: Karrieredaten werden geladen...
-    ko: "\uCEE4\uB9AC\uC5B4 \uB370\uC774\uD130\uB97C \uBD88\uB7EC\uC624\uB294 \uC911..."
-    ru: "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430 \u0434\u0430\u043D\u043D\u044B\u0445
-      \u043A\u0430\u0440\u044C\u0435\u0440\u044B..."
-  - key: progression.common.close
-    en: CLOSE
-    tr: KAPAT
-    es: CERRAR
-    fr: FERMER
-    de: SCHLIESSEN
-    ko: "\uB2EB\uAE30"
-    ru: "\u0417\u0410\u041A\u0420\u042B\u0422\u042C"
-  - key: progression.level.account_progress
-    en: ACCOUNT XP & LEVEL
-    tr: "HESAP XP & SEV\u0130YE"
-    es: XP Y NIVEL DE CUENTA
-    fr: XP ET NIVEAU DU COMPTE
-    de: KONTO-XP & LEVEL
-    ko: "\uACC4\uC815 XP & \uB808\uBCA8"
-    ru: "XP \u0418 \u0423\u0420\u041E\u0412\u0415\u041D\u042C \u0410\u041A\u041A\u0410\u0423\u041D\u0422\u0410"
-  - key: progression.level.value
-    en: LEVEL {0}
-    tr: "SEV\u0130YE {0}"
-    es: NIVEL {0}
-    fr: NIVEAU {0}
-    de: LEVEL {0}
-    ko: "\uB808\uBCA8 {0}"
-    ru: "\u0423\u0420\u041E\u0412\u0415\u041D\u042C {0}"
-  - key: progression.level.xp
-    en: XP {0:N0} / {1:N0}
-    tr: XP {0:N0} / {1:N0}
-    es: XP {0:N0} / {1:N0}
-    fr: XP {0:N0} / {1:N0}
-    de: XP {0:N0} / {1:N0}
-    ko: XP {0:N0} / {1:N0}
-    ru: XP {0:N0} / {1:N0}
-  - key: progression.level.matches
-    en: '{0:N0} completed matches'
-    tr: "{0:N0} tamamlanan ma\xE7"
-    es: '{0:N0} partidas completadas'
-    fr: "{0:N0} parties termin\xE9es"
-    de: '{0:N0} abgeschlossene Spiele'
-    ko: "\uC644\uB8CC\uD55C \uACBD\uAE30 {0:N0}\uD68C"
-    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u043E \u043C\u0430\u0442\u0447\u0435\u0439:
-      {0:N0}"
-  - key: progression.stats.career
-    en: CAREER STATS
-    tr: "KAR\u0130YER \u0130STAT\u0130ST\u0130KLER\u0130"
-    es: "ESTAD\xCDSTICAS"
-    fr: "STATS DE CARRI\xC8RE"
-    de: KARRIERE-STATS
-    ko: "\uCEE4\uB9AC\uC5B4 \uD1B5\uACC4"
-    ru: "\u0421\u0422\u0410\u0422\u0418\u0421\u0422\u0418\u041A\u0410 \u041A\u0410\u0420\u042C\u0415\u0420\u042B"
-  - key: progression.stats.gameplay
-    en: GAMEPLAY STATS
-    tr: "OYUN \u0130STAT\u0130ST\u0130KLER\u0130"
-    es: "ESTAD\xCDSTICAS DE JUEGO"
-    fr: STATS DE JEU
-    de: SPIELSTATISTIK
-    ko: "\uAC8C\uC784 \uD1B5\uACC4"
-    ru: "\u0418\u0413\u0420\u041E\u0412\u0410\u042F \u0421\u0422\u0410\u0422\u0418\u0421\u0422\u0418\u041A\u0410"
-  - key: progression.stats.records
-    en: RECORDS & MAPS
-    tr: "REKORLAR & HAR\u0130TALAR"
-    es: "R\xC9CORDS Y MAPAS"
-    fr: RECORDS & CARTES
-    de: REKORDE & KARTEN
-    ko: "\uAE30\uB85D & \uB9F5"
-    ru: "\u0420\u0415\u041A\u041E\u0420\u0414\u042B \u0418 \u041A\u0410\u0420\u0422\u042B"
-  - key: progression.stats.matches
-    en: Matches
-    tr: "Ma\xE7lar"
-    es: Partidas
-    fr: Parties
-    de: Spiele
-    ko: "\uACBD\uAE30"
-    ru: "\u041C\u0430\u0442\u0447\u0438"
-  - key: progression.stats.wins
-    en: Wins
-    tr: Galibiyet
-    es: Victorias
-    fr: Victoires
-    de: Siege
-    ko: "\uC2B9\uB9AC"
-    ru: "\u041F\u043E\u0431\u0435\u0434\u044B"
-  - key: progression.stats.losses
-    en: Losses
-    tr: "Ma\u011Flubiyet"
-    es: Derrotas
-    fr: "D\xE9faites"
-    de: Niederlagen
-    ko: "\uD328\uBC30"
-    ru: "\u041F\u043E\u0440\u0430\u0436\u0435\u043D\u0438\u044F"
-  - key: progression.stats.ties
-    en: Ties
-    tr: Beraberlik
-    es: Empates
-    fr: "\xC9galit\xE9s"
-    de: Unentschieden
-    ko: "\uBB34\uC2B9\uBD80"
-    ru: "\u041D\u0438\u0447\u044C\u0438"
-  - key: progression.stats.win_rate
-    en: Win rate
-    tr: "Kazanma oran\u0131"
-    es: Tasa de victoria
-    fr: Taux de victoire
-    de: Siegquote
-    ko: "\uC2B9\uB960"
-    ru: "\u041F\u0440\u043E\u0446\u0435\u043D\u0442 \u043F\u043E\u0431\u0435\u0434"
-  - key: progression.stats.best_streak
-    en: Best win streak
-    tr: En iyi seri
-    es: Mejor racha
-    fr: "Meilleure s\xE9rie"
-    de: Beste Siegesserie
-    ko: "\uCD5C\uACE0 \uC5F0\uC2B9"
-    ru: "\u041B\u0443\u0447\u0448\u0430\u044F \u0441\u0435\u0440\u0438\u044F \u043F\u043E\u0431\u0435\u0434"
-  - key: progression.stats.dice_rolls
-    en: Dice rolls
-    tr: "Zar at\u0131\u015Flar\u0131"
-    es: Tiradas de dados
-    fr: "Lancers de d\xE9s"
-    de: "W\xFCrfe"
-    ko: "\uC8FC\uC0AC\uC704 \uAD74\uB9BC"
-    ru: "\u0411\u0440\u043E\u0441\u043A\u0438 \u043A\u0443\u0431\u0438\u043A\u043E\u0432"
-  - key: progression.stats.doubles
-    en: Doubles
-    tr: "\xC7ift zar"
-    es: Dobles
-    fr: Doubles
-    de: Pasche
-    ko: "\uB354\uBE14"
-    ru: "\u0414\u0443\u0431\u043B\u0438"
-  - key: progression.stats.avg_roll
-    en: Average roll
-    tr: Ortalama zar
-    es: Tirada media
-    fr: "Moyenne des d\xE9s"
-    de: "\xD8 Wurf"
-    ko: "\uD3C9\uADE0 \uC8FC\uC0AC\uC704"
-    ru: "\u0421\u0440\u0435\u0434\u043D\u0438\u0439 \u0431\u0440\u043E\u0441\u043E\u043A"
-  - key: progression.stats.high_roll
-    en: Highest roll
-    tr: "En y\xFCksek zar"
-    es: "Tirada m\xE1xima"
-    fr: Meilleur lancer
-    de: "H\xF6chster Wurf"
-    ko: "\uCD5C\uACE0 \uC8FC\uC0AC\uC704"
-    ru: "\u041C\u0430\u043A\u0441. \u0431\u0440\u043E\u0441\u043E\u043A"
-  - key: progression.stats.properties
-    en: Properties at finish
-    tr: "Ma\xE7 sonu m\xFClk toplam\u0131"
-    es: Propiedades al final
-    fr: "Propri\xE9t\xE9s \xE0 l'arriv\xE9e"
-    de: Immobilien am Ende
-    ko: "\uC885\uB8CC \uC2DC \uBD80\uB3D9\uC0B0"
-    ru: "\u041D\u0435\u0434\u0432\u0438\u0436\u0438\u043C\u043E\u0441\u0442\u044C
-      \u0432 \u043A\u043E\u043D\u0446\u0435"
-  - key: progression.stats.development
-    en: Development levels
-    tr: "Geli\u015Ftirme seviyeleri"
-    es: Niveles de desarrollo
-    fr: "Niveaux de d\xE9veloppement"
-    de: Ausbaustufen
-    ko: "\uAC1C\uBC1C \uB2E8\uACC4"
-    ru: "\u0423\u0440\u043E\u0432\u043D\u0438 \u0437\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438"
-  - key: progression.stats.networth
-    en: Highest net worth
-    tr: "En y\xFCksek net de\u011Fer"
-    es: "Patrimonio m\xE1ximo"
-    fr: Valeur nette max
-    de: "H\xF6chstes Verm\xF6gen"
-    ko: "\uCD5C\uACE0 \uC21C\uC790\uC0B0"
-    ru: "\u041C\u0430\u043A\u0441. \u043A\u0430\u043F\u0438\u0442\u0430\u043B"
-  - key: progression.stats.cash
-    en: Highest cash
-    tr: "En y\xFCksek nakit"
-    es: "Efectivo m\xE1ximo"
-    fr: Cash maximum
-    de: "H\xF6chstes Bargeld"
-    ko: "\uCD5C\uACE0 \uD604\uAE08"
-    ru: "\u041C\u0430\u043A\u0441. \u043D\u0430\u043B\u0438\u0447\u043D\u044B\u0435"
-  - key: progression.stats.rounds
-    en: Rounds played
-    tr: Oynanan turlar
-    es: Rondas jugadas
-    fr: "Manches jou\xE9es"
-    de: Gespielte Runden
-    ko: "\uD50C\uB808\uC774 \uB77C\uC6B4\uB4DC"
-    ru: "\u0421\u044B\u0433\u0440\u0430\u043D\u043E \u0440\u0430\u0443\u043D\u0434\u043E\u0432"
-  - key: progression.stats.turns
-    en: Turns completed
-    tr: Tamamlanan turlar
-    es: Turnos completados
-    fr: "Tours termin\xE9s"
-    de: "Abgeschlossene Z\xFCge"
-    ko: "\uC644\uB8CC\uD55C \uD134"
-    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u043E \u0445\u043E\u0434\u043E\u0432"
-  - key: progression.stats.maps
-    en: Map completions
-    tr: "Harita bitiri\u015Fleri"
-    es: Mapas completados
-    fr: "Cartes termin\xE9es"
-    de: "Kartenabschl\xFCsse"
-    ko: "\uB9F5 \uC644\uB8CC"
-    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u0438\u044F \u043A\u0430\u0440\u0442"
-  - key: progression.stats.maps_value
-    en: "TR {0} \u2022 CO {1} \u2022 USA {2}"
-    tr: "TR {0} \u2022 CO {1} \u2022 ABD {2}"
-    es: "TR {0} \u2022 CO {1} \u2022 EE. UU. {2}"
-    fr: "TR {0} \u2022 CO {1} \u2022 USA {2}"
-    de: "TR {0} \u2022 CO {1} \u2022 USA {2}"
-    ko: "TR {0} \u2022 CO {1} \u2022 \uBBF8\uAD6D {2}"
-    ru: "TR {0} \u2022 CO {1} \u2022 \u0421\u0428\u0410 {2}"
-  - key: progression.stats.map_value
-    en: '{0}: {1:N0}'
-    tr: '{0}: {1:N0}'
-    es: '{0}: {1:N0}'
-    fr: '{0}: {1:N0}'
-    de: '{0}: {1:N0}'
-    ko: '{0}: {1:N0}'
-    ru: '{0}: {1:N0}'
-  - key: progression.stats.bankruptcies
-    en: Bankrupt finishes
-    tr: "\u0130flasla biti\u015F"
-    es: Finales en quiebra
-    fr: Fins en faillite
-    de: Bankrott beendet
-    ko: "\uD30C\uC0B0 \uC885\uB8CC"
-    ru: "\u0411\u0430\u043D\u043A\u0440\u043E\u0442\u0441\u0442\u0432\u0430"
-  - key: progression.history.title
-    en: RECENT MATCHES
-    tr: "SON MA\xC7LAR"
-    es: PARTIDAS RECIENTES
-    fr: "PARTIES R\xC9CENTES"
-    de: LETZTE SPIELE
-    ko: "\uCD5C\uADFC \uACBD\uAE30"
-    ru: "\u041F\u041E\u0421\u041B\u0415\u0414\u041D\u0418\u0415 \u041C\u0410\u0422\u0427\u0418"
-  - key: progression.history.retention
-    en: Only the newest {0} completed matches are shown; records older than {1} hours
-      are removed.
-    tr: "Yaln\u0131zca en yeni {0} tamamlanm\u0131\u015F ma\xE7 g\xF6sterilir; {1}
-      saatten eski kay\u0131tlar silinir."
-    es: "Solo se muestran las {0} partidas completadas m\xE1s recientes; se eliminan
-      registros de m\xE1s de {1} horas."
-    fr: "Seules les {0} parties termin\xE9es les plus r\xE9centes sont affich\xE9es
-      ; les donn\xE9es de plus de {1} heures sont supprim\xE9es."
-    de: "Nur die neuesten {0} abgeschlossenen Spiele werden gezeigt; Eintr\xE4ge
-      \xE4lter als {1} Stunden werden gel\xF6scht."
-    ko: "\uCD5C\uADFC \uC644\uB8CC \uACBD\uAE30 {0}\uAC1C\uB9CC \uD45C\uC2DC\uB418\uBA70
-      {1}\uC2DC\uAC04\uC774 \uC9C0\uB09C \uAE30\uB85D\uC740 \uC0AD\uC81C\uB429\uB2C8\uB2E4."
-    ru: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u044E\u0442\u0441\u044F
-      \u0442\u043E\u043B\u044C\u043A\u043E \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0435
-      {0} \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043D\u043D\u044B\u0445 \u043C\u0430\u0442\u0447\u0435\u0439;
-      \u0437\u0430\u043F\u0438\u0441\u0438 \u0441\u0442\u0430\u0440\u0448\u0435 {1}
-      \u0447\u0430\u0441\u043E\u0432 \u0443\u0434\u0430\u043B\u044F\u044E\u0442\u0441\u044F."
-  - key: progression.history.empty
-    en: Complete a match to start your career history.
-    tr: "Kariyer ge\xE7mi\u015Fini ba\u015Flatmak i\xE7in bir ma\xE7\u0131 ba\u015Far\u0131yla
-      tamamla."
-    es: Completa una partida para iniciar tu historial.
-    fr: Terminez une partie pour commencer votre historique.
-    de: Beende ein Spiel, um deinen Verlauf zu starten.
-    ko: "\uACBD\uAE30\uB97C \uC644\uB8CC\uD558\uBA74 \uCEE4\uB9AC\uC5B4 \uAE30\uB85D\uC774
-      \uC2DC\uC791\uB429\uB2C8\uB2E4."
-    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u043C\u0430\u0442\u0447,
-      \u0447\u0442\u043E\u0431\u044B \u043D\u0430\u0447\u0430\u0442\u044C \u0438\u0441\u0442\u043E\u0440\u0438\u044E
-      \u043A\u0430\u0440\u044C\u0435\u0440\u044B."
-  - key: progression.history.details
-    en: DETAILS
-    tr: DETAYLAR
-    es: DETALLES
-    fr: "D\xC9TAILS"
-    de: DETAILS
-    ko: "\uC0C1\uC138"
-    ru: "\u041F\u041E\u0414\u0420\u041E\u0411\u041D\u041E\u0421\u0422\u0418"
-  - key: progression.history.host_lobby
-    en: '{0}''s Lobby'
-    tr: '{0} Lobisi'
-    es: Sala de {0}
-    fr: Salon de {0}
-    de: Lobby von {0}
-    ko: "{0}\uC758 \uB85C\uBE44"
-    ru: "\u041B\u043E\u0431\u0431\u0438 {0}"
-  - key: progression.history.lobby_fallback
-    en: Match Lobby
-    tr: "Ma\xE7 Lobisi"
-    es: Sala de partida
-    fr: Salon de partie
-    de: Spiel-Lobby
-    ko: "\uACBD\uAE30 \uB85C\uBE44"
-    ru: "\u041B\u043E\u0431\u0431\u0438 \u043C\u0430\u0442\u0447\u0430"
-  - key: progression.history.row
-    en: "{0} \u2022 Place {1}/{2} \u2022 Net worth {3:N0} \u2022 +{4} XP"
-    tr: "{0} \u2022 S\u0131ra {1}/{2} \u2022 Net de\u011Fer {3:N0} \u2022 +{4} XP"
-    es: "{0} \u2022 Puesto {1}/{2} \u2022 Patrimonio {3:N0} \u2022 +{4} XP"
-    fr: "{0} \u2022 Place {1}/{2} \u2022 Valeur nette {3:N0} \u2022 +{4} XP"
-    de: "{0} \u2022 Platz {1}/{2} \u2022 Verm\xF6gen {3:N0} \u2022 +{4} XP"
-    ko: "{0} \u2022 \uC21C\uC704 {1}/{2} \u2022 \uC21C\uC790\uC0B0 {3:N0} \u2022
-      +{4} XP"
-    ru: "{0} \u2022 \u041C\u0435\u0441\u0442\u043E {1}/{2} \u2022 \u041A\u0430\u043F\u0438\u0442\u0430\u043B
-      {3:N0} \u2022 +{4} XP"
-  - key: progression.result.win
-    en: WIN
-    tr: "GAL\u0130B\u0130YET"
-    es: VICTORIA
-    fr: VICTOIRE
-    de: SIEG
-    ko: "\uC2B9\uB9AC"
-    ru: "\u041F\u041E\u0411\u0415\u0414\u0410"
-  - key: progression.result.loss
-    en: LOSS
-    tr: "MA\u011ELUB\u0130YET"
-    es: DERROTA
-    fr: "D\xC9FAITE"
-    de: NIEDERLAGE
-    ko: "\uD328\uBC30"
-    ru: "\u041F\u041E\u0420\u0410\u0416\u0415\u041D\u0418\u0415"
-  - key: progression.result.tie
-    en: TIE
-    tr: "BERABERL\u0130K"
-    es: EMPATE
-    fr: "\xC9GALIT\xC9"
-    de: UNENTSCHIEDEN
-    ko: "\uBB34\uC2B9\uBD80"
-    ru: "\u041D\u0418\u0427\u042C\u042F"
-  - key: progression.details.title
-    en: MATCH DETAILS
-    tr: "MA\xC7 DETAYLARI"
-    es: DETALLES DE PARTIDA
-    fr: "D\xC9TAILS DE LA PARTIE"
-    de: SPIELDETAILS
-    ko: "\uACBD\uAE30 \uC0C1\uC138"
-    ru: "\u0414\u0415\u0422\u0410\u041B\u0418 \u041C\u0410\u0422\u0427\u0410"
-  - key: progression.details.match_id
-    en: 'Match ID: {0}'
-    tr: "Ma\xE7 Kimli\u011Fi: {0}"
-    es: 'ID de partida: {0}'
-    fr: 'ID de partie : {0}'
-    de: 'Match-ID: {0}'
-    ko: "\uACBD\uAE30 ID: {0}"
-    ru: "ID \u043C\u0430\u0442\u0447\u0430: {0}"
-  - key: progression.details.lobby
-    en: 'Lobby: {0}'
-    tr: 'Lobi: {0}'
-    es: 'Sala: {0}'
-    fr: 'Salon : {0}'
-    de: 'Lobby: {0}'
-    ko: "\uB85C\uBE44: {0}"
-    ru: "\u041B\u043E\u0431\u0431\u0438: {0}"
-  - key: progression.details.rules
-    en: "Map: {0} \u2022 Theme: {1} \u2022 Round limit: {2}"
-    tr: "Harita: {0} \u2022 Tema: {1} \u2022 Tur limiti: {2}"
-    es: "Mapa: {0} \u2022 Tema: {1} \u2022 L\xEDmite: {2}"
-    fr: "Carte : {0} \u2022 Th\xE8me : {1} \u2022 Limite : {2}"
-    de: "Karte: {0} \u2022 Thema: {1} \u2022 Rundenlimit: {2}"
-    ko: "\uB9F5: {0} \u2022 \uD14C\uB9C8: {1} \u2022 \uB77C\uC6B4\uB4DC \uC81C\uD55C:
-      {2}"
-    ru: "\u041A\u0430\u0440\u0442\u0430: {0} \u2022 \u0422\u0435\u043C\u0430: {1}
-      \u2022 \u041B\u0438\u043C\u0438\u0442 \u0440\u0430\u0443\u043D\u0434\u043E\u0432:
-      {2}"
-  - key: progression.details.place
-    en: 'Final place: {0}/{1}'
-    tr: "Final s\u0131ra: {0}/{1}"
-    es: 'Puesto final: {0}/{1}'
-    fr: 'Place finale : {0}/{1}'
-    de: 'Endplatz: {0}/{1}'
-    ko: "\uCD5C\uC885 \uC21C\uC704: {0}/{1}"
-    ru: "\u0418\u0442\u043E\u0433\u043E\u0432\u043E\u0435 \u043C\u0435\u0441\u0442\u043E:
-      {0}/{1}"
-  - key: progression.details.economy
-    en: "Cash {0:N0} \u2022 Properties {1} \u2022 Development {2} \u2022 Net worth
-      {3:N0}"
-    tr: "Nakit {0:N0} \u2022 M\xFClk {1} \u2022 Geli\u015Ftirme {2} \u2022 Net de\u011Fer
-      {3:N0}"
-    es: "Efectivo {0:N0} \u2022 Propiedades {1} \u2022 Desarrollo {2} \u2022 Patrimonio
-      {3:N0}"
-    fr: "Cash {0:N0} \u2022 Propri\xE9t\xE9s {1} \u2022 D\xE9veloppement {2} \u2022
-      Valeur nette {3:N0}"
-    de: "Bargeld {0:N0} \u2022 Immobilien {1} \u2022 Ausbau {2} \u2022 Verm\xF6gen
-      {3:N0}"
-    ko: "\uD604\uAE08 {0:N0} \u2022 \uBD80\uB3D9\uC0B0 {1} \u2022 \uAC1C\uBC1C {2}
-      \u2022 \uC21C\uC790\uC0B0 {3:N0}"
-    ru: "\u041D\u0430\u043B\u0438\u0447\u043D\u044B\u0435 {0:N0} \u2022 \u041D\u0435\u0434\u0432\u0438\u0436\u0438\u043C\u043E\u0441\u0442\u044C
-      {1} \u2022 \u0417\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430 {2} \u2022
-      \u041A\u0430\u043F\u0438\u0442\u0430\u043B {3:N0}"
-  - key: progression.details.dice
-    en: "Dice rolls {0} \u2022 Doubles {1} \u2022 Average {2} \u2022 High {3}"
-    tr: "Zar {0} \u2022 \xC7ift {1} \u2022 Ortalama {2} \u2022 En y\xFCksek {3}"
-    es: "Tiradas {0} \u2022 Dobles {1} \u2022 Media {2} \u2022 M\xE1xima {3}"
-    fr: "Lancers {0} \u2022 Doubles {1} \u2022 Moyenne {2} \u2022 Max {3}"
-    de: "W\xFCrfe {0} \u2022 Pasche {1} \u2022 \xD8 {2} \u2022 Max {3}"
-    ko: "\uC8FC\uC0AC\uC704 {0} \u2022 \uB354\uBE14 {1} \u2022 \uD3C9\uADE0 {2} \u2022
-      \uCD5C\uACE0 {3}"
-    ru: "\u0411\u0440\u043E\u0441\u043A\u0438 {0} \u2022 \u0414\u0443\u0431\u043B\u0438
-      {1} \u2022 \u0421\u0440\u0435\u0434\u043D\u0435\u0435 {2} \u2022 \u041C\u0430\u043A\u0441
-      {3}"
-  - key: progression.details.xp
-    en: "XP earned +{0} \u2022 Level after match {1}"
-    tr: "Kazan\u0131lan XP +{0} \u2022 Ma\xE7 sonras\u0131 seviye {1}"
-    es: "XP ganado +{0} \u2022 Nivel tras partida {1}"
-    fr: "XP gagn\xE9 +{0} \u2022 Niveau apr\xE8s partie {1}"
-    de: "XP erhalten +{0} \u2022 Level danach {1}"
-    ko: "\uD68D\uB4DD XP +{0} \u2022 \uACBD\uAE30 \uD6C4 \uB808\uBCA8 {1}"
-    ru: "\u041F\u043E\u043B\u0443\u0447\u0435\u043D\u043E XP +{0} \u2022 \u0423\u0440\u043E\u0432\u0435\u043D\u044C
-      \u043F\u043E\u0441\u043B\u0435 \u043C\u0430\u0442\u0447\u0430 {1}"
-  - key: progression.details.players
-    en: PLAYERS
-    tr: OYUNCULAR
-    es: JUGADORES
-    fr: JOUEURS
-    de: SPIELER
-    ko: "\uD50C\uB808\uC774\uC5B4"
-    ru: "\u0418\u0413\u0420\u041E\u041A\u0418"
-  - key: progression.details.player_row
-    en: "#{0} {1} \u2014 {2} \u2014 Net {3:N0} \u2014 Properties {4} \u2014 Dev {5}"
-    tr: "#{0} {1} \u2014 {2} \u2014 Net {3:N0} \u2014 M\xFClk {4} \u2014 Gel. {5}"
-    es: "#{0} {1} \u2014 {2} \u2014 Neto {3:N0} \u2014 Prop. {4} \u2014 Des. {5}"
-    fr: "#{0} {1} \u2014 {2} \u2014 Net {3:N0} \u2014 Prop. {4} \u2014 D\xE9v. {5}"
-    de: "#{0} {1} \u2014 {2} \u2014 Netto {3:N0} \u2014 Besitz {4} \u2014 Ausbau
-      {5}"
-    ko: "#{0} {1} \u2014 {2} \u2014 \uC21C\uC790\uC0B0 {3:N0} \u2014 \uBD80\uB3D9\uC0B0
-      {4} \u2014 \uAC1C\uBC1C {5}"
-    ru: "#{0} {1} \u2014 {2} \u2014 \u041A\u0430\u043F\u0438\u0442\u0430\u043B {3:N0}
-      \u2014 \u041E\u0431\u044A\u0435\u043A\u0442\u044B {4} \u2014 \u0417\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430
-      {5}"
-  - key: progression.achievements.title
-    en: ACHIEVEMENTS
-    tr: "BA\u015EARIMLAR"
-    es: LOGROS
-    fr: "SUCC\xC8S"
-    de: ERFOLGE
-    ko: "\uC5C5\uC801"
-    ru: "\u0414\u041E\u0421\u0422\u0418\u0416\u0415\u041D\u0418\u042F"
-  - key: progression.achievements.note
-    en: Achievements unlock from completed account-linked matches. Detailed dice
-      counters are unranked telemetry for now.
-    tr: "Ba\u015Far\u0131mlar tamamlanm\u0131\u015F hesap ba\u011Flant\u0131l\u0131
-      ma\xE7lardan a\xE7\u0131l\u0131r. Ayr\u0131nt\u0131l\u0131 zar saya\xE7lar\u0131
-      \u015Fimdilik derecesiz telemetridir."
-    es: "Los logros se desbloquean con partidas completadas vinculadas a la cuenta.
-      Los contadores de dados a\xFAn no son ranked."
-    fr: "Les succ\xE8s se d\xE9bloquent via des parties termin\xE9es li\xE9es au
-      compte. Les compteurs de d\xE9s restent non class\xE9s pour l'instant."
-    de: "Erfolge werden durch abgeschlossene kontoverkn\xFCpfte Spiele freigeschaltet.
-      W\xFCrfelz\xE4hler sind vorerst ungewertete Telemetrie."
-    ko: "\uC5C5\uC801\uC740 \uACC4\uC815\uC5D0 \uC5F0\uACB0\uB41C \uC644\uB8CC \uACBD\uAE30\uB85C
-      \uD574\uAE08\uB429\uB2C8\uB2E4. \uC138\uBD80 \uC8FC\uC0AC\uC704 \uD1B5\uACC4\uB294
-      \uD604\uC7AC \uB7AD\uD06C \uD310\uC815\uC5D0 \uC0AC\uC6A9\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4."
-    ru: "\u0414\u043E\u0441\u0442\u0438\u0436\u0435\u043D\u0438\u044F \u043E\u0442\u043A\u0440\u044B\u0432\u0430\u044E\u0442\u0441\u044F
-      \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043D\u043D\u044B\u043C\u0438 \u043C\u0430\u0442\u0447\u0430\u043C\u0438
-      \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u0430. \u0414\u0435\u0442\u0430\u043B\u044C\u043D\u0430\u044F
-      \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043A\u0430 \u043A\u0443\u0431\u0438\u043A\u043E\u0432
-      \u043F\u043E\u043A\u0430 \u043D\u0435 \u0432\u043B\u0438\u044F\u0435\u0442
-      \u043D\u0430 \u0440\u0435\u0439\u0442\u0438\u043D\u0433."
-  - key: progression.achievements.empty
-    en: No achievement data yet.
-    tr: "Hen\xFCz ba\u015Far\u0131m verisi yok."
-    es: "A\xFAn no hay datos de logros."
-    fr: "Aucune donn\xE9e de succ\xE8s."
-    de: Noch keine Erfolgsdaten.
-    ko: "\uC544\uC9C1 \uC5C5\uC801 \uB370\uC774\uD130\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4."
-    ru: "\u0414\u0430\u043D\u043D\u044B\u0445 \u043E \u0434\u043E\u0441\u0442\u0438\u0436\u0435\u043D\u0438\u044F\u0445
-      \u043F\u043E\u043A\u0430 \u043D\u0435\u0442."
-  - key: progression.achievements.unlocked
-    en: UNLOCKED
-    tr: "A\xC7ILDI"
-    es: DESBLOQUEADO
-    fr: "D\xC9BLOQU\xC9"
-    de: FREIGESCHALTET
-    ko: "\uD574\uAE08\uB428"
-    ru: "\u041E\u0422\u041A\u0420\u042B\u0422\u041E"
-  - key: progression.achievements.progress
-    en: '{0:N0} / {1:N0}'
-    tr: '{0:N0} / {1:N0}'
-    es: '{0:N0} / {1:N0}'
-    fr: '{0:N0} / {1:N0}'
-    de: '{0:N0} / {1:N0}'
-    ko: '{0:N0} / {1:N0}'
-    ru: '{0:N0} / {1:N0}'
-  - key: progression.filter.map
-    en: MAP
-    tr: "HAR\u0130TA"
-    es: MAPA
-    fr: CARTE
-    de: KARTE
-    ko: "\uB9F5"
-    ru: "\u041A\u0410\u0420\u0422\u0410"
-  - key: progression.map.all
-    en: All maps
-    tr: "T\xFCm haritalar"
-    es: Todos los mapas
-    fr: Toutes les cartes
-    de: Alle Karten
-    ko: "\uBAA8\uB4E0 \uB9F5"
-    ru: "\u0412\u0441\u0435 \u043A\u0430\u0440\u0442\u044B"
-  - key: progression.map.turkey
-    en: Turkey
-    tr: "T\xFCrkiye"
-    es: "Turqu\xEDa"
-    fr: Turquie
-    de: "T\xFCrkei"
-    ko: "\uD280\uB974\uD0A4\uC608"
-    ru: "\u0422\u0443\u0440\u0446\u0438\u044F"
-  - key: progression.map.colorado
-    en: Colorado
-    tr: Colorado
-    es: Colorado
-    fr: Colorado
-    de: Colorado
-    ko: "\uCF5C\uB85C\uB77C\uB3C4"
-    ru: "\u041A\u043E\u043B\u043E\u0440\u0430\u0434\u043E"
-  - key: progression.map.usa
-    en: USA
-    tr: ABD
-    es: EE. UU.
-    fr: USA
-    de: USA
-    ko: "\uBBF8\uAD6D"
-    ru: "\u0421\u0428\u0410"
-  - key: progression.error.invalid_request
-    en: Invalid progression request.
-    tr: "Ge\xE7ersiz ilerleme iste\u011Fi."
-    es: "Solicitud de progreso no v\xE1lida."
-    fr: "Requ\xEAte de progression invalide."
-    de: "Ung\xFCltige Fortschrittsanfrage."
-    ko: "\uC798\uBABB\uB41C \uC9C4\uD589\uB3C4 \uC694\uCCAD\uC785\uB2C8\uB2E4."
-    ru: "\u041D\u0435\u043A\u043E\u0440\u0440\u0435\u043A\u0442\u043D\u044B\u0439
-      \u0437\u0430\u043F\u0440\u043E\u0441 \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0441\u0430."
-  - key: progression.error.match_not_final
-    en: The match result is not final yet.
-    tr: "Ma\xE7 sonucu hen\xFCz kesinle\u015Fmedi."
-    es: "El resultado a\xFAn no es definitivo."
-    fr: "Le r\xE9sultat du match n'est pas encore final."
-    de: Das Spielergebnis ist noch nicht final.
-    ko: "\uACBD\uAE30 \uACB0\uACFC\uAC00 \uC544\uC9C1 \uD655\uC815\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4."
-    ru: "\u0420\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442 \u043C\u0430\u0442\u0447\u0430
-      \u0435\u0449\u0451 \u043D\u0435 \u0444\u0438\u043D\u0430\u043B\u044C\u043D\u044B\u0439."
-  - key: progression.error.match_not_found
-    en: Match record not found.
-    tr: "Ma\xE7 kayd\u0131 bulunamad\u0131."
-    es: "No se encontr\xF3 la partida."
-    fr: Partie introuvable.
-    de: Spiel nicht gefunden.
-    ko: "\uACBD\uAE30 \uAE30\uB85D\uC744 \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4."
-    ru: "\u041C\u0430\u0442\u0447 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D."
-  - key: progression.error.host_required
-    en: Only the authoritative host can finalize progression.
-    tr: "\u0130lerlemeyi yaln\u0131zca yetkili host kesinle\u015Ftirebilir."
-    es: Solo el host autoritativo puede finalizar el progreso.
-    fr: "Seul l'h\xF4te autoritaire peut finaliser la progression."
-    de: Nur der autoritative Host kann den Fortschritt finalisieren.
-    ko: "\uAD8C\uD55C \uC788\uB294 \uD638\uC2A4\uD2B8\uB9CC \uC9C4\uD589\uB3C4\uB97C
-      \uD655\uC815\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4."
-    ru: "\u0422\u043E\u043B\u044C\u043A\u043E \u0430\u0432\u0442\u043E\u0440\u0438\u0442\u0435\u0442\u043D\u044B\u0439
-      \u0445\u043E\u0441\u0442 \u043C\u043E\u0436\u0435\u0442 \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044C
-      \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0441."
-  - key: progression.error.no_account_seats
-    en: No account-linked human players were found.
-    tr: "Hesaba ba\u011Fl\u0131 insan oyuncu bulunamad\u0131."
-    es: No se encontraron jugadores humanos vinculados.
-    fr: "Aucun joueur humain li\xE9 \xE0 un compte."
-    de: "Keine kontoverkn\xFCpften menschlichen Spieler gefunden."
-    ko: "\uACC4\uC815\uC5D0 \uC5F0\uACB0\uB41C \uC778\uAC04 \uD50C\uB808\uC774\uC5B4\uAC00
-      \uC5C6\uC2B5\uB2C8\uB2E4."
-    ru: "\u041D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u044B \u0438\u0433\u0440\u043E\u043A\u0438-\u043B\u044E\u0434\u0438,
-      \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u043D\u043D\u044B\u0435 \u043A \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u0430\u043C."
-  - key: progression.error.identity_unavailable
-    en: Player identity is unavailable.
-    tr: "Oyuncu kimli\u011Fi kullan\u0131lam\u0131yor."
-    es: "La identidad del jugador no est\xE1 disponible."
-    fr: "Identit\xE9 du joueur indisponible."
-    de: "Spieleridentit\xE4t nicht verf\xFCgbar."
-    ko: "\uD50C\uB808\uC774\uC5B4 ID\uB97C \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4."
-    ru: "\u0418\u0434\u0435\u043D\u0442\u0438\u0444\u0438\u043A\u0430\u0442\u043E\u0440
-      \u0438\u0433\u0440\u043E\u043A\u0430 \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D."
-  - key: progression.error.service_unavailable
-    en: Career service is unavailable.
-    tr: "Kariyer hizmeti kullan\u0131lam\u0131yor."
-    es: "El servicio de carrera no est\xE1 disponible."
-    fr: "Le service de carri\xE8re est indisponible."
-    de: "Karrieredienst nicht verf\xFCgbar."
-    ko: "\uCEE4\uB9AC\uC5B4 \uC11C\uBE44\uC2A4\uB97C \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4."
-    ru: "\u0421\u0435\u0440\u0432\u0438\u0441 \u043A\u0430\u0440\u044C\u0435\u0440\u044B
-      \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D."
-  - key: progression.achievement.first_match.title
-    en: First Steps
-    tr: "\u0130lk Ad\u0131mlar"
-    es: Primeros Pasos
-    fr: Premiers Pas
-    de: Erste Schritte
-    ko: "\uCCAB\uAC78\uC74C"
-    ru: "\u041F\u0435\u0440\u0432\u044B\u0435 \u0448\u0430\u0433\u0438"
-  - key: progression.achievement.first_match.body
-    en: Complete your first match.
-    tr: "\u0130lk ma\xE7\u0131n\u0131 tamamla."
-    es: Completa tu primera partida.
-    fr: "Terminez votre premi\xE8re partie."
-    de: Beende dein erstes Spiel.
-    ko: "\uCCAB \uACBD\uAE30\uB97C \uC644\uB8CC\uD558\uC138\uC694."
-    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u043F\u0435\u0440\u0432\u044B\u0439
-      \u043C\u0430\u0442\u0447."
-  - key: progression.achievement.first_win.title
-    en: First Victory
-    tr: "\u0130lk Zafer"
-    es: Primera Victoria
-    fr: "Premi\xE8re Victoire"
-    de: Erster Sieg
-    ko: "\uCCAB \uC2B9\uB9AC"
-    ru: "\u041F\u0435\u0440\u0432\u0430\u044F \u043F\u043E\u0431\u0435\u0434\u0430"
-  - key: progression.achievement.first_win.body
-    en: Win your first match.
-    tr: "\u0130lk ma\xE7\u0131n\u0131 kazan."
-    es: Gana tu primera partida.
-    fr: "Gagnez votre premi\xE8re partie."
-    de: Gewinne dein erstes Spiel.
-    ko: "\uCCAB \uC2B9\uB9AC\uB97C \uB2EC\uC131\uD558\uC138\uC694."
-    ru: "\u041E\u0434\u0435\u0440\u0436\u0438\u0442\u0435 \u043F\u0435\u0440\u0432\u0443\u044E
-      \u043F\u043E\u0431\u0435\u0434\u0443."
-  - key: progression.achievement.streak.title
-    en: On a Roll
-    tr: "Seri Ba\u015Flad\u0131"
-    es: En Racha
-    fr: "En S\xE9rie"
-    de: Siegesserie
-    ko: "\uC5F0\uC2B9 \uD589\uC9C4"
-    ru: "\u041D\u0430 \u0441\u0435\u0440\u0438\u0438"
-  - key: progression.achievement.streak.body
-    en: Reach a 3-win streak.
-    tr: "3 ma\xE7l\u0131k galibiyet serisine ula\u015F."
-    es: Consigue 3 victorias seguidas.
-    fr: "Atteignez 3 victoires d'affil\xE9e."
-    de: Erreiche 3 Siege in Folge.
-    ko: "3\uC5F0\uC2B9\uC744 \uB2EC\uC131\uD558\uC138\uC694."
-    ru: "\u0412\u044B\u0438\u0433\u0440\u0430\u0439\u0442\u0435 3 \u043C\u0430\u0442\u0447\u0430
-      \u043F\u043E\u0434\u0440\u044F\u0434."
-  - key: progression.achievement.matches_10.title
-    en: Regular Player
-    tr: "M\xFCdavim"
-    es: Jugador Habitual
-    fr: "Joueur R\xE9gulier"
-    de: Stammspieler
-    ko: "\uB2E8\uACE8 \uD50C\uB808\uC774\uC5B4"
-    ru: "\u041F\u043E\u0441\u0442\u043E\u044F\u043D\u043D\u044B\u0439 \u0438\u0433\u0440\u043E\u043A"
-  - key: progression.achievement.matches_10.body
-    en: Complete 10 matches.
-    tr: "10 ma\xE7 tamamla."
-    es: Completa 10 partidas.
-    fr: Terminez 10 parties.
-    de: Beende 10 Spiele.
-    ko: "10\uACBD\uAE30\uB97C \uC644\uB8CC\uD558\uC138\uC694."
-    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 10 \u043C\u0430\u0442\u0447\u0435\u0439."
-  - key: progression.achievement.wins_10.title
-    en: Ten Victories
-    tr: On Zafer
-    es: Diez Victorias
-    fr: Dix Victoires
-    de: Zehn Siege
-    ko: "10\uC2B9"
-    ru: "\u0414\u0435\u0441\u044F\u0442\u044C \u043F\u043E\u0431\u0435\u0434"
-  - key: progression.achievement.wins_10.body
-    en: Win 10 matches.
-    tr: "10 ma\xE7 kazan."
-    es: Gana 10 partidas.
-    fr: Gagnez 10 parties.
-    de: Gewinne 10 Spiele.
-    ko: "10\uC2B9\uC744 \uB2EC\uC131\uD558\uC138\uC694."
-    ru: "\u0412\u044B\u0438\u0433\u0440\u0430\u0439\u0442\u0435 10 \u043C\u0430\u0442\u0447\u0435\u0439."
-  - key: progression.achievement.dice_100.title
-    en: Dice Veteran
-    tr: "Zar Ustas\u0131"
-    es: Veterano de Dados
-    fr: "V\xE9t\xE9ran des D\xE9s"
-    de: "W\xFCrfelveteran"
-    ko: "\uC8FC\uC0AC\uC704 \uBCA0\uD14C\uB791"
-    ru: "\u0412\u0435\u0442\u0435\u0440\u0430\u043D \u043A\u0443\u0431\u0438\u043A\u043E\u0432"
-  - key: progression.achievement.dice_100.body
-    en: Roll the dice 100 times in completed matches.
-    tr: "Tamamlanan ma\xE7larda 100 kez zar at."
-    es: Lanza los dados 100 veces en partidas completadas.
-    fr: "Lancez les d\xE9s 100 fois dans des parties termin\xE9es."
-    de: "W\xFCrfle 100-mal in abgeschlossenen Spielen."
-    ko: "\uC644\uB8CC \uACBD\uAE30\uC5D0\uC11C \uC8FC\uC0AC\uC704\uB97C 100\uD68C
-      \uAD74\uB9AC\uC138\uC694."
-    ru: "\u0411\u0440\u043E\u0441\u044C\u0442\u0435 \u043A\u0443\u0431\u0438\u043A\u0438
-      100 \u0440\u0430\u0437 \u0432 \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043D\u043D\u044B\u0445
-      \u043C\u0430\u0442\u0447\u0430\u0445."
-  - key: progression.achievement.doubles_10.title
-    en: Double Trouble
-    tr: "\xC7ifte Bela"
-    es: Problema Doble
-    fr: "Double Probl\xE8me"
-    de: "Doppeltes Gl\xFCck"
-    ko: "\uB354\uBE14 \uD2B8\uB7EC\uBE14"
-    ru: "\u0414\u0432\u043E\u0439\u043D\u0430\u044F \u043F\u0440\u043E\u0431\u043B\u0435\u043C\u0430"
-  - key: progression.achievement.doubles_10.body
-    en: Roll 10 doubles.
-    tr: "10 kez \xE7ift zar at."
-    es: Saca 10 dobles.
-    fr: Faites 10 doubles.
-    de: "W\xFCrfle 10 Pasche."
-    ko: "\uB354\uBE14\uC744 10\uD68C \uAD74\uB9AC\uC138\uC694."
-    ru: "\u0412\u044B\u0431\u0440\u043E\u0441\u044C\u0442\u0435 10 \u0434\u0443\u0431\u043B\u0435\u0439."
-  - key: progression.achievement.properties_25.title
-    en: Property Collector
-    tr: "M\xFClk Koleksiyoncusu"
-    es: Coleccionista
-    fr: Collectionneur
-    de: Immobiliensammler
-    ko: "\uBD80\uB3D9\uC0B0 \uC218\uC9D1\uAC00"
-    ru: "\u041A\u043E\u043B\u043B\u0435\u043A\u0446\u0438\u043E\u043D\u0435\u0440
-      \u043D\u0435\u0434\u0432\u0438\u0436\u0438\u043C\u043E\u0441\u0442\u0438"
-  - key: progression.achievement.properties_25.body
-    en: Finish matches with 25 properties in total.
-    tr: "Ma\xE7lar\u0131 toplam 25 m\xFClkle bitir."
-    es: Termina partidas con 25 propiedades en total.
-    fr: "Terminez des parties avec 25 propri\xE9t\xE9s au total."
-    de: Beende Spiele mit insgesamt 25 Immobilien.
-    ko: "\uACBD\uAE30 \uC885\uB8CC \uC2DC \uBD80\uB3D9\uC0B0 \uB204\uC801 25\uAC1C\uB97C
-      \uB2EC\uC131\uD558\uC138\uC694."
-    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u043C\u0430\u0442\u0447\u0438
-      \u0441\u0443\u043C\u043C\u0430\u0440\u043D\u043E \u0441 25 \u043E\u0431\u044A\u0435\u043A\u0442\u0430\u043C\u0438."
-  - key: progression.achievement.builder_20.title
-    en: Master Builder
-    tr: "Usta \u0130n\u015Faat\xE7\u0131"
-    es: Maestro Constructor
-    fr: "Ma\xEEtre B\xE2tisseur"
-    de: Baumeister
-    ko: "\uAC74\uCD95 \uB300\uAC00"
-    ru: "\u041C\u0430\u0441\u0442\u0435\u0440-\u0441\u0442\u0440\u043E\u0438\u0442\u0435\u043B\u044C"
-  - key: progression.achievement.builder_20.body
-    en: Accumulate 20 development levels at match finish.
-    tr: "Ma\xE7 sonlar\u0131nda toplam 20 geli\u015Ftirme seviyesine ula\u015F."
-    es: Acumula 20 niveles de desarrollo al finalizar partidas.
-    fr: "Cumulez 20 niveaux de d\xE9veloppement en fin de partie."
-    de: Sammle 20 Ausbaustufen am Spielende.
-    ko: "\uACBD\uAE30 \uC885\uB8CC \uC2DC \uAC1C\uBC1C \uB2E8\uACC4 \uB204\uC801
-      20\uC744 \uB2EC\uC131\uD558\uC138\uC694."
-    ru: "\u041D\u0430\u0431\u0435\u0440\u0438\u0442\u0435 20 \u0443\u0440\u043E\u0432\u043D\u0435\u0439
-      \u0437\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u043A \u043A\u043E\u043D\u0446\u0443
-      \u043C\u0430\u0442\u0447\u0435\u0439."
-  - key: progression.achievement.networth.title
-    en: Capital Leader
-    tr: Sermaye Lideri
-    es: "L\xEDder de Capital"
-    fr: Leader du Capital
-    de: "Kapitalf\xFChrer"
-    ko: "\uC790\uBCF8 \uB9AC\uB354"
-    ru: "\u041B\u0438\u0434\u0435\u0440 \u043A\u0430\u043F\u0438\u0442\u0430\u043B\u0430"
-  - key: progression.achievement.networth.body
-    en: Reach 5,000 net worth in a completed match.
-    tr: "Tamamlanan bir ma\xE7ta 5.000 net de\u011Fere ula\u015F."
-    es: Alcanza 5.000 de patrimonio en una partida.
-    fr: Atteignez 5 000 de valeur nette.
-    de: "Erreiche 5.000 Verm\xF6gen in einem Spiel."
-    ko: "\uC644\uB8CC \uACBD\uAE30\uC5D0\uC11C \uC21C\uC790\uC0B0 5,000\uC744 \uB2EC\uC131\uD558\uC138\uC694."
-    ru: "\u0414\u043E\u0441\u0442\u0438\u0433\u043D\u0438\u0442\u0435 \u043A\u0430\u043F\u0438\u0442\u0430\u043B\u0430
-      5 000 \u0432 \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043D\u043D\u043E\u043C
-      \u043C\u0430\u0442\u0447\u0435."
-  - key: progression.achievement.turkey.title
-    en: Turkey Explorer
-    tr: "T\xFCrkiye Ka\u015Fifi"
-    es: "Explorador de Turqu\xEDa"
-    fr: Explorateur de Turquie
-    de: "T\xFCrkei-Entdecker"
-    ko: "\uD280\uB974\uD0A4\uC608 \uD0D0\uD5D8\uAC00"
-    ru: "\u0418\u0441\u0441\u043B\u0435\u0434\u043E\u0432\u0430\u0442\u0435\u043B\u044C
-      \u0422\u0443\u0440\u0446\u0438\u0438"
-  - key: progression.achievement.turkey.body
-    en: Complete a match on Turkey.
-    tr: "T\xFCrkiye haritas\u0131nda bir ma\xE7 tamamla."
-    es: "Completa una partida en Turqu\xEDa."
-    fr: Terminez une partie en Turquie.
-    de: "Beende ein Spiel auf der T\xFCrkei-Karte."
-    ko: "\uD280\uB974\uD0A4\uC608 \uB9F5\uC5D0\uC11C \uACBD\uAE30\uB97C \uC644\uB8CC\uD558\uC138\uC694."
-    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u043C\u0430\u0442\u0447
-      \u043D\u0430 \u043A\u0430\u0440\u0442\u0435 \u0422\u0443\u0440\u0446\u0438\u0438."
-  - key: progression.achievement.colorado.title
-    en: Colorado Explorer
-    tr: "Colorado Ka\u015Fifi"
-    es: Explorador de Colorado
-    fr: Explorateur du Colorado
-    de: Colorado-Entdecker
-    ko: "\uCF5C\uB85C\uB77C\uB3C4 \uD0D0\uD5D8\uAC00"
-    ru: "\u0418\u0441\u0441\u043B\u0435\u0434\u043E\u0432\u0430\u0442\u0435\u043B\u044C
-      \u041A\u043E\u043B\u043E\u0440\u0430\u0434\u043E"
-  - key: progression.achievement.colorado.body
-    en: Complete a match on Colorado.
-    tr: "Colorado haritas\u0131nda bir ma\xE7 tamamla."
-    es: Completa una partida en Colorado.
-    fr: Terminez une partie au Colorado.
-    de: Beende ein Spiel auf Colorado.
-    ko: "\uCF5C\uB85C\uB77C\uB3C4 \uB9F5\uC5D0\uC11C \uACBD\uAE30\uB97C \uC644\uB8CC\uD558\uC138\uC694."
-    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u043C\u0430\u0442\u0447
-      \u043D\u0430 \u043A\u0430\u0440\u0442\u0435 \u041A\u043E\u043B\u043E\u0440\u0430\u0434\u043E."
-  - key: progression.achievement.usa.title
-    en: USA Explorer
-    tr: "ABD Ka\u015Fifi"
-    es: Explorador de EE. UU.
-    fr: Explorateur des USA
-    de: USA-Entdecker
-    ko: "\uBBF8\uAD6D \uD0D0\uD5D8\uAC00"
-    ru: "\u0418\u0441\u0441\u043B\u0435\u0434\u043E\u0432\u0430\u0442\u0435\u043B\u044C
-      \u0421\u0428\u0410"
-  - key: progression.achievement.usa.body
-    en: Complete a match on USA.
-    tr: "ABD haritas\u0131nda bir ma\xE7 tamamla."
-    es: Completa una partida en EE. UU.
-    fr: Terminez une partie sur USA.
-    de: Beende ein Spiel auf USA.
-    ko: "\uBBF8\uAD6D \uB9F5\uC5D0\uC11C \uACBD\uAE30\uB97C \uC644\uB8CC\uD558\uC138\uC694."
-    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u043C\u0430\u0442\u0447
-      \u043D\u0430 \u043A\u0430\u0440\u0442\u0435 \u0421\u0428\u0410."
-  - key: progression.achievement.traveler.title
-    en: Atlas Traveler
-    tr: Atlas Gezgini
-    es: Viajero Atlas
-    fr: Voyageur Atlas
-    de: Atlas-Reisender
-    ko: "\uC544\uD2C0\uB77C\uC2A4 \uC5EC\uD589\uC790"
-    ru: "\u041F\u0443\u0442\u0435\u0448\u0435\u0441\u0442\u0432\u0435\u043D\u043D\u0438\u043A
-      Atlas"
-  - key: progression.achievement.traveler.body
-    en: Complete matches on Turkey, Colorado and USA.
-    tr: "T\xFCrkiye, Colorado ve ABD haritalar\u0131nda ma\xE7 tamamla."
-    es: "Completa partidas en Turqu\xEDa, Colorado y EE. UU."
-    fr: Terminez des parties en Turquie, au Colorado et aux USA.
-    de: "Beende Spiele auf T\xFCrkei, Colorado und USA."
-    ko: "\uD280\uB974\uD0A4\uC608, \uCF5C\uB85C\uB77C\uB3C4, \uBBF8\uAD6D \uB9F5\uC5D0\uC11C
-      \uACBD\uAE30\uB97C \uC644\uB8CC\uD558\uC138\uC694."
-    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u043C\u0430\u0442\u0447\u0438
-      \u043D\u0430 \u043A\u0430\u0440\u0442\u0430\u0445 \u0422\u0443\u0440\u0446\u0438\u0438,
-      \u041A\u043E\u043B\u043E\u0440\u0430\u0434\u043E \u0438 \u0421\u0428\u0410."
-  - key: progression.achievement.win_streak_3.title
-    en: On a Roll
-    tr: "Seri Ba\u015Flad\u0131"
-    es: En Racha
-    fr: "En S\xE9rie"
-    de: Siegesserie
-    ko: "\uC5F0\uC2B9 \uD589\uC9C4"
-    ru: "\u041D\u0430 \u0441\u0435\u0440\u0438\u0438"
-  - key: progression.achievement.win_streak_3.body
-    en: Reach a 3-win streak.
-    tr: "3 ma\xE7l\u0131k galibiyet serisine ula\u015F."
-    es: Consigue 3 victorias seguidas.
-    fr: "Atteignez 3 victoires d'affil\xE9e."
-    de: Erreiche 3 Siege in Folge.
-    ko: "3\uC5F0\uC2B9\uC744 \uB2EC\uC131\uD558\uC138\uC694."
-    ru: "\u0412\u044B\u0438\u0433\u0440\u0430\u0439\u0442\u0435 3 \u043C\u0430\u0442\u0447\u0430
-      \u043F\u043E\u0434\u0440\u044F\u0434."
-  - key: progression.achievement.networth_5000.title
-    en: Capital Leader
-    tr: Sermaye Lideri
-    es: "L\xEDder de Capital"
-    fr: Leader du Capital
-    de: "Kapitalf\xFChrer"
-    ko: "\uC790\uBCF8 \uB9AC\uB354"
-    ru: "\u041B\u0438\u0434\u0435\u0440 \u043A\u0430\u043F\u0438\u0442\u0430\u043B\u0430"
-  - key: progression.achievement.networth_5000.body
-    en: Reach 5,000 net worth in a completed match.
-    tr: "Tamamlanan bir ma\xE7ta 5.000 net de\u011Fere ula\u015F."
-    es: Alcanza 5.000 de patrimonio en una partida.
-    fr: Atteignez 5 000 de valeur nette.
-    de: "Erreiche 5.000 Verm\xF6gen in einem Spiel."
-    ko: "\uC644\uB8CC \uACBD\uAE30\uC5D0\uC11C \uC21C\uC790\uC0B0 5,000\uC744 \uB2EC\uC131\uD558\uC138\uC694."
-    ru: "\u0414\u043E\u0441\u0442\u0438\u0433\u043D\u0438\u0442\u0435 \u043A\u0430\u043F\u0438\u0442\u0430\u043B\u0430
-      5 000 \u0432 \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043D\u043D\u043E\u043C
-      \u043C\u0430\u0442\u0447\u0435."
-  - key: progression.achievement.turkey_explorer.title
-    en: Turkey Explorer
-    tr: "T\xFCrkiye Ka\u015Fifi"
-    es: "Explorador de Turqu\xEDa"
-    fr: Explorateur de Turquie
-    de: "T\xFCrkei-Entdecker"
-    ko: "\uD280\uB974\uD0A4\uC608 \uD0D0\uD5D8\uAC00"
-    ru: "\u0418\u0441\u0441\u043B\u0435\u0434\u043E\u0432\u0430\u0442\u0435\u043B\u044C
-      \u0422\u0443\u0440\u0446\u0438\u0438"
-  - key: progression.achievement.turkey_explorer.body
-    en: Complete a match on Turkey.
-    tr: "T\xFCrkiye haritas\u0131nda bir ma\xE7 tamamla."
-    es: "Completa una partida en Turqu\xEDa."
-    fr: Terminez une partie en Turquie.
-    de: "Beende ein Spiel auf der T\xFCrkei-Karte."
-    ko: "\uD280\uB974\uD0A4\uC608 \uB9F5\uC5D0\uC11C \uACBD\uAE30\uB97C \uC644\uB8CC\uD558\uC138\uC694."
-    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u043C\u0430\u0442\u0447
-      \u043D\u0430 \u043A\u0430\u0440\u0442\u0435 \u0422\u0443\u0440\u0446\u0438\u0438."
-  - key: progression.achievement.colorado_explorer.title
-    en: Colorado Explorer
-    tr: "Colorado Ka\u015Fifi"
-    es: Explorador de Colorado
-    fr: Explorateur du Colorado
-    de: Colorado-Entdecker
-    ko: "\uCF5C\uB85C\uB77C\uB3C4 \uD0D0\uD5D8\uAC00"
-    ru: "\u0418\u0441\u0441\u043B\u0435\u0434\u043E\u0432\u0430\u0442\u0435\u043B\u044C
-      \u041A\u043E\u043B\u043E\u0440\u0430\u0434\u043E"
-  - key: progression.achievement.colorado_explorer.body
-    en: Complete a match on Colorado.
-    tr: "Colorado haritas\u0131nda bir ma\xE7 tamamla."
-    es: Completa una partida en Colorado.
-    fr: Terminez une partie au Colorado.
-    de: Beende ein Spiel auf Colorado.
-    ko: "\uCF5C\uB85C\uB77C\uB3C4 \uB9F5\uC5D0\uC11C \uACBD\uAE30\uB97C \uC644\uB8CC\uD558\uC138\uC694."
-    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u043C\u0430\u0442\u0447
-      \u043D\u0430 \u043A\u0430\u0440\u0442\u0435 \u041A\u043E\u043B\u043E\u0440\u0430\u0434\u043E."
-  - key: progression.achievement.usa_explorer.title
-    en: USA Explorer
-    tr: "ABD Ka\u015Fifi"
-    es: Explorador de EE. UU.
-    fr: Explorateur des USA
-    de: USA-Entdecker
-    ko: "\uBBF8\uAD6D \uD0D0\uD5D8\uAC00"
-    ru: "\u0418\u0441\u0441\u043B\u0435\u0434\u043E\u0432\u0430\u0442\u0435\u043B\u044C
-      \u0421\u0428\u0410"
-  - key: progression.achievement.usa_explorer.body
-    en: Complete a match on USA.
-    tr: "ABD haritas\u0131nda bir ma\xE7 tamamla."
-    es: Completa una partida en EE. UU.
-    fr: Terminez une partie sur USA.
-    de: Beende ein Spiel auf USA.
-    ko: "\uBBF8\uAD6D \uB9F5\uC5D0\uC11C \uACBD\uAE30\uB97C \uC644\uB8CC\uD558\uC138\uC694."
-    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u043C\u0430\u0442\u0447
-      \u043D\u0430 \u043A\u0430\u0440\u0442\u0435 \u0421\u0428\u0410."
-  - key: progression.achievement.atlas_traveler.title
-    en: Atlas Traveler
-    tr: Atlas Gezgini
-    es: Viajero Atlas
-    fr: Voyageur Atlas
-    de: Atlas-Reisender
-    ko: "\uC544\uD2C0\uB77C\uC2A4 \uC5EC\uD589\uC790"
-    ru: "\u041F\u0443\u0442\u0435\u0448\u0435\u0441\u0442\u0432\u0435\u043D\u043D\u0438\u043A
-      Atlas"
-  - key: progression.achievement.atlas_traveler.body
-    en: Complete matches on Turkey, Colorado and USA.
-    tr: "T\xFCrkiye, Colorado ve ABD haritalar\u0131nda ma\xE7 tamamla."
-    es: "Completa partidas en Turqu\xEDa, Colorado y EE. UU."
-    fr: Terminez des parties en Turquie, au Colorado et aux USA.
-    de: "Beende Spiele auf T\xFCrkei, Colorado und USA."
-    ko: "\uD280\uB974\uD0A4\uC608, \uCF5C\uB85C\uB77C\uB3C4, \uBBF8\uAD6D \uB9F5\uC5D0\uC11C
-      \uACBD\uAE30\uB97C \uC644\uB8CC\uD558\uC138\uC694."
-    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u043C\u0430\u0442\u0447\u0438
-      \u043D\u0430 \u043A\u0430\u0440\u0442\u0430\u0445 \u0422\u0443\u0440\u0446\u0438\u0438,
-      \u041A\u043E\u043B\u043E\u0440\u0430\u0434\u043E \u0438 \u0421\u0428\u0410."
   - key: menu.profile_body
     en: '{0}
 
@@ -6281,3 +5269,1015 @@ MonoBehaviour:
     de: "Ernteblatt-W\xFCrfel"
     ko: "\uC218\uD655 \uC78E \uC8FC\uC0AC\uC704"
     ru: "\u041A\u0443\u0431\u0438\u043A\u0438 \u041B\u0438\u0441\u0442 \u0423\u0440\u043E\u0436\u0430\u044F"
+  - key: progression.menu.title
+    en: CAREER
+    tr: "KAR\u0130YER"
+    es: CARRERA
+    fr: "CARRI\xC8RE"
+    de: KARRIERE
+    ko: "\uCEE4\uB9AC\uC5B4"
+    ru: "\u041A\u0410\u0420\u042C\u0415\u0420\u0410"
+  - key: progression.menu.subtitle
+    en: STATS / MATCHES / ACHIEVEMENTS
+    tr: "\u0130STAT\u0130ST\u0130K / MA\xC7 / BA\u015EARIM"
+    es: "ESTAD\xCDSTICAS / PARTIDAS / LOGROS"
+    fr: "STATS / PARTIES / SUCC\xC8S"
+    de: STATS / SPIELE / ERFOLGE
+    ko: "\uD1B5\uACC4 / \uACBD\uAE30 / \uC5C5\uC801"
+    ru: "\u0421\u0422\u0410\u0422\u0418\u0421\u0422\u0418\u041A\u0410 / \u041C\u0410\u0422\u0427\u0418
+      / \u0414\u041E\u0421\u0422\u0418\u0416\u0415\u041D\u0418\u042F"
+  - key: progression.title
+    en: ATLAS CAREER
+    tr: "ATLAS KAR\u0130YER"
+    es: CARRERA ATLAS
+    fr: "CARRI\xC8RE ATLAS"
+    de: ATLAS KARRIERE
+    ko: "\uC544\uD2C0\uB77C\uC2A4 \uCEE4\uB9AC\uC5B4"
+    ru: "\u041A\u0410\u0420\u042C\u0415\u0420\u0410 ATLAS"
+  - key: progression.tab.overview
+    en: OVERVIEW
+    tr: "GENEL BAKI\u015E"
+    es: RESUMEN
+    fr: "APER\xC7U"
+    de: "\xDCBERSICHT"
+    ko: "\uAC1C\uC694"
+    ru: "\u041E\u0411\u0417\u041E\u0420"
+  - key: progression.tab.history
+    en: MATCH HISTORY
+    tr: "MA\xC7 GE\xC7M\u0130\u015E\u0130"
+    es: HISTORIAL
+    fr: HISTORIQUE
+    de: SPIELVERLAUF
+    ko: "\uACBD\uAE30 \uAE30\uB85D"
+    ru: "\u0418\u0421\u0422\u041E\u0420\u0418\u042F \u041C\u0410\u0422\u0427\u0415\u0419"
+  - key: progression.tab.achievements
+    en: ACHIEVEMENTS
+    tr: "BA\u015EARIMLAR"
+    es: LOGROS
+    fr: "SUCC\xC8S"
+    de: ERFOLGE
+    ko: "\uC5C5\uC801"
+    ru: "\u0414\u041E\u0421\u0422\u0418\u0416\u0415\u041D\u0418\u042F"
+  - key: progression.overview.title
+    en: PLAYER PROGRESSION
+    tr: "OYUNCU \u0130LERLEMES\u0130"
+    es: PROGRESO DEL JUGADOR
+    fr: PROGRESSION DU JOUEUR
+    de: SPIELERFORTSCHRITT
+    ko: "\uD50C\uB808\uC774\uC5B4 \uC9C4\uD589\uB3C4"
+    ru: "\u041F\u0420\u041E\u0413\u0420\u0415\u0421\u0421 \u0418\u0413\u0420\u041E\u041A\u0410"
+  - key: progression.loading
+    en: Loading career data...
+    tr: "Kariyer verileri y\xFCkleniyor..."
+    es: Cargando datos de carrera...
+    fr: "Chargement des donn\xE9es de carri\xE8re..."
+    de: Karrieredaten werden geladen...
+    ko: "\uCEE4\uB9AC\uC5B4 \uB370\uC774\uD130\uB97C \uBD88\uB7EC\uC624\uB294 \uC911..."
+    ru: "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430 \u0434\u0430\u043D\u043D\u044B\u0445
+      \u043A\u0430\u0440\u044C\u0435\u0440\u044B..."
+  - key: progression.common.close
+    en: CLOSE
+    tr: KAPAT
+    es: CERRAR
+    fr: FERMER
+    de: SCHLIESSEN
+    ko: "\uB2EB\uAE30"
+    ru: "\u0417\u0410\u041A\u0420\u042B\u0422\u042C"
+  - key: progression.level.account_progress
+    en: ACCOUNT XP & LEVEL
+    tr: "HESAP XP & SEV\u0130YE"
+    es: XP Y NIVEL DE CUENTA
+    fr: XP ET NIVEAU DU COMPTE
+    de: KONTO-XP & LEVEL
+    ko: "\uACC4\uC815 XP & \uB808\uBCA8"
+    ru: "XP \u0418 \u0423\u0420\u041E\u0412\u0415\u041D\u042C \u0410\u041A\u041A\u0410\u0423\u041D\u0422\u0410"
+  - key: progression.level.value
+    en: LEVEL {0}
+    tr: "SEV\u0130YE {0}"
+    es: NIVEL {0}
+    fr: NIVEAU {0}
+    de: LEVEL {0}
+    ko: "\uB808\uBCA8 {0}"
+    ru: "\u0423\u0420\u041E\u0412\u0415\u041D\u042C {0}"
+  - key: progression.level.xp
+    en: XP {0:N0} / {1:N0}
+    tr: XP {0:N0} / {1:N0}
+    es: XP {0:N0} / {1:N0}
+    fr: XP {0:N0} / {1:N0}
+    de: XP {0:N0} / {1:N0}
+    ko: XP {0:N0} / {1:N0}
+    ru: XP {0:N0} / {1:N0}
+  - key: progression.level.matches
+    en: '{0:N0} completed matches'
+    tr: "{0:N0} tamamlanan ma\xE7"
+    es: '{0:N0} partidas completadas'
+    fr: "{0:N0} parties termin\xE9es"
+    de: '{0:N0} abgeschlossene Spiele'
+    ko: "\uC644\uB8CC\uD55C \uACBD\uAE30 {0:N0}\uD68C"
+    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u043E \u043C\u0430\u0442\u0447\u0435\u0439:
+      {0:N0}"
+  - key: progression.stats.career
+    en: CAREER STATS
+    tr: "KAR\u0130YER \u0130STAT\u0130ST\u0130KLER\u0130"
+    es: "ESTAD\xCDSTICAS"
+    fr: "STATS DE CARRI\xC8RE"
+    de: KARRIERE-STATS
+    ko: "\uCEE4\uB9AC\uC5B4 \uD1B5\uACC4"
+    ru: "\u0421\u0422\u0410\u0422\u0418\u0421\u0422\u0418\u041A\u0410 \u041A\u0410\u0420\u042C\u0415\u0420\u042B"
+  - key: progression.stats.gameplay
+    en: GAMEPLAY STATS
+    tr: "OYUN \u0130STAT\u0130ST\u0130KLER\u0130"
+    es: "ESTAD\xCDSTICAS DE JUEGO"
+    fr: STATS DE JEU
+    de: SPIELSTATISTIK
+    ko: "\uAC8C\uC784 \uD1B5\uACC4"
+    ru: "\u0418\u0413\u0420\u041E\u0412\u0410\u042F \u0421\u0422\u0410\u0422\u0418\u0421\u0422\u0418\u041A\u0410"
+  - key: progression.stats.records
+    en: RECORDS & MAPS
+    tr: "REKORLAR & HAR\u0130TALAR"
+    es: "R\xC9CORDS Y MAPAS"
+    fr: RECORDS & CARTES
+    de: REKORDE & KARTEN
+    ko: "\uAE30\uB85D & \uB9F5"
+    ru: "\u0420\u0415\u041A\u041E\u0420\u0414\u042B \u0418 \u041A\u0410\u0420\u0422\u042B"
+  - key: progression.stats.matches
+    en: Matches
+    tr: "Ma\xE7lar"
+    es: Partidas
+    fr: Parties
+    de: Spiele
+    ko: "\uACBD\uAE30"
+    ru: "\u041C\u0430\u0442\u0447\u0438"
+  - key: progression.stats.wins
+    en: Wins
+    tr: Galibiyet
+    es: Victorias
+    fr: Victoires
+    de: Siege
+    ko: "\uC2B9\uB9AC"
+    ru: "\u041F\u043E\u0431\u0435\u0434\u044B"
+  - key: progression.stats.losses
+    en: Losses
+    tr: "Ma\u011Flubiyet"
+    es: Derrotas
+    fr: "D\xE9faites"
+    de: Niederlagen
+    ko: "\uD328\uBC30"
+    ru: "\u041F\u043E\u0440\u0430\u0436\u0435\u043D\u0438\u044F"
+  - key: progression.stats.ties
+    en: Ties
+    tr: Beraberlik
+    es: Empates
+    fr: "\xC9galit\xE9s"
+    de: Unentschieden
+    ko: "\uBB34\uC2B9\uBD80"
+    ru: "\u041D\u0438\u0447\u044C\u0438"
+  - key: progression.stats.win_rate
+    en: Win rate
+    tr: "Kazanma oran\u0131"
+    es: Tasa de victoria
+    fr: Taux de victoire
+    de: Siegquote
+    ko: "\uC2B9\uB960"
+    ru: "\u041F\u0440\u043E\u0446\u0435\u043D\u0442 \u043F\u043E\u0431\u0435\u0434"
+  - key: progression.stats.best_streak
+    en: Best win streak
+    tr: En iyi seri
+    es: Mejor racha
+    fr: "Meilleure s\xE9rie"
+    de: Beste Siegesserie
+    ko: "\uCD5C\uACE0 \uC5F0\uC2B9"
+    ru: "\u041B\u0443\u0447\u0448\u0430\u044F \u0441\u0435\u0440\u0438\u044F \u043F\u043E\u0431\u0435\u0434"
+  - key: progression.stats.dice_rolls
+    en: Dice rolls
+    tr: "Zar at\u0131\u015Flar\u0131"
+    es: Tiradas de dados
+    fr: "Lancers de d\xE9s"
+    de: "W\xFCrfe"
+    ko: "\uC8FC\uC0AC\uC704 \uAD74\uB9BC"
+    ru: "\u0411\u0440\u043E\u0441\u043A\u0438 \u043A\u0443\u0431\u0438\u043A\u043E\u0432"
+  - key: progression.stats.doubles
+    en: Doubles
+    tr: "\xC7ift zar"
+    es: Dobles
+    fr: Doubles
+    de: Pasche
+    ko: "\uB354\uBE14"
+    ru: "\u0414\u0443\u0431\u043B\u0438"
+  - key: progression.stats.avg_roll
+    en: Average roll
+    tr: Ortalama zar
+    es: Tirada media
+    fr: "Moyenne des d\xE9s"
+    de: "\xD8 Wurf"
+    ko: "\uD3C9\uADE0 \uC8FC\uC0AC\uC704"
+    ru: "\u0421\u0440\u0435\u0434\u043D\u0438\u0439 \u0431\u0440\u043E\u0441\u043E\u043A"
+  - key: progression.stats.high_roll
+    en: Highest roll
+    tr: "En y\xFCksek zar"
+    es: "Tirada m\xE1xima"
+    fr: Meilleur lancer
+    de: "H\xF6chster Wurf"
+    ko: "\uCD5C\uACE0 \uC8FC\uC0AC\uC704"
+    ru: "\u041C\u0430\u043A\u0441. \u0431\u0440\u043E\u0441\u043E\u043A"
+  - key: progression.stats.properties
+    en: Properties at finish
+    tr: "Ma\xE7 sonu m\xFClk toplam\u0131"
+    es: Propiedades al final
+    fr: "Propri\xE9t\xE9s \xE0 l'arriv\xE9e"
+    de: Immobilien am Ende
+    ko: "\uC885\uB8CC \uC2DC \uBD80\uB3D9\uC0B0"
+    ru: "\u041D\u0435\u0434\u0432\u0438\u0436\u0438\u043C\u043E\u0441\u0442\u044C
+      \u0432 \u043A\u043E\u043D\u0446\u0435"
+  - key: progression.stats.development
+    en: Development levels
+    tr: "Geli\u015Ftirme seviyeleri"
+    es: Niveles de desarrollo
+    fr: "Niveaux de d\xE9veloppement"
+    de: Ausbaustufen
+    ko: "\uAC1C\uBC1C \uB2E8\uACC4"
+    ru: "\u0423\u0440\u043E\u0432\u043D\u0438 \u0437\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438"
+  - key: progression.stats.networth
+    en: Highest net worth
+    tr: "En y\xFCksek net de\u011Fer"
+    es: "Patrimonio m\xE1ximo"
+    fr: Valeur nette max
+    de: "H\xF6chstes Verm\xF6gen"
+    ko: "\uCD5C\uACE0 \uC21C\uC790\uC0B0"
+    ru: "\u041C\u0430\u043A\u0441. \u043A\u0430\u043F\u0438\u0442\u0430\u043B"
+  - key: progression.stats.cash
+    en: Highest cash
+    tr: "En y\xFCksek nakit"
+    es: "Efectivo m\xE1ximo"
+    fr: Cash maximum
+    de: "H\xF6chstes Bargeld"
+    ko: "\uCD5C\uACE0 \uD604\uAE08"
+    ru: "\u041C\u0430\u043A\u0441. \u043D\u0430\u043B\u0438\u0447\u043D\u044B\u0435"
+  - key: progression.stats.rounds
+    en: Rounds played
+    tr: Oynanan turlar
+    es: Rondas jugadas
+    fr: "Manches jou\xE9es"
+    de: Gespielte Runden
+    ko: "\uD50C\uB808\uC774 \uB77C\uC6B4\uB4DC"
+    ru: "\u0421\u044B\u0433\u0440\u0430\u043D\u043E \u0440\u0430\u0443\u043D\u0434\u043E\u0432"
+  - key: progression.stats.turns
+    en: Turns completed
+    tr: Tamamlanan turlar
+    es: Turnos completados
+    fr: "Tours termin\xE9s"
+    de: "Abgeschlossene Z\xFCge"
+    ko: "\uC644\uB8CC\uD55C \uD134"
+    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u043E \u0445\u043E\u0434\u043E\u0432"
+  - key: progression.stats.maps
+    en: Map completions
+    tr: "Harita bitiri\u015Fleri"
+    es: Mapas completados
+    fr: "Cartes termin\xE9es"
+    de: "Kartenabschl\xFCsse"
+    ko: "\uB9F5 \uC644\uB8CC"
+    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u0438\u044F \u043A\u0430\u0440\u0442"
+  - key: progression.stats.maps_value
+    en: "TR {0} \u2022 CO {1} \u2022 USA {2}"
+    tr: "TR {0} \u2022 CO {1} \u2022 ABD {2}"
+    es: "TR {0} \u2022 CO {1} \u2022 EE. UU. {2}"
+    fr: "TR {0} \u2022 CO {1} \u2022 USA {2}"
+    de: "TR {0} \u2022 CO {1} \u2022 USA {2}"
+    ko: "TR {0} \u2022 CO {1} \u2022 \uBBF8\uAD6D {2}"
+    ru: "TR {0} \u2022 CO {1} \u2022 \u0421\u0428\u0410 {2}"
+  - key: progression.stats.map_value
+    en: '{0}: {1:N0}'
+    tr: '{0}: {1:N0}'
+    es: '{0}: {1:N0}'
+    fr: '{0}: {1:N0}'
+    de: '{0}: {1:N0}'
+    ko: '{0}: {1:N0}'
+    ru: '{0}: {1:N0}'
+  - key: progression.stats.bankruptcies
+    en: Bankrupt finishes
+    tr: "\u0130flasla biti\u015F"
+    es: Finales en quiebra
+    fr: Fins en faillite
+    de: Bankrott beendet
+    ko: "\uD30C\uC0B0 \uC885\uB8CC"
+    ru: "\u0411\u0430\u043D\u043A\u0440\u043E\u0442\u0441\u0442\u0432\u0430"
+  - key: progression.history.title
+    en: RECENT MATCHES
+    tr: "SON MA\xC7LAR"
+    es: PARTIDAS RECIENTES
+    fr: "PARTIES R\xC9CENTES"
+    de: LETZTE SPIELE
+    ko: "\uCD5C\uADFC \uACBD\uAE30"
+    ru: "\u041F\u041E\u0421\u041B\u0415\u0414\u041D\u0418\u0415 \u041C\u0410\u0422\u0427\u0418"
+  - key: progression.history.retention
+    en: Only the newest {0} completed matches are shown; records older than {1} hours
+      are removed.
+    tr: "Yaln\u0131zca en yeni {0} tamamlanm\u0131\u015F ma\xE7 g\xF6sterilir; {1}
+      saatten eski kay\u0131tlar silinir."
+    es: "Solo se muestran las {0} partidas completadas m\xE1s recientes; se eliminan
+      registros de m\xE1s de {1} horas."
+    fr: "Seules les {0} parties termin\xE9es les plus r\xE9centes sont affich\xE9es
+      ; les donn\xE9es de plus de {1} heures sont supprim\xE9es."
+    de: "Nur die neuesten {0} abgeschlossenen Spiele werden gezeigt; Eintr\xE4ge
+      \xE4lter als {1} Stunden werden gel\xF6scht."
+    ko: "\uCD5C\uADFC \uC644\uB8CC \uACBD\uAE30 {0}\uAC1C\uB9CC \uD45C\uC2DC\uB418\uBA70
+      {1}\uC2DC\uAC04\uC774 \uC9C0\uB09C \uAE30\uB85D\uC740 \uC0AD\uC81C\uB429\uB2C8\uB2E4."
+    ru: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u044E\u0442\u0441\u044F
+      \u0442\u043E\u043B\u044C\u043A\u043E \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0435
+      {0} \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043D\u043D\u044B\u0445 \u043C\u0430\u0442\u0447\u0435\u0439;
+      \u0437\u0430\u043F\u0438\u0441\u0438 \u0441\u0442\u0430\u0440\u0448\u0435 {1}
+      \u0447\u0430\u0441\u043E\u0432 \u0443\u0434\u0430\u043B\u044F\u044E\u0442\u0441\u044F."
+  - key: progression.history.empty
+    en: Complete a match to start your career history.
+    tr: "Kariyer ge\xE7mi\u015Fini ba\u015Flatmak i\xE7in bir ma\xE7\u0131 ba\u015Far\u0131yla
+      tamamla."
+    es: Completa una partida para iniciar tu historial.
+    fr: Terminez une partie pour commencer votre historique.
+    de: Beende ein Spiel, um deinen Verlauf zu starten.
+    ko: "\uACBD\uAE30\uB97C \uC644\uB8CC\uD558\uBA74 \uCEE4\uB9AC\uC5B4 \uAE30\uB85D\uC774
+      \uC2DC\uC791\uB429\uB2C8\uB2E4."
+    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u043C\u0430\u0442\u0447,
+      \u0447\u0442\u043E\u0431\u044B \u043D\u0430\u0447\u0430\u0442\u044C \u0438\u0441\u0442\u043E\u0440\u0438\u044E
+      \u043A\u0430\u0440\u044C\u0435\u0440\u044B."
+  - key: progression.history.details
+    en: DETAILS
+    tr: DETAYLAR
+    es: DETALLES
+    fr: "D\xC9TAILS"
+    de: DETAILS
+    ko: "\uC0C1\uC138"
+    ru: "\u041F\u041E\u0414\u0420\u041E\u0411\u041D\u041E\u0421\u0422\u0418"
+  - key: progression.history.host_lobby
+    en: '{0}''s Lobby'
+    tr: '{0} Lobisi'
+    es: Sala de {0}
+    fr: Salon de {0}
+    de: Lobby von {0}
+    ko: "{0}\uC758 \uB85C\uBE44"
+    ru: "\u041B\u043E\u0431\u0431\u0438 {0}"
+  - key: progression.history.lobby_fallback
+    en: Match Lobby
+    tr: "Ma\xE7 Lobisi"
+    es: Sala de partida
+    fr: Salon de partie
+    de: Spiel-Lobby
+    ko: "\uACBD\uAE30 \uB85C\uBE44"
+    ru: "\u041B\u043E\u0431\u0431\u0438 \u043C\u0430\u0442\u0447\u0430"
+  - key: progression.history.row
+    en: "{0} \u2022 Place {1}/{2} \u2022 Net worth {3:N0} \u2022 +{4} XP"
+    tr: "{0} \u2022 S\u0131ra {1}/{2} \u2022 Net de\u011Fer {3:N0} \u2022 +{4} XP"
+    es: "{0} \u2022 Puesto {1}/{2} \u2022 Patrimonio {3:N0} \u2022 +{4} XP"
+    fr: "{0} \u2022 Place {1}/{2} \u2022 Valeur nette {3:N0} \u2022 +{4} XP"
+    de: "{0} \u2022 Platz {1}/{2} \u2022 Verm\xF6gen {3:N0} \u2022 +{4} XP"
+    ko: "{0} \u2022 \uC21C\uC704 {1}/{2} \u2022 \uC21C\uC790\uC0B0 {3:N0} \u2022
+      +{4} XP"
+    ru: "{0} \u2022 \u041C\u0435\u0441\u0442\u043E {1}/{2} \u2022 \u041A\u0430\u043F\u0438\u0442\u0430\u043B
+      {3:N0} \u2022 +{4} XP"
+  - key: progression.result.win
+    en: WIN
+    tr: "GAL\u0130B\u0130YET"
+    es: VICTORIA
+    fr: VICTOIRE
+    de: SIEG
+    ko: "\uC2B9\uB9AC"
+    ru: "\u041F\u041E\u0411\u0415\u0414\u0410"
+  - key: progression.result.loss
+    en: LOSS
+    tr: "MA\u011ELUB\u0130YET"
+    es: DERROTA
+    fr: "D\xC9FAITE"
+    de: NIEDERLAGE
+    ko: "\uD328\uBC30"
+    ru: "\u041F\u041E\u0420\u0410\u0416\u0415\u041D\u0418\u0415"
+  - key: progression.result.tie
+    en: TIE
+    tr: "BERABERL\u0130K"
+    es: EMPATE
+    fr: "\xC9GALIT\xC9"
+    de: UNENTSCHIEDEN
+    ko: "\uBB34\uC2B9\uBD80"
+    ru: "\u041D\u0418\u0427\u042C\u042F"
+  - key: progression.details.title
+    en: MATCH DETAILS
+    tr: "MA\xC7 DETAYLARI"
+    es: DETALLES DE PARTIDA
+    fr: "D\xC9TAILS DE LA PARTIE"
+    de: SPIELDETAILS
+    ko: "\uACBD\uAE30 \uC0C1\uC138"
+    ru: "\u0414\u0415\u0422\u0410\u041B\u0418 \u041C\u0410\u0422\u0427\u0410"
+  - key: progression.details.match_id
+    en: 'Match ID: {0}'
+    tr: "Ma\xE7 Kimli\u011Fi: {0}"
+    es: 'ID de partida: {0}'
+    fr: 'ID de partie : {0}'
+    de: 'Match-ID: {0}'
+    ko: "\uACBD\uAE30 ID: {0}"
+    ru: "ID \u043C\u0430\u0442\u0447\u0430: {0}"
+  - key: progression.details.lobby
+    en: 'Lobby: {0}'
+    tr: 'Lobi: {0}'
+    es: 'Sala: {0}'
+    fr: 'Salon : {0}'
+    de: 'Lobby: {0}'
+    ko: "\uB85C\uBE44: {0}"
+    ru: "\u041B\u043E\u0431\u0431\u0438: {0}"
+  - key: progression.details.rules
+    en: "Map: {0} \u2022 Theme: {1} \u2022 Round limit: {2}"
+    tr: "Harita: {0} \u2022 Tema: {1} \u2022 Tur limiti: {2}"
+    es: "Mapa: {0} \u2022 Tema: {1} \u2022 L\xEDmite: {2}"
+    fr: "Carte : {0} \u2022 Th\xE8me : {1} \u2022 Limite : {2}"
+    de: "Karte: {0} \u2022 Thema: {1} \u2022 Rundenlimit: {2}"
+    ko: "\uB9F5: {0} \u2022 \uD14C\uB9C8: {1} \u2022 \uB77C\uC6B4\uB4DC \uC81C\uD55C:
+      {2}"
+    ru: "\u041A\u0430\u0440\u0442\u0430: {0} \u2022 \u0422\u0435\u043C\u0430: {1}
+      \u2022 \u041B\u0438\u043C\u0438\u0442 \u0440\u0430\u0443\u043D\u0434\u043E\u0432:
+      {2}"
+  - key: progression.details.place
+    en: 'Final place: {0}/{1}'
+    tr: "Final s\u0131ra: {0}/{1}"
+    es: 'Puesto final: {0}/{1}'
+    fr: 'Place finale : {0}/{1}'
+    de: 'Endplatz: {0}/{1}'
+    ko: "\uCD5C\uC885 \uC21C\uC704: {0}/{1}"
+    ru: "\u0418\u0442\u043E\u0433\u043E\u0432\u043E\u0435 \u043C\u0435\u0441\u0442\u043E:
+      {0}/{1}"
+  - key: progression.details.economy
+    en: "Cash {0:N0} \u2022 Properties {1} \u2022 Development {2} \u2022 Net worth
+      {3:N0}"
+    tr: "Nakit {0:N0} \u2022 M\xFClk {1} \u2022 Geli\u015Ftirme {2} \u2022 Net de\u011Fer
+      {3:N0}"
+    es: "Efectivo {0:N0} \u2022 Propiedades {1} \u2022 Desarrollo {2} \u2022 Patrimonio
+      {3:N0}"
+    fr: "Cash {0:N0} \u2022 Propri\xE9t\xE9s {1} \u2022 D\xE9veloppement {2} \u2022
+      Valeur nette {3:N0}"
+    de: "Bargeld {0:N0} \u2022 Immobilien {1} \u2022 Ausbau {2} \u2022 Verm\xF6gen
+      {3:N0}"
+    ko: "\uD604\uAE08 {0:N0} \u2022 \uBD80\uB3D9\uC0B0 {1} \u2022 \uAC1C\uBC1C {2}
+      \u2022 \uC21C\uC790\uC0B0 {3:N0}"
+    ru: "\u041D\u0430\u043B\u0438\u0447\u043D\u044B\u0435 {0:N0} \u2022 \u041D\u0435\u0434\u0432\u0438\u0436\u0438\u043C\u043E\u0441\u0442\u044C
+      {1} \u2022 \u0417\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430 {2} \u2022
+      \u041A\u0430\u043F\u0438\u0442\u0430\u043B {3:N0}"
+  - key: progression.details.dice
+    en: "Dice rolls {0} \u2022 Doubles {1} \u2022 Average {2} \u2022 High {3}"
+    tr: "Zar {0} \u2022 \xC7ift {1} \u2022 Ortalama {2} \u2022 En y\xFCksek {3}"
+    es: "Tiradas {0} \u2022 Dobles {1} \u2022 Media {2} \u2022 M\xE1xima {3}"
+    fr: "Lancers {0} \u2022 Doubles {1} \u2022 Moyenne {2} \u2022 Max {3}"
+    de: "W\xFCrfe {0} \u2022 Pasche {1} \u2022 \xD8 {2} \u2022 Max {3}"
+    ko: "\uC8FC\uC0AC\uC704 {0} \u2022 \uB354\uBE14 {1} \u2022 \uD3C9\uADE0 {2} \u2022
+      \uCD5C\uACE0 {3}"
+    ru: "\u0411\u0440\u043E\u0441\u043A\u0438 {0} \u2022 \u0414\u0443\u0431\u043B\u0438
+      {1} \u2022 \u0421\u0440\u0435\u0434\u043D\u0435\u0435 {2} \u2022 \u041C\u0430\u043A\u0441
+      {3}"
+  - key: progression.details.xp
+    en: "XP earned +{0} \u2022 Level after match {1}"
+    tr: "Kazan\u0131lan XP +{0} \u2022 Ma\xE7 sonras\u0131 seviye {1}"
+    es: "XP ganado +{0} \u2022 Nivel tras partida {1}"
+    fr: "XP gagn\xE9 +{0} \u2022 Niveau apr\xE8s partie {1}"
+    de: "XP erhalten +{0} \u2022 Level danach {1}"
+    ko: "\uD68D\uB4DD XP +{0} \u2022 \uACBD\uAE30 \uD6C4 \uB808\uBCA8 {1}"
+    ru: "\u041F\u043E\u043B\u0443\u0447\u0435\u043D\u043E XP +{0} \u2022 \u0423\u0440\u043E\u0432\u0435\u043D\u044C
+      \u043F\u043E\u0441\u043B\u0435 \u043C\u0430\u0442\u0447\u0430 {1}"
+  - key: progression.details.players
+    en: PLAYERS
+    tr: OYUNCULAR
+    es: JUGADORES
+    fr: JOUEURS
+    de: SPIELER
+    ko: "\uD50C\uB808\uC774\uC5B4"
+    ru: "\u0418\u0413\u0420\u041E\u041A\u0418"
+  - key: progression.details.player_row
+    en: "#{0} {1} \u2014 {2} \u2014 Net {3:N0} \u2014 Properties {4} \u2014 Dev {5}"
+    tr: "#{0} {1} \u2014 {2} \u2014 Net {3:N0} \u2014 M\xFClk {4} \u2014 Gel. {5}"
+    es: "#{0} {1} \u2014 {2} \u2014 Neto {3:N0} \u2014 Prop. {4} \u2014 Des. {5}"
+    fr: "#{0} {1} \u2014 {2} \u2014 Net {3:N0} \u2014 Prop. {4} \u2014 D\xE9v. {5}"
+    de: "#{0} {1} \u2014 {2} \u2014 Netto {3:N0} \u2014 Besitz {4} \u2014 Ausbau
+      {5}"
+    ko: "#{0} {1} \u2014 {2} \u2014 \uC21C\uC790\uC0B0 {3:N0} \u2014 \uBD80\uB3D9\uC0B0
+      {4} \u2014 \uAC1C\uBC1C {5}"
+    ru: "#{0} {1} \u2014 {2} \u2014 \u041A\u0430\u043F\u0438\u0442\u0430\u043B {3:N0}
+      \u2014 \u041E\u0431\u044A\u0435\u043A\u0442\u044B {4} \u2014 \u0417\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430
+      {5}"
+  - key: progression.achievements.title
+    en: ACHIEVEMENTS
+    tr: "BA\u015EARIMLAR"
+    es: LOGROS
+    fr: "SUCC\xC8S"
+    de: ERFOLGE
+    ko: "\uC5C5\uC801"
+    ru: "\u0414\u041E\u0421\u0422\u0418\u0416\u0415\u041D\u0418\u042F"
+  - key: progression.achievements.note
+    en: Achievements unlock from completed account-linked matches. Detailed dice
+      counters are unranked telemetry for now.
+    tr: "Ba\u015Far\u0131mlar tamamlanm\u0131\u015F hesap ba\u011Flant\u0131l\u0131
+      ma\xE7lardan a\xE7\u0131l\u0131r. Ayr\u0131nt\u0131l\u0131 zar saya\xE7lar\u0131
+      \u015Fimdilik derecesiz telemetridir."
+    es: "Los logros se desbloquean con partidas completadas vinculadas a la cuenta.
+      Los contadores de dados a\xFAn no son ranked."
+    fr: "Les succ\xE8s se d\xE9bloquent via des parties termin\xE9es li\xE9es au
+      compte. Les compteurs de d\xE9s restent non class\xE9s pour l'instant."
+    de: "Erfolge werden durch abgeschlossene kontoverkn\xFCpfte Spiele freigeschaltet.
+      W\xFCrfelz\xE4hler sind vorerst ungewertete Telemetrie."
+    ko: "\uC5C5\uC801\uC740 \uACC4\uC815\uC5D0 \uC5F0\uACB0\uB41C \uC644\uB8CC \uACBD\uAE30\uB85C
+      \uD574\uAE08\uB429\uB2C8\uB2E4. \uC138\uBD80 \uC8FC\uC0AC\uC704 \uD1B5\uACC4\uB294
+      \uD604\uC7AC \uB7AD\uD06C \uD310\uC815\uC5D0 \uC0AC\uC6A9\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4."
+    ru: "\u0414\u043E\u0441\u0442\u0438\u0436\u0435\u043D\u0438\u044F \u043E\u0442\u043A\u0440\u044B\u0432\u0430\u044E\u0442\u0441\u044F
+      \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043D\u043D\u044B\u043C\u0438 \u043C\u0430\u0442\u0447\u0430\u043C\u0438
+      \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u0430. \u0414\u0435\u0442\u0430\u043B\u044C\u043D\u0430\u044F
+      \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043A\u0430 \u043A\u0443\u0431\u0438\u043A\u043E\u0432
+      \u043F\u043E\u043A\u0430 \u043D\u0435 \u0432\u043B\u0438\u044F\u0435\u0442
+      \u043D\u0430 \u0440\u0435\u0439\u0442\u0438\u043D\u0433."
+  - key: progression.achievements.empty
+    en: No achievement data yet.
+    tr: "Hen\xFCz ba\u015Far\u0131m verisi yok."
+    es: "A\xFAn no hay datos de logros."
+    fr: "Aucune donn\xE9e de succ\xE8s."
+    de: Noch keine Erfolgsdaten.
+    ko: "\uC544\uC9C1 \uC5C5\uC801 \uB370\uC774\uD130\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4."
+    ru: "\u0414\u0430\u043D\u043D\u044B\u0445 \u043E \u0434\u043E\u0441\u0442\u0438\u0436\u0435\u043D\u0438\u044F\u0445
+      \u043F\u043E\u043A\u0430 \u043D\u0435\u0442."
+  - key: progression.achievements.unlocked
+    en: UNLOCKED
+    tr: "A\xC7ILDI"
+    es: DESBLOQUEADO
+    fr: "D\xC9BLOQU\xC9"
+    de: FREIGESCHALTET
+    ko: "\uD574\uAE08\uB428"
+    ru: "\u041E\u0422\u041A\u0420\u042B\u0422\u041E"
+  - key: progression.achievements.progress
+    en: '{0:N0} / {1:N0}'
+    tr: '{0:N0} / {1:N0}'
+    es: '{0:N0} / {1:N0}'
+    fr: '{0:N0} / {1:N0}'
+    de: '{0:N0} / {1:N0}'
+    ko: '{0:N0} / {1:N0}'
+    ru: '{0:N0} / {1:N0}'
+  - key: progression.filter.map
+    en: MAP
+    tr: "HAR\u0130TA"
+    es: MAPA
+    fr: CARTE
+    de: KARTE
+    ko: "\uB9F5"
+    ru: "\u041A\u0410\u0420\u0422\u0410"
+  - key: progression.map.all
+    en: All maps
+    tr: "T\xFCm haritalar"
+    es: Todos los mapas
+    fr: Toutes les cartes
+    de: Alle Karten
+    ko: "\uBAA8\uB4E0 \uB9F5"
+    ru: "\u0412\u0441\u0435 \u043A\u0430\u0440\u0442\u044B"
+  - key: progression.map.turkey
+    en: Turkey
+    tr: "T\xFCrkiye"
+    es: "Turqu\xEDa"
+    fr: Turquie
+    de: "T\xFCrkei"
+    ko: "\uD280\uB974\uD0A4\uC608"
+    ru: "\u0422\u0443\u0440\u0446\u0438\u044F"
+  - key: progression.map.colorado
+    en: Colorado
+    tr: Colorado
+    es: Colorado
+    fr: Colorado
+    de: Colorado
+    ko: "\uCF5C\uB85C\uB77C\uB3C4"
+    ru: "\u041A\u043E\u043B\u043E\u0440\u0430\u0434\u043E"
+  - key: progression.map.usa
+    en: USA
+    tr: ABD
+    es: EE. UU.
+    fr: USA
+    de: USA
+    ko: "\uBBF8\uAD6D"
+    ru: "\u0421\u0428\u0410"
+  - key: progression.error.invalid_request
+    en: Invalid progression request.
+    tr: "Ge\xE7ersiz ilerleme iste\u011Fi."
+    es: "Solicitud de progreso no v\xE1lida."
+    fr: "Requ\xEAte de progression invalide."
+    de: "Ung\xFCltige Fortschrittsanfrage."
+    ko: "\uC798\uBABB\uB41C \uC9C4\uD589\uB3C4 \uC694\uCCAD\uC785\uB2C8\uB2E4."
+    ru: "\u041D\u0435\u043A\u043E\u0440\u0440\u0435\u043A\u0442\u043D\u044B\u0439
+      \u0437\u0430\u043F\u0440\u043E\u0441 \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0441\u0430."
+  - key: progression.error.match_not_final
+    en: The match result is not final yet.
+    tr: "Ma\xE7 sonucu hen\xFCz kesinle\u015Fmedi."
+    es: "El resultado a\xFAn no es definitivo."
+    fr: "Le r\xE9sultat du match n'est pas encore final."
+    de: Das Spielergebnis ist noch nicht final.
+    ko: "\uACBD\uAE30 \uACB0\uACFC\uAC00 \uC544\uC9C1 \uD655\uC815\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4."
+    ru: "\u0420\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442 \u043C\u0430\u0442\u0447\u0430
+      \u0435\u0449\u0451 \u043D\u0435 \u0444\u0438\u043D\u0430\u043B\u044C\u043D\u044B\u0439."
+  - key: progression.error.match_not_found
+    en: Match record not found.
+    tr: "Ma\xE7 kayd\u0131 bulunamad\u0131."
+    es: "No se encontr\xF3 la partida."
+    fr: Partie introuvable.
+    de: Spiel nicht gefunden.
+    ko: "\uACBD\uAE30 \uAE30\uB85D\uC744 \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4."
+    ru: "\u041C\u0430\u0442\u0447 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D."
+  - key: progression.error.host_required
+    en: Only the authoritative host can finalize progression.
+    tr: "\u0130lerlemeyi yaln\u0131zca yetkili host kesinle\u015Ftirebilir."
+    es: Solo el host autoritativo puede finalizar el progreso.
+    fr: "Seul l'h\xF4te autoritaire peut finaliser la progression."
+    de: Nur der autoritative Host kann den Fortschritt finalisieren.
+    ko: "\uAD8C\uD55C \uC788\uB294 \uD638\uC2A4\uD2B8\uB9CC \uC9C4\uD589\uB3C4\uB97C
+      \uD655\uC815\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4."
+    ru: "\u0422\u043E\u043B\u044C\u043A\u043E \u0430\u0432\u0442\u043E\u0440\u0438\u0442\u0435\u0442\u043D\u044B\u0439
+      \u0445\u043E\u0441\u0442 \u043C\u043E\u0436\u0435\u0442 \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044C
+      \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0441."
+  - key: progression.error.no_account_seats
+    en: No account-linked human players were found.
+    tr: "Hesaba ba\u011Fl\u0131 insan oyuncu bulunamad\u0131."
+    es: No se encontraron jugadores humanos vinculados.
+    fr: "Aucun joueur humain li\xE9 \xE0 un compte."
+    de: "Keine kontoverkn\xFCpften menschlichen Spieler gefunden."
+    ko: "\uACC4\uC815\uC5D0 \uC5F0\uACB0\uB41C \uC778\uAC04 \uD50C\uB808\uC774\uC5B4\uAC00
+      \uC5C6\uC2B5\uB2C8\uB2E4."
+    ru: "\u041D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u044B \u0438\u0433\u0440\u043E\u043A\u0438-\u043B\u044E\u0434\u0438,
+      \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u043D\u043D\u044B\u0435 \u043A \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u0430\u043C."
+  - key: progression.error.identity_unavailable
+    en: Player identity is unavailable.
+    tr: "Oyuncu kimli\u011Fi kullan\u0131lam\u0131yor."
+    es: "La identidad del jugador no est\xE1 disponible."
+    fr: "Identit\xE9 du joueur indisponible."
+    de: "Spieleridentit\xE4t nicht verf\xFCgbar."
+    ko: "\uD50C\uB808\uC774\uC5B4 ID\uB97C \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4."
+    ru: "\u0418\u0434\u0435\u043D\u0442\u0438\u0444\u0438\u043A\u0430\u0442\u043E\u0440
+      \u0438\u0433\u0440\u043E\u043A\u0430 \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D."
+  - key: progression.error.service_unavailable
+    en: Career service is unavailable.
+    tr: "Kariyer hizmeti kullan\u0131lam\u0131yor."
+    es: "El servicio de carrera no est\xE1 disponible."
+    fr: "Le service de carri\xE8re est indisponible."
+    de: "Karrieredienst nicht verf\xFCgbar."
+    ko: "\uCEE4\uB9AC\uC5B4 \uC11C\uBE44\uC2A4\uB97C \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4."
+    ru: "\u0421\u0435\u0440\u0432\u0438\u0441 \u043A\u0430\u0440\u044C\u0435\u0440\u044B
+      \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D."
+  - key: progression.achievement.first_match.title
+    en: First Steps
+    tr: "\u0130lk Ad\u0131mlar"
+    es: Primeros Pasos
+    fr: Premiers Pas
+    de: Erste Schritte
+    ko: "\uCCAB\uAC78\uC74C"
+    ru: "\u041F\u0435\u0440\u0432\u044B\u0435 \u0448\u0430\u0433\u0438"
+  - key: progression.achievement.first_match.body
+    en: Complete your first match.
+    tr: "\u0130lk ma\xE7\u0131n\u0131 tamamla."
+    es: Completa tu primera partida.
+    fr: "Terminez votre premi\xE8re partie."
+    de: Beende dein erstes Spiel.
+    ko: "\uCCAB \uACBD\uAE30\uB97C \uC644\uB8CC\uD558\uC138\uC694."
+    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u043F\u0435\u0440\u0432\u044B\u0439
+      \u043C\u0430\u0442\u0447."
+  - key: progression.achievement.first_win.title
+    en: First Victory
+    tr: "\u0130lk Zafer"
+    es: Primera Victoria
+    fr: "Premi\xE8re Victoire"
+    de: Erster Sieg
+    ko: "\uCCAB \uC2B9\uB9AC"
+    ru: "\u041F\u0435\u0440\u0432\u0430\u044F \u043F\u043E\u0431\u0435\u0434\u0430"
+  - key: progression.achievement.first_win.body
+    en: Win your first match.
+    tr: "\u0130lk ma\xE7\u0131n\u0131 kazan."
+    es: Gana tu primera partida.
+    fr: "Gagnez votre premi\xE8re partie."
+    de: Gewinne dein erstes Spiel.
+    ko: "\uCCAB \uC2B9\uB9AC\uB97C \uB2EC\uC131\uD558\uC138\uC694."
+    ru: "\u041E\u0434\u0435\u0440\u0436\u0438\u0442\u0435 \u043F\u0435\u0440\u0432\u0443\u044E
+      \u043F\u043E\u0431\u0435\u0434\u0443."
+  - key: progression.achievement.streak.title
+    en: On a Roll
+    tr: "Seri Ba\u015Flad\u0131"
+    es: En Racha
+    fr: "En S\xE9rie"
+    de: Siegesserie
+    ko: "\uC5F0\uC2B9 \uD589\uC9C4"
+    ru: "\u041D\u0430 \u0441\u0435\u0440\u0438\u0438"
+  - key: progression.achievement.streak.body
+    en: Reach a 3-win streak.
+    tr: "3 ma\xE7l\u0131k galibiyet serisine ula\u015F."
+    es: Consigue 3 victorias seguidas.
+    fr: "Atteignez 3 victoires d'affil\xE9e."
+    de: Erreiche 3 Siege in Folge.
+    ko: "3\uC5F0\uC2B9\uC744 \uB2EC\uC131\uD558\uC138\uC694."
+    ru: "\u0412\u044B\u0438\u0433\u0440\u0430\u0439\u0442\u0435 3 \u043C\u0430\u0442\u0447\u0430
+      \u043F\u043E\u0434\u0440\u044F\u0434."
+  - key: progression.achievement.matches_10.title
+    en: Regular Player
+    tr: "M\xFCdavim"
+    es: Jugador Habitual
+    fr: "Joueur R\xE9gulier"
+    de: Stammspieler
+    ko: "\uB2E8\uACE8 \uD50C\uB808\uC774\uC5B4"
+    ru: "\u041F\u043E\u0441\u0442\u043E\u044F\u043D\u043D\u044B\u0439 \u0438\u0433\u0440\u043E\u043A"
+  - key: progression.achievement.matches_10.body
+    en: Complete 10 matches.
+    tr: "10 ma\xE7 tamamla."
+    es: Completa 10 partidas.
+    fr: Terminez 10 parties.
+    de: Beende 10 Spiele.
+    ko: "10\uACBD\uAE30\uB97C \uC644\uB8CC\uD558\uC138\uC694."
+    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 10 \u043C\u0430\u0442\u0447\u0435\u0439."
+  - key: progression.achievement.wins_10.title
+    en: Ten Victories
+    tr: On Zafer
+    es: Diez Victorias
+    fr: Dix Victoires
+    de: Zehn Siege
+    ko: "10\uC2B9"
+    ru: "\u0414\u0435\u0441\u044F\u0442\u044C \u043F\u043E\u0431\u0435\u0434"
+  - key: progression.achievement.wins_10.body
+    en: Win 10 matches.
+    tr: "10 ma\xE7 kazan."
+    es: Gana 10 partidas.
+    fr: Gagnez 10 parties.
+    de: Gewinne 10 Spiele.
+    ko: "10\uC2B9\uC744 \uB2EC\uC131\uD558\uC138\uC694."
+    ru: "\u0412\u044B\u0438\u0433\u0440\u0430\u0439\u0442\u0435 10 \u043C\u0430\u0442\u0447\u0435\u0439."
+  - key: progression.achievement.dice_100.title
+    en: Dice Veteran
+    tr: "Zar Ustas\u0131"
+    es: Veterano de Dados
+    fr: "V\xE9t\xE9ran des D\xE9s"
+    de: "W\xFCrfelveteran"
+    ko: "\uC8FC\uC0AC\uC704 \uBCA0\uD14C\uB791"
+    ru: "\u0412\u0435\u0442\u0435\u0440\u0430\u043D \u043A\u0443\u0431\u0438\u043A\u043E\u0432"
+  - key: progression.achievement.dice_100.body
+    en: Roll the dice 100 times in completed matches.
+    tr: "Tamamlanan ma\xE7larda 100 kez zar at."
+    es: Lanza los dados 100 veces en partidas completadas.
+    fr: "Lancez les d\xE9s 100 fois dans des parties termin\xE9es."
+    de: "W\xFCrfle 100-mal in abgeschlossenen Spielen."
+    ko: "\uC644\uB8CC \uACBD\uAE30\uC5D0\uC11C \uC8FC\uC0AC\uC704\uB97C 100\uD68C
+      \uAD74\uB9AC\uC138\uC694."
+    ru: "\u0411\u0440\u043E\u0441\u044C\u0442\u0435 \u043A\u0443\u0431\u0438\u043A\u0438
+      100 \u0440\u0430\u0437 \u0432 \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043D\u043D\u044B\u0445
+      \u043C\u0430\u0442\u0447\u0430\u0445."
+  - key: progression.achievement.doubles_10.title
+    en: Double Trouble
+    tr: "\xC7ifte Bela"
+    es: Problema Doble
+    fr: "Double Probl\xE8me"
+    de: "Doppeltes Gl\xFCck"
+    ko: "\uB354\uBE14 \uD2B8\uB7EC\uBE14"
+    ru: "\u0414\u0432\u043E\u0439\u043D\u0430\u044F \u043F\u0440\u043E\u0431\u043B\u0435\u043C\u0430"
+  - key: progression.achievement.doubles_10.body
+    en: Roll 10 doubles.
+    tr: "10 kez \xE7ift zar at."
+    es: Saca 10 dobles.
+    fr: Faites 10 doubles.
+    de: "W\xFCrfle 10 Pasche."
+    ko: "\uB354\uBE14\uC744 10\uD68C \uAD74\uB9AC\uC138\uC694."
+    ru: "\u0412\u044B\u0431\u0440\u043E\u0441\u044C\u0442\u0435 10 \u0434\u0443\u0431\u043B\u0435\u0439."
+  - key: progression.achievement.properties_25.title
+    en: Property Collector
+    tr: "M\xFClk Koleksiyoncusu"
+    es: Coleccionista
+    fr: Collectionneur
+    de: Immobiliensammler
+    ko: "\uBD80\uB3D9\uC0B0 \uC218\uC9D1\uAC00"
+    ru: "\u041A\u043E\u043B\u043B\u0435\u043A\u0446\u0438\u043E\u043D\u0435\u0440
+      \u043D\u0435\u0434\u0432\u0438\u0436\u0438\u043C\u043E\u0441\u0442\u0438"
+  - key: progression.achievement.properties_25.body
+    en: Finish matches with 25 properties in total.
+    tr: "Ma\xE7lar\u0131 toplam 25 m\xFClkle bitir."
+    es: Termina partidas con 25 propiedades en total.
+    fr: "Terminez des parties avec 25 propri\xE9t\xE9s au total."
+    de: Beende Spiele mit insgesamt 25 Immobilien.
+    ko: "\uACBD\uAE30 \uC885\uB8CC \uC2DC \uBD80\uB3D9\uC0B0 \uB204\uC801 25\uAC1C\uB97C
+      \uB2EC\uC131\uD558\uC138\uC694."
+    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u043C\u0430\u0442\u0447\u0438
+      \u0441\u0443\u043C\u043C\u0430\u0440\u043D\u043E \u0441 25 \u043E\u0431\u044A\u0435\u043A\u0442\u0430\u043C\u0438."
+  - key: progression.achievement.builder_20.title
+    en: Master Builder
+    tr: "Usta \u0130n\u015Faat\xE7\u0131"
+    es: Maestro Constructor
+    fr: "Ma\xEEtre B\xE2tisseur"
+    de: Baumeister
+    ko: "\uAC74\uCD95 \uB300\uAC00"
+    ru: "\u041C\u0430\u0441\u0442\u0435\u0440-\u0441\u0442\u0440\u043E\u0438\u0442\u0435\u043B\u044C"
+  - key: progression.achievement.builder_20.body
+    en: Accumulate 20 development levels at match finish.
+    tr: "Ma\xE7 sonlar\u0131nda toplam 20 geli\u015Ftirme seviyesine ula\u015F."
+    es: Acumula 20 niveles de desarrollo al finalizar partidas.
+    fr: "Cumulez 20 niveaux de d\xE9veloppement en fin de partie."
+    de: Sammle 20 Ausbaustufen am Spielende.
+    ko: "\uACBD\uAE30 \uC885\uB8CC \uC2DC \uAC1C\uBC1C \uB2E8\uACC4 \uB204\uC801
+      20\uC744 \uB2EC\uC131\uD558\uC138\uC694."
+    ru: "\u041D\u0430\u0431\u0435\u0440\u0438\u0442\u0435 20 \u0443\u0440\u043E\u0432\u043D\u0435\u0439
+      \u0437\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u043A \u043A\u043E\u043D\u0446\u0443
+      \u043C\u0430\u0442\u0447\u0435\u0439."
+  - key: progression.achievement.networth.title
+    en: Capital Leader
+    tr: Sermaye Lideri
+    es: "L\xEDder de Capital"
+    fr: Leader du Capital
+    de: "Kapitalf\xFChrer"
+    ko: "\uC790\uBCF8 \uB9AC\uB354"
+    ru: "\u041B\u0438\u0434\u0435\u0440 \u043A\u0430\u043F\u0438\u0442\u0430\u043B\u0430"
+  - key: progression.achievement.networth.body
+    en: Reach 5,000 net worth in a completed match.
+    tr: "Tamamlanan bir ma\xE7ta 5.000 net de\u011Fere ula\u015F."
+    es: Alcanza 5.000 de patrimonio en una partida.
+    fr: Atteignez 5 000 de valeur nette.
+    de: "Erreiche 5.000 Verm\xF6gen in einem Spiel."
+    ko: "\uC644\uB8CC \uACBD\uAE30\uC5D0\uC11C \uC21C\uC790\uC0B0 5,000\uC744 \uB2EC\uC131\uD558\uC138\uC694."
+    ru: "\u0414\u043E\u0441\u0442\u0438\u0433\u043D\u0438\u0442\u0435 \u043A\u0430\u043F\u0438\u0442\u0430\u043B\u0430
+      5 000 \u0432 \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043D\u043D\u043E\u043C
+      \u043C\u0430\u0442\u0447\u0435."
+  - key: progression.achievement.turkey.title
+    en: Turkey Explorer
+    tr: "T\xFCrkiye Ka\u015Fifi"
+    es: "Explorador de Turqu\xEDa"
+    fr: Explorateur de Turquie
+    de: "T\xFCrkei-Entdecker"
+    ko: "\uD280\uB974\uD0A4\uC608 \uD0D0\uD5D8\uAC00"
+    ru: "\u0418\u0441\u0441\u043B\u0435\u0434\u043E\u0432\u0430\u0442\u0435\u043B\u044C
+      \u0422\u0443\u0440\u0446\u0438\u0438"
+  - key: progression.achievement.turkey.body
+    en: Complete a match on Turkey.
+    tr: "T\xFCrkiye haritas\u0131nda bir ma\xE7 tamamla."
+    es: "Completa una partida en Turqu\xEDa."
+    fr: Terminez une partie en Turquie.
+    de: "Beende ein Spiel auf der T\xFCrkei-Karte."
+    ko: "\uD280\uB974\uD0A4\uC608 \uB9F5\uC5D0\uC11C \uACBD\uAE30\uB97C \uC644\uB8CC\uD558\uC138\uC694."
+    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u043C\u0430\u0442\u0447
+      \u043D\u0430 \u043A\u0430\u0440\u0442\u0435 \u0422\u0443\u0440\u0446\u0438\u0438."
+  - key: progression.achievement.colorado.title
+    en: Colorado Explorer
+    tr: "Colorado Ka\u015Fifi"
+    es: Explorador de Colorado
+    fr: Explorateur du Colorado
+    de: Colorado-Entdecker
+    ko: "\uCF5C\uB85C\uB77C\uB3C4 \uD0D0\uD5D8\uAC00"
+    ru: "\u0418\u0441\u0441\u043B\u0435\u0434\u043E\u0432\u0430\u0442\u0435\u043B\u044C
+      \u041A\u043E\u043B\u043E\u0440\u0430\u0434\u043E"
+  - key: progression.achievement.colorado.body
+    en: Complete a match on Colorado.
+    tr: "Colorado haritas\u0131nda bir ma\xE7 tamamla."
+    es: Completa una partida en Colorado.
+    fr: Terminez une partie au Colorado.
+    de: Beende ein Spiel auf Colorado.
+    ko: "\uCF5C\uB85C\uB77C\uB3C4 \uB9F5\uC5D0\uC11C \uACBD\uAE30\uB97C \uC644\uB8CC\uD558\uC138\uC694."
+    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u043C\u0430\u0442\u0447
+      \u043D\u0430 \u043A\u0430\u0440\u0442\u0435 \u041A\u043E\u043B\u043E\u0440\u0430\u0434\u043E."
+  - key: progression.achievement.usa.title
+    en: USA Explorer
+    tr: "ABD Ka\u015Fifi"
+    es: Explorador de EE. UU.
+    fr: Explorateur des USA
+    de: USA-Entdecker
+    ko: "\uBBF8\uAD6D \uD0D0\uD5D8\uAC00"
+    ru: "\u0418\u0441\u0441\u043B\u0435\u0434\u043E\u0432\u0430\u0442\u0435\u043B\u044C
+      \u0421\u0428\u0410"
+  - key: progression.achievement.usa.body
+    en: Complete a match on USA.
+    tr: "ABD haritas\u0131nda bir ma\xE7 tamamla."
+    es: Completa una partida en EE. UU.
+    fr: Terminez une partie sur USA.
+    de: Beende ein Spiel auf USA.
+    ko: "\uBBF8\uAD6D \uB9F5\uC5D0\uC11C \uACBD\uAE30\uB97C \uC644\uB8CC\uD558\uC138\uC694."
+    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u043C\u0430\u0442\u0447
+      \u043D\u0430 \u043A\u0430\u0440\u0442\u0435 \u0421\u0428\u0410."
+  - key: progression.achievement.traveler.title
+    en: Atlas Traveler
+    tr: Atlas Gezgini
+    es: Viajero Atlas
+    fr: Voyageur Atlas
+    de: Atlas-Reisender
+    ko: "\uC544\uD2C0\uB77C\uC2A4 \uC5EC\uD589\uC790"
+    ru: "\u041F\u0443\u0442\u0435\u0448\u0435\u0441\u0442\u0432\u0435\u043D\u043D\u0438\u043A
+      Atlas"
+  - key: progression.achievement.traveler.body
+    en: Complete matches on Turkey, Colorado and USA.
+    tr: "T\xFCrkiye, Colorado ve ABD haritalar\u0131nda ma\xE7 tamamla."
+    es: "Completa partidas en Turqu\xEDa, Colorado y EE. UU."
+    fr: Terminez des parties en Turquie, au Colorado et aux USA.
+    de: "Beende Spiele auf T\xFCrkei, Colorado und USA."
+    ko: "\uD280\uB974\uD0A4\uC608, \uCF5C\uB85C\uB77C\uB3C4, \uBBF8\uAD6D \uB9F5\uC5D0\uC11C
+      \uACBD\uAE30\uB97C \uC644\uB8CC\uD558\uC138\uC694."
+    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u043C\u0430\u0442\u0447\u0438
+      \u043D\u0430 \u043A\u0430\u0440\u0442\u0430\u0445 \u0422\u0443\u0440\u0446\u0438\u0438,
+      \u041A\u043E\u043B\u043E\u0440\u0430\u0434\u043E \u0438 \u0421\u0428\u0410."
+  - key: progression.achievement.win_streak_3.title
+    en: On a Roll
+    tr: "Seri Ba\u015Flad\u0131"
+    es: En Racha
+    fr: "En S\xE9rie"
+    de: Siegesserie
+    ko: "\uC5F0\uC2B9 \uD589\uC9C4"
+    ru: "\u041D\u0430 \u0441\u0435\u0440\u0438\u0438"
+  - key: progression.achievement.win_streak_3.body
+    en: Reach a 3-win streak.
+    tr: "3 ma\xE7l\u0131k galibiyet serisine ula\u015F."
+    es: Consigue 3 victorias seguidas.
+    fr: "Atteignez 3 victoires d'affil\xE9e."
+    de: Erreiche 3 Siege in Folge.
+    ko: "3\uC5F0\uC2B9\uC744 \uB2EC\uC131\uD558\uC138\uC694."
+    ru: "\u0412\u044B\u0438\u0433\u0440\u0430\u0439\u0442\u0435 3 \u043C\u0430\u0442\u0447\u0430
+      \u043F\u043E\u0434\u0440\u044F\u0434."
+  - key: progression.achievement.networth_5000.title
+    en: Capital Leader
+    tr: Sermaye Lideri
+    es: "L\xEDder de Capital"
+    fr: Leader du Capital
+    de: "Kapitalf\xFChrer"
+    ko: "\uC790\uBCF8 \uB9AC\uB354"
+    ru: "\u041B\u0438\u0434\u0435\u0440 \u043A\u0430\u043F\u0438\u0442\u0430\u043B\u0430"
+  - key: progression.achievement.networth_5000.body
+    en: Reach 5,000 net worth in a completed match.
+    tr: "Tamamlanan bir ma\xE7ta 5.000 net de\u011Fere ula\u015F."
+    es: Alcanza 5.000 de patrimonio en una partida.
+    fr: Atteignez 5 000 de valeur nette.
+    de: "Erreiche 5.000 Verm\xF6gen in einem Spiel."
+    ko: "\uC644\uB8CC \uACBD\uAE30\uC5D0\uC11C \uC21C\uC790\uC0B0 5,000\uC744 \uB2EC\uC131\uD558\uC138\uC694."
+    ru: "\u0414\u043E\u0441\u0442\u0438\u0433\u043D\u0438\u0442\u0435 \u043A\u0430\u043F\u0438\u0442\u0430\u043B\u0430
+      5 000 \u0432 \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043D\u043D\u043E\u043C
+      \u043C\u0430\u0442\u0447\u0435."
+  - key: progression.achievement.turkey_explorer.title
+    en: Turkey Explorer
+    tr: "T\xFCrkiye Ka\u015Fifi"
+    es: "Explorador de Turqu\xEDa"
+    fr: Explorateur de Turquie
+    de: "T\xFCrkei-Entdecker"
+    ko: "\uD280\uB974\uD0A4\uC608 \uD0D0\uD5D8\uAC00"
+    ru: "\u0418\u0441\u0441\u043B\u0435\u0434\u043E\u0432\u0430\u0442\u0435\u043B\u044C
+      \u0422\u0443\u0440\u0446\u0438\u0438"
+  - key: progression.achievement.turkey_explorer.body
+    en: Complete a match on Turkey.
+    tr: "T\xFCrkiye haritas\u0131nda bir ma\xE7 tamamla."
+    es: "Completa una partida en Turqu\xEDa."
+    fr: Terminez une partie en Turquie.
+    de: "Beende ein Spiel auf der T\xFCrkei-Karte."
+    ko: "\uD280\uB974\uD0A4\uC608 \uB9F5\uC5D0\uC11C \uACBD\uAE30\uB97C \uC644\uB8CC\uD558\uC138\uC694."
+    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u043C\u0430\u0442\u0447
+      \u043D\u0430 \u043A\u0430\u0440\u0442\u0435 \u0422\u0443\u0440\u0446\u0438\u0438."
+  - key: progression.achievement.colorado_explorer.title
+    en: Colorado Explorer
+    tr: "Colorado Ka\u015Fifi"
+    es: Explorador de Colorado
+    fr: Explorateur du Colorado
+    de: Colorado-Entdecker
+    ko: "\uCF5C\uB85C\uB77C\uB3C4 \uD0D0\uD5D8\uAC00"
+    ru: "\u0418\u0441\u0441\u043B\u0435\u0434\u043E\u0432\u0430\u0442\u0435\u043B\u044C
+      \u041A\u043E\u043B\u043E\u0440\u0430\u0434\u043E"
+  - key: progression.achievement.colorado_explorer.body
+    en: Complete a match on Colorado.
+    tr: "Colorado haritas\u0131nda bir ma\xE7 tamamla."
+    es: Completa una partida en Colorado.
+    fr: Terminez une partie au Colorado.
+    de: Beende ein Spiel auf Colorado.
+    ko: "\uCF5C\uB85C\uB77C\uB3C4 \uB9F5\uC5D0\uC11C \uACBD\uAE30\uB97C \uC644\uB8CC\uD558\uC138\uC694."
+    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u043C\u0430\u0442\u0447
+      \u043D\u0430 \u043A\u0430\u0440\u0442\u0435 \u041A\u043E\u043B\u043E\u0440\u0430\u0434\u043E."
+  - key: progression.achievement.usa_explorer.title
+    en: USA Explorer
+    tr: "ABD Ka\u015Fifi"
+    es: Explorador de EE. UU.
+    fr: Explorateur des USA
+    de: USA-Entdecker
+    ko: "\uBBF8\uAD6D \uD0D0\uD5D8\uAC00"
+    ru: "\u0418\u0441\u0441\u043B\u0435\u0434\u043E\u0432\u0430\u0442\u0435\u043B\u044C
+      \u0421\u0428\u0410"
+  - key: progression.achievement.usa_explorer.body
+    en: Complete a match on USA.
+    tr: "ABD haritas\u0131nda bir ma\xE7 tamamla."
+    es: Completa una partida en EE. UU.
+    fr: Terminez une partie sur USA.
+    de: Beende ein Spiel auf USA.
+    ko: "\uBBF8\uAD6D \uB9F5\uC5D0\uC11C \uACBD\uAE30\uB97C \uC644\uB8CC\uD558\uC138\uC694."
+    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u043C\u0430\u0442\u0447
+      \u043D\u0430 \u043A\u0430\u0440\u0442\u0435 \u0421\u0428\u0410."
+  - key: progression.achievement.atlas_traveler.title
+    en: Atlas Traveler
+    tr: Atlas Gezgini
+    es: Viajero Atlas
+    fr: Voyageur Atlas
+    de: Atlas-Reisender
+    ko: "\uC544\uD2C0\uB77C\uC2A4 \uC5EC\uD589\uC790"
+    ru: "\u041F\u0443\u0442\u0435\u0448\u0435\u0441\u0442\u0432\u0435\u043D\u043D\u0438\u043A
+      Atlas"
+  - key: progression.achievement.atlas_traveler.body
+    en: Complete matches on Turkey, Colorado and USA.
+    tr: "T\xFCrkiye, Colorado ve ABD haritalar\u0131nda ma\xE7 tamamla."
+    es: "Completa partidas en Turqu\xEDa, Colorado y EE. UU."
+    fr: Terminez des parties en Turquie, au Colorado et aux USA.
+    de: "Beende Spiele auf T\xFCrkei, Colorado und USA."
+    ko: "\uD280\uB974\uD0A4\uC608, \uCF5C\uB85C\uB77C\uB3C4, \uBBF8\uAD6D \uB9F5\uC5D0\uC11C
+      \uACBD\uAE30\uB97C \uC644\uB8CC\uD558\uC138\uC694."
+    ru: "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u043C\u0430\u0442\u0447\u0438
+      \u043D\u0430 \u043A\u0430\u0440\u0442\u0430\u0445 \u0422\u0443\u0440\u0446\u0438\u0438,
+      \u041A\u043E\u043B\u043E\u0440\u0430\u0434\u043E \u0438 \u0421\u0428\u0410."
+  - key: platform.steam.invite_friends
+    en: INVITE FRIENDS
+    tr: "ARKADA\u015E DAVET ET"
+    es: INVITAR AMIGOS
+    fr: INVITER DES AMIS
+    de: FREUNDE EINLADEN
+    ko: "\uCE5C\uAD6C \uCD08\uB300"
+    ru: "\u041F\u0420\u0418\u0413\u041B\u0410\u0421\u0418\u0422\u042C \u0414\u0420\u0423\u0417\u0415\u0419"

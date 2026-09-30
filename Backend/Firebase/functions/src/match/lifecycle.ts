@@ -13,6 +13,7 @@ const MAX_PLAYERS = 4;
 // checkpoint. Movement, dice animation, and blocking decisions finish first.
 const HOST_MIGRATION_SAFE_PHASES = new Set([
   "awaiting_roll",
+  "awaiting_decision",
   "turn_complete",
   "match_complete",
 ]);
@@ -1278,46 +1279,123 @@ export async function hostExpireReconnects(input: {
   const context = await readContext(input.uid, matchId);
   assertHost(context);
 
+  const db = getFirestore();
+  const matchRef = context.matchRef;
+  const seatRefs = context.seats.map((seat) => seat.ref);
+  const lobbyId =
+    typeof context.matchData.lobbyId === "string" ?
+      context.matchData.lobbyId :
+      "";
+  const lobbyRef =
+    lobbyId ?
+      db.collection("lobbies").doc(lobbyId) :
+      null;
   const now = Date.now();
-  const batch = getFirestore().batch();
-  let changed = 0;
 
-  for (const seat of context.seats) {
-    const data = seat.data();
-    const expiresAt =
-      typeof data.reconnectExpiresAtEpochMs === "number" ?
-        data.reconnectExpiresAtEpochMs :
-        0;
+  // Re-read authority + seats in one transaction. A reconnect and an expiry
+  // sweep may happen at almost the same instant; whichever commits first makes
+  // the other transaction retry against the new controller/expiry state.
+  // This prevents a late Host sweep from converting a successfully reclaimed
+  // Human back into a PermanentBot.
+  await db.runTransaction(async (transaction) => {
+    const matchSnap =
+      await transaction.get(matchRef);
 
-    if (
-      data.controllerKind !== "temporary_bot" ||
-      data.connectionState !== "reconnecting" ||
-      expiresAt <= 0 ||
-      expiresAt > now
-    ) {
-      continue;
+    if (!matchSnap.exists) {
+      throw new HttpsError(
+        "not-found",
+        "MATCH_NOT_FOUND",
+        {errorKey: "match.error.not_found"},
+      );
     }
 
-    batch.set(
-      seat.ref,
-      {
-        controllerKind: "permanent_bot",
-        connectionState: "reconnect_expired",
-        reconnectExpiresAtEpochMs: 0,
-        removalReason: "reconnect_expired",
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      {merge: true},
-    );
+    const match =
+      matchSnap.data() ?? {};
 
-    changed++;
-  }
+    if (match.hostAccountId !== input.uid) {
+      throw new HttpsError(
+        "permission-denied",
+        "HOST_ONLY",
+        {errorKey: "match.error.host_only"},
+      );
+    }
 
-  if (changed > 0) {
-    await batch.commit();
-  }
+    const seatSnaps:
+      FirebaseFirestore.DocumentSnapshot[] = [];
 
-  return getMatchNetworkSnapshot({uid: input.uid, matchId});
+    for (const seatRef of seatRefs) {
+      seatSnaps.push(
+        await transaction.get(seatRef),
+      );
+    }
+
+    const serverTimestamp =
+      FieldValue.serverTimestamp();
+
+    for (const seatSnap of seatSnaps) {
+      if (!seatSnap.exists) {
+        continue;
+      }
+
+      const data =
+        seatSnap.data() ?? {};
+
+      const expiresAt =
+        typeof data.reconnectExpiresAtEpochMs === "number" ?
+          data.reconnectExpiresAtEpochMs :
+          0;
+
+      if (
+        data.controllerKind !== "temporary_bot" ||
+        data.connectionState !== "reconnecting" ||
+        expiresAt <= 0 ||
+        expiresAt > now
+      ) {
+        continue;
+      }
+
+      transaction.set(
+        seatSnap.ref,
+        {
+          controllerKind: "permanent_bot",
+          connectionState: "reconnect_expired",
+          reconnectExpiresAtEpochMs: 0,
+          removalReason: "reconnect_expired",
+          updatedAt: serverTimestamp,
+        },
+        {merge: true},
+      );
+
+      if (lobbyRef) {
+        const slotIndex =
+          typeof data.slotIndex === "number" ?
+            data.slotIndex :
+            -1;
+
+        if (
+          slotIndex >= 0 &&
+          slotIndex < MAX_PLAYERS
+        ) {
+          transaction.set(
+            lobbyRef
+              .collection("members")
+              .doc(`seat_${slotIndex + 1}`),
+            {
+              controllerKind: "permanent_bot",
+              connectionState: "reconnect_expired",
+              updatedAt: serverTimestamp,
+            },
+            {merge: true},
+          );
+        }
+      }
+    }
+  });
+
+  return getMatchNetworkSnapshot({
+    uid: input.uid,
+    matchId,
+  });
 }
 
 /**

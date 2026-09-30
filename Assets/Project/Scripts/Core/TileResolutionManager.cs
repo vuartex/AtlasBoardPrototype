@@ -211,6 +211,43 @@ public class TileResolutionManager : MonoBehaviour
         RefreshPurchaseButtonAvailability();
     }
 
+    public void RestoreOnlineAuthoritativePurchaseDecision(
+        PlayerGameState player,
+        BoardTile tile,
+        Action onResolutionCompleted)
+    {
+        if (player == null ||
+            tile == null ||
+            player.IsBankrupt ||
+            tile.IsOwned)
+        {
+            ClearOnlineRemotePurchaseDecision();
+            return;
+        }
+
+        // A follower may already be displaying the same purchase as a mirrored
+        // remote prompt. Promotion must turn that presentation into real Host
+        // authority and attach the turn-completion callback the follower never
+        // owned.
+        remotePurchasePresentation = false;
+        remotePurchaseRequestPending = false;
+        pendingPlayer = player;
+        pendingTile = tile;
+        resolutionCompleted =
+            onResolutionCompleted;
+
+        RefreshPendingPurchaseText();
+
+        if (purchasePanel != null)
+        {
+            purchasePanel.SetActive(
+                ShouldShowAuthoritativePurchasePanelLocally(
+                    player));
+        }
+
+        RefreshPurchaseButtonAvailability();
+    }
+
     public void ClearOnlineRemotePurchaseDecision()
     {
         if (!remotePurchasePresentation)
