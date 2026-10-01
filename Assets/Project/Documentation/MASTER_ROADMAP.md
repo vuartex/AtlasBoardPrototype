@@ -1,20 +1,20 @@
 # ATLAS BOARD
-## Master Architecture & Development Roadmap v5.2
+## Master Architecture & Development Roadmap v5.3
 
 **Canonical checkpoint:** 2026-09-30 (America/Denver)  
 **Repository:** `vuartex/AtlasBoardPrototype`  
 **Last verified pushed GitHub HEAD:** `0eca81450be91b30a5dc1cd66d901c46e2cab07c`  
 **Last verified pushed HEAD commit:** `Phase 12: finalize online resilience hardening and crash recovery`  
 **Last verified pushed verification date:** 2026-09-30 (America/Denver)  
-**Current accepted checkpoint:** `Phase 12 complete — committed and pushed; Phase 14 ready to begin`  
+**Current accepted local checkpoint:** `Phase 14A–14D accepted locally; Unity 6.5 warning/menu cleanup accepted; pending commit/push`  
 **Phase 12 close commit:** `0eca81450be91b30a5dc1cd66d901c46e2cab07c` — `Phase 12: finalize online resilience hardening and crash recovery`  
 **Unity baseline:** Unity 6000.5.6f1, `Assets/Board_Prototype.unity`, unless a later committed upgrade explicitly changes it.  
 **Canonical repository roadmap location:** `Assets/Project/Documentation/MASTER_ROADMAP.md`  
 **Previous human-readable archive copy:** `AtlasBoard_Master_Roadmap_v5_0_2026-09-27.docx`
 
-This v5.2 document supersedes Master Roadmap v5.1 dated 2026-09-29. It records the accepted completion of Phase 12 on top of the Phase 11G checkpoint, including stale-command hardening, TemporaryBot expiry hardening, repeated reconnect validation, crash-election torture, purchase-decision crash recovery, and developed-property bankruptcy cleanup.
+This v5.3 document supersedes Master Roadmap v5.2 dated 2026-09-30. It retains the accepted Phase 12 resilience checkpoint and records the locally accepted Phase 14A–14D UI/UX work: clickable City Information, provider-neutral Network Quality diagnostics, canonical profile-header identity, P1/P2/P3/P4 HUD alignment, Unity editor-menu organization, and targeted Unity 6.5 warning cleanup. These Phase 14 changes are accepted locally and are pending the next GitHub commit/push.
 
-The most important planning change from v5.0 is that the focused Phase 12 resilience work is now accepted and closed. The old standalone Phase 13 implementation milestone remains retired because Host Migration was absorbed into Phase 11G. The next active milestone is Phase 14 Dedicated UI/UX Polish.
+The most important planning change from v5.2 is that Phase 14A–14D now have accepted local implementation evidence. The old standalone Phase 13 implementation milestone remains retired because Host Migration was absorbed into Phase 11G. Phase 14 remains active: the next subphase is Phase 14E Final HUD Typography & Responsive Polish.
 
 # 1. How to use this roadmap
 
@@ -34,6 +34,7 @@ Before any source patch:
 Current authoritative source checkpoint:
 
 - `0eca81450be91b30a5dc1cd66d901c46e2cab07c` — Phase 12 final resilience checkpoint (12A through 12E), committed and pushed.
+- Local working tree after this pushed HEAD contains accepted Phase 14A–14D UI/UX changes and targeted Unity 6.5 warning/menu cleanup. These changes must be committed/pushed before beginning the next large UI subphase.
 - `068ca6f0d1736516ace63b79681227202a408cf8` — Phase 11G final parent checkpoint.
 - `6ddf01ec66f0116396d18b27b171b9c6080ee671` — Phase 11F shared multiplayer lobby/reconnect.
 - `a8d777b8eb9e798fec8b5f750185ae428b34ca18` — Phase 11E Steam recovery/achievement resync.
@@ -58,7 +59,7 @@ Current authoritative source checkpoint:
 
 ## 1.3 Roadmap sequencing rule
 
-When the user asks for the next phase, use this v5.2 sequence unless an explicit blocker or new product requirement changes priority. Avoid repeating work already accepted in prior phases. A later regression does not automatically reopen a completed phase; repair the regression in the current hardening/QA phase unless architecture actually changed.
+When the user asks for the next phase, use this v5.3 sequence unless an explicit blocker or new product requirement changes priority. Avoid repeating work already accepted in prior phases. A later regression does not automatically reopen a completed phase; repair the regression in the current hardening/QA phase unless architecture actually changed.
 
 # 2. Canonical architecture principles
 
@@ -384,7 +385,7 @@ The old roadmap deferred the following:
 - Duplicate/late/stale intent abuse.
 - Host Migration.
 
-Current v5.1 status:
+Current v5.3 status:
 
 - Voluntary leave/rejoin: **implemented in 11F/11G and repeated-cycle validated in Phase 12**.
 - Unexpected process loss: **implemented in 11G and crash-torture validated in Phase 12**.
@@ -407,12 +408,15 @@ Accepted invariant across Classic/Garden/Beach/Pavilion/Street:
 
 Critical Human/Bot authority representation is solved for match seats.
 
-Remaining non-blocking polish:
+Accepted in Phase 14:
 
-- Top-left generic `PLAYER` profile/header binding should use the canonical signed-in profile identity instead of remaining generic.
-- P1/P2/P3/P4 icon/badge alignment.
-- Final typography/spacing.
-- Long-text/responsive polish.
+- Top-left generic `PLAYER` profile/header now binds to the canonical signed-in Atlas profile identity.
+- P1/P2/P3/P4 HUD icon/badge geometry is aligned consistently.
+
+Remaining polish:
+
+- Final HUD typography/spacing.
+- Long-text/responsive polish across supported languages and aspect ratios.
 
 # 7. Phase 6 - Lobby + Match Chat
 
@@ -1034,7 +1038,7 @@ Phase number 13 is intentionally retained in documentation history so older road
 
 # 14. Dedicated UI/UX polish
 
-**Status: LATER / focused polish backlog.**
+**Status: ACTIVE — Phase 14A through 14D accepted locally; Phase 14E NEXT.**
 
 Already improved during 11F/11G:
 
@@ -1044,15 +1048,24 @@ Already improved during 11F/11G:
 - Trade localization.
 - Bankruptcy result localization.
 
-Remaining:
+Accepted during the current Phase 14 local checkpoint:
 
-- Canonical profile name in the top-left header instead of generic `PLAYER`.
-- P1/P2/P3/P4 HUD badge alignment.
+- Clickable/tappable City Information Panel.
+- Provider-neutral Network Quality diagnostics using existing Firebase application traffic.
+- Network Quality presentation moved out of the permanent gameplay HUD and into the Pause menu.
+- Canonical signed-in profile identity in the top-left Main Menu profile card instead of generic `PLAYER`.
+- P1/P2/P3/P4 HUD icon, content-lane and turn-badge alignment.
+- Unity `Atlas Board` editor tools reorganized under grouped categories.
+- Known Phase 14 Unity 6.5 deprecated API warnings cleaned.
+- Known LiberationSans/TextMeshPro ellipsis fallback warning spam cleaned by using the effective `Truncate` behavior explicitly.
+
+Still remaining in Phase 14:
+
 - Final HUD typography and spacing.
 - Result screen polish.
-- Auction/Trade/Development visual polish.
+- Auction / Trade / Development visual polish.
 - Responsive resolution/aspect-ratio review.
-- Korean/Russian/German long-text regression.
+- EN/TR/ES/FR/DE/KO/RU long-text regression.
 - Controller/gamepad navigation.
 - Colorblind-safe ownership indicators.
 - Reduced-motion consistency.
@@ -1060,65 +1073,121 @@ Remaining:
 
 ## 14.1 Clickable City Information Panel
 
-**Status: PLANNED / Phase 14.**
+**Status: DONE / locally accepted.**
 
-When a player clicks/taps a City property on the board, open a compact informational panel without changing gameplay authority.
+Accepted behavior:
 
-The panel should show, when available:
+- Clicking/tapping a City property opens a compact informational panel without changing gameplay authority.
+- Panel reads existing data-driven `BoardTileDefinition` / runtime tile data instead of city-specific gameplay branches.
+- Shows city/property name, active map/group context, owner/unowned state, purchase price, base rent, current effective rent, development cost and development level.
+- Uses `Description` when content provides one.
+- If description content is empty, uses a localized neutral fallback rather than inventing city facts.
+- Supports EN/TR/ES/FR/DE/KO/RU labels and runtime language changes.
+- Mouse and touch input supported.
+- Safe-area aware.
+- Clicking UI does not select a City behind the UI.
+- `X`, `ESC`, empty-board or non-City click closes the panel.
+- Opening the panel never performs Purchase/Auction/Trade/Development/network authority actions.
 
-- City/property name.
-- Map/country/state context.
-- Short factual description or flavor text.
-- Purchase price.
-- Base rent.
-- Current effective rent.
-- Development cost.
-- Current development level.
-- Owner / unowned state.
-- Property group / color group.
-- Optional image/icon/flag/landmark artwork if later added to content data.
-- Context-sensitive action state where appropriate, but opening the information panel itself must never perform a gameplay action.
+Architecture invariant:
 
-Architecture requirements:
+- City information remains content/data driven.
+- Existing Purchase/Auction/Trade/Development decision panels remain authoritative and separate from the informational panel.
 
-- City information comes from map/content data, not hard-coded city-specific gameplay branches.
-- Clicking a property is informational and may be available even when it is not the local player's turn.
-- The panel must support EN/TR/ES/FR/DE/KO/RU.
-- Long city names/descriptions must be responsive and scroll safely.
-- Mobile/touch input must be considered even if Android launches later.
-- Existing Purchase/Auction/Trade/Development decision panels remain authoritative and separate from this informational view.
+## 14.2 Network Quality Diagnostics
 
-## 14.2 Network Quality HUD
+**Status: DONE / locally accepted presentation; controlled-network validation remains part of Phase 16.**
 
-**Status: PLANNED / Phase 14 UI + Phase 16 measurement validation.**
+Measurement behavior:
 
-Add a small unobtrusive network-quality cluster near the upper-right/right-edge HUD area.
+- Reuses existing `matchGetSnapshot` Firebase application traffic.
+- Does **not** add a dedicated ping endpoint or extra Firebase polling.
+- `PING` = smoothed application/backend round-trip time.
+- `JIT` = recent successful RTT variation.
+- `LOSS` = application-level failed/late snapshot percentage.
+- `LOSS` is explicitly not raw UDP packet loss.
+- Diagnostic telemetry is presentation-only and never gameplay authority.
 
-Desired indicators:
+Final UX decision:
 
-- Ping / round-trip latency in milliseconds.
-- Jitter in milliseconds.
-- Packet-loss or application-level loss/timeout percentage.
-- Small connection-quality icon/state: Good / Fair / Poor / Reconnecting.
-- Optional hover/tap tooltip with exact values.
+- Network quality is **not** permanently shown over the gameplay board.
+- During an online match, the compact network row appears inside the Pause menu, under `QUIT GAME` and above the `ESC` hint.
+- Values continue collecting from existing snapshot traffic while gameplay runs, so opening Pause can show recent/current measurements immediately.
+- Local/offline matches do not need to show the network row.
+- States remain provider-neutral: Good / Fair / Poor / Reconnecting / Offline.
+- Future SteamNetworkingSockets/SDR transport may replace the metric source while preserving the same provider-neutral UI contract.
 
-UX requirements:
+Phase 16 still owns controlled latency/jitter/disconnect validation and release-quality threshold tuning.
 
-- Compact; must not cover Player HUD, Chat, decision panels or mobile safe areas.
-- Default presentation should use small icons and short numeric values.
-- Threshold colors/icons must remain understandable without color alone.
-- Hide or simplify when no meaningful online measurement exists.
-- Values should be smoothed so they do not flicker every frame.
-- Reconnecting/offline state must be visually distinct.
+## 14.3 Canonical Profile Header
 
-Measurement architecture:
+**Status: DONE / locally accepted.**
 
-- Under the current Firebase transport, `ping` means measured application/backend round-trip latency, not ICMP ping.
-- `jitter` is calculated from recent round-trip/heartbeat latency variance.
-- Firestore/Functions do not expose raw UDP packet-loss statistics. Until a packet transport such as SteamNetworkingSockets exists, show an application-level timeout/loss estimate derived from missed/late heartbeat or request samples and label it consistently.
-- If a future SteamNetworkingSockets/SDR transport is added, Steam clients may use native connection-quality statistics, but the UI contract remains provider-neutral.
-- Android/Google Play clients use the Firebase/application-level measurement path unless a separate transport is introduced.
-- Network telemetry is diagnostic/presentation only and never gameplay authority.
+Accepted:
+
+- Main Menu top-left profile card uses canonical Atlas profile `DisplayName` from the existing account/profile service.
+- Generic localized `PLAYER` remains only as signed-out/unavailable fallback.
+- Actual user display name is not translated when UI language changes.
+- Avatar initial follows the canonical display name.
+- Existing Profile modal receives the same identity.
+- Store/wallet, lobby, Steam provider identity and match authority are not rewritten by this binding.
+- Canonical AccountId remains authoritative; Steam persona/SteamID does not replace Atlas identity.
+
+## 14.4 P1/P2/P3/P4 HUD Alignment + Editor Cleanup
+
+**Status: DONE / locally accepted.**
+
+HUD alignment:
+
+- Four Player HUD cards share consistent internal geometry.
+- Player icon/badge is consistently sized and centered.
+- Player-name, money and controller-type lanes share consistent left alignment.
+- Turn badge uses a consistent top-right inset and size.
+- Long player names reserve turn-badge space.
+- Existing 2/3/4-player external corner placement remains owned by the established HUD layout system.
+- Existing current-turn, Human/Bot/TemporaryBot, bankruptcy and gameplay state behavior remains unchanged.
+
+Editor/tooling cleanup:
+
+- Unity `Atlas Board` menu is grouped under:
+  - `Design`
+  - `Online & Backend`
+  - `Game & Content`
+  - `Meta & Progression`
+  - `QA & Diagnostics`
+  - `Phases`
+  - `Project Tools`
+- Phase tools are grouped under `Phases -> Phase 14 -> 14A / 14B / 14C / 14D`.
+- Final safe organizer uses exact literal menu-prefix replacements rather than reconstructing `MenuItem` attributes.
+- The earlier temporary menu-organizer repair scripts were recovery tooling only and are not required repository artifacts.
+- Known Unity 6.5 Phase 14 `FindObjectsSortMode.None` deprecation warnings were migrated to current overloads.
+- Deprecated `TMP_Text.enableWordWrapping` assignment in the Steam lobby invite button was migrated to `textWrappingMode`.
+- TMP ellipsis fallback warning spam was removed by explicitly using `Truncate`, matching the runtime fallback behavior already observed with the current LiberationSans font chain.
+
+## 14.5 Phase 14E — Final HUD Typography & Responsive Polish
+
+**Status: NEXT after the Phase 14A–14D checkpoint is committed/pushed.**
+
+Scope:
+
+- Final typography hierarchy for Player HUD and closely related gameplay HUD surfaces.
+- Normalize font sizes, weights, baseline alignment, line heights and spacing.
+- Review compact labels across P1/P2/P3/P4 at 2/3/4-player layouts.
+- Verify long canonical player names do not collide with turn badges or values.
+- Review EN/TR/ES/FR/DE/KO/RU long-text behavior.
+- Review 16:9 and representative narrower/wider aspect ratios.
+- Preserve current authority/gameplay behavior; this is presentation-only.
+- Do not rebuild accepted HUD placement logic unless a concrete responsive defect requires it.
+
+Acceptance should include:
+
+- Unity compile with no new unexplained errors/warnings from touched code.
+- 2/3/4-player HUD presentation.
+- Long player-name smoke.
+- Runtime language smoke across representative long-text languages.
+- No regression to Phase 14A City panel, Phase 14B Pause-network row, Phase 14C profile identity, Chat, decision panels or Player HUD authority states.
+
+After 14E, continue the remaining Phase 14 presentation backlog in focused packages rather than mixing Result/Auction/Trade/Development/controller/accessibility changes into one large patch.
 
 # 15. Security and production backend hardening
 
@@ -1147,7 +1216,7 @@ Measurement architecture:
 ## 16.1 Unity/build quality
 
 - Zero unexplained compile errors.
-- Warning cleanup.
+- Warning cleanup. Known Phase 14 Unity 6.5/TMP warning set was cleaned locally; Phase 16 still owns the full-project warning audit.
 - Profiler pass.
 - GC allocation review.
 - Rendering performance.
@@ -1285,21 +1354,18 @@ Phase 12 is complete. Phase 13 is not a future coding milestone; Host Migration 
 
 # 20. Immediate next action
 
-Begin **Phase 14 - Dedicated UI/UX Polish** from the verified Phase 12 GitHub HEAD `0eca81450be91b30a5dc1cd66d901c46e2cab07c`.
+Create and push a meaningful **Phase 14A–14D UI/UX checkpoint** from the currently accepted local working tree.
 
-Phase 12 is now closed on GitHub. The verified Phase 12 close commit is `0eca81450be91b30a5dc1cd66d901c46e2cab07c` (`Phase 12: finalize online resilience hardening and crash recovery`).
+The last verified pushed GitHub HEAD remains `0eca81450be91b30a5dc1cd66d901c46e2cab07c` (`Phase 12: finalize online resilience hardening and crash recovery`). This roadmap intentionally does not invent the SHA of the not-yet-created Phase 14 checkpoint.
 
-Before each meaningful Phase 14 source patch, continue to inspect the current `main` HEAD so newer accepted work is never overwritten.
+The Phase 14A–14D checkpoint should include the accepted production source and roadmap changes, while excluding temporary recovery tooling such as local `Tools` repair scripts and `.bat` files if they are not intended repository artifacts.
 
-Recommended first Phase 14 work package:
+After the push:
 
-1. Add the clickable/tappable City Information Panel from data-driven map content.
-2. Add the compact Network Quality HUD shell (ping, jitter, loss/timeout estimate, connection state) with provider-neutral UI contracts.
-3. Replace the top-left generic `PLAYER` header with canonical signed-in/profile identity.
-4. Audit P1/P2/P3/P4 HUD icon/badge alignment.
-5. Run a modal-layering pass across Main Menu, Public Rooms, Private Table, Career, Store, Result, Auction, Trade, Development and decision panels.
-6. Fix responsive layout / long-text issues for EN/TR/ES/FR/DE/KO/RU.
-7. Polish Result, Auction, Trade and Development presentation without changing accepted gameplay/network authority.
+1. Verify the new `main` HEAD.
+2. On the next roadmap update, record that already-existing pushed SHA/title at the top of this document.
+3. Begin **Phase 14E — Final HUD Typography & Responsive Polish** from the newly pushed Phase 14A–14D checkpoint.
+4. Then continue focused Result / Auction / Trade / Development presentation polish and the remaining responsive/accessibility Phase 14 backlog.
 
 # 21. Current checkpoint summary
 
@@ -1328,15 +1394,20 @@ Recommended first Phase 14 work package:
 - **Phase 12D.1 Purchase decision crash recovery: runtime PASS.**
 - **Phase 12E developed-property bankruptcy Host/Guest cleanup: PASS.**
 - Last verified pushed GitHub HEAD: `0eca81450be91b30a5dc1cd66d901c46e2cab07c`.
-- Current accepted state: **Phase 12 complete / committed and pushed; Phase 14 is active next scope.**
+- **Phase 14A City Information Panel: locally accepted.**
+- **Phase 14B Network Quality diagnostics + Pause-menu presentation: locally accepted.**
+- **Phase 14C canonical profile-header identity: locally accepted.**
+- **Phase 14D P1/P2/P3/P4 HUD alignment: locally accepted.**
+- **Unity editor-menu grouping + targeted Unity 6.5/TMP warning cleanup: locally accepted.**
+- Current accepted local state: **Phase 14A–14D ready for checkpoint commit/push; Phase 14E next.**
 
 ## Yellow / next
 
-- Phase 14 UI/UX polish.
-- Canonical profile-header identity instead of generic `PLAYER`.
-- HUD icon/badge alignment.
-- Modal layering and responsive/long-text polish.
+- Commit/push the accepted Phase 14A–14D checkpoint.
+- Phase 14E final HUD typography/spacing and responsive long-text polish.
+- Remaining modal-layering/resolution regression where still needed.
 - Result/Auction/Trade/Development presentation polish.
+- Controller/gamepad and accessibility-focused Phase 14 backlog.
 
 ## Production/later
 
@@ -1354,7 +1425,7 @@ A future AtlasBoard chat should start from these facts:
 - Roadmap checkpoint date: 2026-09-30 America/Denver.
 - Last verified pushed GitHub HEAD: `0eca81450be91b30a5dc1cd66d901c46e2cab07c`.
 - Last verified pushed HEAD title: `Phase 12: finalize online resilience hardening and crash recovery`.
-- Current accepted checkpoint: **Phase 12 complete, committed and pushed; Phase 14 next.**
+- Current pushed checkpoint: **Phase 12 complete at `0eca814...`; Phase 14A–14D are accepted locally and pending checkpoint commit/push.**
 - Phase 12A stale/duplicate/late intent protection is DONE; E2E PASS 12/12.
 - Phase 12B TemporaryBot exact-expiry/race hardening is DONE; E2E PASS 10/10.
 - Phase 12C five-cycle same-SeatId reconnect validation is DONE; E2E PASS 9/9.
@@ -1365,19 +1436,22 @@ A future AtlasBoard chat should start from these facts:
 - Phase 12E acceptance observed: due=2, paid=1, unpaid=1, transferred=1, released=2, cheapest transferred property value=100.
 - Bankrupt pawn remains gone; development markers remain cleared; released properties remain reusable/purchasable.
 - Do not reimplement old Phase 13 Host Migration; it was absorbed into Phase 11G.
-- **Phase 14 Dedicated UI/UX Polish is NEXT.**
-- Phase 14 now includes a clickable/tappable City Information Panel.
-- Phase 14 now includes a compact provider-neutral Network Quality HUD for ping, jitter, application-level loss/timeout estimate and connection state.
+- **Phase 14 is ACTIVE. Phase 14A–14D are accepted locally; Phase 14E is NEXT after checkpoint push.**
+- Phase 14A clickable/tappable City Information Panel is locally accepted.
+- Phase 14B provider-neutral Network Quality diagnostics are locally accepted; final presentation is a compact Pause-menu row using existing Firebase snapshot traffic.
 - Current hosting decision: keep Firebase/managed Google Cloud as the shared backend; do not add a self-managed dedicated server by default.
 - Steam remains an adapter and optional future networking transport; Steam does not automatically replace Firebase or provide an Atlas dedicated server.
-- First Phase 14 target should include the generic top-left `PLAYER` identity/header binding.
+- Phase 14C canonical profile-header identity is locally accepted; generic `PLAYER` is now fallback-only.
+- Phase 14D P1/P2/P3/P4 HUD alignment is locally accepted.
+- Atlas Board Unity editor menu grouping and targeted Unity 6.5/TMP warning cleanup are locally accepted.
+- Phase 14E Final HUD Typography & Responsive Polish is the next implementation target.
 - Preserve canonical AccountId/SeatId; never replace them with SteamID.
 - AppID 480 is development-only.
-- Do not add `.cmd/.bat/.ps1` helper files unless explicitly requested.
+- Do not add `.cmd/.bat/.ps1` helper files unless explicitly requested. Temporary Phase 14 recovery scripts are local tooling and may be deleted rather than committed.
 - Do not auto-commit/push.
 - Runtime Unity changes require a fresh Guest build before two-client acceptance.
 - Backend Functions changes require a successful TypeScript build and emulator restart before runtime acceptance.
-- Phase 14 baseline currently starts from verified HEAD `0eca81450be91b30a5dc1cd66d901c46e2cab07c`; still verify `main` before each meaningful patch and inspect any newer source first.
+- Phase 14A–14D currently sit locally on top of verified pushed HEAD `0eca81450be91b30a5dc1cd66d901c46e2cab07c`. Commit/push this checkpoint before Phase 14E, then verify the new `main` HEAD before further meaningful patches.
 
 # 23. Roadmap maintenance rule
 
