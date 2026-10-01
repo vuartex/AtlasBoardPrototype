@@ -545,7 +545,7 @@ public sealed class AtlasBoardChatUIController : MonoBehaviour
         launcherText.textWrappingMode =
             TextWrappingModes.NoWrap;
         launcherText.overflowMode =
-            TextOverflowModes.Ellipsis;
+            TextOverflowModes.Truncate;
 
         if (panelRoot != null)
         {
@@ -663,7 +663,7 @@ public sealed class AtlasBoardChatUIController : MonoBehaviour
         messageRect.offsetMin = new Vector2(10f, 22f);
         messageRect.offsetMax = new Vector2(-10f, -7f);
         messageText.textWrappingMode = TextWrappingModes.Normal;
-        messageText.overflowMode = TextOverflowModes.Ellipsis;
+        messageText.overflowMode = TextOverflowModes.Truncate;
         messageText.text =
             $"<b>{EscapeTmp(message.displayName)}</b>: " +
             EscapeTmp(message.body);
@@ -1091,7 +1091,7 @@ public sealed class AtlasBoardChatUIController : MonoBehaviour
         text.color = color;
         text.raycastTarget = false;
         text.richText = true;
-        text.overflowMode = TextOverflowModes.Ellipsis;
+        text.overflowMode = TextOverflowModes.Truncate;
 
         return text;
     }

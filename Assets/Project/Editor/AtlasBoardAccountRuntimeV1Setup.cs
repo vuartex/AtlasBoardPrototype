@@ -8,7 +8,7 @@ public static class AtlasBoardAccountRuntimeV1Setup
     private const string RuntimeObjectName =
         "AtlasBoardAccountRuntime";
 
-    [MenuItem("Atlas Board/Firebase/Build Account Runtime v1")]
+    [MenuItem("Atlas Board/Online & Backend/Firebase/Build Account Runtime v1")]
     public static void Build()
     {
         AtlasBoardAccountService existing =
@@ -50,7 +50,7 @@ public static class AtlasBoardAccountRuntimeV1Setup
             "wallet, inventory and lobby systems were not modified.");
     }
 
-    [MenuItem("Atlas Board/Firebase/Validate Account Runtime v1")]
+    [MenuItem("Atlas Board/Online & Backend/Firebase/Validate Account Runtime v1")]
     public static void Validate()
     {
         AtlasBoardAccountService service =

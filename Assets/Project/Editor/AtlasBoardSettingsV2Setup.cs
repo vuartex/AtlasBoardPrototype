@@ -78,7 +78,7 @@ public static class AtlasBoardSettingsV2Setup
             255);
 
     [MenuItem(
-        "Atlas Board/Settings/Build Settings + Localization v2.1")]
+        "Atlas Board/Design/UI & UX/Settings/Build Settings + Localization v2.1")]
     public static void Build()
     {
         if (EditorApplication.isPlaying)

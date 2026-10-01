@@ -2,7 +2,7 @@ using UnityEngine;
 
 [CreateAssetMenu(
     fileName = "Theme_New",
-    menuName = "Atlas Board/Environment/Theme Profile")]
+    menuName = "Atlas Board/Design/Board & Presentation/Environment/Theme Profile")]
 public class EnvironmentThemeProfile : ScriptableObject
 {
     [Header("Identity")]

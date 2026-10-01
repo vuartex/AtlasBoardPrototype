@@ -50,7 +50,7 @@ public sealed class AtlasBoardGameplayRegressionWindow : EditorWindow
     private bool preflightPassed;
 
     [MenuItem(
-        "Atlas Board/QA/Gameplay Regression Matrix v1",
+        "Atlas Board/QA & Diagnostics/QA/Gameplay Regression Matrix v1",
         false,
         700)]
     public static void Open()

@@ -10,7 +10,7 @@ public static class AtlasBoardCameraCollisionV1Setup
         "CameraObstacle";
 
     [MenuItem(
-        "Atlas Board/Camera/Install Camera Collision v1")]
+        "Atlas Board/Design/Board & Presentation/Camera/Install Camera Collision v1")]
     public static void InstallCameraCollision()
     {
         int layer =
@@ -103,7 +103,7 @@ public static class AtlasBoardCameraCollisionV1Setup
     }
 
     [MenuItem(
-        "Atlas Board/Camera/Mark Selected as Camera Obstacle")]
+        "Atlas Board/Design/Board & Presentation/Camera/Mark Selected as Camera Obstacle")]
     public static void MarkSelectedAsCameraObstacle()
     {
         int layer =
@@ -265,7 +265,7 @@ public static class AtlasBoardCameraCollisionV1Setup
     }
 
     [MenuItem(
-        "Atlas Board/Camera/Unmark Selected Camera Obstacle")]
+        "Atlas Board/Design/Board & Presentation/Camera/Unmark Selected Camera Obstacle")]
     public static void UnmarkSelectedCameraObstacle()
     {
         GameObject[] selected =

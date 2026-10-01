@@ -23,7 +23,7 @@ public static class AtlasBoardPublicLobbyBrowserV2Setup
     private static readonly Color Dark = new Color32(54, 54, 61, 255);
     private static readonly Color Muted = new Color32(110, 111, 118, 255);
 
-    [MenuItem("Atlas Board/Online/Build Online Rooms UX v2", false, 472)]
+    [MenuItem("Atlas Board/Online & Backend/Online/Build Online Rooms UX v2", false, 472)]
     public static void Build()
     {
         if (EditorApplication.isPlaying)
@@ -137,7 +137,7 @@ public static class AtlasBoardPublicLobbyBrowserV2Setup
             "Private/Public lobbies share one GAME SETTINGS popup with password access controls.");
     }
 
-    [MenuItem("Atlas Board/Online/Validate Online Rooms UX v2", false, 473)]
+    [MenuItem("Atlas Board/Online & Backend/Online/Validate Online Rooms UX v2", false, 473)]
     public static void Validate()
     {
         GameObject canvas = FindSceneObject("Canvas_MainMenu");
@@ -1390,7 +1390,7 @@ public static class AtlasBoardPublicLobbyBrowserV2Setup
         text.color = color;
         text.alignment = TextAlignmentOptions.Center;
         text.textWrappingMode = TextWrappingModes.NoWrap;
-        text.overflowMode = TextOverflowModes.Ellipsis;
+        text.overflowMode = TextOverflowModes.Truncate;
         text.raycastTarget = false;
         if (font != null) text.font = font;
         return text;

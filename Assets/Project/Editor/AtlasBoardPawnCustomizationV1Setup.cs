@@ -77,7 +77,7 @@ public static class AtlasBoardPawnCustomizationV1Setup
     private static TMP_FontAsset defaultFont;
 
     [MenuItem(
-        "Atlas Board/Pawns/Build Pawn Customization v1")]
+        "Atlas Board/Design/Board & Presentation/Pawns/Build Pawn Customization v1")]
     public static void Build()
     {
         if (EditorApplication.isPlaying)

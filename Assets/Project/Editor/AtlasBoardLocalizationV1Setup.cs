@@ -24,7 +24,7 @@ public static class AtlasBoardLocalizationV1Setup
         "LocalizationSystem";
 
     [MenuItem(
-        "Atlas Board/Localization/Build or Refresh Localization Foundation v1")]
+        "Atlas Board/Game & Content/Localization/Build or Refresh Localization Foundation v1")]
     public static void BuildOrRefresh()
     {
         EnsureFolder(
@@ -74,7 +74,7 @@ public static class AtlasBoardLocalizationV1Setup
     }
 
     [MenuItem(
-        "Atlas Board/Localization/Validate All Languages")]
+        "Atlas Board/Game & Content/Localization/Validate All Languages")]
     public static void ValidateAllLanguages()
     {
         AtlasBoardLocalizationDatabase database =
@@ -369,37 +369,37 @@ public static class AtlasBoardLocalizationV1Setup
     }
 
     [MenuItem(
-        "Atlas Board/Localization/Preview/English")]
+        "Atlas Board/Game & Content/Localization/Preview/English")]
     private static void PreviewEnglish() =>
         PreviewLanguage("en");
 
     [MenuItem(
-        "Atlas Board/Localization/Preview/Türkçe")]
+        "Atlas Board/Game & Content/Localization/Preview/Türkçe")]
     private static void PreviewTurkish() =>
         PreviewLanguage("tr");
 
     [MenuItem(
-        "Atlas Board/Localization/Preview/Español")]
+        "Atlas Board/Game & Content/Localization/Preview/Español")]
     private static void PreviewSpanish() =>
         PreviewLanguage("es");
 
     [MenuItem(
-        "Atlas Board/Localization/Preview/Français")]
+        "Atlas Board/Game & Content/Localization/Preview/Français")]
     private static void PreviewFrench() =>
         PreviewLanguage("fr");
 
     [MenuItem(
-        "Atlas Board/Localization/Preview/Deutsch")]
+        "Atlas Board/Game & Content/Localization/Preview/Deutsch")]
     private static void PreviewGerman() =>
         PreviewLanguage("de");
 
     [MenuItem(
-        "Atlas Board/Localization/Preview/한국어")]
+        "Atlas Board/Game & Content/Localization/Preview/한국어")]
     private static void PreviewKorean() =>
         PreviewLanguage("ko");
 
     [MenuItem(
-        "Atlas Board/Localization/Preview/Русский")]
+        "Atlas Board/Game & Content/Localization/Preview/Русский")]
     private static void PreviewRussian() =>
         PreviewLanguage("ru");
 

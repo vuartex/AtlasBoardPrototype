@@ -5,7 +5,7 @@ using UnityEngine;
 public static class AtlasBoardPhase5ERemoteBlockingDecisionsV110Setup
 {
     [MenuItem(
-        "Atlas Board/Online/Previous Phase Validators/Phase 5E - Remote Blocking Decisions v1.1")]
+        "Atlas Board/Online & Backend/Online/Previous Phase Validators/Phase 5E - Remote Blocking Decisions v1.1")]
     public static void ValidatePhase5EV110()
     {
         // Phase 5E v1.1.2 validator hotfix:

@@ -49,7 +49,7 @@ public sealed class AtlasBoardGameplayRegressionWindowV2 : EditorWindow
     private bool preflightPassed;
 
     [MenuItem(
-        "Atlas Board/QA/Gameplay Regression Matrix v2 - Focused Gate",
+        "Atlas Board/QA & Diagnostics/QA/Gameplay Regression Matrix v2 - Focused Gate",
         false,
         701)]
     public static void Open()

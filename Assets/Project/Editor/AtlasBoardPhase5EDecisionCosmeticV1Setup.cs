@@ -5,7 +5,7 @@ using UnityEngine;
 public static class AtlasBoardPhase5EDecisionCosmeticV1Setup
 {
     [MenuItem(
-        "Atlas Board/Online/Previous Phase Validators/Phase 5E - Remote Purchase + Pawn Cosmetic v1.0")]
+        "Atlas Board/Online & Backend/Online/Previous Phase Validators/Phase 5E - Remote Purchase + Pawn Cosmetic v1.0")]
     public static void ValidatePhase5EV10()
     {
         AtlasBoardTurnDiceNetworkCoordinator coordinator =

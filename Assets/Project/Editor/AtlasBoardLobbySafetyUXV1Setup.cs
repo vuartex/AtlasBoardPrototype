@@ -28,7 +28,7 @@ public static class AtlasBoardLobbySafetyUXV1Setup
         new Color32(102, 104, 111, 255);
 
     [MenuItem(
-        "Atlas Board/Online/Build Lobby Safety UX v1")]
+        "Atlas Board/Online & Backend/Online/Build Lobby Safety UX v1")]
     public static void Build()
     {
         if (EditorApplication.isPlaying)
@@ -263,7 +263,7 @@ public static class AtlasBoardLobbySafetyUXV1Setup
     }
 
     [MenuItem(
-        "Atlas Board/Online/Validate Lobby Safety UX v1")]
+        "Atlas Board/Online & Backend/Online/Validate Lobby Safety UX v1")]
     public static void Validate()
     {
         GameObject canvas =

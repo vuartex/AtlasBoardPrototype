@@ -7,7 +7,7 @@ using UnityEngine;
 
 public static class AtlasBoardPhase5FSessionResilienceV120Setup
 {
-    [MenuItem("Atlas Board/Online/Previous Phase Validators/Validate Phase 5F v1.2 Session + Reconnect + Rematch Hotfix")]
+    [MenuItem("Atlas Board/Online & Backend/Online/Previous Phase Validators/Validate Phase 5F v1.2 Session + Reconnect + Rematch Hotfix")]
     public static void ValidatePhase5FV120()
     {
         TurnManager turn = FindSceneComponent<TurnManager>();

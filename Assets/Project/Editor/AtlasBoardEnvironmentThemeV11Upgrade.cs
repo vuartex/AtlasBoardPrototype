@@ -25,7 +25,7 @@ public static class AtlasBoardEnvironmentThemeV11Upgrade
         DataRoot + "/Theme_Street.asset";
 
     [MenuItem(
-        "Atlas Board/Environment/Upgrade Theme System to v1.1")]
+        "Atlas Board/Design/Board & Presentation/Environment/Upgrade Theme System to v1.1")]
     public static void UpgradeThemeSystem()
     {
         GameObject environmentObject =
@@ -294,7 +294,7 @@ public static class AtlasBoardEnvironmentThemeV11Upgrade
     }
 
     [MenuItem(
-        "Atlas Board/Environment/Themes/Apply Classic Table")]
+        "Atlas Board/Design/Board & Presentation/Environment/Themes/Apply Classic Table")]
     public static void ApplyClassic()
     {
         ApplyThemeAsset(
@@ -302,7 +302,7 @@ public static class AtlasBoardEnvironmentThemeV11Upgrade
     }
 
     [MenuItem(
-        "Atlas Board/Environment/Themes/Apply Garden")]
+        "Atlas Board/Design/Board & Presentation/Environment/Themes/Apply Garden")]
     public static void ApplyGarden()
     {
         ApplyThemeAsset(
@@ -310,7 +310,7 @@ public static class AtlasBoardEnvironmentThemeV11Upgrade
     }
 
     [MenuItem(
-        "Atlas Board/Environment/Themes/Apply Beach")]
+        "Atlas Board/Design/Board & Presentation/Environment/Themes/Apply Beach")]
     public static void ApplyBeach()
     {
         ApplyThemeAsset(
@@ -318,7 +318,7 @@ public static class AtlasBoardEnvironmentThemeV11Upgrade
     }
 
     [MenuItem(
-        "Atlas Board/Environment/Themes/Apply Pavilion")]
+        "Atlas Board/Design/Board & Presentation/Environment/Themes/Apply Pavilion")]
     public static void ApplyPavilion()
     {
         ApplyThemeAsset(
@@ -326,7 +326,7 @@ public static class AtlasBoardEnvironmentThemeV11Upgrade
     }
 
     [MenuItem(
-        "Atlas Board/Environment/Themes/Apply Street")]
+        "Atlas Board/Design/Board & Presentation/Environment/Themes/Apply Street")]
     public static void ApplyStreet()
     {
         ApplyThemeAsset(

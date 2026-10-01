@@ -18,7 +18,7 @@ public sealed class AtlasBoardPlatformDiagnosticsWindow :
     private bool achievementSyncInFlight;
 
     [MenuItem(
-        "Atlas Board/Platform/Phase 11 Diagnostics")]
+        "Atlas Board/Online & Backend/Platform/Phase 11 Diagnostics")]
     private static void Open()
     {
         GetWindow<

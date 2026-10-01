@@ -9,7 +9,7 @@ public static class AtlasBoardOnlineTurnActivityV1Setup
         "OnlineSessionFoundation";
 
     [MenuItem(
-        "Atlas Board/Online/Build Turn Activity + AFK v1")]
+        "Atlas Board/Online & Backend/Online/Build Turn Activity + AFK v1")]
     public static void Build()
     {
         if (EditorApplication.isPlaying)
@@ -105,7 +105,7 @@ public static class AtlasBoardOnlineTurnActivityV1Setup
     }
 
     [MenuItem(
-        "Atlas Board/Online/Validate Turn Activity + AFK v1")]
+        "Atlas Board/Online & Backend/Online/Validate Turn Activity + AFK v1")]
     public static void Validate()
     {
         TurnManager turnManager =

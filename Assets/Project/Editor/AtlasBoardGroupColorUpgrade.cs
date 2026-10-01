@@ -5,7 +5,7 @@ using UnityEngine;
 public static class AtlasBoardGroupColorUpgrade
 {
     [MenuItem(
-        "Atlas Board/Data/Apply Group Colors To Existing Maps")]
+        "Atlas Board/Game & Content/Data/Apply Group Colors To Existing Maps")]
     public static void ApplyGroupColors()
     {
         string[] mapGuids =

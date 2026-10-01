@@ -5,7 +5,7 @@ using UnityEngine;
 
 public static class AtlasBoardPhase5FAuthoritySessionRecoveryV140Setup
 {
-    [MenuItem("Atlas Board/Online/Current/Validate Phase 5F v1.4 Authority + Session Recovery")]
+    [MenuItem("Atlas Board/Online & Backend/Online/Current/Validate Phase 5F v1.4 Authority + Session Recovery")]
     public static void ValidatePhase5FV140()
     {
         var coordinator = FindSceneComponent<AtlasBoardTurnDiceNetworkCoordinator>();

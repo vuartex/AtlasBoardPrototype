@@ -19,7 +19,7 @@ public static class AtlasBoardTwoClientLobbyTestV1
         "AtlasBoardGuest.exe";
 
     [MenuItem(
-        "Atlas Board/Online/Build Two-Client Guest Test v1",
+        "Atlas Board/Online & Backend/Online/Build Two-Client Guest Test v1",
         false,
         455)]
     public static void BuildGuest()
@@ -159,7 +159,7 @@ public static class AtlasBoardTwoClientLobbyTestV1
     }
 
     [MenuItem(
-        "Atlas Board/Online/Launch Two-Client Guest Test v1",
+        "Atlas Board/Online & Backend/Online/Launch Two-Client Guest Test v1",
         false,
         456)]
     public static void LaunchGuest()
@@ -200,7 +200,7 @@ public static class AtlasBoardTwoClientLobbyTestV1
     }
 
     [MenuItem(
-        "Atlas Board/Online/Open Two-Client Guest Build Folder",
+        "Atlas Board/Online & Backend/Online/Open Two-Client Guest Build Folder",
         false,
         457)]
     public static void OpenBuildFolder()
@@ -216,7 +216,7 @@ public static class AtlasBoardTwoClientLobbyTestV1
     }
 
     [MenuItem(
-        "Atlas Board/Online/Validate Two-Client Test Support v1",
+        "Atlas Board/Online & Backend/Online/Validate Two-Client Test Support v1",
         false,
         458)]
     public static void Validate()

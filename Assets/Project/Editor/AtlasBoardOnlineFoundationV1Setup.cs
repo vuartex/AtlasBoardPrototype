@@ -8,7 +8,7 @@ public static class AtlasBoardOnlineFoundationV1Setup
 {
     private const string RootName = "OnlineSessionFoundation";
 
-    [MenuItem("Atlas Board/Online/Build Online Foundation v1")]
+    [MenuItem("Atlas Board/Online & Backend/Online/Build Online Foundation v1")]
     public static void Build()
     {
         if (EditorApplication.isPlaying)
@@ -49,7 +49,7 @@ public static class AtlasBoardOnlineFoundationV1Setup
             "No Steam/mobile SDK or existing gameplay system was modified.");
     }
 
-    [MenuItem("Atlas Board/Online/Validate Online Foundation v1")]
+    [MenuItem("Atlas Board/Online & Backend/Online/Validate Online Foundation v1")]
     public static void Validate()
     {
         RunStateMachineValidation();

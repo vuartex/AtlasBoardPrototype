@@ -61,7 +61,7 @@ public static class AtlasBoardLocalizationLanguages
 
 [CreateAssetMenu(
     fileName = "Localization_Default",
-    menuName = "Atlas Board/Localization/Database")]
+    menuName = "Atlas Board/Game & Content/Localization/Database")]
 public class AtlasBoardLocalizationDatabase :
     ScriptableObject
 {

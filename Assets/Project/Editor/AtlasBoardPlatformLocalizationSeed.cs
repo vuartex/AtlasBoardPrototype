@@ -17,7 +17,7 @@ public static class AtlasBoardPlatformLocalizationSeed
     }
 
     [MenuItem(
-        "Atlas Board/Platform/Refresh Phase 11 Localization")]
+        "Atlas Board/Online & Backend/Platform/Refresh Phase 11 Localization")]
     public static void MergeNow()
     {
         AtlasBoardLocalizationDatabase database =

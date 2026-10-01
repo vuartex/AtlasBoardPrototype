@@ -16,7 +16,7 @@ public sealed class AtlasBoardSteamAccountLinkDiagnosticsWindow :
     private bool operationInFlight;
 
     [MenuItem(
-        "Atlas Board/Platform/Steam Account Link Diagnostics")]
+        "Atlas Board/Online & Backend/Platform/Steam Account Link Diagnostics")]
     private static void Open()
     {
         GetWindow<

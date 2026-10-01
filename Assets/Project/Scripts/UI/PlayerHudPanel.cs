@@ -322,7 +322,7 @@ public class PlayerHudPanel : MonoBehaviour
                 FontStyles.Bold;
             iconText.color = Color.white;
             iconText.overflowMode =
-                TextOverflowModes.Ellipsis;
+                TextOverflowModes.Truncate;
         }
 
         ConfigureTopLane(
@@ -382,7 +382,7 @@ public class PlayerHudPanel : MonoBehaviour
                 FontStyles.Bold;
             turnBadgeText.color = Color.white;
             turnBadgeText.overflowMode =
-                TextOverflowModes.Ellipsis;
+                TextOverflowModes.Truncate;
         }
     }
 
@@ -486,7 +486,7 @@ public class PlayerHudPanel : MonoBehaviour
         target.fontSizeMax = maxSize;
         target.fontStyle = fontStyle;
         target.overflowMode =
-            TextOverflowModes.Ellipsis;
+            TextOverflowModes.Truncate;
         target.textWrappingMode =
             TextWrappingModes.NoWrap;
         target.color = color;

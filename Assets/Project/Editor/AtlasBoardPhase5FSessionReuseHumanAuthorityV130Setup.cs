@@ -7,7 +7,7 @@ using UnityEngine;
 
 public static class AtlasBoardPhase5FSessionReuseHumanAuthorityV130Setup
 {
-    [MenuItem("Atlas Board/Online/Current/Validate Phase 5F v1.3 Human Authority + Session Reuse")]
+    [MenuItem("Atlas Board/Online & Backend/Online/Current/Validate Phase 5F v1.3 Human Authority + Session Reuse")]
     public static void ValidatePhase5FV130()
     {
         BotPlayerController bot = FindSceneComponent<BotPlayerController>();

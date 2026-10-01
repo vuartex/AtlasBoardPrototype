@@ -17,7 +17,7 @@ public static class AtlasBoardEconomyBalanceV1
         "Assets/Project/Data/Players/Bots";
 
     [MenuItem(
-        "Atlas Board/Balance/Apply Economy Balance v1 (One-Time Baseline)")]
+        "Atlas Board/Game & Content/Balance/Apply Economy Balance v1 (One-Time Baseline)")]
     public static void ApplyEconomyBalanceV1()
     {
         List<BoardEconomyProfile> profiles =
@@ -54,7 +54,7 @@ public static class AtlasBoardEconomyBalanceV1
     }
 
     [MenuItem(
-        "Atlas Board/Balance/Sync Property Economy From Map Profiles")]
+        "Atlas Board/Game & Content/Balance/Sync Property Economy From Map Profiles")]
     public static void SyncPropertyEconomyFromMapProfiles()
     {
         List<BoardMapDefinition> maps =
@@ -175,7 +175,7 @@ public static class AtlasBoardEconomyBalanceV1
     }
 
     [MenuItem(
-        "Atlas Board/Balance/Create Missing Bot Personality Presets")]
+        "Atlas Board/Game & Content/Balance/Create Missing Bot Personality Presets")]
     public static void CreateMissingBotPersonalityPresets()
     {
         EnsureFolder(
@@ -252,7 +252,7 @@ public static class AtlasBoardEconomyBalanceV1
     }
 
     [MenuItem(
-        "Atlas Board/Balance/Auto-Wire Bot Personalities In Open Scene")]
+        "Atlas Board/Game & Content/Balance/Auto-Wire Bot Personalities In Open Scene")]
     public static void AutoWireBotPersonalitiesInOpenScene()
     {
         BotPersonalityProfile balanced =

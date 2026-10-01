@@ -19,7 +19,7 @@ public static class AtlasBoardUXPackV1Setup
         "StatusBar";
 
     [MenuItem(
-        "Atlas Board/UX/Build or Refresh UX Pack v1")]
+        "Atlas Board/Design/UI & UX/UX/Build or Refresh UX Pack v1")]
     public static void BuildOrRefresh()
     {
         TurnManager turnManager =

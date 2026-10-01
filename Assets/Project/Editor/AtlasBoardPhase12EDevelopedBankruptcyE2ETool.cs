@@ -15,7 +15,7 @@ public static class AtlasBoardPhase12EDevelopedBankruptcyE2ETool
             new List<int>();
 
     [MenuItem(
-        "Atlas Board/QA/Phase 12E/1 Prepare Developed Bankruptcy Fixture")]
+        "Atlas Board/QA & Diagnostics/QA/Phase 12E/1 Prepare Developed Bankruptcy Fixture")]
     public static void PrepareFixture()
     {
         if (!TryResolveRuntime(
@@ -165,7 +165,7 @@ public static class AtlasBoardPhase12EDevelopedBankruptcyE2ETool
     }
 
     [MenuItem(
-        "Atlas Board/QA/Phase 12E/2 Execute Creditor Bankruptcy")]
+        "Atlas Board/QA & Diagnostics/QA/Phase 12E/2 Execute Creditor Bankruptcy")]
     public static void ExecuteBankruptcy()
     {
         if (!TryResolveRuntime(
@@ -243,7 +243,7 @@ public static class AtlasBoardPhase12EDevelopedBankruptcyE2ETool
     }
 
     [MenuItem(
-        "Atlas Board/QA/Phase 12E/3 Verify Host Cleanup")]
+        "Atlas Board/QA & Diagnostics/QA/Phase 12E/3 Verify Host Cleanup")]
     public static void VerifyHostCleanup()
     {
         if (!TryResolveRuntime(

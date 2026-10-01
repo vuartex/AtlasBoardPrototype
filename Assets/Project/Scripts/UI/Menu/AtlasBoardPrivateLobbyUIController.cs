@@ -1355,7 +1355,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         text.textWrappingMode =
             TextWrappingModes.NoWrap;
         text.overflowMode =
-            TextOverflowModes.Ellipsis;
+            TextOverflowModes.Truncate;
     }
 
     private async void ToggleReady()

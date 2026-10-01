@@ -9,7 +9,7 @@ public static class AtlasBoardOnlineSafeDecisionsV1Setup
         "OnlineSessionFoundation";
 
     [MenuItem(
-        "Atlas Board/Online/Build AFK Safe Decisions v1")]
+        "Atlas Board/Online & Backend/Online/Build AFK Safe Decisions v1")]
     public static void Build()
     {
         if (EditorApplication.isPlaying)
@@ -110,7 +110,7 @@ public static class AtlasBoardOnlineSafeDecisionsV1Setup
     }
 
     [MenuItem(
-        "Atlas Board/Online/Validate AFK Safe Decisions v1")]
+        "Atlas Board/Online & Backend/Online/Validate AFK Safe Decisions v1")]
     public static void Validate()
     {
         AtlasBoardHumanDecisionTimeoutController

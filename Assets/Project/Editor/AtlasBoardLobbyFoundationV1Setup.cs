@@ -5,7 +5,7 @@ using UnityEngine;
 
 public static class AtlasBoardLobbyFoundationV1Setup
 {
-    [MenuItem("Atlas Board/Online/Validate Lobby Revision + Ready v1")]
+    [MenuItem("Atlas Board/Online & Backend/Online/Validate Lobby Revision + Ready v1")]
     public static void Validate()
     {
         AtlasRoomDescriptor room =

@@ -15,7 +15,7 @@ public static class AtlasBoardProgressionLocalizationSeed
         EditorApplication.delayCall += MergeNow;
     }
 
-    [MenuItem("Atlas Board/Progression/Refresh Phase 10 Localization")]
+    [MenuItem("Atlas Board/Meta & Progression/Progression/Refresh Phase 10 Localization")]
     public static void MergeNow()
     {
         AtlasBoardLocalizationDatabase database =

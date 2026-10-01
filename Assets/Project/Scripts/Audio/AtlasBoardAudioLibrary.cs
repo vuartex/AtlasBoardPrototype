@@ -3,7 +3,7 @@ using UnityEngine;
 
 [CreateAssetMenu(
     fileName = "AudioLibrary_Default",
-    menuName = "Atlas Board/Audio/Audio Library")]
+    menuName = "Atlas Board/Design/Audio/Audio Library")]
 public class AtlasBoardAudioLibrary : ScriptableObject
 {
     [Serializable]

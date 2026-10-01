@@ -8,7 +8,7 @@ using UnityEngine;
 public static class AtlasBoardSteamPhase11BValidator
 {
     [UnityEditor.MenuItem(
-        "Atlas Board/Platform/Validate Phase 11B Steam Client")]
+        "Atlas Board/Online & Backend/Platform/Validate Phase 11B Steam Client")]
     public static void Validate()
     {
         int passed = 0;

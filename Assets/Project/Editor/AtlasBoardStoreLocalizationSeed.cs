@@ -15,7 +15,7 @@ public static class AtlasBoardStoreLocalizationSeed
         EditorApplication.delayCall += MergeNow;
     }
 
-    [MenuItem("Atlas Board/Meta/Refresh Store Localization v2")]
+    [MenuItem("Atlas Board/Meta & Progression/Meta/Refresh Store Localization v2")]
     public static void MergeNow()
     {
         AtlasBoardLocalizationDatabase database =

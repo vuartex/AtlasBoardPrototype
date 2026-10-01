@@ -5,7 +5,7 @@ using UnityEngine;
 public static class AtlasBoardPhase5EAuthorityHotfixV101Setup
 {
     [MenuItem(
-        "Atlas Board/Online/Previous Phase Validators/Phase 5E - Purchase Authority + Pawn Sync v1.0.1")]
+        "Atlas Board/Online & Backend/Online/Previous Phase Validators/Phase 5E - Purchase Authority + Pawn Sync v1.0.1")]
     public static void ValidatePhase5EV101()
     {
         AtlasBoardTurnDiceNetworkCoordinator coordinator =

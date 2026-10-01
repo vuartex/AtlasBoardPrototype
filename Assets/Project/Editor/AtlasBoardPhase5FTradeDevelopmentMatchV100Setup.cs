@@ -6,7 +6,7 @@ using UnityEngine;
 public static class AtlasBoardPhase5FTradeDevelopmentMatchV100Setup
 {
     [MenuItem(
-        "Atlas Board/Online/Current/Validate Phase 5F v1.0 Trade + Development + Match Completion Sync",
+        "Atlas Board/Online & Backend/Online/Current/Validate Phase 5F v1.0 Trade + Development + Match Completion Sync",
         false,
         600)]
     public static void ValidatePhase5FV100()

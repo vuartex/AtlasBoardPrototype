@@ -1,18 +1,18 @@
 # ATLAS BOARD
-## Master Architecture & Development Roadmap v5.1
+## Master Architecture & Development Roadmap v5.2
 
-**Canonical checkpoint:** 2026-09-29 (America/Denver)  
+**Canonical checkpoint:** 2026-09-30 (America/Denver)  
 **Repository:** `vuartex/AtlasBoardPrototype`  
-**Last verified pushed GitHub HEAD:** `068ca6f0d1736516ace63b79681227202a408cf8`  
-**Last verified pushed HEAD commit:** `Phase 11G: finalize host migration and multiplayer resilience`  
-**Last verified pushed timestamp:** 2026-09-27 23:21:42 America/Denver / 2026-09-28 05:21:42 UTC  
-**Current accepted local checkpoint:** `Phase 12 complete — pending Git commit/push`  
-**Planned Phase 12 close commit title:** `Phase 12: finalize online resilience hardening and crash recovery`  
+**Last verified pushed GitHub HEAD:** `0eca81450be91b30a5dc1cd66d901c46e2cab07c`  
+**Last verified pushed HEAD commit:** `Phase 12: finalize online resilience hardening and crash recovery`  
+**Last verified pushed verification date:** 2026-09-30 (America/Denver)  
+**Current accepted checkpoint:** `Phase 12 complete — committed and pushed; Phase 14 ready to begin`  
+**Phase 12 close commit:** `0eca81450be91b30a5dc1cd66d901c46e2cab07c` — `Phase 12: finalize online resilience hardening and crash recovery`  
 **Unity baseline:** Unity 6000.5.6f1, `Assets/Board_Prototype.unity`, unless a later committed upgrade explicitly changes it.  
 **Canonical repository roadmap location:** `Assets/Project/Documentation/MASTER_ROADMAP.md`  
 **Previous human-readable archive copy:** `AtlasBoard_Master_Roadmap_v5_0_2026-09-27.docx`
 
-This v5.1 document supersedes Master Roadmap v5.0 dated 2026-09-27. It records the accepted completion of Phase 12 on top of the Phase 11G checkpoint, including stale-command hardening, TemporaryBot expiry hardening, repeated reconnect validation, crash-election torture, purchase-decision crash recovery, and developed-property bankruptcy cleanup.
+This v5.2 document supersedes Master Roadmap v5.1 dated 2026-09-29. It records the accepted completion of Phase 12 on top of the Phase 11G checkpoint, including stale-command hardening, TemporaryBot expiry hardening, repeated reconnect validation, crash-election torture, purchase-decision crash recovery, and developed-property bankruptcy cleanup.
 
 The most important planning change from v5.0 is that the focused Phase 12 resilience work is now accepted and closed. The old standalone Phase 13 implementation milestone remains retired because Host Migration was absorbed into Phase 11G. The next active milestone is Phase 14 Dedicated UI/UX Polish.
 
@@ -33,8 +33,8 @@ Before any source patch:
 
 Current authoritative source checkpoint:
 
-- `LOCAL ACCEPTED / PENDING COMMIT` — Phase 12 final resilience checkpoint (12A through 12E accepted on 2026-09-29).
-- `068ca6f0d1736516ace63b79681227202a408cf8` — last verified pushed GitHub HEAD; Phase 11G final.
+- `0eca81450be91b30a5dc1cd66d901c46e2cab07c` — Phase 12 final resilience checkpoint (12A through 12E), committed and pushed.
+- `068ca6f0d1736516ace63b79681227202a408cf8` — Phase 11G final parent checkpoint.
 - `6ddf01ec66f0116396d18b27b171b9c6080ee671` — Phase 11F shared multiplayer lobby/reconnect.
 - `a8d777b8eb9e798fec8b5f750185ae428b34ca18` — Phase 11E Steam recovery/achievement resync.
 - `a5e4b28f442a7ad22b5789096633c8ef7bd141f1` — Phase 11D returning Steam sign-in.
@@ -58,7 +58,7 @@ Current authoritative source checkpoint:
 
 ## 1.3 Roadmap sequencing rule
 
-When the user asks for the next phase, use this v5.1 sequence unless an explicit blocker or new product requirement changes priority. Avoid repeating work already accepted in prior phases. A later regression does not automatically reopen a completed phase; repair the regression in the current hardening/QA phase unless architecture actually changed.
+When the user asks for the next phase, use this v5.2 sequence unless an explicit blocker or new product requirement changes priority. Avoid repeating work already accepted in prior phases. A later regression does not automatically reopen a completed phase; repair the regression in the current hardening/QA phase unless architecture actually changed.
 
 # 2. Canonical architecture principles
 
@@ -146,6 +146,22 @@ Required invariants now implemented:
 - Old Host seat becomes reconnectable state, not a new player.
 - Bots execute on the current Host only.
 - Result/Rematch/Leave authority follows the new Host.
+
+## 2.6 Hosting / transport strategy
+
+Current architectural decision:
+
+- Atlas Board does **not** require a self-managed dedicated game server for the current board-game scope.
+- Firebase remains the canonical shared backend for account identity, lobby/session state, authoritative match snapshots, intents, reconnect state, chat, progression, Store/Career data and cross-platform persistence.
+- Firebase is a managed/serverless backend; prefer Firebase/Google Cloud managed services over operating a custom VPS/game-server fleet unless a future gameplay requirement clearly demands one.
+- Steam remains a platform adapter for identity, invites, presence, achievements and future optional Steam-native networking. Steam is **not** assumed to automatically host Atlas Board gameplay servers.
+- Steam Datagram Relay / Steam Networking may be evaluated later for a Steam-only transport optimization, but it is not required for the current Firebase-authoritative architecture.
+- If Steam P2P/SDR is introduced, it must not replace canonical Atlas AccountId/SeatId/Firebase authority contracts without a dedicated architecture milestone.
+- Google Play / Android builds should use the same Firebase backend rather than depending on Steam networking.
+- Cross-platform Steam <-> Android multiplayer is optional. The provider-neutral identity/backend architecture keeps it possible, but the project may ship platform-separated matchmaking if cross-platform networking/identity complexity is not justified.
+- In the current Host-authoritative simulation, players synchronize through Firebase. The current Host's Internet quality still affects responsiveness because the Host client executes authoritative gameplay and publishes authoritative state through Firebase.
+- Removing Host-quality dependency entirely would require moving gameplay simulation authority to managed server-side execution such as Cloud Run or another dedicated authoritative service. This is not currently required for Atlas Board's low-frequency board-game interactions.
+- Do not add a self-managed always-on server/VPS by default.
 
 # 3. Non-regression baseline
 
@@ -1042,6 +1058,68 @@ Remaining:
 - Reduced-motion consistency.
 - Mobile-safe layout if mobile becomes active scope.
 
+## 14.1 Clickable City Information Panel
+
+**Status: PLANNED / Phase 14.**
+
+When a player clicks/taps a City property on the board, open a compact informational panel without changing gameplay authority.
+
+The panel should show, when available:
+
+- City/property name.
+- Map/country/state context.
+- Short factual description or flavor text.
+- Purchase price.
+- Base rent.
+- Current effective rent.
+- Development cost.
+- Current development level.
+- Owner / unowned state.
+- Property group / color group.
+- Optional image/icon/flag/landmark artwork if later added to content data.
+- Context-sensitive action state where appropriate, but opening the information panel itself must never perform a gameplay action.
+
+Architecture requirements:
+
+- City information comes from map/content data, not hard-coded city-specific gameplay branches.
+- Clicking a property is informational and may be available even when it is not the local player's turn.
+- The panel must support EN/TR/ES/FR/DE/KO/RU.
+- Long city names/descriptions must be responsive and scroll safely.
+- Mobile/touch input must be considered even if Android launches later.
+- Existing Purchase/Auction/Trade/Development decision panels remain authoritative and separate from this informational view.
+
+## 14.2 Network Quality HUD
+
+**Status: PLANNED / Phase 14 UI + Phase 16 measurement validation.**
+
+Add a small unobtrusive network-quality cluster near the upper-right/right-edge HUD area.
+
+Desired indicators:
+
+- Ping / round-trip latency in milliseconds.
+- Jitter in milliseconds.
+- Packet-loss or application-level loss/timeout percentage.
+- Small connection-quality icon/state: Good / Fair / Poor / Reconnecting.
+- Optional hover/tap tooltip with exact values.
+
+UX requirements:
+
+- Compact; must not cover Player HUD, Chat, decision panels or mobile safe areas.
+- Default presentation should use small icons and short numeric values.
+- Threshold colors/icons must remain understandable without color alone.
+- Hide or simplify when no meaningful online measurement exists.
+- Values should be smoothed so they do not flicker every frame.
+- Reconnecting/offline state must be visually distinct.
+
+Measurement architecture:
+
+- Under the current Firebase transport, `ping` means measured application/backend round-trip latency, not ICMP ping.
+- `jitter` is calculated from recent round-trip/heartbeat latency variance.
+- Firestore/Functions do not expose raw UDP packet-loss statistics. Until a packet transport such as SteamNetworkingSockets exists, show an application-level timeout/loss estimate derived from missed/late heartbeat or request samples and label it consistently.
+- If a future SteamNetworkingSockets/SDR transport is added, Steam clients may use native connection-quality statistics, but the UI contract remains provider-neutral.
+- Android/Google Play clients use the Firebase/application-level measurement path unless a separate transport is introduced.
+- Network telemetry is diagnostic/presentation only and never gameplay authority.
+
 # 15. Security and production backend hardening
 
 **Status: FUTURE / required before live release.**
@@ -1090,6 +1168,9 @@ Remaining:
 - Reconnect/host-loss regression suite.
 - Authority epoch/revision diagnostics.
 - Repeated rematch/new-lobby reuse.
+- Validate Network Quality HUD against controlled latency/jitter/disconnect conditions.
+- Verify Firebase/application-level latency, jitter and timeout/loss estimates are stable and clearly labeled.
+- If SteamNetworkingSockets/SDR is later adopted, compare native Steam connection statistics against the provider-neutral HUD contract.
 
 ## 16.3 Pipeline
 
@@ -1204,25 +1285,21 @@ Phase 12 is complete. Phase 13 is not a future coding milestone; Host Migration 
 
 # 20. Immediate next action
 
-Commit and push the accepted Phase 12 checkpoint together with this roadmap update.
+Begin **Phase 14 - Dedicated UI/UX Polish** from the verified Phase 12 GitHub HEAD `0eca81450be91b30a5dc1cd66d901c46e2cab07c`.
 
-Because a Git commit cannot reliably contain its own final SHA before the commit exists, this v5.1 file records:
+Phase 12 is now closed on GitHub. The verified Phase 12 close commit is `0eca81450be91b30a5dc1cd66d901c46e2cab07c` (`Phase 12: finalize online resilience hardening and crash recovery`).
 
-- the last verified pushed parent HEAD: `068ca6f0d1736516ace63b79681227202a408cf8`;
-- the accepted local Phase 12 close state;
-- the planned Phase 12 close commit title.
-
-After the Phase 12 commit is pushed, verify the new GitHub HEAD before the first Phase 14 source patch and update this roadmap's checkpoint metadata at the next documentation checkpoint.
-
-Then begin **Phase 14 - Dedicated UI/UX Polish**.
+Before each meaningful Phase 14 source patch, continue to inspect the current `main` HEAD so newer accepted work is never overwritten.
 
 Recommended first Phase 14 work package:
 
-1. Replace the top-left generic `PLAYER` header with canonical signed-in/profile identity.
-2. Audit P1/P2/P3/P4 HUD icon/badge alignment.
-3. Run a modal-layering pass across Main Menu, Public Rooms, Private Table, Career, Store, Result, Auction, Trade, Development and decision panels.
-4. Fix responsive layout / long-text issues for EN/TR/ES/FR/DE/KO/RU.
-5. Polish Result, Auction, Trade and Development presentation without changing accepted gameplay/network authority.
+1. Add the clickable/tappable City Information Panel from data-driven map content.
+2. Add the compact Network Quality HUD shell (ping, jitter, loss/timeout estimate, connection state) with provider-neutral UI contracts.
+3. Replace the top-left generic `PLAYER` header with canonical signed-in/profile identity.
+4. Audit P1/P2/P3/P4 HUD icon/badge alignment.
+5. Run a modal-layering pass across Main Menu, Public Rooms, Private Table, Career, Store, Result, Auction, Trade, Development and decision panels.
+6. Fix responsive layout / long-text issues for EN/TR/ES/FR/DE/KO/RU.
+7. Polish Result, Auction, Trade and Development presentation without changing accepted gameplay/network authority.
 
 # 21. Current checkpoint summary
 
@@ -1250,8 +1327,8 @@ Recommended first Phase 14 work package:
 - **Phase 12D crash election: PASS 11/11 + Unity crash torture.**
 - **Phase 12D.1 Purchase decision crash recovery: runtime PASS.**
 - **Phase 12E developed-property bankruptcy Host/Guest cleanup: PASS.**
-- Last verified pushed GitHub HEAD before Phase 12 close commit: `068ca6f0d1736516ace63b79681227202a408cf8`.
-- Current accepted local state: **Phase 12 complete / pending commit + push.**
+- Last verified pushed GitHub HEAD: `0eca81450be91b30a5dc1cd66d901c46e2cab07c`.
+- Current accepted state: **Phase 12 complete / committed and pushed; Phase 14 is active next scope.**
 
 ## Yellow / next
 
@@ -1273,12 +1350,11 @@ Recommended first Phase 14 work package:
 
 A future AtlasBoard chat should start from these facts:
 
-- Canonical roadmap: `Assets/Project/Documentation/MASTER_ROADMAP.md`, version 5.1.
-- Roadmap checkpoint date: 2026-09-29 America/Denver.
-- Last verified pushed GitHub HEAD: `068ca6f0d1736516ace63b79681227202a408cf8`.
-- Last verified pushed HEAD title: `Phase 11G: finalize host migration and multiplayer resilience`.
-- Current accepted local checkpoint: **Phase 12 complete; pending Phase 12 close commit/push.**
-- Planned Phase 12 close commit title: `Phase 12: finalize online resilience hardening and crash recovery`.
+- Canonical roadmap: `Assets/Project/Documentation/MASTER_ROADMAP.md`, version 5.2.
+- Roadmap checkpoint date: 2026-09-30 America/Denver.
+- Last verified pushed GitHub HEAD: `0eca81450be91b30a5dc1cd66d901c46e2cab07c`.
+- Last verified pushed HEAD title: `Phase 12: finalize online resilience hardening and crash recovery`.
+- Current accepted checkpoint: **Phase 12 complete, committed and pushed; Phase 14 next.**
 - Phase 12A stale/duplicate/late intent protection is DONE; E2E PASS 12/12.
 - Phase 12B TemporaryBot exact-expiry/race hardening is DONE; E2E PASS 10/10.
 - Phase 12C five-cycle same-SeatId reconnect validation is DONE; E2E PASS 9/9.
@@ -1290,6 +1366,10 @@ A future AtlasBoard chat should start from these facts:
 - Bankrupt pawn remains gone; development markers remain cleared; released properties remain reusable/purchasable.
 - Do not reimplement old Phase 13 Host Migration; it was absorbed into Phase 11G.
 - **Phase 14 Dedicated UI/UX Polish is NEXT.**
+- Phase 14 now includes a clickable/tappable City Information Panel.
+- Phase 14 now includes a compact provider-neutral Network Quality HUD for ping, jitter, application-level loss/timeout estimate and connection state.
+- Current hosting decision: keep Firebase/managed Google Cloud as the shared backend; do not add a self-managed dedicated server by default.
+- Steam remains an adapter and optional future networking transport; Steam does not automatically replace Firebase or provide an Atlas dedicated server.
 - First Phase 14 target should include the generic top-left `PLAYER` identity/header binding.
 - Preserve canonical AccountId/SeatId; never replace them with SteamID.
 - AppID 480 is development-only.
@@ -1297,7 +1377,7 @@ A future AtlasBoard chat should start from these facts:
 - Do not auto-commit/push.
 - Runtime Unity changes require a fresh Guest build before two-client acceptance.
 - Backend Functions changes require a successful TypeScript build and emulator restart before runtime acceptance.
-- Before any Phase 14 patch, verify the post-Phase-12 GitHub HEAD and inspect newer source rather than using the old `068ca6f0...` source blindly.
+- Phase 14 baseline currently starts from verified HEAD `0eca81450be91b30a5dc1cd66d901c46e2cab07c`; still verify `main` before each meaningful patch and inspect any newer source first.
 
 # 23. Roadmap maintenance rule
 

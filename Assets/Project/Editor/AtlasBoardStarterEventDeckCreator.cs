@@ -13,7 +13,7 @@ public static class AtlasBoardStarterEventDeckCreator
         Root + "/Events";
 
     [MenuItem(
-        "Atlas Board/Data/Create or Refresh Event Deck v3 (36 Cards)")]
+        "Atlas Board/Game & Content/Data/Create or Refresh Event Deck v3 (36 Cards)")]
     public static void CreateStarterEventDeck()
     {
         EnsureFolder(

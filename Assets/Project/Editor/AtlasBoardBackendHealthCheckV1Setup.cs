@@ -9,7 +9,7 @@ public static class AtlasBoardBackendHealthCheckV1Setup
         "AtlasBoardBackendHealthCheckTest";
 
     [MenuItem(
-        "Atlas Board/Firebase/Build Backend Health Check v1")]
+        "Atlas Board/Online & Backend/Firebase/Build Backend Health Check v1")]
     public static void Build()
     {
         AtlasBoardBackendHealthCheckTest tester =
@@ -55,7 +55,7 @@ public static class AtlasBoardBackendHealthCheckV1Setup
     }
 
     [MenuItem(
-        "Atlas Board/Firebase/Validate Backend Health Check v1")]
+        "Atlas Board/Online & Backend/Firebase/Validate Backend Health Check v1")]
     public static void Validate()
     {
         AtlasBoardBackendHealthCheckTest tester =
@@ -81,7 +81,7 @@ public static class AtlasBoardBackendHealthCheckV1Setup
     }
 
     [MenuItem(
-        "Atlas Board/Firebase/Run Backend Health Check v1")]
+        "Atlas Board/Online & Backend/Firebase/Run Backend Health Check v1")]
     public static void Run()
     {
         if (!Application.isPlaying)

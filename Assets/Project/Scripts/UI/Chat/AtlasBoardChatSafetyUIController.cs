@@ -1311,7 +1311,7 @@ public sealed class AtlasBoardChatSafetyUIController : MonoBehaviour
         text.alignment = alignment;
         text.color = color;
         text.raycastTarget = false;
-        text.overflowMode = TextOverflowModes.Ellipsis;
+        text.overflowMode = TextOverflowModes.Truncate;
         return text;
     }
 

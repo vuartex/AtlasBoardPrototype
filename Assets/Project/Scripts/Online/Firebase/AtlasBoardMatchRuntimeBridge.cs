@@ -562,6 +562,10 @@ public sealed class AtlasBoardMatchRuntimeBridge :
 
         if (lobbyBridge == null)
         {
+            AtlasBoardNetworkTelemetry
+                .ReportUnavailable(
+                    functionName);
+
             return AtlasMatchNetworkResult.Fail(
                 "match.error.service_unavailable",
                 "Lobby runtime bridge is missing.");
@@ -576,6 +580,10 @@ public sealed class AtlasBoardMatchRuntimeBridge :
                 lobbyBridge
                     .AuthTokenForOnlineSubsystems))
         {
+            AtlasBoardNetworkTelemetry
+                .ReportUnavailable(
+                    functionName);
+
             return AtlasMatchNetworkResult.Fail(
                 "account.error.authentication_required",
                 "Online identity is unavailable.");
@@ -625,6 +633,9 @@ public sealed class AtlasBoardMatchRuntimeBridge :
 
         request.timeout = 20;
 
+        double requestStartedAt =
+            Time.realtimeSinceStartupAsDouble;
+
         UnityWebRequestAsyncOperation operation =
             request.SendWebRequest();
 
@@ -635,6 +646,12 @@ public sealed class AtlasBoardMatchRuntimeBridge :
             _ => completion.TrySetResult(true);
 
         await completion.Task;
+
+        float requestElapsedMs =
+            (float)(
+                (Time.realtimeSinceStartupAsDouble -
+                 requestStartedAt) *
+                1000.0);
 
         string body =
             request.downloadHandler != null
@@ -667,6 +684,11 @@ public sealed class AtlasBoardMatchRuntimeBridge :
                     : $"HTTP {request.responseCode}: " +
                       request.error;
 
+            AtlasBoardNetworkTelemetry.Report(
+                functionName,
+                false,
+                requestElapsedMs);
+
             return AtlasMatchNetworkResult.Fail(
                 key,
                 technical);
@@ -674,6 +696,11 @@ public sealed class AtlasBoardMatchRuntimeBridge :
 
         AtlasMatchNetworkResult result =
             parser(body);
+
+        AtlasBoardNetworkTelemetry.Report(
+            functionName,
+            result.Success,
+            requestElapsedMs);
 
         if (result.Success &&
             result.Snapshot != null)

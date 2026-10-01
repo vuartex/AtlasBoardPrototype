@@ -34,7 +34,7 @@ public static class AtlasBoardLeaveFlowV1Setup
     private static readonly Color DarkText =
         new Color32(28, 34, 43, 255);
 
-    [MenuItem("Atlas Board/UI/Build Leave Flow v1")]
+    [MenuItem("Atlas Board/Design/UI & UX/UI/Build Leave Flow v1")]
     public static void Build()
     {
         GameObject mainMenuCanvas =
@@ -623,7 +623,7 @@ public static class AtlasBoardLeaveFlowV1Setup
         text.textWrappingMode =
             TextWrappingModes.NoWrap;
         text.overflowMode =
-            TextOverflowModes.Ellipsis;
+            TextOverflowModes.Truncate;
     }
 
     private static Button CreateButton(

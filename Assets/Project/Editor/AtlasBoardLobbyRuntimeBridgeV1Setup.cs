@@ -5,7 +5,7 @@ using UnityEngine;
 
 public static class AtlasBoardLobbyRuntimeBridgeV1Setup
 {
-    [MenuItem("Atlas Board/Online/Build Firebase Lobby Runtime Bridge v1")]
+    [MenuItem("Atlas Board/Online & Backend/Online/Build Firebase Lobby Runtime Bridge v1")]
     public static void Build()
     {
         if (EditorApplication.isPlaying)
@@ -61,7 +61,7 @@ public static class AtlasBoardLobbyRuntimeBridgeV1Setup
             "production account data is not used by the editor bridge.");
     }
 
-    [MenuItem("Atlas Board/Online/Validate Firebase Lobby Runtime Bridge v1")]
+    [MenuItem("Atlas Board/Online & Backend/Online/Validate Firebase Lobby Runtime Bridge v1")]
     public static void Validate()
     {
         GameObject canvas =

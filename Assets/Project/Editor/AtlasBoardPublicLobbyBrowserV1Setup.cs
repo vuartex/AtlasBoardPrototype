@@ -5,13 +5,13 @@ using UnityEditor;
 // Online Rooms UX so it cannot accidentally restore the obsolete bottom button.
 public static class AtlasBoardPublicLobbyBrowserV1Setup
 {
-    [MenuItem("Atlas Board/Online/Build Public Lobby Browser v1", false, 470)]
+    [MenuItem("Atlas Board/Online & Backend/Online/Build Public Lobby Browser v1", false, 470)]
     public static void Build()
     {
         AtlasBoardPublicLobbyBrowserV2Setup.Build();
     }
 
-    [MenuItem("Atlas Board/Online/Validate Public Lobby Browser v1", false, 471)]
+    [MenuItem("Atlas Board/Online & Backend/Online/Validate Public Lobby Browser v1", false, 471)]
     public static void Validate()
     {
         AtlasBoardPublicLobbyBrowserV2Setup.Validate();

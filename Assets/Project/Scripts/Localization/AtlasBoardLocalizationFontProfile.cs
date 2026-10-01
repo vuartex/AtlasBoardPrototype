@@ -3,7 +3,7 @@ using UnityEngine;
 
 [CreateAssetMenu(
     fileName = "LocalizationFonts_Default",
-    menuName = "Atlas Board/Localization/Font Profile")]
+    menuName = "Atlas Board/Game & Content/Localization/Font Profile")]
 public class AtlasBoardLocalizationFontProfile :
     ScriptableObject
 {

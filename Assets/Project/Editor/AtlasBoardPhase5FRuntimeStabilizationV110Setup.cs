@@ -7,7 +7,7 @@ using UnityEngine;
 
 public static class AtlasBoardPhase5FRuntimeStabilizationV110Setup
 {
-    [MenuItem("Atlas Board/Online/Current/Validate Phase 5F v1.1 Runtime Stabilization + Resilience")]
+    [MenuItem("Atlas Board/Online & Backend/Online/Current/Validate Phase 5F v1.1 Runtime Stabilization + Resilience")]
     public static void ValidatePhase5FV110()
     {
         TurnManager turnManager = FindSceneComponent<TurnManager>();

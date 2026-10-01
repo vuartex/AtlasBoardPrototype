@@ -81,7 +81,7 @@ public static class AtlasBoardAudioSettingsV1Setup
             255);
 
     [MenuItem(
-        "Atlas Board/Audio/Build Audio + Settings Foundation v1.3.4")]
+        "Atlas Board/Design/Audio/Build Audio + Settings Foundation v1.3.4")]
     public static void Build()
     {
         if (EditorApplication.isPlaying)
@@ -172,7 +172,7 @@ public static class AtlasBoardAudioSettingsV1Setup
     }
 
     [MenuItem(
-        "Atlas Board/Audio/Auto Bind Audio Clips by AtlasBoard Names")]
+        "Atlas Board/Design/Audio/Auto Bind Audio Clips by AtlasBoard Names")]
     public static void AutoBindAudioClips()
     {
         AtlasBoardAudioLibrary library =
@@ -361,7 +361,7 @@ public static class AtlasBoardAudioSettingsV1Setup
     }
 
     [MenuItem(
-        "Atlas Board/Audio/Attach Pawn Audio to Selected")]
+        "Atlas Board/Design/Audio/Attach Pawn Audio to Selected")]
     public static void AttachPawnAudio()
     {
         GameObject[] selected =

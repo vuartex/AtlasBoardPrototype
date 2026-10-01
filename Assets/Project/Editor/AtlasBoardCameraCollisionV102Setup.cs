@@ -10,7 +10,7 @@ public static class AtlasBoardCameraCollisionV102Setup
         "CameraObstacle";
 
     [MenuItem(
-        "Atlas Board/Camera/Rebuild Selected Obstacles - Accurate Mesh v1.0.2")]
+        "Atlas Board/Design/Board & Presentation/Camera/Rebuild Selected Obstacles - Accurate Mesh v1.0.2")]
     public static void RebuildSelectedAccurate()
     {
         int layer =
@@ -194,7 +194,7 @@ public static class AtlasBoardCameraCollisionV102Setup
     }
 
     [MenuItem(
-        "Atlas Board/Camera/Debug/Log Main Camera Collision State")]
+        "Atlas Board/Design/Board & Presentation/Camera/Debug/Log Main Camera Collision State")]
     public static void LogCameraCollisionState()
     {
         Camera camera =

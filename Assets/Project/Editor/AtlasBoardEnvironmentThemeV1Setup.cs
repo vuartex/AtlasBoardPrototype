@@ -13,7 +13,7 @@ public static class AtlasBoardEnvironmentThemeV1Setup
         DataRoot + "/Theme_ClassicTable.asset";
 
     [MenuItem(
-        "Atlas Board/Environment/Create Theme Foundation v1")]
+        "Atlas Board/Design/Board & Presentation/Environment/Create Theme Foundation v1")]
     public static void CreateThemeFoundation()
     {
         GameObject environmentRootObject =
@@ -162,7 +162,7 @@ public static class AtlasBoardEnvironmentThemeV1Setup
     }
 
     [MenuItem(
-        "Atlas Board/Environment/Apply Classic Table Theme")]
+        "Atlas Board/Design/Board & Presentation/Environment/Apply Classic Table Theme")]
     public static void ApplyClassicTableTheme()
     {
         EnvironmentThemeManager manager =

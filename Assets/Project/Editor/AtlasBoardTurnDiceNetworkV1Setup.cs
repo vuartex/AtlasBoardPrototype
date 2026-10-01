@@ -19,7 +19,7 @@ public static class AtlasBoardTurnDiceNetworkV1Setup
     }
 
     [MenuItem(
-        "Atlas Board/Online/Build Turn + Dice Networking v1",
+        "Atlas Board/Online & Backend/Online/Build Turn + Dice Networking v1",
         false,
         530)]
     public static void Build()
@@ -89,7 +89,7 @@ public static class AtlasBoardTurnDiceNetworkV1Setup
     }
 
     [MenuItem(
-        "Atlas Board/Online/Previous Phase Validators/Phase 5B - Validate Turn + Dice Networking v1",
+        "Atlas Board/Online & Backend/Online/Previous Phase Validators/Phase 5B - Validate Turn + Dice Networking v1",
         false,
         531)]
     public static void Validate()
@@ -147,7 +147,7 @@ public static class AtlasBoardTurnDiceNetworkV1Setup
     }
 
     [MenuItem(
-        "Atlas Board/Online/Previous Phase Validators/Phase 5B - Runtime UI + Input Hotfix v1.0.1",
+        "Atlas Board/Online & Backend/Online/Previous Phase Validators/Phase 5B - Runtime UI + Input Hotfix v1.0.1",
         false,
         532)]
     public static void ValidateRuntimeUIInputHotfixV101()
@@ -215,7 +215,7 @@ public static class AtlasBoardTurnDiceNetworkV1Setup
     }
 
     [MenuItem(
-        "Atlas Board/Online/Previous Phase Validators/Phase 5B - Run In Background v1.0.2",
+        "Atlas Board/Online & Backend/Online/Previous Phase Validators/Phase 5B - Run In Background v1.0.2",
         false,
         533)]
     public static void ValidateRunInBackgroundV102()

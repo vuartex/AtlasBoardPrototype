@@ -41,7 +41,7 @@ public static class AtlasBoardPrivateLobbyUIV1Setup
         new Color32(102, 104, 111, 255);
 
     [MenuItem(
-        "Atlas Board/Online/Build Visible Private Lobby UI v1")]
+        "Atlas Board/Online & Backend/Online/Build Visible Private Lobby UI v1")]
     public static void BuildOrRefresh()
     {
         if (EditorApplication.isPlaying)
@@ -937,7 +937,7 @@ public static class AtlasBoardPrivateLobbyUIV1Setup
     }
 
     [MenuItem(
-        "Atlas Board/Online/Validate Visible Private Lobby UI v1")]
+        "Atlas Board/Online & Backend/Online/Validate Visible Private Lobby UI v1")]
     public static void Validate()
     {
         GameObject canvas =

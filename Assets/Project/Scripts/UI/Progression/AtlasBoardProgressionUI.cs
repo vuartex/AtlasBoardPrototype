@@ -1408,7 +1408,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             Vector2.zero,
             new Vector2(900f, 150f));
         detailsBodyText.overflowMode =
-            TextOverflowModes.Ellipsis;
+            TextOverflowModes.Truncate;
         detailsBodyText.enableAutoSizing = true;
         detailsBodyText.fontSizeMin = 9f;
         detailsBodyText.fontSizeMax = 13f;
@@ -1936,7 +1936,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         text.alignment = alignment;
         text.color = color;
         text.raycastTarget = false;
-        text.overflowMode = TextOverflowModes.Ellipsis;
+        text.overflowMode = TextOverflowModes.Truncate;
         return text;
     }
 

@@ -48,7 +48,7 @@ public static class AtlasBoardMainMenuV1Setup
         new Color32(61, 62, 66, 255);
 
     [MenuItem(
-        "Atlas Board/UI/Build or Refresh Main Menu + Lobby v1.3")]
+        "Atlas Board/Design/UI & UX/UI/Build or Refresh Main Menu + Lobby v1.3")]
     public static void BuildOrRefresh()
     {
         if (EditorApplication.isPlaying)

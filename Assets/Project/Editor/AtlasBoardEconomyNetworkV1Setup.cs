@@ -7,7 +7,7 @@ using UnityEngine;
 public static class AtlasBoardEconomyNetworkV1Setup
 {
     [MenuItem(
-        "Atlas Board/Online/Previous Phase Validators/Phase 5D - Economy + Ownership + Rent Sync v1.0",
+        "Atlas Board/Online & Backend/Online/Previous Phase Validators/Phase 5D - Economy + Ownership + Rent Sync v1.0",
         false,
         550)]
     public static void ValidateEconomyNetworkV10()

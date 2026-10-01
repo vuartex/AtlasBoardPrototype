@@ -42,7 +42,7 @@ public static class AtlasBoardGardenPropSceneV1
         "Assets/Project/Art/Environment/Props/Garden";
 
     [MenuItem(
-        "Atlas Board/Environment/Debug/List Garden Model Assets")]
+        "Atlas Board/Design/Board & Presentation/Environment/Debug/List Garden Model Assets")]
     public static void ListGardenModelAssets()
     {
         string[] guids =
@@ -87,7 +87,7 @@ public static class AtlasBoardGardenPropSceneV1
     }
 
     [MenuItem(
-        "Atlas Board/Environment/Build Garden Prop Scene v1")]
+        "Atlas Board/Design/Board & Presentation/Environment/Build Garden Prop Scene v1")]
     public static void BuildGardenPropScene()
     {
         GameObject propsRoot =
@@ -337,7 +337,7 @@ public static class AtlasBoardGardenPropSceneV1
     }
 
     [MenuItem(
-        "Atlas Board/Environment/Restore Garden Prop Palette")]
+        "Atlas Board/Design/Board & Presentation/Environment/Restore Garden Prop Palette")]
     public static void RestoreGardenPalette()
     {
         GameObject propsRoot =
@@ -374,7 +374,7 @@ public static class AtlasBoardGardenPropSceneV1
     }
 
     [MenuItem(
-        "Atlas Board/Environment/Garden Decor Size/Increase +20%")]
+        "Atlas Board/Design/Board & Presentation/Environment/Garden Decor Size/Increase +20%")]
     public static void IncreaseGardenDecorSize()
     {
         ScaleGeneratedDecor(
@@ -383,7 +383,7 @@ public static class AtlasBoardGardenPropSceneV1
     }
 
     [MenuItem(
-        "Atlas Board/Environment/Garden Decor Size/Decrease -20%")]
+        "Atlas Board/Design/Board & Presentation/Environment/Garden Decor Size/Decrease -20%")]
     public static void DecreaseGardenDecorSize()
     {
         ScaleGeneratedDecor(

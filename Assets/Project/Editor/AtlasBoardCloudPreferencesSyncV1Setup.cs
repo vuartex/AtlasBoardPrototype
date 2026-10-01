@@ -5,7 +5,7 @@ using UnityEngine;
 
 public static class AtlasBoardCloudPreferencesSyncV1Setup
 {
-    [MenuItem("Atlas Board/Firebase/Build Cloud Preferences Sync v1")]
+    [MenuItem("Atlas Board/Online & Backend/Firebase/Build Cloud Preferences Sync v1")]
     public static void Build()
     {
         if (EditorApplication.isPlaying)
@@ -54,7 +54,7 @@ public static class AtlasBoardCloudPreferencesSyncV1Setup
             "Cloud failures never block the local Settings UI.");
     }
 
-    [MenuItem("Atlas Board/Firebase/Validate Cloud Preferences Sync v1")]
+    [MenuItem("Atlas Board/Online & Backend/Firebase/Validate Cloud Preferences Sync v1")]
     public static void Validate()
     {
         AtlasBoardAccountService accountService =

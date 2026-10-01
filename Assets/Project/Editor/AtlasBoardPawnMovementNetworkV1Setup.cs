@@ -6,7 +6,7 @@ using UnityEngine;
 public static class AtlasBoardPawnMovementNetworkV1Setup
 {
     [MenuItem(
-        "Atlas Board/Online/Previous Phase Validators/Phase 5C - Pawn Movement + Position Sync v1.0",
+        "Atlas Board/Online & Backend/Online/Previous Phase Validators/Phase 5C - Pawn Movement + Position Sync v1.0",
         false,
         540)]
     public static void ValidatePawnMovementNetworkV10()

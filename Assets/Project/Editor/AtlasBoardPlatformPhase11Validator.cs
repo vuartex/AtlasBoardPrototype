@@ -7,7 +7,7 @@ using UnityEngine;
 public static class AtlasBoardPlatformPhase11Validator
 {
     [MenuItem(
-        "Atlas Board/Platform/Validate Phase 11A Foundation")]
+        "Atlas Board/Online & Backend/Platform/Validate Phase 11A Foundation")]
     public static void Validate()
     {
         int passed = 0;

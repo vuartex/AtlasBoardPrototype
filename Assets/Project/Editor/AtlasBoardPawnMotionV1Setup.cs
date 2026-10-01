@@ -25,7 +25,7 @@ public static class AtlasBoardPawnMotionV1Setup
         "/MotionSets";
 
     [MenuItem(
-        "Atlas Board/Pawns/Build Pawn Motion Polish v1")]
+        "Atlas Board/Design/Board & Presentation/Pawns/Build Pawn Motion Polish v1")]
     public static void Build()
     {
         if (EditorApplication.isPlaying)

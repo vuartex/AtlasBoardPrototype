@@ -51,7 +51,7 @@ public static class AtlasBoardStarterMapDataCreator
     }
 
     [MenuItem(
-        "Atlas Board/Data/Create Starter Map Data")]
+        "Atlas Board/Game & Content/Data/Create Starter Map Data")]
     public static void CreateStarterMapData()
     {
         EnsureFolder(Root);

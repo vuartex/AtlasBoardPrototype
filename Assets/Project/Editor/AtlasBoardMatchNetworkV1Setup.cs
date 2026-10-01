@@ -6,7 +6,7 @@ using UnityEngine;
 public static class AtlasBoardMatchNetworkV1Setup
 {
     [MenuItem(
-        "Atlas Board/Online/Build Match Network Foundation v1",
+        "Atlas Board/Online & Backend/Online/Build Match Network Foundation v1",
         false,
         520)]
     public static void Build()
@@ -63,7 +63,7 @@ public static class AtlasBoardMatchNetworkV1Setup
     }
 
     [MenuItem(
-        "Atlas Board/Online/Validate Match Network Foundation v1",
+        "Atlas Board/Online & Backend/Online/Validate Match Network Foundation v1",
         false,
         521)]
     public static void Validate()

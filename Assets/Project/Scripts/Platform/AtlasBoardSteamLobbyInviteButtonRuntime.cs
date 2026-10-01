@@ -291,10 +291,9 @@ public sealed class AtlasBoardSteamLobbyInviteButtonRuntime :
                 startText.fontSize);
         inviteButtonText.raycastTarget =
             false;
-        inviteButtonText.enableWordWrapping =
-            false;
+        inviteButtonText.textWrappingMode = TextWrappingModes.NoWrap;
         inviteButtonText.overflowMode =
-            TextOverflowModes.Ellipsis;
+            TextOverflowModes.Truncate;
 
         inviteRect.anchorMin =
             startRect.anchorMin;

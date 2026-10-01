@@ -21,7 +21,7 @@ public static class AtlasBoardWaterV1Setup
         "AtlasBoard/Stylized Water BuiltIn";
 
     [MenuItem(
-        "Atlas Board/Environment/Water/Create or Refresh Water v1")]
+        "Atlas Board/Design/Board & Presentation/Environment/Water/Create or Refresh Water v1")]
     public static void CreateOrRefresh()
     {
         if (EditorApplication.isPlaying)
@@ -187,7 +187,7 @@ public static class AtlasBoardWaterV1Setup
     }
 
     [MenuItem(
-        "Atlas Board/Environment/Water/Add Bob To Selected")]
+        "Atlas Board/Design/Board & Presentation/Environment/Water/Add Bob To Selected")]
     public static void AddBobToSelected()
     {
         GameObject selected =

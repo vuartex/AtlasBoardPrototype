@@ -29,7 +29,7 @@ public static class AtlasBoardBoardLabelUpgrade
             };
 
     [MenuItem(
-        "Atlas Board/Data/Apply Board Short Names")]
+        "Atlas Board/Game & Content/Data/Apply Board Short Names")]
     public static void ApplyBoardShortNames()
     {
         string[] mapGuids =
