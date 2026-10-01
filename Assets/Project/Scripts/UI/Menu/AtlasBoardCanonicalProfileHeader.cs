@@ -284,15 +284,36 @@ public sealed class AtlasBoardCanonicalProfileHeader :
         }
         catch (Exception exception)
         {
-            Debug.LogWarning(
-                "Phase 14C could not load the canonical profile " +
-                "identity yet. Existing header presentation was kept. " +
-                exception.Message,
-                this);
+            string failureMessage =
+                exception != null
+                    ? exception.Message ?? string.Empty
+                    : string.Empty;
+
+            bool expectedOfflineFailure =
+                failureMessage.IndexOf(
+                    "client is offline",
+                    StringComparison.OrdinalIgnoreCase) >= 0 ||
+                failureMessage.IndexOf(
+                    "network is unreachable",
+                    StringComparison.OrdinalIgnoreCase) >= 0;
+
+            // Firebase being temporarily offline is expected during local
+            // development/emulator transitions. Keep the existing header and
+            // retry quietly instead of spamming the Console every few seconds.
+            if (!expectedOfflineFailure)
+            {
+                Debug.LogWarning(
+                    "Phase 14C could not load the canonical profile " +
+                    "identity yet. Existing header presentation was kept. " +
+                    failureMessage,
+                    this);
+            }
 
             nextCheckAt =
                 Time.unscaledTime +
-                RetryAfterFailureSeconds;
+                (expectedOfflineFailure
+                    ? 20f
+                    : RetryAfterFailureSeconds);
         }
         finally
         {

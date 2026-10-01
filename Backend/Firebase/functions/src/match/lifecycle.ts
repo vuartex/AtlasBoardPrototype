@@ -215,7 +215,29 @@ async function migrateHostAndLeave(
         state.phase :
         "";
 
-    if (!HOST_MIGRATION_SAFE_PHASES.has(phase)) {
+    const hasConnectedHumanSuccessor =
+      context.seats.some((seat) => {
+        const data = seat.data() ?? {};
+        const accountId =
+          typeof data.accountId === "string" ?
+            data.accountId :
+            "";
+
+        return accountId.length > 0 &&
+          accountId !== uid &&
+          data.controllerKind === "human" &&
+          data.connectionState === "connected" &&
+          data.afkLockedOut !== true;
+      });
+
+    // A safe gameplay handoff is required only when another real Human will
+    // inherit Host authority. If nobody can inherit authority, this voluntary
+    // leave closes the now-humanless session and does not need to wait for a
+    // turn/decision checkpoint.
+    if (
+      hasConnectedHumanSuccessor &&
+      !HOST_MIGRATION_SAFE_PHASES.has(phase)
+    ) {
       throw new HttpsError(
         "failed-precondition",
         "HOST_MIGRATION_NOT_SAFE_YET",
@@ -252,29 +274,6 @@ async function migrateHostAndLeave(
         return left.id.localeCompare(right.id);
       });
 
-    const candidate = candidates[0];
-    if (!candidate) {
-      throw new HttpsError(
-        "failed-precondition",
-        "HOST_MIGRATION_NO_CANDIDATE",
-        {errorKey: "match.error.host_migration_no_candidate"},
-      );
-    }
-
-    const candidateData = candidate.data() ?? {};
-    const nextHostAccountId =
-      typeof candidateData.accountId === "string" ?
-        candidateData.accountId :
-        "";
-
-    if (!nextHostAccountId) {
-      throw new HttpsError(
-        "failed-precondition",
-        "HOST_MIGRATION_NO_CANDIDATE",
-        {errorKey: "match.error.host_migration_no_candidate"},
-      );
-    }
-
     const oldHostSeat = seats.find((seat) => {
       if (!seat.exists) return false;
       const data = seat.data() ?? {};
@@ -296,6 +295,136 @@ async function migrateHostAndLeave(
         "failed-precondition",
         "MATCH_SEAT_REQUIRED",
         {errorKey: "match.error.seat_required"},
+      );
+    }
+
+    const candidate = candidates[0];
+
+    // If no other live Human exists, there is nobody to inherit Host
+    // authority. The correct voluntary-leave behavior is to close this
+    // now-humanless session instead of trapping the departing Host behind
+    // HOST_MIGRATION_NO_CANDIDATE.
+    if (!candidate) {
+      const serverTimestamp = FieldValue.serverTimestamp();
+      const oldHostData = oldHostSeat.data() ?? {};
+      const oldHostSlotIndex =
+        typeof oldHostData.slotIndex === "number" ?
+          oldHostData.slotIndex :
+          -1;
+      const lobby = lobbySnap.data() ?? {};
+      const codeHash =
+        typeof lobby.joinCodeHash === "string" ?
+          lobby.joinCodeHash :
+          "";
+
+      transaction.set(
+        matchRef,
+        {
+          hostAccountId: "",
+          hostHeartbeatAtEpochMs: 0,
+          status: "complete",
+          lastHostMigrationReason: "voluntary_leave_no_successor",
+          lastHostMigrationAtEpochMs: now,
+          updatedAt: serverTimestamp,
+        },
+        {merge: true},
+      );
+
+      transaction.set(
+        stateRef,
+        {
+          phase: "match_complete",
+          authorityHostAccountId: "",
+          authorityHandoffReason: "voluntary_leave_no_successor",
+          authorityHandoffAtEpochMs: now,
+          updatedAt: serverTimestamp,
+        },
+        {merge: true},
+      );
+
+      transaction.set(
+        lobbyRef,
+        {
+          lifecycleState: "closed",
+          matchId: "",
+          hostAccountId: "",
+          hostHeartbeatAtEpochMs: 0,
+          updatedAt: serverTimestamp,
+        },
+        {merge: true},
+      );
+
+      transaction.set(
+        oldHostSeat.ref,
+        {
+          isHost: false,
+          localOwnerAccountId: "",
+          controllerKind: "permanent_bot",
+          connectionState: "HOST_LEFT_NO_SUCCESSOR",
+          reconnectExpiresAtEpochMs: 0,
+          afkLockedOut: true,
+          removalReason: "voluntary_leave_no_successor",
+          updatedAt: serverTimestamp,
+        },
+        {merge: true},
+      );
+
+      if (
+        oldHostSlotIndex >= 0 &&
+        oldHostSlotIndex < MAX_PLAYERS
+      ) {
+        transaction.set(
+          lobbyRef
+            .collection("members")
+            .doc(`seat_${oldHostSlotIndex + 1}`),
+          {
+            seatMode: "bot",
+            seatType: "bot",
+            accountId: "",
+            localOwnerAccountId: "",
+            isHost: false,
+            controllerKind: "bot",
+            connectionState: "HOST_LEFT_NO_SUCCESSOR",
+            readyForRevision: 0,
+            updatedAt: serverTimestamp,
+          },
+          {merge: true},
+        );
+      }
+
+      if (codeHash) {
+        transaction.set(
+          db.collection("join_codes").doc(codeHash),
+          {
+            active: false,
+            lookupActive: false,
+            joinOpen: false,
+            matchId: "",
+            lifecycleState: "closed",
+            updatedAt: serverTimestamp,
+          },
+          {merge: true},
+        );
+      }
+
+      transaction.delete(
+        db.collection("lobby_discovery").doc(lobbyId),
+      );
+
+      return;
+    }
+
+    const candidateData = candidate.data() ?? {};
+    const nextHostAccountId =
+      typeof candidateData.accountId === "string" ?
+        candidateData.accountId :
+        "";
+
+    if (!nextHostAccountId) {
+      throw new HttpsError(
+        "failed-precondition",
+        "HOST_MIGRATION_NO_CANDIDATE",
+        {errorKey: "match.error.host_migration_no_candidate"},
       );
     }
 

@@ -4703,6 +4703,21 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
         try
         {
+            if (!HasOtherConnectedRemoteHumanSeat())
+            {
+                bool handled =
+                    await TryFastCloseHostSessionWithoutSuccessorAsync();
+
+                if (handled)
+                {
+                    return;
+                }
+
+                // A Remote Human may have appeared in the authoritative
+                // snapshot while the request was in flight. Fall through to
+                // the normal safe-checkpoint Host Migration path.
+            }
+
             while (prepared &&
                    localIsHost)
             {
@@ -4731,6 +4746,24 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
                 if (!result.Success)
                 {
+                    if (IsTransientHostMigrationNotSafe(
+                            result))
+                    {
+                        // Local state already reached a safe checkpoint, but
+                        // the server can still be one snapshot behind.
+                        // Force the exact safe frame to publish again, then
+                        // retry instead of abandoning the user's Leave request.
+                        lastPublishedFrameJson =
+                            string.Empty;
+
+                        nextPublishCheckAt = 0f;
+
+                        await Task.Delay(
+                            150);
+
+                        continue;
+                    }
+
                     Debug.LogWarning(
                         "AtlasBoard Phase 11G Host Migration request failed: " +
                         result.TechnicalMessage,
@@ -4750,7 +4783,7 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
                 if (quit)
                 {
-                    Application.Quit();
+                    QuitApplicationNow();
                 }
 
                 return;
@@ -4762,6 +4795,124 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             hostMigrationQueued = false;
             hostMigrationQuitAfterHandoff = false;
         }
+    }
+
+    private bool HasOtherConnectedRemoteHumanSeat()
+    {
+        AtlasMatchNetworkSnapshot snapshot =
+            matchBridge != null
+                ? matchBridge.CurrentSnapshot
+                : null;
+
+        if (snapshot == null ||
+            snapshot.Seats == null)
+        {
+            // Conservative: if we do not know, use normal safe migration.
+            return true;
+        }
+
+        foreach (AtlasMatchNetworkSeat seat
+                 in snapshot.Seats)
+        {
+            if (seat == null ||
+                seat.IsHost ||
+                IsBotControllerWire(
+                    seat.ControllerKind) ||
+                seat.AfkLockedOut)
+            {
+                continue;
+            }
+
+            if (!string.Equals(
+                    seat.ConnectionState,
+                    "connected",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            // Active remote Human seats are the only valid Host successors.
+            if (string.Equals(
+                    seat.SeatMode,
+                    "remote_human",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private async Task<bool>
+        TryFastCloseHostSessionWithoutSuccessorAsync()
+    {
+        if (matchBridge == null)
+        {
+            return false;
+        }
+
+        AtlasMatchNetworkResult result =
+            await matchBridge
+                .LeaveActiveMatchAsync();
+
+        if (!result.Success)
+        {
+            if (IsTransientHostMigrationNotSafe(
+                    result))
+            {
+                // Server saw a Human successor or an older contract.
+                // Use the ordinary safe-checkpoint migration path.
+                return false;
+            }
+
+            Debug.LogWarning(
+                "AtlasBoard Host no-successor leave request failed: " +
+                result.TechnicalMessage,
+                this);
+
+            return true;
+        }
+
+        bool quit =
+            hostMigrationQuitAfterHandoff;
+
+        DetachLocalClientFromActiveMatch();
+
+        Debug.Log(
+            "AtlasBoard Host leave: no connected Remote Human successor; " +
+            "session closed and Host detached without waiting for a gameplay checkpoint.",
+            this);
+
+        if (quit)
+        {
+            QuitApplicationNow();
+        }
+
+        return true;
+    }
+
+    private static bool IsTransientHostMigrationNotSafe(
+        AtlasMatchNetworkResult result)
+    {
+        if (result == null)
+        {
+            return false;
+        }
+
+        if (string.Equals(
+                result.ErrorLocalizationKey,
+                "match.error.host_migration_not_safe",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return !string.IsNullOrWhiteSpace(
+                   result.TechnicalMessage) &&
+               result.TechnicalMessage.IndexOf(
+                   "HOST_MIGRATION_NOT_SAFE_YET",
+                   StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     private bool IsSafeHostMigrationCheckpoint()
@@ -4846,8 +4997,17 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         finally
         {
             leaveRequestInFlight = false;
-            Application.Quit();
+            QuitApplicationNow();
         }
+    }
+
+    private static void QuitApplicationNow()
+    {
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
+        Application.Quit();
+#endif
     }
 
     private void DetachLocalClientFromActiveMatch()
