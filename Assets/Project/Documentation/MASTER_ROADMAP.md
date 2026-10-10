@@ -1,21 +1,21 @@
 # ATLAS BOARD
-## Master Architecture & Development Roadmap v5.4
+## Master Architecture & Development Roadmap v5.5
 
-**Canonical checkpoint:** 2026-09-30 (America/Denver)  
+**Canonical checkpoint:** 2026-10-09 (America/Denver)  
 **Repository:** `vuartex/AtlasBoardPrototype`  
-**Last verified pushed GitHub HEAD:** `3c41f427e93b3b55d078de4ae8a903d751f3bb0a`  
-**Last verified pushed HEAD commit:** `Finalize Phase 14F match result and exit flow`  
-**Last verified pushed verification date:** 2026-09-30 (America/Denver)  
-**Current accepted local checkpoint:** `Phase 14A–14G accepted; Phase 14G + this roadmap pending commit/push; Phase 14H next`  
+**Last verified pushed GitHub HEAD:** `e6fbe82698061be7785686776935f7cb6dc8fe0f`  
+**Last verified pushed HEAD commit:** `Complete Phase 14G auction polish and tablet interaction architecture`  
+**Last verified pushed verification date:** 2026-10-09 (America/Denver)  
+**Current accepted local checkpoint:** `Phase 14A–14K complete and accepted locally; final Phase 14 localization/input cleanup + v5.5 roadmap pending commit/push; Phase 15 next after push`  
 **Phase 12 close commit:** `0eca81450be91b30a5dc1cd66d901c46e2cab07c` — `Phase 12: finalize online resilience hardening and crash recovery`  
 **Phase 14F pushed checkpoint:** `3c41f427e93b3b55d078de4ae8a903d751f3bb0a` — `Finalize Phase 14F match result and exit flow`  
 **Unity baseline:** Unity 6000.5.6f1, `Assets/Board_Prototype.unity`, unless a later committed upgrade explicitly changes it.  
 **Canonical repository roadmap location:** `Assets/Project/Documentation/MASTER_ROADMAP.md`  
 **Previous human-readable archive copy:** `AtlasBoard_Master_Roadmap_v5_0_2026-09-27.docx`
 
-This v5.4 document supersedes the earlier Phase 14 roadmap checkpoint and records the accepted Phase 14A–14G UI/UX work through Auction polish. The last verified pushed repository checkpoint is Phase 14F at `3c41f427e93b3b55d078de4ae8a903d751f3bb0a`; Phase 14G Auction polish and this roadmap update are accepted locally and are the next intended commit/push.
+This v5.5 document supersedes the Phase 14G roadmap checkpoint and records completion of the full Phase 14A–14K Dedicated UI/UX Polish program. The last already-existing pushed repository checkpoint is Phase 14G at `e6fbe82698061be7785686776935f7cb6dc8fe0f`; the accepted Phase 14H–14K work and this final close cleanup remain local until the user creates the Phase 14 close commit.
 
-The most important architectural lesson added in v5.4 is the canonical tablet-layout rule: full-tablet gameplay presentation must use `TabletUIManager.tabletRoot` as its geometry parent/reference instead of narrow inner decision/result panels. This rule solved the Match Result layout failure in Phase 14F and was reused successfully for Auction in Phase 14G. Phase 14 remains active; after the 14G checkpoint, the next focused subphase is Phase 14H Trade Visual Polish.
+Phase 14 closes with two durable UI rules. First, full gameplay-tablet presentation uses `TabletUIManager.tabletRoot` as the geometry owner while existing gameplay managers remain authoritative. Second, input ownership follows the visible interactive surface: board-world input is blocked behind gameplay tablets, and board-camera mouse input must not consume wheel/drag input while the pointer is interacting with the City Information ScrollRect. Generic content labels such as `Bölge N` are presentation semantics and must be localized from canonical group identity rather than displayed as one-language seed text.
 
 # 1. How to use this roadmap
 
@@ -34,8 +34,9 @@ Before any source patch:
 
 Current authoritative source checkpoint:
 
+- `e6fbe82698061be7785686776935f7cb6dc8fe0f` — Phase 14G Auction Visual Polish + tablet interaction architecture, committed and pushed.
+- Local accepted work after that HEAD: **Phase 14H Trade, 14I Development, 14J responsive/seven-language regression, 14K controller/accessibility/purchase/localization polish, and final City Information input/localization cleanup**, pending the Phase 14 close commit/push.
 - `3c41f427e93b3b55d078de4ae8a903d751f3bb0a` — Phase 14F Match Result / exit-flow checkpoint, committed and pushed.
-- Local accepted work after that HEAD: **Phase 14G Auction Visual Polish + tablet world-interaction guard**, pending the next commit/push together with this roadmap.
 - `0eca81450be91b30a5dc1cd66d901c46e2cab07c` — Phase 12 final resilience checkpoint (12A through 12E), committed and pushed.
 - `068ca6f0d1736516ace63b79681227202a408cf8` — Phase 11G final parent checkpoint.
 - `6ddf01ec66f0116396d18b27b171b9c6080ee671` — Phase 11F shared multiplayer lobby/reconnect.
@@ -1070,28 +1071,26 @@ Phase number 13 is intentionally retained in documentation history so older road
 
 # 14. Dedicated UI/UX polish
 
-**Status: ACTIVE — Phase 14A through 14G accepted; Phase 14H NEXT.**
+**Status: DONE / accepted locally through Phase 14K; final close commit/push pending.**
 
-Accepted Phase 14 work now includes:
+Phase 14 completed the dedicated presentation/accessibility pass without replacing accepted gameplay or online authority.
 
-- Clickable/tappable City Information.
-- Provider-neutral Network Quality diagnostics presented in Pause.
-- Canonical profile-header identity.
-- P1/P2/P3/P4 HUD alignment.
-- Editor menu taxonomy cleanup and targeted Unity 6.5/TMP warning cleanup.
-- Final HUD typography/autosizing foundation.
-- Final Match Result presentation and exit-flow hardening.
-- Auction visual polish.
-- Tablet-wide world-interaction blocking so City Information cannot open behind an active gameplay tablet.
+Accepted Phase 14 scope:
 
-Remaining focused Phase 14 sequence:
+- 14A City Information panel.
+- 14B provider-neutral Network Quality diagnostics in Pause.
+- 14C canonical profile-header identity.
+- 14D P1/P2/P3/P4 HUD alignment + editor/menu cleanup.
+- 14E HUD typography/autosizing foundation.
+- 14F Match Result + exit-flow hardening.
+- 14G Auction Visual Polish + shared tablet/world interaction rule.
+- 14H Trade Visual Polish.
+- 14I Development Visual Polish.
+- 14J desktop aspect-ratio + EN/TR/ES/FR/DE/KO/RU regression.
+- 14K controller/gamepad navigation, focus visibility, reduced-motion consistency, Purchase presentation polish and final localization hardening.
+- Final Phase 14 cleanup: generic one-language presentation seeds such as `Bölge N` are normalized into the active locale, and City Information scrolling owns mouse-wheel/drag input instead of also driving the board camera.
 
-1. **14H — Trade Visual Polish**
-2. **14I — Development Visual Polish**
-3. **14J — Responsive/aspect-ratio + EN/TR/ES/FR/DE/KO/RU long-text regression**
-4. **14K — Controller/gamepad navigation + colorblind-safe indicators + reduced-motion consistency**
-
-Mobile-safe layout remains optional unless mobile becomes active release scope.
+Mobile-safe layout remains optional unless mobile is promoted to active release scope.
 
 ## 14.1 Phase 14A — Clickable City Information Panel
 
@@ -1109,6 +1108,7 @@ Accepted behavior:
 - Safe-area aware.
 - `X`, `ESC`, empty-board or non-City click closes the panel.
 - Opening the panel never performs Purchase/Auction/Trade/Development/network authority actions.
+- While the pointer is over the open City Information card/ScrollRect, mouse wheel and drag input belong to that UI surface; `BoardCameraController` must not zoom/rotate/pan from the same pointer input.
 
 Phase 14G strengthened the modal rule:
 
@@ -1297,54 +1297,80 @@ Accepted non-regression:
 
 ## 14.8 Phase 14H — Trade Visual Polish
 
-**Status: NEXT after Phase 14G checkpoint commit/push.**
+**Status: DONE / accepted locally.**
 
-Scope:
+Accepted:
 
-- Rework Trade presentation using `TabletUIManager.tabletRoot`.
-- Preserve existing `TradeManager` as gameplay authority.
-- Make target player, offered/requested cash and properties visually distinct.
-- Keep Accept/Reject/Cancel/Submit authority and online behavior unchanged.
-- Use the shared tablet world-interaction rule from Section 2.7.
-- Keep seven-language localization and long-text safety.
+- Trade presentation uses `TabletUIManager.tabletRoot`.
+- Existing `TradeManager` remains authoritative.
+- Build Offer, incoming offer approval/rejection and accepted-result states use clear, separate layouts.
+- Duplicate/overlapping `TRADE WITH`, `YOU GIVE` and `OTHER PLAYER GIVES` presentation was removed.
+- Player selector, property selectors and cash inputs were aligned into their intended cards.
+- Dropdown/input text contrast was corrected for readability.
+- Accept/Reject/Cancel/Submit behavior and online authority were not rewritten.
+- Tablet modal/world-input blocking remains active.
 
 ## 14.9 Phase 14I — Development Visual Polish
 
-**Status: PLANNED after 14H.**
+**Status: DONE / accepted locally.**
 
-Scope:
+Accepted:
 
-- Rework Development presentation using `TabletUIManager.tabletRoot`.
-- Preserve balanced-development rules and `PropertyDevelopmentManager` authority.
-- Clearly show selected group/property, current development, next cost and allowed/blocked state.
-- Preserve online authority and bot behavior.
-- Reuse the shared tablet modal/world-interaction invariant.
+- Development presentation uses `TabletUIManager.tabletRoot`.
+- Existing `PropertyDevelopmentManager` remains authoritative for ownership, balanced development, cost, eligibility and level changes.
+- Property/group identity, current level, rent progression, development cost, balance and blocked reason receive clear visual hierarchy.
+- The disabled `DEVELOP` button no longer visually flickers/re-enables when development is blocked.
+- PASS and authoritative online/bot behavior remain unchanged.
 
 ## 14.10 Phase 14J — Responsive + Seven-Language Regression
 
-**Status: PLANNED after 14I.**
+**Status: DONE / accepted.**
 
-Scope:
+Accepted validation:
 
-- Representative 16:9, narrower and wider desktop aspect ratios.
-- EN/TR/ES/FR/DE/KO/RU long-text regression.
-- Check Main Menu, Lobby, Pause, HUD, City Information, Result, Auction, Trade, Development and other active tablet surfaces.
-- Verify localized fonts/glyphs, autosizing, truncation/wrapping and safe spacing.
-- Avoid redesigning already accepted gameplay logic.
+- Three representative desktop presentation profiles were manually exercised: narrow, standard and wide.
+- EN/TR/ES/FR/DE/KO/RU were manually cycled and accepted across the tested Phase 14 surfaces.
+- Long-text/autosizing behavior remained readable in the accepted test pass.
+- The optional Development-Build regression harness is hidden by default and uses the project's New Input System.
+- Unity 6.5 deprecated APIs in the harness were removed.
+- The harness is QA-only (`UNITY_EDITOR || DEVELOPMENT_BUILD`) and is not part of a normal release build.
+
+Final localization lesson discovered during close review:
+
+- Translation-table completeness alone is not enough.
+- Generic display seeds stored in content data can still leak one source language into another locale.
+- `GroupDisplayName` values such as `Bölge 1` must be presented from canonical group identity/number in the active locale.
+- Legacy small labels such as Match Setup `OYUNCU`, `TUR`, `İNSAN`, `HARİTA YOK` and `Eksik Harita` require the same runtime presentation audit.
+- Event/Special/Purchase translation data remains seven-language complete; the close pass also preserves runtime repaint of already-open Event/Special surfaces on language change.
 
 ## 14.11 Phase 14K — Controller + Accessibility Final Pass
 
-**Status: PLANNED / Phase 14 close candidate.**
+**Status: DONE / accepted locally; Phase 14 close gate PASS after final cleanup.**
 
-Scope:
+Accepted:
 
-- Controller/gamepad navigation for gameplay UI and tablet actions.
-- Keyboard-only/controller-only focus order where applicable.
-- Colorblind-safe ownership/status indicators that do not rely on color alone.
-- Reduced-motion consistency for supported transitions/effects.
-- Final accessibility regression for the accepted Phase 14 surfaces.
+- New Input System gamepad navigation for Unity UI Selectables.
+- D-pad/left-stick navigation and submit/cancel behavior use existing UI authority.
+- Gameplay-tablet navigation is scoped to `TabletUIManager.tabletRoot` while the tablet owns interaction.
+- High-contrast focus indication is available for gamepad selection.
+- Existing `Reduce Camera Motion` remains the single authoritative user preference and is reapplied to late-spawn camera components.
+- Purchase presentation was expanded to show property identity, group, purchase price, base rent, next rent/development context, cost and player balance while reusing authoritative Buy/Pass actions.
+- Open Tax/Bonus/Vacation/Rest/rent-bankruptcy and Event presentation can repaint correctly when the active language changes.
+- The first experimental world-space P1/P2/P3/P4 ownership badges were rejected because they harmed board readability; they were removed. Do not restore that implementation.
+- Colorblind accessibility should be solved in contextual/status UI or a later validated board treatment rather than by intrusive floating ownership labels.
 
-Phase 14 can close after 14K if no material UI regression remains. Mobile-safe layout becomes a separate focused subphase only if mobile is promoted to active release scope.
+### Phase 14 final close rules
+
+- **Full-tablet geometry:** use `TabletUIManager.tabletRoot`.
+- **Gameplay authority:** presentation wrappers call/mirror existing authoritative managers.
+- **Tablet/world interaction:** when a gameplay tablet is active, world City clicks do not pass through it.
+- **Scrollable overlay/camera interaction:** when the pointer is over City Information, its ScrollRect owns mouse-wheel/drag input and board camera controls are suppressed.
+- **Localization semantics:** do not render raw generic one-language seed labels such as `Bölge N`; resolve semantic group/label meaning into the active locale.
+- **Seven-language target remains:** EN/TR/ES/FR/DE/KO/RU.
+- **Rejected ownership badge treatment stays removed.**
+- Mobile-specific responsive work is not reopened unless mobile becomes active release scope.
+
+Phase 14 is now considered complete. Any later isolated UI regression is repaired in the phase where it is discovered rather than reopening the entire Phase 14 program.
 
 # 15. Security and production backend hardening
 
@@ -1499,36 +1525,34 @@ These ideas must not displace the core roadmap automatically.
 - Backend health dashboard.
 - Moderation dashboard.
 
-# 19. Revised execution order from v5.1 checkpoint
+# 19. Revised execution order from v5.5 checkpoint
 
-1. **Phase 14 - Dedicated UI/UX polish**.
-2. **Phase 15 - Security and production backend hardening**.
+1. **Phase 14 - Dedicated UI/UX polish — COMPLETE; final close commit/push pending.**
+2. **Phase 15 - Security and production backend hardening — NEXT after Phase 14 close push.**
 3. **Phase 16 - Build readiness, performance, localization QA, pipeline**.
 4. **Phase 17 - External real-PC/live backend testing**.
 5. **Release candidate / Steam launch preparation**.
 
-Phase 12 is complete. Phase 13 is not a future coding milestone; Host Migration was absorbed into Phase 11G and validated further during Phase 12.
+Phase 12 is complete. Phase 13 is not a future coding milestone; Host Migration was absorbed into Phase 11G and validated further during Phase 12. Phase 14 is complete locally through 14K and final close cleanup.
 
 # 20. Immediate next action
 
-Commit and push the accepted **Phase 14G Auction Visual Polish + tablet world-interaction guard + this v5.4 roadmap update**.
+Create and push the **Phase 14 close checkpoint** containing the accepted Phase 14H–14K work, final localization/input cleanup and this v5.5 roadmap.
 
-The last verified pushed GitHub HEAD is currently:
+The latest already-existing pushed GitHub HEAD verified before this close commit is:
 
-- `3c41f427e93b3b55d078de4ae8a903d751f3bb0a`
-- `Finalize Phase 14F match result and exit flow`
+- `e6fbe82698061be7785686776935f7cb6dc8fe0f`
+- `Complete Phase 14G auction polish and tablet interaction architecture`
 
-This roadmap intentionally records 14G as accepted locally/pending commit rather than inventing the SHA of a commit that does not exist yet.
+This roadmap intentionally does **not** invent the SHA of the not-yet-created Phase 14 close commit.
 
-After the 14G commit/push:
+After the user pushes the Phase 14 close commit:
 
 1. Verify the new `main` HEAD.
-2. Treat Phase 14G as committed/closed.
-3. Begin **Phase 14H — Trade Visual Polish**.
-4. Use `TabletUIManager.tabletRoot` as the geometry parent/reference for the full Trade presentation.
-5. Preserve `TradeManager` and existing network/authority behavior; presentation must not duplicate gameplay rules.
-6. Keep `AtlasBoardTabletWorldInteractionGuard` active so board City clicks cannot leak through the Trade tablet.
-7. Continue with 14I Development, 14J responsive/language regression, then 14K controller/accessibility.
+2. Record that already-existing SHA/title at the next roadmap checkpoint.
+3. Treat Phase 14 as closed.
+4. Begin **Phase 15 — Security and production backend hardening**.
+5. Preserve all Phase 14 geometry, interaction and localization invariants while Phase 15 changes backend/security scope.
 
 # 21. Current checkpoint summary
 
@@ -1543,37 +1567,28 @@ After the 14G commit/push:
 - Phase 8 gameplay/content checkpoint.
 - Phase 9 Store / Economy / Seasonal Event.
 - Phase 10 Career / progression / achievements / history.
-- Phase 11A provider-neutral platform foundation.
-- Phase 11B real Steam client integration with AppID 480 development testing.
-- Phase 11C secure Steam account-linking architecture.
-- Phase 11D returning Steam sign-in.
-- Phase 11E live Steam recovery and achievement resync.
-- Phase 11F shared Colorado/Turkey development multiplayer and reconnect hardening.
-- Phase 11G graceful Host Migration, crash failover, scheduler handoff, stable dev identity, tablet localization cleanup, bankruptcy finalization.
-- **Phase 12A stale/duplicate command hardening: PASS 12/12 + runtime smoke.**
-- **Phase 12B TemporaryBot expiry hardening: PASS 10/10.**
-- **Phase 12C repeated reconnect lifecycle: PASS 9/9.**
-- **Phase 12D crash election: PASS 11/11 + Unity crash torture.**
-- **Phase 12D.1 Purchase decision crash recovery: runtime PASS.**
-- **Phase 12E developed-property bankruptcy Host/Guest cleanup: PASS.**
+- Phase 11A–11G platform, Steam, multiplayer/reconnect and Host Migration foundations.
+- Phase 12 resilience hardening and torture validation.
 - **Phase 14A City Information: accepted.**
 - **Phase 14B Network Quality diagnostics + Pause presentation: accepted.**
 - **Phase 14C canonical profile header: accepted.**
-- **Phase 14D HUD alignment + editor/menu warning cleanup: accepted.**
-- **Phase 14E HUD typography/responsive foundation: accepted.**
+- **Phase 14D HUD alignment + editor/menu cleanup: accepted.**
+- **Phase 14E HUD typography/autosizing foundation: accepted.**
 - **Phase 14F Match Result + exit-flow hardening: accepted and pushed.**
-- Last verified pushed GitHub HEAD: `3c41f427e93b3b55d078de4ae8a903d751f3bb0a`.
-- **Phase 14G Auction Visual Polish + large result presentation: accepted locally.**
-- **Tablet-wide City Information click-through guard: accepted locally.**
+- **Phase 14G Auction Visual Polish + tablet interaction architecture: accepted and pushed at `e6fbe826...`.**
+- **Phase 14H Trade Visual Polish: accepted locally.**
+- **Phase 14I Development Visual Polish: accepted locally.**
+- **Phase 14J responsive/aspect-ratio + seven-language regression: accepted.**
+- **Phase 14K controller/accessibility + Purchase/Special localization polish: accepted locally.**
+- **Final Phase 14 localization semantics + City Information/camera input ownership cleanup: accepted close scope.**
 - Canonical full-tablet geometry rule: **use `TabletUIManager.tabletRoot`.**
+- Rejected world-space P1/P2/P3/P4 ownership badges remain removed.
 
 ## Yellow / next
 
-- Commit/push Phase 14G + this roadmap.
-- Phase 14H Trade Visual Polish.
-- Phase 14I Development Visual Polish.
-- Phase 14J responsive/aspect-ratio + seven-language long-text regression.
-- Phase 14K controller/gamepad + colorblind + reduced-motion accessibility pass.
+- Commit/push the complete Phase 14 close checkpoint + this v5.5 roadmap.
+- Verify the resulting `main` SHA.
+- Begin Phase 15 Security and production backend hardening.
 - Mobile-safe layout only if mobile becomes active release scope.
 
 ## Production/later
@@ -1588,27 +1603,25 @@ After the 14G commit/push:
 
 A future AtlasBoard chat should start from these facts:
 
-- Canonical roadmap: `Assets/Project/Documentation/MASTER_ROADMAP.md`, version **5.4**.
-- Roadmap checkpoint date: **2026-09-30 America/Denver**.
-- Last verified pushed GitHub HEAD: `3c41f427e93b3b55d078de4ae8a903d751f3bb0a`.
-- Last verified pushed HEAD title: `Finalize Phase 14F match result and exit flow`.
-- Current accepted local checkpoint: **Phase 14A–14G accepted; 14G + roadmap pending commit/push; 14H next.**
+- Canonical roadmap: `Assets/Project/Documentation/MASTER_ROADMAP.md`, version **5.5**.
+- Roadmap checkpoint date: **2026-10-09 America/Denver**.
+- Last verified already-pushed GitHub HEAD before the Phase 14 close commit: `e6fbe82698061be7785686776935f7cb6dc8fe0f`.
+- Last verified pushed HEAD title: `Complete Phase 14G auction polish and tablet interaction architecture`.
+- Current accepted local checkpoint: **Phase 14A–14K complete; final Phase 14 close commit/push pending.**
 - Phase 12 remains closed and accepted.
-- Do not reimplement old Phase 13 Host Migration; it was absorbed into Phase 11G and validated in Phase 12.
-- Phase 14A City Information is DONE.
-- Phase 14B Pause-menu Network Quality diagnostics are DONE.
-- Phase 14C canonical profile-header identity is DONE.
-- Phase 14D P1/P2/P3/P4 HUD alignment and editor/menu cleanup are DONE.
-- Phase 14E HUD typography/autosizing foundation is DONE.
-- Phase 14F Match Result and exit-flow hardening are DONE and pushed at `3c41f427...`.
-- Phase 14G Auction Visual Polish is DONE locally and accepted.
-- **Critical tablet architecture invariant: full gameplay-tablet visuals must use `TabletUIManager.tabletRoot` as the geometry parent/reference.**
-- Do not use narrow inner panels such as `MatchResultManager.resultPanel` as the geometry basis for a full-tablet presentation.
-- Preserve inner gameplay managers/panels as authoritative state/action sources; presentation layers should mirror/call established authority instead of duplicating rules.
-- **While any gameplay tablet is open, board City Information/world clicks must be blocked.**
-- `AtlasBoardTabletWorldInteractionGuard` enforces that rule by closing/disabling `AtlasBoardCityInformationPanel` while the tablet is active and restoring it afterward.
-- Reuse this exact `tabletRoot` + world-input-guard approach for **14H Trade** and **14I Development**.
-- Phase 14 remaining sequence: **14H Trade -> 14I Development -> 14J responsive/7-language regression -> 14K controller/accessibility**.
+- Phase 13 remains retired as a separate implementation phase; Host Migration is part of Phase 11G.
+- Phase 14A through 14K are DONE/accepted.
+- **Critical tablet architecture invariant:** full gameplay-tablet visuals use `TabletUIManager.tabletRoot`.
+- Do not use narrow inner decision/result panels as the geometry basis for a full-tablet presentation.
+- Existing gameplay/network managers remain authoritative; presentation layers mirror/call established authority.
+- While any gameplay tablet is open, board City Information/world clicks remain blocked.
+- When the pointer is over an open City Information ScrollRect/card, that UI owns mouse-wheel/drag input; board-camera mouse controls must not react to the same input.
+- Generic presentation semantics must not display raw one-language content seeds such as `Bölge N`; resolve canonical group identity/number into the active locale.
+- EN/TR/ES/FR/DE/KO/RU remains the required localization set.
+- The experimental world-space P1/P2/P3/P4 ownership badges were rejected and removed; do not restore them.
+- Phase 14J runtime regression harness is QA-only, hidden by default, uses the New Input System, and is excluded from normal non-development builds.
+- Phase 14 is considered closed after the user commits/pushes this accepted checkpoint.
+- **Phase 15 Security and production backend hardening is next.**
 - Current hosting decision remains Firebase/managed Google Cloud; do not add a self-managed dedicated server by default.
 - Steam remains a provider/platform adapter; do not replace canonical Atlas AccountId/SeatId with SteamID.
 - AppID 480 is development-only.
