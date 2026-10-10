@@ -453,6 +453,9 @@ public sealed class AtlasBoardChatModerationBridge : MonoBehaviour
     private static async Task SendRequestAsync(
         UnityWebRequest request)
     {
+        await AtlasBoardAppCheckRequestSecurity.ApplyAsync(
+            request);
+
         UnityWebRequestAsyncOperation operation =
             request.SendWebRequest();
 

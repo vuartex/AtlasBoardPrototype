@@ -123,6 +123,28 @@ public sealed class AtlasBoardCanonicalProfileHeader :
         {
             LoadCanonicalIdentityAsync(
                 currentAccountId);
+
+            return;
+        }
+
+        // Phase 15B:
+        // Account identity can already be canonical while another Main Menu /
+        // localization refresh rewrites only the visible TMP header back to the
+        // fallback PLAYER label. Settings/Profile modal still shows the correct
+        // controller identity in that case.
+        //
+        // Treat the canonical display name as an invariant: if the visible
+        // header or avatar initial drifts, re-apply the already-loaded identity
+        // without another Firestore read.
+        if (!loadInFlight &&
+            !accountChanged &&
+            !string.IsNullOrWhiteSpace(
+                appliedDisplayName) &&
+            VisibleIdentityHasDrifted(
+                appliedDisplayName))
+        {
+            ApplyCanonicalIdentity(
+                appliedDisplayName);
         }
     }
 
@@ -217,6 +239,53 @@ public sealed class AtlasBoardCanonicalProfileHeader :
         }
     }
 
+    private bool VisibleIdentityHasDrifted(
+        string canonicalDisplayName)
+    {
+        if (string.IsNullOrWhiteSpace(
+                canonicalDisplayName))
+        {
+            return false;
+        }
+
+        ResolveProfileUi();
+
+        string canonical =
+            canonicalDisplayName.Trim();
+
+        if (profileNameText != null)
+        {
+            string visibleName =
+                profileNameText.text != null
+                    ? profileNameText.text.Trim()
+                    : string.Empty;
+
+            if (!IsAcceptedVisibleProfileName(
+                    visibleName,
+                    canonical))
+            {
+                return true;
+            }
+        }
+
+        string expectedInitial =
+            GetInitial(
+                canonical);
+
+        if (avatarInitialText != null &&
+            !string.Equals(
+                avatarInitialText.text != null
+                    ? avatarInitialText.text.Trim()
+                    : string.Empty,
+                expectedInitial,
+                StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
     private async void LoadCanonicalIdentityAsync(
         string requestedAccountId)
     {
@@ -297,9 +366,6 @@ public sealed class AtlasBoardCanonicalProfileHeader :
                     "network is unreachable",
                     StringComparison.OrdinalIgnoreCase) >= 0;
 
-            // Firebase being temporarily offline is expected during local
-            // development/emulator transitions. Keep the existing header and
-            // retry quietly instead of spamming the Console every few seconds.
             if (!expectedOfflineFailure)
             {
                 Debug.LogWarning(
@@ -337,15 +403,32 @@ public sealed class AtlasBoardCanonicalProfileHeader :
 
         if (profileNameText != null)
         {
-            profileNameText.text =
-                trimmed;
+            string visibleName =
+                profileNameText.text != null
+                    ? profileNameText.text.Trim()
+                    : string.Empty;
+
+            if (!IsAcceptedVisibleProfileName(
+                    visibleName,
+                    trimmed))
+            {
+                profileNameText.text =
+                    trimmed;
+            }
         }
 
-        if (avatarInitialText != null)
+        string initial =
+            GetInitial(
+                trimmed);
+
+        if (avatarInitialText != null &&
+            !string.Equals(
+                avatarInitialText.text,
+                initial,
+                StringComparison.Ordinal))
         {
             avatarInitialText.text =
-                GetInitial(
-                    trimmed);
+                initial;
         }
 
         ApplyMainMenuControllerIdentity(
@@ -409,9 +492,19 @@ public sealed class AtlasBoardCanonicalProfileHeader :
             return;
         }
 
-        profileNameField.SetValue(
-            mainMenuController,
-            value);
+        string currentValue =
+            profileNameField.GetValue(
+                mainMenuController) as string;
+
+        if (!string.Equals(
+                currentValue,
+                value,
+                StringComparison.Ordinal))
+        {
+            profileNameField.SetValue(
+                mainMenuController,
+                value);
+        }
     }
 
     private void HandleLanguageChanged()
@@ -425,6 +518,50 @@ public sealed class AtlasBoardCanonicalProfileHeader :
 
         ApplyCanonicalIdentity(
             appliedDisplayName);
+    }
+
+    private static bool IsAcceptedVisibleProfileName(
+        string visibleName,
+        string canonicalDisplayName)
+    {
+        if (string.IsNullOrWhiteSpace(
+                canonicalDisplayName))
+        {
+            return string.IsNullOrWhiteSpace(
+                visibleName);
+        }
+
+        string canonical =
+            canonicalDisplayName.Trim();
+
+        if (string.Equals(
+                visibleName,
+                canonical,
+                StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        string levelPrefix =
+            canonical +
+            " • Lv. ";
+
+        if (!visibleName.StartsWith(
+                levelPrefix,
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        string levelText =
+            visibleName.Substring(
+                levelPrefix.Length)
+                .Trim();
+
+        return int.TryParse(
+                   levelText,
+                   out int level) &&
+               level > 0;
     }
 
     private static string GetInitial(

@@ -278,6 +278,7 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
 
     private static async Task SendRequestAsync(UnityWebRequest request)
     {
+        await AtlasBoardAppCheckRequestSecurity.ApplyAsync(request);
         UnityWebRequestAsyncOperation operation = request.SendWebRequest();
         while (!operation.isDone)
         {

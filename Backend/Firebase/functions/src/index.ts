@@ -1999,3 +1999,7 @@ export {
   platformSteamLinkCurrentAccount,
   platformSteamReturningSignIn,
 } from "./platform/steam-link";
+
+export {
+  platformSteamCreateAppCheckToken,
+} from "./platform/app-check-steam";

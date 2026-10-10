@@ -1,128 +1,56 @@
 # ATLAS BOARD
-## Master Architecture & Development Roadmap v5.5
+## Master Architecture & Development Roadmap v5.6
 
-**Canonical checkpoint:** 2026-10-09 (America/Denver)  
+**Canonical checkpoint:** 2026-10-10 (America/Denver)  
 **Repository:** `vuartex/AtlasBoardPrototype`  
-**Last verified pushed GitHub HEAD:** `e6fbe82698061be7785686776935f7cb6dc8fe0f`  
-**Last verified pushed HEAD commit:** `Complete Phase 14G auction polish and tablet interaction architecture`  
-**Last verified pushed verification date:** 2026-10-09 (America/Denver)  
-**Current accepted local checkpoint:** `Phase 14A–14K complete and accepted locally; final Phase 14 localization/input cleanup + v5.5 roadmap pending commit/push; Phase 15 next after push`  
+**Last verified pushed GitHub HEAD:** `77b4a1c29fe3ee55dbd27f4d35e6ce5e9d02e157`  
+**Last verified pushed HEAD commit:** `Close Phase 14 UI/UX polish and finalize localization/input handling`  
+**Last verified pushed verification date:** 2026-10-10 (America/Denver)  
+**Current accepted local checkpoint:** `Phase 15A–15E security/App Check foundation accepted locally. Phase 15E code/build acceptance is complete; real production Steam attestation acceptance is deferred until the real AtlasBoard Steam AppID and publisher secret are available. Phase 15F staged App Check enforcement is next.`  
 **Phase 12 close commit:** `0eca81450be91b30a5dc1cd66d901c46e2cab07c` — `Phase 12: finalize online resilience hardening and crash recovery`  
-**Phase 14F pushed checkpoint:** `3c41f427e93b3b55d078de4ae8a903d751f3bb0a` — `Finalize Phase 14F match result and exit flow`  
+**Phase 14 close commit:** `77b4a1c29fe3ee55dbd27f4d35e6ce5e9d02e157` — `Close Phase 14 UI/UX polish and finalize localization/input handling`  
 **Unity baseline:** Unity 6000.5.6f1, `Assets/Board_Prototype.unity`, unless a later committed upgrade explicitly changes it.  
-**Canonical repository roadmap location:** `Assets/Project/Documentation/MASTER_ROADMAP.md`  
-**Previous human-readable archive copy:** `AtlasBoard_Master_Roadmap_v5_0_2026-09-27.docx`
+**Canonical repository roadmap location:** `Assets/Project/Documentation/MASTER_ROADMAP.md`
 
-This v5.5 document supersedes the Phase 14G roadmap checkpoint and records completion of the full Phase 14A–14K Dedicated UI/UX Polish program. The last already-existing pushed repository checkpoint is Phase 14G at `e6fbe82698061be7785686776935f7cb6dc8fe0f`; the accepted Phase 14H–14K work and this final close cleanup remain local until the user creates the Phase 14 close commit.
+This v5.6 checkpoint supersedes the v5.5 status/sequencing checkpoint. Detailed accepted gameplay, networking, resilience and Phase 14 UI history from v5.5 remains valid unless explicitly changed here. The main change in v5.6 is the accepted Phase 15A–15E security foundation and the revised remaining Phase 15 execution order.
 
-Phase 14 closes with two durable UI rules. First, full gameplay-tablet presentation uses `TabletUIManager.tabletRoot` as the geometry owner while existing gameplay managers remain authoritative. Second, input ownership follows the visible interactive surface: board-world input is blocked behind gameplay tablets, and board-camera mouse input must not consume wheel/drag input while the pointer is interacting with the City Information ScrollRect. Generic content labels such as `Bölge N` are presentation semantics and must be localized from canonical group identity rather than displayed as one-language seed text.
+# 1. Source and patch discipline
 
-# 1. How to use this roadmap
+Before any meaningful source patch:
 
-## 1.1 Source precedence rule
-
-Before any source patch:
-
-- Check the current GitHub `main` HEAD first.
-- If GitHub contains all latest accepted work, GitHub is the authoritative source baseline.
-- If meaningful local work exists after HEAD, use only the actually available current local files for touched areas.
-- Never reconstruct a risky patch from an older guessed source when a newer accepted local source exists.
-- Never overwrite accepted local fixes with an older GitHub file.
-- After a meaningful phase close, commit and push before starting the next large subsystem whenever practical.
-- This roadmap records architecture, status, acceptance evidence, open scope, and workflow. It does not override newer source code.
-- If the HEAD recorded at the top of this document differs from the repository's current HEAD, inspect the newer commits before editing code or updating this roadmap.
-
-Current authoritative source checkpoint:
-
-- `e6fbe82698061be7785686776935f7cb6dc8fe0f` — Phase 14G Auction Visual Polish + tablet interaction architecture, committed and pushed.
-- Local accepted work after that HEAD: **Phase 14H Trade, 14I Development, 14J responsive/seven-language regression, 14K controller/accessibility/purchase/localization polish, and final City Information input/localization cleanup**, pending the Phase 14 close commit/push.
-- `3c41f427e93b3b55d078de4ae8a903d751f3bb0a` — Phase 14F Match Result / exit-flow checkpoint, committed and pushed.
-- `0eca81450be91b30a5dc1cd66d901c46e2cab07c` — Phase 12 final resilience checkpoint (12A through 12E), committed and pushed.
-- `068ca6f0d1736516ace63b79681227202a408cf8` — Phase 11G final parent checkpoint.
-- `6ddf01ec66f0116396d18b27b171b9c6080ee671` — Phase 11F shared multiplayer lobby/reconnect.
-- `a8d777b8eb9e798fec8b5f750185ae428b34ca18` — Phase 11E Steam recovery/achievement resync.
-- `a5e4b28f442a7ad22b5789096633c8ef7bd141f1` — Phase 11D returning Steam sign-in.
-- `8e91db76914db59cbf17f28f788adf24a193fd17` — Phase 11C secure Steam account linking.
-- `11fdcdaba2f37e506994708674b0ee01e62ab867` — Phase 11A/11B platform foundation + Steam client integration.
-- `ebe72662bf058e18df123d4cad06e8161a04a092` — Phase 10 progression/career checkpoint.
-- `8223ad419fb09cffc5d0b7924a751a99088ba8a7` — Phase 9 storefront/seasonal checkpoint.
-
-## 1.2 Patch delivery and testing rule
-
-- Prefer downloadable minimal replacement ZIPs for source patches.
-- Do not add `.cmd`, `.bat`, or `.ps1` helper files unless explicitly requested.
-- Do not auto-commit or auto-push; Git operations are controlled by the user.
+- Check current GitHub `main` HEAD first.
+- GitHub is authoritative only for work already committed and pushed.
+- Accepted local work newer than HEAD must not be overwritten by an older GitHub copy.
+- Prefer minimal replacement ZIPs.
+- Do not add `.cmd`, `.bat` or `.ps1` helper files unless explicitly requested.
+- Do not auto-commit or auto-push.
 - Do not use `git add .`; stage only intended files.
 - Do not stage unrelated historical font changes.
-- Unity runtime C# changes require a fresh Guest Development Build before two-client validation.
-- Firebase Functions changes require TypeScript build first; lint/E2E should be run when the affected backend scope has tests.
-- Restart Firebase emulators after backend source changes so the running Functions process actually serves the new build.
-- Static/source review is not equivalent to Unity compile, standalone build, or two-client runtime acceptance.
-- Fix the observed concrete error first before broadening scope.
+- Firebase Functions changes require TypeScript build before acceptance.
+- Run focused lint/tests for the changed backend scope where practical.
+- Restart Firebase emulators after backend source changes when emulator runtime behavior is being tested.
+- Unity runtime changes require compile/runtime smoke before a meaningful phase close.
+- Static review is not equivalent to production runtime acceptance.
 
-## 1.3 Roadmap sequencing rule
+Current pushed authority:
 
-When the user asks for the next phase, use this v5.4 sequence unless an explicit blocker or new product requirement changes priority. Avoid repeating work already accepted in prior phases. A later regression does not automatically reopen a completed phase; repair the regression in the current hardening/QA phase unless architecture actually changed.
+- `77b4a1c29fe3ee55dbd27f4d35e6ce5e9d02e157` — Phase 14 close.
+- Phase 15A–15E currently remain local until the user creates and pushes the next checkpoint.
 
-# 2. Canonical architecture principles
+# 2. Durable architecture invariants
 
-## 2.1 Seat-owned gameplay state
-
-Gameplay state belongs to a Player Seat, not to whichever controller currently owns that seat.
-
-A seat owns:
-
-- Canonical AccountId linkage.
-- SeatId and stable PlayerSlotIndex.
-- Money and net worth.
-- Owned properties.
-- Pawn position.
-- Development levels.
-- Turn/scheduler state.
-- Bankruptcy state.
-- Match-result state.
-- Other authoritative match state.
-
-Controller is replaceable:
-
-- Human.
-- TemporaryBot.
-- PermanentBot.
-
-Connection state is separate:
-
-- Connected.
-- Reconnecting.
-- Left.
-- AFK Removed.
-- Kicked.
-
-Core invariant: `Human -> TemporaryBot -> Human` reuses the same seat and authoritative state. A reconnect, Host transfer, controller change, or client restart must not recreate money, ownership, development, pawn position, round, or match identity.
-
-## 2.2 Provider-neutral identity and multiplayer
-
-Steam is an adapter, not the canonical Atlas identity.
+## 2.1 Canonical identity and provider boundaries
 
 - Canonical Atlas AccountId remains authoritative.
 - SeatId remains authoritative inside a match/session.
-- SteamID is a verified provider identity mapped to Atlas AccountId.
-- Wallet, inventory, progression, lobby, match, and history remain Atlas/Firebase-side systems.
-- Steam, and later Game Center / Play Games / other providers, project into these contracts rather than replacing them.
+- SteamID is a verified external provider identity mapped to Atlas AccountId.
+- Steam must remain an adapter, not the canonical account database.
+- Wallet, inventory, progression, lobby, match and history remain Atlas/Firebase-side systems.
+- Development Steam AppID `480` must never be treated as the production AtlasBoard AppID.
 
-## 2.3 Data-driven map/content architecture
+## 2.2 Server authority
 
-Gameplay code remains generic. Turkey, Colorado, USA, city, state, and country names are content/data, not gameplay branches.
-
-Required preserved content:
-
-- Turkey includes Manisa.
-- Colorado includes Longmont.
-- USA includes Colorado.
-- Current board-size assumptions remain explicit until board-size abstraction is a dedicated milestone.
-
-## 2.4 Server authority
-
-Use backend/server authority wherever shared truth or account value matters:
+Backend/server authority remains required for:
 
 - Account identity and provider mappings.
 - Wallet/premium economy.
@@ -130,1273 +58,408 @@ Use backend/server authority wherever shared truth or account value matters:
 - Promo/event rewards.
 - Lobby/session membership.
 - Match authority and authority transfer.
-- Presence/reconnect state.
-- Chat timestamp/rate limiting/moderation.
-- Reports and sanctions.
-- Completed-match progression, XP, achievements, history evidence.
-- Future ranked/competitive outcomes.
+- Reconnect state.
+- Chat/moderation/report state.
+- Completed-match progression and achievements.
+- Future competitive/ranked outcomes.
 
-## 2.5 Safe authority handoff
+## 2.3 Host/seat invariant
 
-Host transfer is an authoritative state-machine operation, not a cosmetic label swap.
+Gameplay state belongs to the Player Seat, not to the current controller.
 
-Required invariants now implemented:
+`Human -> TemporaryBot -> Human` must preserve:
 
-- Deterministic new Host selection.
-- Safe gameplay checkpoint before graceful transfer.
-- Hidden turn scheduler state is included in handoff.
-- Crash failover does not promote from a half-executed dice/movement/decision block.
-- Authority epoch/revision continuity prevents ambiguous leadership.
-- Old Host seat becomes reconnectable state, not a new player.
-- Bots execute on the current Host only.
-- Result/Rematch/Leave authority follows the new Host.
+- AccountId / SeatId
+- money
+- properties
+- pawn position
+- development
+- turn state
+- bankruptcy state
+- match-result state
 
-## 2.6 Hosting / transport strategy
+## 2.4 Hosting strategy
 
-Current architectural decision:
+- Firebase / managed Google Cloud remains the selected backend direction.
+- Do not add a self-managed always-on VPS/game server by default.
+- Steam does not automatically host AtlasBoard gameplay authority.
+- Steam Networking/SDR may be evaluated later as an optional transport optimization.
+- The current Firebase + Host-authoritative board-game architecture remains acceptable for the present scope.
 
-- Atlas Board does **not** require a self-managed dedicated game server for the current board-game scope.
-- Firebase remains the canonical shared backend for account identity, lobby/session state, authoritative match snapshots, intents, reconnect state, chat, progression, Store/Career data and cross-platform persistence.
-- Firebase is a managed/serverless backend; prefer Firebase/Google Cloud managed services over operating a custom VPS/game-server fleet unless a future gameplay requirement clearly demands one.
-- Steam remains a platform adapter for identity, invites, presence, achievements and future optional Steam-native networking. Steam is **not** assumed to automatically host Atlas Board gameplay servers.
-- Steam Datagram Relay / Steam Networking may be evaluated later for a Steam-only transport optimization, but it is not required for the current Firebase-authoritative architecture.
-- If Steam P2P/SDR is introduced, it must not replace canonical Atlas AccountId/SeatId/Firebase authority contracts without a dedicated architecture milestone.
-- Google Play / Android builds should use the same Firebase backend rather than depending on Steam networking.
-- Cross-platform Steam <-> Android multiplayer is optional. The provider-neutral identity/backend architecture keeps it possible, but the project may ship platform-separated matchmaking if cross-platform networking/identity complexity is not justified.
-- In the current Host-authoritative simulation, players synchronize through Firebase. The current Host's Internet quality still affects responsiveness because the Host client executes authoritative gameplay and publishes authoritative state through Firebase.
-- Removing Host-quality dependency entirely would require moving gameplay simulation authority to managed server-side execution such as Cloud Run or another dedicated authoritative service. This is not currently required for Atlas Board's low-frequency board-game interactions.
-- Do not add a self-managed always-on server/VPS by default.
+## 2.5 Phase 14 UI invariants
 
-## 2.7 Tablet UI geometry and world-interaction invariant
+- Full gameplay-tablet geometry uses `TabletUIManager.tabletRoot`.
+- Do not use narrow inner decision/result panels as the geometry owner for full-tablet layouts.
+- Existing gameplay managers remain authoritative; presentation wrappers mirror/call them.
+- While a gameplay tablet is open, world City Information clicks do not pass through.
+- While the pointer is interacting with City Information ScrollRect/card, that UI owns wheel/drag input and board-camera mouse controls must not consume the same input.
+- Generic presentation labels such as `Bölge N` must resolve from canonical semantics into the active locale.
+- Required localization target remains EN/TR/ES/FR/DE/KO/RU.
+- Rejected world-space P1/P2/P3/P4 ownership badges stay removed.
 
-The canonical geometry owner for full gameplay-tablet presentation is:
+# 3. Accepted foundation summary
 
-- `TabletUIManager.tabletRoot`
+The following are accepted foundations and must not be casually rewritten:
 
-This rule is mandatory for future full-tablet polish work such as Result, Auction, Trade and Development.
-
-Why this exists:
-
-- `MatchResultManager.resultPanel` and similar decision/result panel references may be narrow inner state/content containers rather than the visible full tablet.
-- In Phase 14F, using the inner Result panel as the geometry reference repeatedly compressed new player cards into a tiny center column even though the visible tablet had ample space.
-- The successful fix parented the final presentation directly under `TabletUIManager.tabletRoot`, using normalized anchors within the real tablet coordinate space.
-- Phase 14G Auction reused the same `tabletRoot` approach successfully.
-
-Canonical implementation guidance:
-
-- For a full-tablet visual surface, parent the polished presentation directly under `TabletUIManager.tabletRoot`.
-- Prefer normalized anchors/offsets in the `tabletRoot` coordinate system.
-- Do **not** assume an inner `resultPanel`, `auctionPanel`, `tradePanel`, `developmentPanel` or other gameplay-state panel represents the full visible tablet geometry.
-- Keep existing inner panels/managers authoritative for gameplay state, visibility and action methods where practical; presentation wrappers may mirror their state/interactability instead of duplicating gameplay logic.
-- Avoid introducing a second overlay Canvas merely to compensate for a misunderstood tablet coordinate system unless there is a separate, explicit rendering requirement.
-- Runtime validation for full-tablet polish should compare card/control screen-space bounds against `TabletUIManager.tabletRoot`, not against a narrow inner content panel.
-
-Tablet/world input rule:
-
-- While any `TabletUIManager` gameplay tablet is open, board-world informational clicks must not pass through behind it.
-- `TabletUIManager.currentPanel` / active `tabletRoot` state is the canonical signal that the tablet modal layer owns interaction.
-- `AtlasBoardTabletWorldInteractionGuard` closes and temporarily disables `AtlasBoardCityInformationPanel` while a tablet is open, then restores City Information input when the tablet closes.
-- This applies across Auction, Trade, Development, Match Result, Purchase, Event and other tablet surfaces, not only to Phase 14G.
-
-This invariant must be carried forward even if a future conversation loses the implementation history.
-
-# 3. Non-regression baseline
-
-The following are accepted foundations and should not be casually rewritten:
-
-- Core board gameplay.
-- Physical 2d6 dice and synchronized visual/result flow.
-- Starting order and tie architecture.
-- Doubles and triple-double rules.
-- Balanced Development rule.
-- Economy, purchase, rent, ownership.
-- Auction.
-- Trade.
-- Development and development visuals.
-- Bankruptcy core gameplay and accepted liquidation rules.
-- Event Deck v3 with 36 cards.
-- Special tiles.
-- Bot foundation and personalities.
-- Pawn motion/customization/spacing.
-- Camera controls/collision.
-- Audio/settings foundation.
-- Seven-language localization: EN/TR/ES/FR/DE/KO/RU.
-- Korean font fallback foundation.
-- Private/public lobby architecture.
-- Public lobby browser and dedicated Join by Code UX.
-- Human/Bot seat mapping.
+- Core board gameplay, dice, movement and economy.
+- Auction, Trade, Development, bankruptcy and Event/Special systems.
+- Bots and player-seat architecture.
+- Camera/audio/settings.
+- Seven-language localization.
+- Private/public lobby flow.
+- Public lobby browser and Join by Code.
 - Host-authoritative online gameplay.
-- Human HUD authority label.
-- Lobby + Match Chat.
-- Chat unread count.
-- Phase 6B moderation/report system.
-- Phase 9 Store/Economy/Seasonal Event systems.
-- Phase 10 Career/XP/statistics/history/achievements.
-- Provider-neutral Phase 11 platform contracts.
-- Steamworks.NET client integration.
-- Secure Steam account-linking architecture.
-- Returning Steam sign-in and live Steam recovery.
-- Shared development backend over private remote networking.
-- Same-match leave/rejoin state preservation.
+- Lobby + Match Chat and moderation/report foundation.
+- Store/economy/seasonal event foundation.
+- Career/progression/history/achievement foundation.
+- Provider-neutral platform contracts.
+- Steamworks.NET integration.
+- Secure Steam account linking.
+- Returning Steam sign-in and Steam recovery.
+- Shared development backend.
+- Same-match reconnect preservation.
 - Graceful Host Migration and crash failover.
-- Stable local-emulator development identity.
-- Authoritative bankruptcy replication and bankrupt pawn removal.
-- Fair bankruptcy liquidation: minimum required cheapest property transfer, remainder released.
-- Guest Result Leave behavior.
-- Host Rematch and authority-sensitive result actions.
-- Clean second-match/session reuse.
-- Dice reuse after tested rematch/new-lobby path.
-- Rest + doubles extra-roll suppression.
-- Board walnut edge + warm light center across environment themes.
+- Phase 12 resilience hardening.
+- Phase 14A–14K dedicated UI/UX polish and final input/localization cleanup.
 
-# 4. Foundation phases - current status
+# 4. Phase status overview
 
-## 4.1 Core gameplay and presentation
-
+## Phase 3B — Seat / Turn / AFK
 **Status: DONE / accepted foundation.**
 
-Includes board gameplay, dice, economy, property, bots, auction, trade, development, bankruptcy, Event Deck, special tiles, camera, themes, audio, settings, localization, pawn customization and motion.
+## Phase 3C — Account & Cloud Profile
+**Status: FOUNDATION DONE; production security hardening is Phase 15.**
 
-## 4.2 Phase 3B - Runtime Seat + Turn/AFK
-
-**Status: IMPLEMENTED / substantially complete.**
-
-Implemented:
-
-- PlayerGameState/seat integration.
-- Human roll timeout.
-- Host-authoritative auto-roll for eligible remote Human seats.
-- Starting-order auto-roll without false AFK increment.
-- Scheduled-turn AFK streak logic.
-- Manual first roll resets AFK streak.
-- Automatic first roll increments AFK streak.
-- Doubles do not double-count the same scheduled-turn AFK streak.
-- Trade/blocked-management pauses or resets timeout appropriately.
-- AFK removal architecture.
-- PermanentBot transition foundation.
-
-Exact expiry and repeated reconnect-cycle torture were accepted in Phase 12.
-
-## 4.3 Phase 3C - Account & Cloud Profile
-
-**Status: FOUNDATION IMPLEMENTED; production hardening remains.**
-
-Implemented foundation:
-
-- Account models/service.
-- Firebase Auth/Firestore connectivity.
-- Cloud preferences.
-- Backend health checks.
-- Wallet.
-- Inventory.
-- Commerce.
-- Promo/event modules.
-- Steam provider mapping and returning-sign-in development/production boundary.
-
-Still later:
-
-- Real production provider configuration and account recovery UX.
-- App Check enforcement.
-- Final Firestore Security Rules review.
-- Production admin/reward authorization boundaries.
-- Monitoring/audit strategy.
-- Final production cloud-profile UX.
-
-## 4.4 Phase 3D - Create Room / Ready / Session UI
-
+## Phase 3D — Lobby / Session UI
 **Status: DONE.**
 
-Includes:
-
-- Private rooms and secure room codes.
-- Host / Local Human / Bot / Open Online / Remote Human seats.
-- Ready revision invalidation.
-- Host Start authority.
-- Open-seat resolution.
-- Kick confirmation and kicked-room protection.
-- Voluntary lobby leave.
-- Synchronized countdown.
-- Room password.
-- Host room cleanup.
-- Room-code show/hide/copy.
-- Stale waiting-room cleanup and Host heartbeat from Phase 11F.
-
-## 4.5 Phase 4 - Public Lobby Browser
-
+## Phase 4 — Public Lobby Browser
 **Status: DONE.**
 
-Includes:
+## Phase 5 — Online Gameplay Networking
+**Status: MAIN PATH DONE / major runtime flows proven.**
 
-- Public room creation/discovery.
-- Browser filtering.
-- Password indicator/join.
-- Join and double-click join.
-- Version checks.
-- Atomic final-seat reservation/race protection.
-- Public room cleanup.
-- Dedicated `JOIN BY CODE` access directly from Public Rooms.
-- Dedicated code + optional password modal, separate from Private Table room creation.
-- Correct modal layering over Main Menu/Public Rooms content.
+## Phase 6 — Chat + Moderation Foundation
+**Status: DONE foundation; production authorization/retention review remains in Phase 15.**
 
-# 5. Phase 5 - Online Gameplay Networking
-
-**Status: MAIN PATH DONE / runtime proven in major flows.**
-
-## 5.1 Turn + dice synchronization
-
-**Status: DONE / accepted.**
-
-- Host authoritative RNG.
-- Remote roll intent.
-- Starting-order synchronization.
-- Dice result synchronization.
-- Physical dice presentation on both clients.
-- Doubles/triple-double synchronization.
-- Host-transfer scheduler state now survives authority changes.
-
-## 5.2 Pawn movement synchronization
-
-**Status: DONE / accepted.**
-
-- Authoritative movement state.
-- Follower movement queue.
-- Checkpoint/snap recovery.
-- Pawn cosmetic synchronization foundation.
-- Stale movement presentation protection.
-- Crash recovery safe checkpoint avoids inheriting half-executed movement.
-
-## 5.3 Economy / ownership / rent
-
-**Status: DONE / accepted main path.**
-
-- Authoritative money mirror.
-- Ownership state.
-- Purchase/rent outcomes.
-- Property presentation.
-- Bankruptcy ownership release/transfer rules synchronized.
-
-## 5.4 Decision paths
-
-**Status: substantially completed.**
-
-Includes:
-
-- Purchase.
-- Event.
-- Bonus.
-- Tax.
-- Auction.
-- Vacation/special paths.
-- Trade.
-- Development.
-- Rent-bankruptcy result context.
-
-Host authority and seat-owned decisions remain mandatory invariants.
-
-## 5.5 Result / rematch / reusable session
-
-**Status: DONE for tested path.**
-
-Accepted:
-
-- Guest Result shows Host-sensitive leave/wait behavior.
-- Current Host receives Rematch authority.
-- Host transfer changes Result action ownership correctly.
-- Synchronized Rematch returns clients to the same lobby.
-- New/second match starts without executable restart.
-- Tested stale HUD/pawn/money/modal/result state is cleared.
-- Dice remain usable after rematch/new-lobby flow.
-- Rest + doubles no longer creates a duplicate extra roll.
-
-## 5.6 Formerly deferred Phase 5 edge cases - current disposition
-
-The old roadmap deferred the following:
-
-- Voluntary Leave Match -> TemporaryBot -> same-account rejoin.
-- Unexpected disconnect/reconnect timing.
-- Reconnect during trade/auction/decision.
-- Repeated reconnect cycles.
-- TemporaryBot -> PermanentBot expiry.
-- Bankruptcy visual cleanup.
-- Duplicate/late/stale intent abuse.
-- Host Migration.
-
-Current v5.1 status:
-
-- Voluntary leave/rejoin: **implemented in 11F/11G and repeated-cycle validated in Phase 12**.
-- Unexpected process loss: **implemented in 11G and crash-torture validated in Phase 12**.
-- Host Migration: **implemented and accepted in 11G; split-brain/election behavior validated in Phase 12**.
-- Bankruptcy pawn + ownership cleanup: **implemented in 11G and developed-property Host/Guest cleanup accepted in Phase 12**.
-- Exact TemporaryBot expiry, stale/duplicate command rejection, repeated reconnect, crash-election recovery, and purchase-decision failover are **accepted Phase 12 behavior**.
-
-# 6. Current visual/UI checkpoint
-
-## 6.1 Game board
-
-Accepted invariant across Classic/Garden/Beach/Pavilion/Street:
-
-- Physical board edge remains warm walnut/dark.
-- Physical board center remains warm light/parchment.
-- Surrounding table/environment may change by theme.
-- Future theme work must not recolor the physical board back to blue/green.
-
-## 6.2 Player HUD / profile presentation
-
-Critical Human/Bot authority representation is solved for match seats.
-
-Remaining non-blocking polish:
-
-- Top-left generic `PLAYER` profile/header binding should use the canonical signed-in profile identity instead of remaining generic.
-- P1/P2/P3/P4 icon/badge alignment.
-- Final typography/spacing.
-- Long-text/responsive polish.
-
-# 7. Phase 6 - Lobby + Match Chat
-
-## 7.1 Phase 6A - Core chat
-
-**Status: DONE / runtime accepted.**
-
-- Separate Lobby Chat and Match Chat scopes.
-- Authenticated Firebase callable backend.
-- Server-authoritative canonical message time.
-- Sender local display as HH:mm with UTC offset based on server instant.
-- Maximum 120 Unicode characters/code points.
-- Empty/whitespace-only rejected.
-- Server-side per-account/per-scope cooldown.
-- Membership-required chat access.
-- Collapsible right-edge launcher.
-- Unread badge.
-- Character counter and cooldown UI.
-- Launcher/panel avoids Player HUD.
-
-## 7.2 Phase 6B - Moderation & reliability
-
-**Status: DONE / backend and runtime UX accepted.**
-
-Implemented:
-
-- EN/TR/ES/FR/DE/KO/RU profanity baseline.
-- Case/diacritic/basic leetspeak/punctuation normalization.
-- Dynamic/backend-managed moderation terms.
-- URL/invite blocking.
-- Repeated-message/flood heuristics.
-- Local mute/unmute and block/unblock.
-- Report Player and Report Message.
-- Bounded report context.
-- Report IDs.
-- Moderator/admin message removal.
-- Timed mute/ban/chat-disable foundation.
-- Moderator audit foundation.
-- TTL/retention-ready data.
-- Chat text-size accessibility.
-- Runtime language refresh.
-- Report confirmation popup.
-- Phase 11E async lifecycle fix prevents stale destroyed-object callbacks after menu/game transitions.
-
-Phase 6 remains closed for normal roadmap sequencing.
-
-# 8. Content and gameplay completion checkpoint
-
-## 8.1 Full gameplay regression
-
-**Status: DONE for the accepted content/regression checkpoint.**
-
-Accepted high-value runtime coverage includes:
-
-- Starting-order tie reroll.
-- Triple-double penalty.
-- Human roll timeout.
-- Human/Human and Human/Bot auction.
-- Developed rent.
-- Travel/Vacation.
-- Event-card runtime.
-- Host -> Guest and Guest -> Host trade.
-- Trade reject/cancel and timeout interactions.
-- Balanced Development.
-- Bankruptcy result path.
-- 2-player Human/Human.
-- 2-player Human/Bot.
-- 3/4-player mixed sessions.
-- Seven-language critical UI smoke.
-
-Later resilience regressions belong to Phase 12/16 rather than reopening Phase 8.
-
-## 8.2 Map/content baseline
-
-**Status: DONE for current Turkey / Colorado / USA checkpoint.**
-
-- Turkey preserves Manisa.
-- Colorado preserves Longmont.
-- USA preserves Colorado.
-- All maps use common data-driven architecture.
-- No map-specific gameplay branches.
-- Economy/content expansion is a later content backlog.
-
-# 9. Phase 9 - Meta progression / Store / Economy / Events
-
-**Status: DONE / committed / runtime accepted.**
-
-Canonical Phase 9 commit:
-
-`8223ad419fb09cffc5d0b7924a751a99088ba8a7` - Phase 9 storefront and seasonal event systems.
-
-## 9.1 Currency separation
-
-- In-match cash is temporary match state.
-- Gold is persistent soft currency.
-- Atlas Coin is persistent premium currency working model.
-- Event tickets/tokens are server-authoritative event balances.
-
-## 9.2 Store / inventory
-
-Accepted:
-
-- Single canonical Main Menu Store entry.
-- Home / Items / Event / Redeem Code / History tabs.
-- Shared authenticated identity/wallet.
-- Firestore entitlement restore.
-- Server catalog price authority.
-- Idempotent purchase identities.
-- Promo/redeem reuse.
-- Unified user-facing transaction history.
-- EN/TR/ES/FR/DE/KO/RU response/localization.
-- Korean glyph fix.
-- Emulator-only development wallet/reset tools.
-
-## 9.3 Seasonal event
-
-Accepted Atlas Harvest foundation:
-
-- Server-authoritative Daily Reward.
-- Event tickets.
-- Event XP.
-- Daily/weekly challenges.
-- Reward track.
-- Limited-time item purchases.
-- Persistent account seasonal state.
-- Event-expiry server rejection.
-
-## 9.4 Production boundary
-
-Not yet production-enabled:
-
-- Real-money/provider receipt verification.
-- Production App Check/security rules.
-- Production catalog/live-ops authorization.
-- Production monitoring/rate-limit hardening.
-
-# 10. Phase 10 - Career / Achievements / Progression
-
-**Status: DONE / committed / backend E2E and Unity runtime accepted.**
-
-Canonical commit:
-
-`ebe72662bf058e18df123d4cad06e8161a04a092` - Phase 10 Career progression, achievements and match history.
-
-Accepted:
-
-- CAREER Main Menu entry.
-- Overview / Match History / Achievements.
-- Completed-match progression authority.
-- Human-only account history.
-- Idempotent match finalization.
-- Cumulative statistics.
-- Map-scoped statistics.
-- Account XP / Player Level.
-- 14 canonical internal Atlas achievements.
-- Persistent achievement progress/unlocks.
-- Newest-10 / 72-hour user-facing recent history.
-- Structured match details.
-- Turkey/Colorado/USA selected-map consistency.
-- Canonical evidence retained independently from short recent history.
-
-# 11. Phase 11 - Platform, Steam, shared multiplayer and authority resilience
-
-**Status: DONE for the current development checkpoint.**
-
-Phase 11 expanded beyond the old roadmap. It now contains 11A through 11G.
-
-## 11A - Provider-neutral platform foundation
-
+## Phase 8 — Gameplay / Content Checkpoint
 **Status: DONE.**
 
-- Provider-neutral identity/invite/presence/achievement contracts.
-- Persistent platform runtime.
-- Development provider.
-- Safe join payload parsing.
-- Incoming invites reuse existing Atlas room-code flow.
-- Safe presence payload excludes passwords/secrets.
-- Replay-safe achievement projection.
-- Static validation accepted.
+## Phase 9 — Store / Economy / Seasonal Event
+**Status: DONE foundation; production commerce hardening remains in Phase 15.**
 
-## 11B - Real Steam client integration
+## Phase 10 — Career / Progression / History / Achievements
+**Status: DONE foundation.**
 
-**Status: DONE for AppID 480 development checkpoint.**
+## Phase 11 — Platform / Steam / Multiplayer / Host Migration Foundation
+**Status: DONE through 11G.**
 
-Canonical checkpoint commit:
+Key pushed checkpoints include:
 
-`11fdcdaba2f37e506994708674b0ee01e62ab867`
+- `11fdcdaba2f37e506994708674b0ee01e62ab867` — 11A/11B platform foundation + Steam integration.
+- `8e91db76914db59cbf17f28f788adf24a193fd17` — 11C secure Steam account linking.
+- `a5e4b28f442a7ad22b5789096633c8ef7bd141f1` — 11D returning Steam sign-in.
+- `a8d777b8eb9e798fec8b5f750185ae428b34ca18` — 11E Steam recovery / achievement resync.
+- `6ddf01ec66f0116396d18b27b171b9c6080ee671` — 11F shared multiplayer lobby/reconnect.
+- `068ca6f0d1736516ace63b79681227202a408cf8` — 11G Host Migration final parent checkpoint.
 
-Implemented:
-
-- Steamworks.NET 2025.164.1 via Unity Package Manager.
-- SteamAPI initialization/callback/shutdown.
-- Real SteamID/persona detection.
-- Canonical Firebase AccountId remains separate.
-- Rich Presence for Main Menu/Lobby/Match.
-- Safe connect payload.
-- `GameRichPresenceJoinRequested_t` routes into existing Atlas join flow.
-- Real Steam invite dialog.
-- Lobby `INVITE FRIENDS` action beside `START MATCH`.
-- Invite button isolated from Start Match persistent UnityEvent.
-- 14 canonical achievement -> Steam API-name mappings.
-
-Accepted:
-
-- Phase 11A validation PASS.
-- Phase 11B validator PASS 8/8.
-- Real Steam initialization PASS.
-- Real SteamID/persona PASS.
-- Lobby Rich Presence PASS.
-- Standalone overlay/invite dialog PASS.
-- Lobby Invite Friends PASS.
-
-Production boundary remains: AppID 480 is development-only; real AtlasBoard AppID and Steamworks configuration are still required.
-
-## 11C - Secure Steam account linking
-
-**Status: DONE for foundation/development acceptance.**
-
-Canonical commit:
-
-`8e91db76914db59cbf17f28f788adf24a193fd17`
-
-Implemented:
-
-- Server-side Steam identity-link architecture.
-- Bidirectional SteamID <-> Atlas AccountId mapping.
-- One-to-one conflict protection.
-- Idempotent replay.
-- Immutable platform-link audit evidence.
-- Raw Steam auth tickets never persisted/logged.
-- SHA-256 proof digest.
-- Production Valve `AuthenticateUserTicket` verification path.
-- Secret Manager boundary for publisher key.
-- Emulator-only development proof path.
-- Link-status callable/runtime diagnostics.
-- Single canonical Firebase Functions `src/index.ts` entry.
-
-Production verified linking remains fail-closed until the real AtlasBoard AppID and publisher Web API secret are configured.
-
-## 11D - Returning Steam sign-in
-
-**Status: DONE for development architecture/runtime.**
-
-Canonical commit:
-
-`a5e4b28f442a7ad22b5789096633c8ef7bd141f1`
-
-Returning flow:
-
-1. Steam auth ticket.
-2. Server verifies Steam in production.
-3. Verified SteamID resolves existing provider mapping.
-4. Backend issues Firebase custom token for canonical Atlas AccountId.
-5. Firebase Auth signs into the same canonical account.
-6. Wallet/inventory/progression/achievements/profile remain attached to the same UID.
-
-Emulator development returning-sign-in path exists without pretending AppID 480 is production verification.
-
-## 11E - Steam runtime resilience and achievement resync
-
-**Status: DONE / runtime accepted.**
-
-Canonical commit:
-
-`a8d777b8eb9e798fec8b5f750185ae428b34ca18`
-
-Implemented/accepted:
-
-- Bounded Steam initialization retry: 5s -> 10s -> 20s -> 30s.
-- No Unity freeze while Steam is unavailable.
-- Firebase/Atlas identity remains usable while Steam is offline.
-- Steam can recover while Unity remains in Play Mode.
-- Previously linked canonical Atlas AccountId restores.
-- Lobby identity does not race ahead of Steam recovery.
-- Lobby identity rebinds after Firebase Auth restoration.
-- Achievement resync runs immediately after Steam recovery.
-- Periodic achievement sync remains protected against overlapping runs.
-- Async chat lifecycle MissingReferenceException fixed.
-
-## 11F - Shared development multiplayer / lobby and reconnect hardening
-
-**Status: DONE / real two-machine acceptance.**
-
-Canonical commit:
-
-`6ddf01ec66f0116396d18b27b171b9c6080ee671`
-
-Architecture:
-
-- Development builds can target a configurable Firebase emulator host instead of only localhost.
-- Development HTTP is enabled only for the test build path and project settings are restored after build.
-- Colorado and Turkey physical machines were tested against one shared emulator backend over a private Tailscale path.
-- Required development ports were restricted to the intended peer.
-
-Accepted two-machine runtime coverage:
-
-- Shared lobby visibility.
-- Player count synchronization.
-- Round limit, map, theme synchronization.
-- Lobby chat bidirectional.
-- Simultaneous match start.
-- Pawn position synchronization.
-- Auction.
-- AFK auto-roll.
-- Match chat.
-- Property ownership.
-- Trade.
-- Lobby kick.
-- 2-player result flow.
-- Rematch / second match.
-- XP / Career / achievements / history.
-- Public lobby discovery/join.
-
-Hardening added:
-
-- Active-match reconnect no longer re-runs lobby start bootstrap and resets gameplay.
-- Host `local_human` is normalized as Human instead of Bot.
-- Rule-toggle synchronization reads real UI values.
-- Disabling Doubles automatically disables Triple Double Penalty.
-- Host waiting-lobby heartbeat.
-- Stale waiting-room cleanup.
-- Dedicated Public Rooms Join by Code modal.
-- Room-entry modal layering fix.
-
-## 11G - Host Migration / crash recovery / final multiplayer cleanup
-
+## Phase 12 — Resilience Hardening
 **Status: DONE / accepted.**
 
-Canonical current HEAD:
+Close commit:
 
-`068ca6f0d1736516ace63b79681227202a408cf8`  
-`Phase 11G: finalize host migration and multiplayer resilience`
+- `0eca81450be91b30a5dc1cd66d901c46e2cab07c`
 
-### 11G.1 Graceful Host Migration
+## Phase 13
+**Status: RETIRED AS A SEPARATE IMPLEMENTATION PHASE.**
 
-Implemented:
+Host Migration was absorbed into Phase 11G and validated further in Phase 12.
 
-- Host may leave an active match.
-- Leave request waits for a safe gameplay checkpoint.
-- Repeat-click protection / pending leave UX.
-- Deterministic replacement Host.
-- Existing match ID and authoritative state are preserved.
-- Old Host becomes reconnectable TemporaryBot.
-- New Host receives Bot authority.
-- Former Host can rejoin the same active match.
+## Phase 14 — Dedicated UI/UX Polish
+**Status: DONE / CLOSED / PUSHED.**
 
-Initial migration exposed stale follower TurnManager scheduler state; this was fixed by synchronizing:
+Close commit:
 
-- Turn order.
-- Current turn-order position.
-- Completed turn count.
-- Completed active slots in the current round.
-- Consecutive doubles state.
+- `77b4a1c29fe3ee55dbd27f4d35e6ce5e9d02e157`
+- `Close Phase 14 UI/UX polish and finalize localization/input handling`
 
-Accepted:
+Accepted through 14K:
 
-- Host leave -> Guest takeover.
-- No money/property/pawn/round reset.
-- Bot turns continue.
-- Former Host rejoin.
-- Result authority follows new Host.
+- City Information.
+- Network Quality diagnostics + Pause.
+- Canonical profile header.
+- HUD alignment/typography.
+- Match Result and exit flow.
+- Auction polish.
+- Trade polish.
+- Development polish.
+- Responsive/seven-language regression.
+- Controller/accessibility pass.
+- Purchase/Special/localization polish.
+- Final generic-label localization semantics.
+- City Information vs board-camera input ownership.
+- Rejected ownership badges removed.
 
-### 11G.2 Abrupt crash/disconnect failover
+# 5. Phase 15 — Security and Production Backend Hardening
 
-Implemented:
+**Overall status: IN PROGRESS.**
 
-- Per-Human match presence heartbeat.
-- Abrupt Guest loss -> TemporaryBot.
-- Host heartbeat timeout.
-- Surviving Human clients probe server-authoritative recovery.
-- Deterministic lowest-slot eligible Human election.
-- Authority epoch/revision continuity.
-- Old Host -> TemporaryBot with five-minute reclaim.
-- Host-owned extra local bot seats normalize correctly.
-- Safe recovery frame is stored separately from newest transient frame.
-- Crash during movement/dice/decision can recover from the last safe checkpoint instead of inheriting half-executed state.
-- Stable local-emulator fallback identity derived deterministically from the development client identity when Steam returning identity is unavailable.
-- Restarting the same development client can restore the same Firebase UID and reclaim the same SeatId while emulator state remains alive.
-
-### 11G.3 Tablet localization and bankruptcy finalization
-
-Implemented/accepted:
-
-- Tablet panel localization audit.
-- Remaining hard-coded Trade labels and cash placeholders localized.
-- Trade validation/error paths localized.
-- Rent/bankruptcy follower presentation is rebuilt in each client's own selected language rather than replaying Host-localized prose.
-- Authoritative bankruptcy flag replicates to followers.
-- Bankrupt pawn disappears on all clients.
-- Bankruptcy liquidation no longer awards every property for a tiny unpaid debt.
-- Cash pays first.
-- Remaining properties are ordered by PurchasePrice ascending with TileIndex deterministic tie-break.
-- Only the minimum property/property set necessary to cover unpaid debt transfers to a valid creditor.
-- Remaining properties return to unowned state.
-- Tax/bank/event bankruptcy with no creditor releases properties.
-- Development is liquidated/reset.
-- Result distinguishes transferred and released properties.
-
-Runtime acceptance reported:
-
-- Tax bankruptcy released properties without transferring them to another player.
-- Creditor bankruptcy transferred only the needed property in the observed test.
-- Host migration and rejoin remained functional.
-- Phase 11G accepted and closed.
-
-## 11 overall close decision
-
-Phase 11 is **DONE for the current development checkpoint**.
-
-Remaining Steam production work is not a Phase 11 architecture blocker:
-
-- Real AtlasBoard Steam AppID.
-- Publisher Web API credentials.
-- Published custom achievement definitions.
-- Production provider verification configuration.
-
-Those now belong to production integration/hardening and release preparation.
-
-# 12. Phase 12 - Focused Late Online Resilience
-
-**Status: DONE / accepted 2026-09-29.**
-
-Phase 12 was re-baselined after 11F/11G so it would harden the existing architecture instead of rebuilding reconnect or Host Migration. The accepted work is organized as 12A through 12E.
-
-## 12A - Duplicate / late / stale command hardening
-
-**Status: DONE / backend E2E 12/12 PASS + Unity runtime smoke PASS.**
+## 15A — Firestore Direct-Client Security Boundary
+**Status: DONE / accepted locally.**
 
 Implemented:
 
-- Every remote gameplay intent carries the authoritative state the user actually acted on: network revision, event sequence, authority epoch, and network phase.
-- Backend atomically verifies that the submitting seat still belongs to the authenticated account, is Human-controlled, connected, and not AFK-locked.
-- Commands produced from an old revision/event/phase/authority epoch are rejected with `match.error.stale_client_state`.
-- Exact same `clientCommandId` replay remains idempotent.
-- Pending Host intent queue marks legacy/expired/stale commands `stale` instead of presenting them for execution.
-- Pending commands are invalidated when authority epoch, network revision, event sequence, phase, or Human controller ownership no longer matches.
-- Host processes at most one current remote gameplay command before allowing an authoritative publish/revision boundary.
-
-Accepted evidence:
-
-- `phase12-intent-resilience-e2e.mjs` PASS 12/12.
-- Purchase/Auction/Trade normal runtime behavior remained functional.
-- Fast repeated clicks did not double-apply tested money, ownership, bid, trade, roll, or result effects.
-- Guest leave -> rejoin remained functional.
-- Host Migration remained functional.
-
-## 12B - TemporaryBot / PermanentBot expiry hardening
-
-**Status: DONE / backend E2E 10/10 PASS.**
-
-Implemented:
-
-- Active-match reclaim is valid only for `temporary_bot + reconnecting` while the authoritative reconnect lease is still active.
-- Exact expiry boundary uses `expiresAt <= server now`.
-- Expired conversion commits before the callable returns `match.error.reconnect_expired`; the permanent conversion is not lost through transaction rollback.
-- `permanent_bot + reconnect_expired` is explicitly non-reclaimable.
-- Already-connected Human duplicate Join-by-Code remains idempotent.
-- Host expiry sweep re-reads Host authority and seat state transactionally.
-- Reconnect-vs-expiry-sweep races resolve by transaction retry rather than stale overwrite.
-- Expiry state is mirrored to both match seat and lobby member.
-
-Accepted evidence:
-
-- `phase12-temporarybot-expiry-e2e.mjs` PASS 10/10.
-- Valid pre-expiry reclaim restores the same Human seat.
-- Expired reclaim is rejected and PermanentBot conversion persists.
-- A PermanentBot cannot later be silently reclaimed.
-- Future/non-expired reservations are not prematurely expired.
-
-## 12C - Repeated reconnect and decision continuity validation
-
-**Status: DONE / automated repeated-cycle E2E 9/9 PASS + representative runtime decision reconnect accepted.**
-
-Accepted:
-
-- Five consecutive `Human -> TemporaryBot -> same Human` cycles reclaimed the exact same canonical `SeatId`.
-- No duplicate match seat was created.
-- Lobby intentionally retains four canonical member documents (`seat_1` through `seat_4`); inactive slots remain inactive rather than being duplicate players.
-- No duplicate active member was created.
-- Host authority did not drift during repeated Guest reconnect.
-- Room code continued to resolve the same active match.
-- Already-connected duplicate join remained idempotent.
-- Auction reconnect was manually observed to reconstruct the active auction and allow the returning Human to participate.
-- Existing authoritative decision snapshots and Phase 12A stale-command guards remain the canonical mechanism for Purchase/Trade/Auction/Event/Special continuity.
-
-Accepted evidence:
-
-- Corrected `phase12-repeated-reconnect-e2e.mjs` PASS 9/9.
-- Initial 12C failure was a QA assertion error: a 2-player lobby still intentionally persists four canonical slot documents.
-
-## 12D - Host crash election and transient-state torture
-
-**Status: DONE / backend E2E 11/11 PASS + Unity crash torture PASS.**
-
-Backend crash-election acceptance:
-
-- Concurrent recovery probes cannot create split-brain.
-- Deterministic lowest-slot eligible live Human wins.
-- Authority epoch advances exactly once.
-- Crashed Host becomes `TemporaryBot / Reconnecting`.
-- Old Host-owned Local Bot normalizes to PermanentBot authority.
-- Losing recovery probes cannot increment authority again.
-- A stale lowest-slot candidate is skipped in favor of the next live Human.
-- Fresh Host heartbeat prevents premature failover.
-- Lobby Host projection follows the recovered match Host.
-- Match/network authority metadata remains internally consistent.
-- Unsafe transient movement frame rolls back to the last safe authoritative checkpoint.
-
-Accepted evidence:
-
-- `phase12-host-crash-election-e2e.mjs` PASS 11/11.
-
-Manual Unity crash torture accepted:
-
-- Host crash during normal `awaiting_roll`: PASS.
-- Host crash during visible pawn movement: PASS.
-- Host crash during dice animation/result: PASS.
-- Host crash during decision handling: PASS.
-- Game continued on surviving client without freeze, duplicate movement, duplicate money effect, or split-brain.
-
-### 12D.1 - Purchase-decision crash recovery
-
-One real defect was found during 12D:
-
-- When another Human had an unresolved property `BUY / SKIP` decision and the Host crashed, generic safe-checkpoint recovery could rewind before the property decision and the player lost the opportunity to buy.
-
-Fix:
-
-- `awaiting_decision` is a recovery-safe authoritative phase.
-- Follower -> Host promotion restores the unresolved Purchase decision: decision player, decision tile, Host-side pending Purchase authority, and normal turn-completion callback.
-- If the newly promoted Host owns the decision, local Purchase UI remains usable.
-- If another Human owns the decision, the new Host keeps headless authority while that Human submits BUY/SKIP.
-- Phase 12A stale authority/revision guards still reject commands targeting the old Host epoch.
+- Deny-by-default Firestore policy for unreviewed collections.
+- Direct Unity client access retained only for deliberately reviewed user-facing documents.
+- `users/{uid}` owner access with restricted self-editable fields.
+- `public_profiles/{uid}` authenticated reads / owner writes.
+- `preferences/{uid}` owner access with restricted fields.
+- Direct client access denied for wallet, ledger, inventory, commerce, promo, progression authority, lobby/match authority, Steam mappings and other server-owned state.
+- Admin SDK / Cloud Functions remain trusted authority.
 
 Acceptance:
 
-- Purchase decision survives Host crash.
-- BUY completes once after failover.
-- Money changes once.
-- Ownership transfers once.
-- Turn advances normally.
-- 12D.1 runtime retest PASS.
+- Firestore rules E2E: **17 passed, 0 failed**.
+- Public lobby + authoritative match smoke worked without permission errors.
 
-## 12E - Developed-property bankruptcy cleanup E2E
-
-**Status: DONE / deterministic Host QA PASS + Guest visual/runtime PASS.**
-
-Deterministic fixture:
-
-- Fresh 3-player match.
-- seat_2 owns three developed properties with development levels 1 / 2 / 3.
-- seat_2 cash is forced to 1.
-- Mandatory debt is 2, leaving exactly 1 unpaid.
-- Bankruptcy liquidation therefore transfers only the cheapest required property to the creditor and releases the remaining properties.
-
-Observed accepted result:
-
-- Amount due = 2.
-- Paid = 1.
-- Unpaid = 1.
-- Transferred properties = 1.
-- Released properties = 2.
-- Transferred property value = 100.
-- Cheapest transferred property in the acceptance run: Tile 1 `Edirne`.
-- Host check: PASS.
-- Bankrupt pawn hidden on Host.
-- All authoritative development levels returned to 0.
-- All house/hotel/development markers disappeared.
-- Only the cheapest property transferred to seat_1.
-- Remaining two properties became unowned.
-- Guest mirrored the same pawn removal, development cleanup, ownership transfer, and released-property visuals.
-- A released property was later landed on and purchased normally.
-- Continued play did not resurrect the bankrupt pawn or stale development markers.
-
-## 12.6 Phase 12 close gate
-
-**Phase 12 close gate: PASS.**
-
-Accepted close evidence:
-
-- No unresolved freeze/reset/split-brain remains in the tested focused scenarios.
-- Repeated reconnect cycles preserve canonical AccountId/SeatId state.
-- Exact TemporaryBot expiry behavior is accepted.
-- PermanentBot post-expiry reclaim is rejected.
-- Duplicate/late/stale commands cannot double-apply the tested authoritative gameplay effects.
-- Crash failover works through normal turn, movement, dice, and decision states.
-- Purchase decision continuity survives Host crash.
-- Developed-property bankruptcy cleanup is accepted on Host and Guest.
-- Bankruptcy pawn/development visuals remain cleared during continued play.
-- Existing lobby/chat/progression/Store/Career/Steam identity architecture was not rewritten by Phase 12.
-
-## 12.7 Phase 12 close artifacts
-
-- `Backend/Firebase/functions/scripts/phase12-intent-resilience-e2e.mjs`
-- `Backend/Firebase/functions/scripts/phase12-temporarybot-expiry-e2e.mjs`
-- `Backend/Firebase/functions/scripts/phase12-repeated-reconnect-e2e.mjs`
-- `Backend/Firebase/functions/scripts/phase12-host-crash-election-e2e.mjs`
-- `Assets/Project/Editor/AtlasBoardPhase12EDevelopedBankruptcyE2ETool.cs`
-
-Phase 12 production changes are intentionally narrow and preserve the accepted Phase 11G Host Migration/reconnect architecture.
-
-# 13. Former Host Migration milestone
-
-**Status: RETIRED AS A SEPARATE IMPLEMENTATION PHASE / ABSORBED INTO PHASE 11G.**
-
-The v4.5 roadmap defined Phase 13 as a future standalone Host Migration milestone covering deterministic new Host selection, authoritative state transfer, pending intents, Bot authority, AFK ownership, revision continuity, original Host rejoin, and migration during gameplay transitions.
-
-Those architectural requirements are now implemented in Phase 11G.
-
-Therefore:
-
-- Do not build a second Host Migration system in Phase 13.
-- Host Migration regressions are fixed against the existing 11G architecture.
-- Phase 12 timing torture is complete; future regressions are handled in the phase where they are discovered.
-- Performance/build-level migration QA belongs to Phase 16.
-- Real external-network Host-loss validation belongs to Phase 17.
-
-Phase number 13 is intentionally retained in documentation history so older roadmap references remain understandable.
-
-# 14. Dedicated UI/UX polish
-
-**Status: DONE / accepted locally through Phase 14K; final close commit/push pending.**
-
-Phase 14 completed the dedicated presentation/accessibility pass without replacing accepted gameplay or online authority.
-
-Accepted Phase 14 scope:
-
-- 14A City Information panel.
-- 14B provider-neutral Network Quality diagnostics in Pause.
-- 14C canonical profile-header identity.
-- 14D P1/P2/P3/P4 HUD alignment + editor/menu cleanup.
-- 14E HUD typography/autosizing foundation.
-- 14F Match Result + exit-flow hardening.
-- 14G Auction Visual Polish + shared tablet/world interaction rule.
-- 14H Trade Visual Polish.
-- 14I Development Visual Polish.
-- 14J desktop aspect-ratio + EN/TR/ES/FR/DE/KO/RU regression.
-- 14K controller/gamepad navigation, focus visibility, reduced-motion consistency, Purchase presentation polish and final localization hardening.
-- Final Phase 14 cleanup: generic one-language presentation seeds such as `Bölge N` are normalized into the active locale, and City Information scrolling owns mouse-wheel/drag input instead of also driving the board camera.
-
-Mobile-safe layout remains optional unless mobile is promoted to active release scope.
-
-## 14.1 Phase 14A — Clickable City Information Panel
-
-**Status: DONE / accepted.**
-
-Accepted behavior:
-
-- Clicking/tapping a City property opens a compact informational panel without changing gameplay authority.
-- Panel reads existing data-driven `BoardTileDefinition` / runtime tile data instead of city-specific gameplay branches.
-- Shows city/property name, active map/group context, owner/unowned state, purchase price, base rent, current effective rent, development cost and development level.
-- Uses `Description` when content provides one.
-- If description content is empty, uses a localized neutral fallback rather than inventing city facts.
-- Supports EN/TR/ES/FR/DE/KO/RU labels and runtime language changes.
-- Mouse and touch input supported.
-- Safe-area aware.
-- `X`, `ESC`, empty-board or non-City click closes the panel.
-- Opening the panel never performs Purchase/Auction/Trade/Development/network authority actions.
-- While the pointer is over the open City Information card/ScrollRect, mouse wheel and drag input belong to that UI surface; `BoardCameraController` must not zoom/rotate/pan from the same pointer input.
-
-Phase 14G strengthened the modal rule:
-
-- City Information is automatically closed/disabled while any gameplay tablet is open.
-- Board clicks cannot open the City Information card behind Auction, Trade, Development, Match Result or other tablet surfaces.
-- City Information input is restored automatically when the tablet closes.
-
-Architecture invariant:
-
-- City information remains content/data driven.
-- Existing Purchase/Auction/Trade/Development decision panels remain authoritative and separate from the informational panel.
-
-## 14.2 Phase 14B — Network Quality Diagnostics
-
-**Status: DONE / accepted presentation; controlled-network validation remains part of Phase 16.**
-
-Measurement behavior:
-
-- Reuses existing `matchGetSnapshot` Firebase application traffic.
-- Does **not** add a dedicated ping endpoint or extra Firebase polling.
-- `PING` = smoothed application/backend round-trip time.
-- `JIT` = recent successful RTT variation.
-- `LOSS` = application-level failed/late snapshot percentage.
-- `LOSS` is explicitly not raw UDP packet loss.
-- Diagnostic telemetry is presentation-only and never gameplay authority.
-
-Final UX decision:
-
-- Network quality is **not** permanently shown over the gameplay board.
-- During an online match, the compact network row appears inside the Pause menu, under `QUIT GAME` and above the `ESC` hint.
-- Values continue collecting from existing snapshot traffic while gameplay runs, so opening Pause can show recent/current measurements immediately.
-- Local/offline matches do not need to show the network row.
-- States remain provider-neutral: Good / Fair / Poor / Reconnecting / Offline.
-
-Phase 16 still owns controlled latency/jitter/disconnect validation and release-quality threshold tuning.
-
-## 14.3 Phase 14C — Canonical Profile Header
-
-**Status: DONE / accepted.**
-
-Accepted:
-
-- Main Menu top-left profile card uses canonical Atlas profile `DisplayName` from the existing account/profile service.
-- Generic localized `PLAYER` remains only as signed-out/unavailable fallback.
-- Actual user display name is not translated when UI language changes.
-- Avatar initial follows the canonical display name.
-- Existing Profile modal receives the same identity.
-- Store/wallet, lobby, Steam provider identity and match authority are not rewritten by this binding.
-- Canonical AccountId remains authoritative; Steam persona/SteamID does not replace Atlas identity.
-- Expected Firebase-offline profile lookup failures are treated as transient local-development conditions and no longer spam repetitive warnings while preserving the existing header presentation.
-
-## 14.4 Phase 14D — P1/P2/P3/P4 HUD Alignment + Editor Cleanup
-
-**Status: DONE / accepted.**
-
-HUD alignment:
-
-- Four Player HUD cards share consistent internal geometry.
-- Player icon/badge is consistently sized and centered.
-- Player-name, money and controller-type lanes share consistent left alignment.
-- Turn badge uses a consistent top-right inset and size.
-- Long player names reserve turn-badge space.
-- Existing 2/3/4-player external corner placement remains owned by the established HUD layout system.
-- Existing current-turn, Human/Bot/TemporaryBot, bankruptcy and gameplay state behavior remains unchanged.
-
-Editor/tooling cleanup:
-
-- Unity `Atlas Board` menu is grouped under:
-  - `Design`
-  - `Online & Backend`
-  - `Game & Content`
-  - `Meta & Progression`
-  - `QA & Diagnostics`
-  - `Phases`
-  - `Project Tools`
-- Phase tools are grouped below their Phase 14 subphase.
-- Final safe organizer uses exact literal menu-prefix replacements rather than reconstructing `MenuItem` attributes.
-- Temporary recovery scripts are not canonical repository artifacts.
-- Known Unity 6.5 Phase 14 deprecated API warnings were migrated to current overloads.
-- Deprecated TMP wrapping usage and ellipsis fallback warning spam were cleaned using the effective current TextMeshPro APIs.
-
-## 14.5 Phase 14E — Final HUD Typography & Responsive Foundation
-
-**Status: DONE / accepted.**
+## 15B — Unified Emulator Firebase Session
+**Status: DONE / accepted locally.**
 
 Implemented:
 
-- Player HUD typography is normalized after Phase 14D structural geometry.
-- Player names, money, controller labels, turn badges and player icons use explicit typography rules.
-- Player names have long-name shrink headroom.
-- Compact viewport behavior is supported.
-- Status bar and shortcut hint typography are included.
-- Localized font resolution is reapplied for supported languages.
-- Single-line HUD elements use autosizing + `Truncate` instead of uncontrolled wrapping/ellipsis fallback.
-- Runtime presentation reapplies after resolution or language changes without changing gameplay authority.
-
-Accepted validation:
-
-- Four Player HUD panels present.
-- Autosizing enabled for relevant HUD text.
-- Long-name width/shrink headroom validated.
-- Status/hint typography validated.
-- No change to Phase 14D external HUD placement logic.
-
-## 14.6 Phase 14F — Match Result + Exit Flow
-
-**Status: DONE / accepted and pushed.**
-
-Verified pushed checkpoint:
-
-- `3c41f427e93b3b55d078de4ae8a903d751f3bb0a`
-- `Finalize Phase 14F match result and exit flow`
-
-Final Match Result presentation:
-
-- The earlier inner-panel layout experiments were discarded.
-- The successful implementation uses `TabletUIManager.tabletRoot` as the real full-tablet geometry owner.
-- Result player presentation is a readable 2x2 layout:
-  - P1 upper-left
-  - P2 upper-right
-  - P3 lower-left
-  - P4 lower-right
-- Player cards show player identity, winner/tie/bankruptcy state and core economy/result values.
-- Existing Match Result title/winner headline and Rematch flow remain authoritative.
-- Final card block was shifted slightly upward for balanced spacing above the Rematch button.
-
-Exit-flow hardening accepted in the same checkpoint:
-
-- `QUIT GAME` stops Unity Play Mode in Editor and exits the Player build.
-- Host leave no longer traps a Host when only bots remain and no Human successor exists.
-- No-successor Host leave closes the now-humanless session instead of requiring an authority handoff.
-- Human-to-Human Host Migration still uses the safe-checkpoint authority path.
-- Observed solo Host + bots leave time after hardening was approximately 7 seconds and accepted.
-- Transient `HOST_MIGRATION_NOT_SAFE_YET` handling was hardened rather than treated as an immediate terminal leave failure.
-
-Critical lesson:
-
-- Do **not** use `MatchResultManager.resultPanel` as the full-tablet geometry reference.
-- Use `TabletUIManager.tabletRoot`.
-- This lesson is promoted to the canonical architecture rule in Section 2.7.
-
-## 14.7 Phase 14G — Auction Visual Polish
-
-**Status: DONE / accepted locally; pending commit/push with this roadmap.**
+- FirebaseAuth SDK uses Auth Emulator.
+- Firestore SDK uses Firestore Emulator.
+- SDK identity is unified with the deterministic lobby/manual REST development identity.
+- SDK UID and Lobby UID are verified to match.
+- Missing preferences are created only when required.
+- Canonical account/profile snapshot drives visible profile presentation.
+- Main Menu, Settings/Profile, Lobby and Store presentation races were repaired.
+- Local lobby seat presentation uses the canonical display name.
 
 Accepted presentation:
 
-- Auction presentation is built directly against `TabletUIManager.tabletRoot`.
-- Existing `AuctionManager` remains authoritative for auction rules and state.
-- Property hero area shows the City/property context.
-- Purchase price and base rent remain visible.
-- Current Bid receives strong visual hierarchy.
-- Current Bidder card shows player identity and balance.
-- Highest Bidder card shows the leading player/bid state.
-- Player colors are used as accents without making color the only source of meaning.
-- Three large actions remain clear:
-  - small bid
-  - large bid
-  - pass
-- Bid actions display the actual next total bid amount.
-- Polished buttons call the existing authoritative `AuctionManager` public actions rather than reimplementing bidding rules.
-- Button interactability mirrors the existing authoritative Auction controls.
-- EN/TR/ES/FR/DE/KO/RU presentation labels and localized font resolution are preserved.
+- Main Menu: canonical display name with level.
+- Settings/Profile modal: canonical display name.
+- Lobby/Store top-left profile presentation remains synchronized.
 
-Auction result presentation:
-
-- The old tiny result/status line was replaced for the result-display state.
-- When Auction completes, bidder cards and Bid/Pass actions temporarily hide.
-- A large centered Auction Result card uses the freed tablet space.
-- Result text uses larger autosizing and can wrap when needed.
-- Normal Auction controls return for the next active Auction.
-
-Tablet modal/world-input behavior:
-
-- `AtlasBoardTabletWorldInteractionGuard` blocks City Information world clicks while any gameplay tablet is open.
-- This is intentionally global tablet behavior, not Auction-only behavior.
-- When the tablet closes, City Information world input is restored.
-
-Accepted non-regression:
-
-- Auction bid increments/rules were not rewritten.
-- Affordability checks remain in `AuctionManager`.
-- Pass behavior remains in `AuctionManager`.
-- Winner selection, money spending and property assignment remain unchanged.
-- Network/Host authority was not duplicated in the presentation layer.
-
-## 14.8 Phase 14H — Trade Visual Polish
-
+## 15C — App Check Transport Plumbing
 **Status: DONE / accepted locally.**
 
-Accepted:
+Implemented a centralized App Check request-security helper used by the manual HTTP transport bridges.
 
-- Trade presentation uses `TabletUIManager.tabletRoot`.
-- Existing `TradeManager` remains authoritative.
-- Build Offer, incoming offer approval/rejection and accepted-result states use clear, separate layouts.
-- Duplicate/overlapping `TRADE WITH`, `YOU GIVE` and `OTHER PLAYER GIVES` presentation was removed.
-- Player selector, property selectors and cash inputs were aligned into their intended cards.
-- Dropdown/input text contrast was corrected for readability.
-- Accept/Reject/Cancel/Submit behavior and online authority were not rewritten.
-- Tablet modal/world-input blocking remains active.
+Coverage includes:
 
-## 14.9 Phase 14I — Development Visual Polish
+1. Lobby
+2. Match
+3. Chat
+4. Chat Moderation
+5. Meta Economy
+6. Progression
+7. Steam Account Link
 
+Behavior:
+
+- SDK absent -> request continues without App Check.
+- SDK present but token unavailable -> request continues while enforcement is still OFF.
+- Token available -> `X-Firebase-AppCheck` is attached.
+- No callable enforcement was enabled at this stage.
+
+Initial transport validation passed at 7/7 coverage.
+
+## 15D — Firebase App Check SDK + Editor Debug Provider
 **Status: DONE / accepted locally.**
 
-Accepted:
+Implemented and verified:
 
-- Development presentation uses `TabletUIManager.tabletRoot`.
-- Existing `PropertyDevelopmentManager` remains authoritative for ownership, balanced development, cost, eligibility and level changes.
-- Property/group identity, current level, rent progression, development cost, balance and blocked reason receive clear visual hierarchy.
-- The disabled `DEVELOP` button no longer visually flickers/re-enables when development is blocked.
-- PASS and authoritative online/bot behavior remain unchanged.
+- Firebase App Check Unity SDK 13.15.0 imported.
+- Early provider configuration occurs before Firebase service initialization.
+- Editor debug token can be read from process environment or Windows User environment.
+- Debug token value is never logged by AtlasBoard.
+- Firebase App ID verified:
+  `1:962084427661:android:3e8f20b1ddfe0da4d68fc4`
+- Project ID verified:
+  `atlasboard-usa`
+- Firebase Console app and Unity runtime App ID match.
+- Direct `exchangeDebugToken` probe eventually returned HTTP 200 after replacing the original invalid/mismatched debug token.
+- Normal Firebase App Check SDK token acquisition then worked.
 
-## 14.10 Phase 14J — Responsive + Seven-Language Regression
+Final runtime acceptance evidence:
 
-**Status: DONE / accepted.**
+- `SDK=True`
+- `DebugProviderConfigured=True`
+- `RequestsSeen=7`
+- `HeadersAttached=7`
+- `SdkUnavailableSkips=0`
+- `TokenUnavailableSkips=0`
 
-Accepted validation:
+Therefore the Editor development path is proven end-to-end:
 
-- Three representative desktop presentation profiles were manually exercised: narrow, standard and wide.
-- EN/TR/ES/FR/DE/KO/RU were manually cycled and accepted across the tested Phase 14 surfaces.
-- Long-text/autosizing behavior remained readable in the accepted test pass.
-- The optional Development-Build regression harness is hidden by default and uses the project's New Input System.
-- Unity 6.5 deprecated APIs in the harness were removed.
-- The harness is QA-only (`UNITY_EDITOR || DEVELOPMENT_BUILD`) and is not part of a normal release build.
+`registered debug secret -> Firebase App Check token -> X-Firebase-AppCheck -> AtlasBoard backend request`
 
-Final localization lesson discovered during close review:
+Security note:
 
-- Translation-table completeness alone is not enough.
-- Generic display seeds stored in content data can still leak one source language into another locale.
-- `GroupDisplayName` values such as `Bölge 1` must be presented from canonical group identity/number in the active locale.
-- Legacy small labels such as Match Setup `OYUNCU`, `TUR`, `İNSAN`, `HARİTA YOK` and `Eksik Harita` require the same runtime presentation audit.
-- Event/Special/Purchase translation data remains seven-language complete; the close pass also preserves runtime repaint of already-open Event/Special surfaces on language change.
+- Debug tokens are development credentials.
+- Any debug token exposed in chat/screenshots should be revoked and replaced before long-term/shared use.
+- Debug tokens must never be embedded in source or production builds.
 
-## 14.11 Phase 14K — Controller + Accessibility Final Pass
+## 15E — Windows/Steam Production Custom App Check Provider
+**Status: DONE for code/build acceptance; real production runtime acceptance DEFERRED until real Steam credentials exist.**
 
-**Status: DONE / accepted locally; Phase 14 close gate PASS after final cleanup.**
+Implemented architecture:
 
-Accepted:
+### Unity / desktop standalone
 
-- New Input System gamepad navigation for Unity UI Selectables.
-- D-pad/left-stick navigation and submit/cancel behavior use existing UI authority.
-- Gameplay-tablet navigation is scoped to `TabletUIManager.tabletRoot` while the tablet owns interaction.
-- High-contrast focus indication is available for gamepad selection.
-- Existing `Reduce Camera Motion` remains the single authoritative user preference and is reapplied to late-spawn camera components.
-- Purchase presentation was expanded to show property identity, group, purchase price, base rent, next rent/development context, cost and player balance while reusing authoritative Buy/Pass actions.
-- Open Tax/Bonus/Vacation/Rest/rent-bankruptcy and Event presentation can repaint correctly when the active language changes.
-- The first experimental world-space P1/P2/P3/P4 ownership badges were rejected because they harmed board readability; they were removed. Do not restore that implementation.
-- Colorblind accessibility should be solved in contextual/status UI or a later validated board treatment rather than by intrusive floating ownership labels.
+- Editor keeps the Phase 15D Debug App Check provider.
+- Desktop standalone builds use `AtlasBoardSteamAppCheckProviderFactory`.
+- Provider implements Firebase Unity custom `IAppCheckProvider`.
+- Firebase Unity 13.15 `GetLimitedUseTokenAsync()` contract is implemented with the standard-token fallback because AtlasBoard does not currently require replay-protected limited-use tokens.
+- App Check provider requests a fresh Steam Web API ticket with dedicated identity:
+  `atlasboard-appcheck-v1`
+- Steam proof ticket is cancelled after use.
+- Raw Steam ticket is not logged or persisted.
+- Returned App Check token is not logged.
+- Custom provider validates Firebase App ID, Steam AppID and SteamID returned by the server.
+- App Check token expiry is passed back to Firebase SDK so SDK caching/refresh can operate normally.
 
-### Phase 14 final close rules
+### Backend
 
-- **Full-tablet geometry:** use `TabletUIManager.tabletRoot`.
-- **Gameplay authority:** presentation wrappers call/mirror existing authoritative managers.
-- **Tablet/world interaction:** when a gameplay tablet is active, world City clicks do not pass through it.
-- **Scrollable overlay/camera interaction:** when the pointer is over City Information, its ScrollRect owns mouse-wheel/drag input and board camera controls are suppressed.
-- **Localization semantics:** do not render raw generic one-language seed labels such as `Bölge N`; resolve semantic group/label meaning into the active locale.
-- **Seven-language target remains:** EN/TR/ES/FR/DE/KO/RU.
-- **Rejected ownership badge treatment stays removed.**
-- Mobile-specific responsive work is not reopened unless mobile becomes active release scope.
+New callable:
 
-Phase 14 is now considered complete. Any later isolated UI regression is repaired in the phase where it is discovered rather than reopening the entire Phase 14 program.
+- `platformSteamCreateAppCheckToken`
 
-# 15. Security and production backend hardening
+Security flow:
 
-**Status: FUTURE / required before live release.**
+1. Desktop client obtains a fresh Steam Web API ticket.
+2. Backend calls Valve `ISteamUserAuth/AuthenticateUserTicket/v1`.
+3. Valve proof must match configured Steam AppID.
+4. Invalid or publisher-banned proof is rejected.
+5. Firebase Admin App Check mints a custom App Check token.
+6. Token TTL is **1 hour**.
+7. Client returns the token to Firebase App Check SDK.
+8. Existing Phase 15C transport attaches `X-Firebase-AppCheck` to protected backend requests.
 
-- App Check production enforcement.
-- Final Firestore Security Rules.
-- Least-privilege callable authorization.
-- Abuse/rate-limit review.
+The token-acquisition endpoint intentionally does **not** require App Check because it is the bootstrap path that creates the App Check token.
+
+The endpoint also does not require Firebase Auth as proof-of-app authenticity comes from verified Steam evidence. Atlas canonical account authentication remains a separate concern for account-authorized endpoints.
+
+### 15E acceptance completed now
+
+- Unity compile issue caused by Firebase 13.15 `GetLimitedUseTokenAsync()` requirement was fixed.
+- One-time Phase 15E installer validation was corrected and passed.
+- Installer removed itself after success; no permanent temporary Editor installer remains.
+- `index.ts` exports `platformSteamCreateAppCheckToken`.
+- `app-check-steam.ts` exists.
+- `AtlasBoardSteamAppCheckProvider.cs` exists.
+- TypeScript `npm.cmd run build` — **PASS**.
+- Focused `npx.cmd eslint "src/platform/app-check-steam.ts"` — **PASS**.
+- Full backend lint still reports 15 pre-existing errors in:
+  - `src/lobby/lobby.ts`
+  - `src/match/lifecycle.ts`
+  - `src/match/network.ts`
+- Those full-lint errors are not introduced by Phase 15E.
+
+### 15E deferred acceptance
+
+A real production Steam attestation cannot yet be considered proven because AtlasBoard still lacks the final live Steam configuration in this checkpoint:
+
+- Real AtlasBoard Steam AppID.
+- Production publisher Web API secret.
+
+Development AppID `480` is not accepted as production evidence.
+
+Once the real credentials are available, the production runtime proof must validate:
+
+`Steam standalone client -> fresh Web API ticket -> Valve verification -> Firebase Admin custom App Check token -> Firebase SDK -> X-Firebase-AppCheck -> protected backend request`
+
+### Enforcement status after 15E
+
+**App Check callable enforcement remains OFF intentionally.**
+
+Do not enable broad `enforceAppCheck:true` until 15F classifies endpoints and provides safe staged enforcement tests.
+
+# 6. Remaining Phase 15 execution plan
+
+## 15F — Staged App Check Enforcement Rollout
+**Status: NEXT.**
+
+Goals:
+
+- Inventory callable endpoints.
+- Classify endpoints as:
+  - normal authenticated/protected runtime endpoints;
+  - bootstrap/token-acquisition endpoints;
+  - emulator/dev-only endpoints.
+- Keep `platformSteamCreateAppCheckToken` outside App Check enforcement because it creates the initial token.
+- Add positive/negative App Check tests:
+  - valid token accepted;
+  - missing token rejected where enforcement applies;
+  - invalid token rejected;
+  - bootstrap endpoint remains usable without pre-existing App Check token.
+- Introduce enforcement in a staged/reversible way rather than blindly flipping every callable at once.
+- Preserve local emulator development workflow.
+
+## 15G — Callable Authorization + Abuse Hardening
+**Status: FUTURE.**
+
+- Least-privilege callable authorization review.
+- Account/seat/lobby/match ownership checks.
+- Host-only action review.
+- Rate-limit / spam-abuse review.
 - Idempotency review.
-- Wallet/commerce immutable audit trail review.
-- Catalog/promo authorization.
-- Chat/report/sanction production review.
+- Replay-sensitive action review.
+
+## 15H — Economy / Commerce Security
+**Status: FUTURE.**
+
+- Wallet authority.
+- Immutable ledger/audit trail review.
+- Purchase replay/duplicate prevention.
+- Inventory entitlement authority.
+- Catalog authorization.
+- Promo/event reward authorization.
+- Seasonal ticket/reward integrity.
+
+## 15I — Moderation + Data Lifecycle
+**Status: FUTURE.**
+
+- Chat authorization/rate-limit review.
+- Report/sanction authority.
+- Moderation operations requirements.
 - TTL/retention deployment.
-- Secret/config review.
-- Environment separation.
-- Logging/monitoring/alerting.
 - Privacy/data-retention documentation.
-- Moderation operations/dashboard if reports are used live.
-- Real AtlasBoard Steam AppID and publisher-secret configuration.
-- Production Steam verification and achievement configuration.
-- Deployed backend migration away from development emulator assumptions.
 
-# 16. Build readiness and QA
+## 15J — Production Operations / Environment Hardening
+**Status: FUTURE.**
 
-## 16.1 Unity/build quality
+- Secret/config review.
+- Development vs staging vs production separation.
+- Logging.
+- Monitoring.
+- Alerting.
+- Privacy-safe operational diagnostics.
+- Release-safe HTTP/security configuration.
+
+## 15K — Production Steam / Backend Security Close
+**Status: FUTURE / final Phase 15 close gate.**
+
+Requires:
+
+- Real AtlasBoard Steam AppID.
+- Production Steam publisher Web API secret.
+- Production Steam verification.
+- Real Windows/Steam custom App Check runtime acceptance.
+- Final App Check enforcement acceptance.
+- Invalid/missing token rejection proof.
+- Production Steam achievement/provider configuration review.
+- Removal of development emulator assumptions from deployed paths.
+- Final security regression suite.
+- Phase 15 roadmap close checkpoint.
+
+# 7. Phase 16 — Build Readiness and QA
+
+**Status: FUTURE after Phase 15.**
+
+## Unity/build quality
 
 - Zero unexplained compile errors.
 - Warning cleanup.
@@ -1407,237 +470,182 @@ Phase 14 is now considered complete. Any later isolated UI regression is repaire
 - VSync/FPS QA.
 - Input QA.
 - Localization/font/glyph QA.
-- Development vs release HTTP/security-setting verification.
+- Development vs release security-setting verification.
 
-## 16.2 Multiplayer QA
+## Multiplayer QA
 
 - Multiple physical PCs.
-- Host/Guest role reversal.
+- Host/Guest reversal.
 - 2/3/4 players.
-- Latency/jitter/packet-loss simulation where practical.
+- Latency/jitter/loss testing.
 - Emulator vs deployed-backend parity.
-- Version compatibility rejection.
-- Reconnect/host-loss regression suite.
-- Authority epoch/revision diagnostics.
+- Reconnect/host-loss regression.
 - Repeated rematch/new-lobby reuse.
-- Validate Network Quality HUD against controlled latency/jitter/disconnect conditions.
-- Verify Firebase/application-level latency, jitter and timeout/loss estimates are stable and clearly labeled.
-- If SteamNetworkingSockets/SDR is later adopted, compare native Steam connection statistics against the provider-neutral HUD contract.
+- Network Quality HUD verification.
 
-## 16.3 Pipeline
-
-Potential:
+## Pipeline
 
 - Repeatable Development Build profile.
 - Release build profile.
-- CI Unity compile/test.
-- Backend lint/build/E2E pipeline.
+- CI compile/test.
+- Backend lint/build/E2E.
 - Version stamping.
 - Artifact naming.
 - Steam branch/channel strategy.
-- Automated focused multiplayer regression harness where feasible.
 
-# 17. External / live testing
+# 8. Phase 17 — External / Live Testing
 
-Final external testing should include:
+**Status: FUTURE.**
 
-- Real Internet rather than only local/private development routing.
+Final external validation should include:
+
+- Real Internet.
 - Multiple real accounts.
 - Multiple time zones.
 - Multiple physical PCs.
-- Real AtlasBoard Steam AppID invite/join when available.
-- Chat UTC-offset behavior.
-- Repeated disconnect/reconnect.
-- Host loss/migration.
+- Real AtlasBoard Steam AppID.
+- Production-like backend.
+- Real Steam provider verification.
+- Repeated reconnect/Host loss.
 - 3/4-player sessions.
-- Deployed production-like backend.
-- Later mobile/crossplay if platform adapters exist.
+- Chat UTC behavior.
+- Release-topology validation.
 
-The Colorado/Turkey two-machine test already proved the shared-development architecture and major gameplay synchronization over two physical machines. Phase 17 should validate the release topology, not repeat the exact emulator experiment.
+The previous Colorado/Turkey two-machine tests proved the shared development architecture. Phase 17 validates the release topology rather than merely repeating emulator experiments.
 
-# 18. Optional feature backlog - not committed scope
+# 9. Optional backlog — not committed scope
 
-These ideas must not displace the core roadmap automatically.
+Possible later work:
 
-## Social / multiplayer
-
-- Friend list integration.
-- Party system.
-- Quick Play.
-- Matchmaking queues.
+- Friend/party system.
+- Quick Play / matchmaking.
 - Casual/ranked split.
-- Skill rating/ELO.
-- Spectator slots.
-- Reconnectable spectators.
-- Extended/replayable history.
-- Replay/event-log files.
-- Rematch vote alternative.
-
-## Communication
-
-- Quick-chat phrases.
-- Emotes.
-- Ping system.
-- Party/whisper/spectator chat.
-- Voice only if moderation/platform burden is justified.
-- Translation assistance only if privacy/cost/quality are acceptable.
-
-## Progression
-
-- Seasonal badges/titles.
-- Profile frames/titles as visible Career rewards.
-- Map mastery beyond current per-map cumulative stats.
-- Additional daily/weekly mission families.
-
-## Gameplay variants
-
-- Alternate rule presets.
-- Short/long modes.
-- Custom lobby rule presets.
-- Tournament mode.
-- Team mode only with clean rule redesign.
-
-## Content creation
-
+- Skill rating.
+- Spectators.
+- Replay/history expansion.
+- Quick-chat/emotes/pings.
+- Voice only if moderation burden is justified.
+- Seasonal profile cosmetics.
+- Additional missions.
+- Alternate rules / tournament modes.
 - Steam Workshop/custom maps.
-- Custom Event decks.
-- Cosmetic board themes.
-- Community map review pipeline.
-
-## Accessibility
-
-- Colorblind palettes.
-- Larger UI/text scale.
-- Dyslexia-friendly font if validated.
-- Remappable controls.
-- Keyboard-only/controller-only navigation.
-- Reduced motion.
-- High contrast.
-- Better status log/subtitles.
-
-## Operations
-
-- Crash reporting.
-- Privacy-safe analytics.
-- Feature flags.
-- Remote Config tuning.
-- Staged rollout.
+- Colorblind palettes and additional accessibility options.
+- Crash reporting / privacy-safe analytics.
+- Feature flags / staged rollout.
 - Backend health dashboard.
 - Moderation dashboard.
 
-# 19. Revised execution order from v5.5 checkpoint
+These items must not displace Phase 15 security close, Phase 16 QA or Phase 17 release validation without an explicit priority decision.
 
-1. **Phase 14 - Dedicated UI/UX polish — COMPLETE; final close commit/push pending.**
-2. **Phase 15 - Security and production backend hardening — NEXT after Phase 14 close push.**
-3. **Phase 16 - Build readiness, performance, localization QA, pipeline**.
-4. **Phase 17 - External real-PC/live backend testing**.
-5. **Release candidate / Steam launch preparation**.
+# 10. Revised execution order from v5.6
 
-Phase 12 is complete. Phase 13 is not a future coding milestone; Host Migration was absorbed into Phase 11G and validated further during Phase 12. Phase 14 is complete locally through 14K and final close cleanup.
+1. **Phase 14 — COMPLETE / CLOSED / PUSHED at `77b4a1c...`.**
+2. **Phase 15A–15E — DONE locally at the defined acceptance level.**
+3. **Phase 15F — NEXT: staged App Check enforcement.**
+4. **Phase 15G — callable authorization + abuse/idempotency.**
+5. **Phase 15H — economy/commerce security.**
+6. **Phase 15I — moderation + retention/privacy.**
+7. **Phase 15J — production operations/environment hardening.**
+8. **Phase 15K — real Steam/backend security close.**
+9. **Phase 16 — build readiness / QA / pipeline.**
+10. **Phase 17 — external live validation.**
+11. **Release candidate / Steam launch preparation.**
 
-# 20. Immediate next action
+# 11. Immediate next action
 
-Create and push the **Phase 14 close checkpoint** containing the accepted Phase 14H–14K work, final localization/input cleanup and this v5.5 roadmap.
+The next implementation step is:
 
-The latest already-existing pushed GitHub HEAD verified before this close commit is:
+**Phase 15F — Staged App Check Enforcement Rollout.**
 
-- `e6fbe82698061be7785686776935f7cb6dc8fe0f`
-- `Complete Phase 14G auction polish and tablet interaction architecture`
+Do not begin by changing every callable to `enforceAppCheck:true`.
 
-This roadmap intentionally does **not** invent the SHA of the not-yet-created Phase 14 close commit.
+First:
 
-After the user pushes the Phase 14 close commit:
+1. Inventory the current callable surface.
+2. Identify bootstrap/dev exceptions.
+3. Add positive and negative App Check tests.
+4. Stage enforcement safely.
+5. Preserve emulator development workflow.
+6. Keep production Steam acceptance deferred until real credentials are available.
 
-1. Verify the new `main` HEAD.
-2. Record that already-existing SHA/title at the next roadmap checkpoint.
-3. Treat Phase 14 as closed.
-4. Begin **Phase 15 — Security and production backend hardening**.
-5. Preserve all Phase 14 geometry, interaction and localization invariants while Phase 15 changes backend/security scope.
-
-# 21. Current checkpoint summary
+# 12. Current checkpoint summary
 
 ## Green / accepted
 
-- Core gameplay/presentation foundation.
-- Phase 3B seat/turn/AFK foundation.
-- Phase 3D lobby/session UI.
-- Phase 4 public browser.
-- Phase 5 main online gameplay path.
-- Phase 6 chat + moderation.
-- Phase 8 gameplay/content checkpoint.
-- Phase 9 Store / Economy / Seasonal Event.
-- Phase 10 Career / progression / achievements / history.
-- Phase 11A–11G platform, Steam, multiplayer/reconnect and Host Migration foundations.
-- Phase 12 resilience hardening and torture validation.
-- **Phase 14A City Information: accepted.**
-- **Phase 14B Network Quality diagnostics + Pause presentation: accepted.**
-- **Phase 14C canonical profile header: accepted.**
-- **Phase 14D HUD alignment + editor/menu cleanup: accepted.**
-- **Phase 14E HUD typography/autosizing foundation: accepted.**
-- **Phase 14F Match Result + exit-flow hardening: accepted and pushed.**
-- **Phase 14G Auction Visual Polish + tablet interaction architecture: accepted and pushed at `e6fbe826...`.**
-- **Phase 14H Trade Visual Polish: accepted locally.**
-- **Phase 14I Development Visual Polish: accepted locally.**
-- **Phase 14J responsive/aspect-ratio + seven-language regression: accepted.**
-- **Phase 14K controller/accessibility + Purchase/Special localization polish: accepted locally.**
-- **Final Phase 14 localization semantics + City Information/camera input ownership cleanup: accepted close scope.**
-- Canonical full-tablet geometry rule: **use `TabletUIManager.tabletRoot`.**
-- Rejected world-space P1/P2/P3/P4 ownership badges remain removed.
+- Phase 14 complete and pushed.
+- Phase 15A Firestore boundary.
+- Phase 15B unified emulator identity.
+- Phase 15C App Check transport plumbing.
+- Phase 15D Editor debug App Check end-to-end.
+- Phase 15E Steam production custom-provider architecture.
+- Phase 15E TypeScript build.
+- Phase 15E focused lint.
+- Temporary diagnostic/install tools cleaned after use.
+- Debug provider and Steam provider are separated by build context.
+- App Check transport is capable of attaching a valid token.
+- Production enforcement remains deliberately disabled until staged rollout.
 
-## Yellow / next
+## Yellow / deferred
 
-- Commit/push the complete Phase 14 close checkpoint + this v5.5 roadmap.
-- Verify the resulting `main` SHA.
-- Begin Phase 15 Security and production backend hardening.
-- Mobile-safe layout only if mobile becomes active release scope.
+- Real production Steam App Check runtime proof.
+- Real AtlasBoard Steam AppID.
+- Production Steam publisher secret.
+- Existing full-backend lint debt in lobby/match files.
+- Phase 15F–15K.
 
 ## Production/later
 
-- Real AtlasBoard Steam AppID/publisher credentials.
-- App Check / Security Rules / least privilege / monitoring.
-- Release backend.
-- Build/performance QA.
-- External live testing and release candidate.
+- Full App Check enforcement.
+- Final least-privilege callable review.
+- Economy/commerce security close.
+- Moderation/retention close.
+- Monitoring/alerting/environment separation.
+- Production Steam verification.
+- Phase 16 QA.
+- Phase 17 live testing.
 
-# 22. Next-chat handoff block
+# 13. Next-chat handoff block
 
 A future AtlasBoard chat should start from these facts:
 
-- Canonical roadmap: `Assets/Project/Documentation/MASTER_ROADMAP.md`, version **5.5**.
-- Roadmap checkpoint date: **2026-10-09 America/Denver**.
-- Last verified already-pushed GitHub HEAD before the Phase 14 close commit: `e6fbe82698061be7785686776935f7cb6dc8fe0f`.
-- Last verified pushed HEAD title: `Complete Phase 14G auction polish and tablet interaction architecture`.
-- Current accepted local checkpoint: **Phase 14A–14K complete; final Phase 14 close commit/push pending.**
-- Phase 12 remains closed and accepted.
-- Phase 13 remains retired as a separate implementation phase; Host Migration is part of Phase 11G.
-- Phase 14A through 14K are DONE/accepted.
-- **Critical tablet architecture invariant:** full gameplay-tablet visuals use `TabletUIManager.tabletRoot`.
-- Do not use narrow inner decision/result panels as the geometry basis for a full-tablet presentation.
-- Existing gameplay/network managers remain authoritative; presentation layers mirror/call established authority.
-- While any gameplay tablet is open, board City Information/world clicks remain blocked.
-- When the pointer is over an open City Information ScrollRect/card, that UI owns mouse-wheel/drag input; board-camera mouse controls must not react to the same input.
-- Generic presentation semantics must not display raw one-language content seeds such as `Bölge N`; resolve canonical group identity/number into the active locale.
-- EN/TR/ES/FR/DE/KO/RU remains the required localization set.
-- The experimental world-space P1/P2/P3/P4 ownership badges were rejected and removed; do not restore them.
-- Phase 14J runtime regression harness is QA-only, hidden by default, uses the New Input System, and is excluded from normal non-development builds.
-- Phase 14 is considered closed after the user commits/pushes this accepted checkpoint.
-- **Phase 15 Security and production backend hardening is next.**
-- Current hosting decision remains Firebase/managed Google Cloud; do not add a self-managed dedicated server by default.
-- Steam remains a provider/platform adapter; do not replace canonical Atlas AccountId/SeatId with SteamID.
-- AppID 480 is development-only.
-- Do not add `.cmd/.bat/.ps1` helper files unless explicitly requested.
-- Do not auto-commit/push; Git operations are controlled by the user.
-- Runtime Unity changes require a fresh Guest build before meaningful two-client acceptance.
-- Backend Functions changes require a successful TypeScript build and emulator restart before runtime acceptance.
-- Before every meaningful patch, inspect current GitHub `main` so accepted newer source is never overwritten.
+- Canonical roadmap checkpoint: **v5.6, 2026-10-10 America/Denver**.
+- Last verified pushed GitHub HEAD:
+  `77b4a1c29fe3ee55dbd27f4d35e6ce5e9d02e157`
+- Pushed HEAD title:
+  `Close Phase 14 UI/UX polish and finalize localization/input handling`
+- Phase 14 is closed.
+- Phase 15A–15E are accepted locally at the documented acceptance level.
+- Phase 15E production runtime acceptance is deferred until real Steam AppID/publisher credentials exist.
+- **Phase 15F staged App Check enforcement is next.**
+- Do not broadly enable `enforceAppCheck:true` before endpoint classification and negative tests.
+- `platformSteamCreateAppCheckToken` is an App Check bootstrap endpoint and must not require a pre-existing App Check token.
+- Editor App Check uses the registered debug provider.
+- Desktop standalone production architecture uses the Steam custom App Check provider.
+- Steam custom provider uses ticket identity:
+  `atlasboard-appcheck-v1`
+- Backend verifies Steam evidence with Valve before Firebase Admin mints a custom App Check token.
+- Custom App Check token TTL is 1 hour.
+- The Firebase SDK/provider flow is responsible for obtaining fresh App Check tokens as required; the user does not manually recreate a token every hour.
+- Development debug token is a separate long-lived debug credential until revoked; it is not the one-hour App Check token.
+- AppID 480 remains development-only.
+- Current hosting decision remains Firebase/managed Google Cloud.
+- Do not add a self-managed dedicated server by default.
+- Canonical full-tablet UI geometry remains `TabletUIManager.tabletRoot`.
+- Gameplay managers remain authoritative.
+- City Information owns wheel/drag while pointer interaction is over its ScrollRect/card.
+- EN/TR/ES/FR/DE/KO/RU remains the localization target.
+- Rejected world-space P1/P2/P3/P4 ownership badges stay removed.
+- Do not add `.cmd/.bat/.ps1` helpers unless explicitly requested.
+- Do not auto-commit/push.
+- Before every meaningful patch, inspect current GitHub `main` and preserve newer accepted local work.
 
-# 23. Roadmap maintenance rule
+# 14. Roadmap maintenance rule
 
-At every meaningful phase close:
+At every meaningful phase checkpoint:
 
-1. Commit/push the accepted source checkpoint.
-2. At the next roadmap update, record the latest already-existing pushed GitHub SHA, commit title and checkpoint date at the top of this file. Do not pretend a roadmap file can know the SHA of a commit that has not yet been created.
-3. Update phase status and acceptance evidence.
-4. Move completed future-scope items out of later phases rather than duplicating them.
-5. Keep the Markdown roadmap in the repository as the canonical planning/handoff source.
-6. Regenerate the Word archive when major roadmap structure changes.
+1. Commit/push accepted source when the user chooses.
+2. On the next roadmap update, record the latest already-existing pushed SHA/title.
+3. Never invent the SHA of a commit that does not yet exist.
+4. Update phase acceptance evidence and deferred gates.
+5. Remove obsolete future-scope items rather than duplicating completed work.
+6. Keep `Assets/Project/Documentation/MASTER_ROADMAP.md` as the canonical repository roadmap.

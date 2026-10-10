@@ -633,6 +633,9 @@ public sealed class AtlasBoardMatchRuntimeBridge :
 
         request.timeout = 20;
 
+        await AtlasBoardAppCheckRequestSecurity.ApplyAsync(
+            request);
+
         double requestStartedAt =
             Time.realtimeSinceStartupAsDouble;
 

@@ -1,0 +1,222 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function owns(uid) {
+      return signedIn() &&
+        request.auth.uid == uid;
+    }
+
+    function supportedLanguage(value) {
+      return value is string &&
+        value in [
+          'en',
+          'tr',
+          'es',
+          'fr',
+          'de',
+          'ko',
+          'ru'
+        ];
+    }
+
+    function validCountryCode(value) {
+      return value is string &&
+        value.size() == 2;
+    }
+
+    function validProfileString(value, maxLength) {
+      return value is string &&
+        value.size() <= maxLength;
+    }
+
+    function validNewUser(uid) {
+      return request.resource.data.keys().hasOnly([
+          'uid',
+          'schemaVersion',
+          'accountStatus',
+          'membershipTier',
+          'countryCode',
+          'preferredLanguage',
+          'createdAt'
+        ]) &&
+        request.resource.data.keys().hasAll([
+          'uid',
+          'schemaVersion',
+          'accountStatus',
+          'membershipTier',
+          'countryCode',
+          'preferredLanguage',
+          'createdAt'
+        ]) &&
+        request.resource.data.uid == uid &&
+        request.resource.data.schemaVersion == 1 &&
+        request.resource.data.accountStatus == 'active' &&
+        request.resource.data.membershipTier == 'normal' &&
+        validCountryCode(
+          request.resource.data.countryCode
+        ) &&
+        supportedLanguage(
+          request.resource.data.preferredLanguage
+        ) &&
+        request.resource.data.createdAt is timestamp;
+    }
+
+    function validUserLocaleUpdate(uid) {
+      return request.resource.data.keys().hasOnly([
+          'uid',
+          'schemaVersion',
+          'accountStatus',
+          'membershipTier',
+          'countryCode',
+          'preferredLanguage',
+          'createdAt'
+        ]) &&
+        request.resource.data.uid == uid &&
+        request.resource.data.uid ==
+          resource.data.uid &&
+        request.resource.data.schemaVersion ==
+          resource.data.schemaVersion &&
+        request.resource.data.accountStatus ==
+          resource.data.accountStatus &&
+        request.resource.data.membershipTier ==
+          resource.data.membershipTier &&
+        request.resource.data.createdAt ==
+          resource.data.createdAt &&
+        validCountryCode(
+          request.resource.data.countryCode
+        ) &&
+        supportedLanguage(
+          request.resource.data.preferredLanguage
+        ) &&
+        request.resource.data
+          .diff(resource.data)
+          .affectedKeys()
+          .hasOnly([
+            'countryCode',
+            'preferredLanguage'
+          ]);
+    }
+
+    function validPublicProfile() {
+      return request.resource.data.keys().hasOnly([
+          'displayName',
+          'avatarId',
+          'profileFrameId',
+          'updatedAt'
+        ]) &&
+        request.resource.data.keys().hasAll([
+          'displayName',
+          'avatarId',
+          'profileFrameId',
+          'updatedAt'
+        ]) &&
+        request.resource.data.displayName is string &&
+        request.resource.data.displayName.size() >= 2 &&
+        request.resource.data.displayName.size() <= 32 &&
+        validProfileString(
+          request.resource.data.avatarId,
+          128
+        ) &&
+        validProfileString(
+          request.resource.data.profileFrameId,
+          128
+        ) &&
+        request.resource.data.updatedAt is timestamp;
+    }
+
+    function validPreferences() {
+      return request.resource.data.keys().hasOnly([
+          'language',
+          'audio',
+          'graphics',
+          'controls',
+          'gameplay',
+          'crossplayPreference',
+          'updatedAt'
+        ]) &&
+        request.resource.data.keys().hasAll([
+          'language',
+          'audio',
+          'graphics',
+          'controls',
+          'gameplay',
+          'crossplayPreference',
+          'updatedAt'
+        ]) &&
+        supportedLanguage(
+          request.resource.data.language
+        ) &&
+        request.resource.data.audio is map &&
+        request.resource.data.graphics is map &&
+        request.resource.data.controls is map &&
+        request.resource.data.gameplay is map &&
+        request.resource.data.crossplayPreference is string &&
+        request.resource.data.crossplayPreference.size() <= 32 &&
+        request.resource.data.updatedAt is timestamp;
+    }
+
+    // Private canonical account document.
+    //
+    // The Unity account service still creates this document directly after
+    // Firebase Auth registration. Client creation is therefore permitted only
+    // with Atlas Board's immutable default authority values.
+    //
+    // A signed-in client may later change ONLY country/language. Account
+    // status, membership tier, schema identity and creation time cannot be
+    // escalated from the client.
+    match /users/{uid} {
+      allow get: if owns(uid);
+
+      allow create: if owns(uid) &&
+        validNewUser(uid);
+
+      allow update: if owns(uid) &&
+        validUserLocaleUpdate(uid);
+
+      allow list, delete: if false;
+    }
+
+    // Public-facing profile projection.
+    //
+    // Reading still requires an authenticated Atlas account. Only the owner
+    // can write the profile document.
+    match /public_profiles/{uid} {
+      allow get, list: if signedIn();
+
+      allow create, update: if owns(uid) &&
+        validPublicProfile();
+
+      allow delete: if false;
+    }
+
+    // User-owned cloud settings.
+    //
+    // These are intentionally client-controlled preferences, not authority or
+    // economy state.
+    match /preferences/{uid} {
+      allow get: if owns(uid);
+
+      allow create, update: if owns(uid) &&
+        validPreferences();
+
+      allow list, delete: if false;
+    }
+
+    // Everything else is backend-only by default.
+    //
+    // This includes wallets, ledgers, inventories, commerce, promo,
+    // progression, lobby/match authority, Steam identity mappings,
+    // chat/moderation state and any future collection not explicitly reviewed.
+    //
+    // Firebase Admin SDK / Cloud Functions bypass Firestore Security Rules and
+    // continue to operate as the trusted server authority.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

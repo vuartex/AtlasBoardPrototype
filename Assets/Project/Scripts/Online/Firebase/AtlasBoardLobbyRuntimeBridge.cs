@@ -1919,6 +1919,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
         webRequest.timeout = 20;
+        await AtlasBoardAppCheckRequestSecurity.ApplyAsync(
+            webRequest);
         await SendRequestAsync(webRequest);
 
         string body =
