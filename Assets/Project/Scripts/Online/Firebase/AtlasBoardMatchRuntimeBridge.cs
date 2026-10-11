@@ -22,6 +22,15 @@ public sealed class AtlasBoardMatchRuntimeBridge :
     private const int FunctionsEmulatorPort =
         5001;
 
+    // Phase 16H.4: gameplay decisions must finish before the existing
+    // 10-second safe-AFK fallback can make a decision on the player's behalf.
+    // Two 4-second transport attempts plus a short gap stay inside that window.
+    // The exact same clientCommandId is reused on retry so the backend's
+    // existing idempotent replay contract prevents duplicate commands.
+    private const int CriticalIntentTimeoutSeconds = 4;
+    private const int CriticalIntentTransportRetryCount = 1;
+    private const int CriticalIntentRetryDelayMs = 125;
+
     [SerializeField, Min(0.25f)]
     private float snapshotPollSeconds =
         0.5f;
@@ -55,6 +64,10 @@ public sealed class AtlasBoardMatchRuntimeBridge :
     }
 
     private SnapshotRequestFlight snapshotFlight;
+    private int criticalIntentInFlightCount;
+
+    public bool HasCriticalIntentInFlight =>
+        criticalIntentInFlightCount > 0;
 
     public event Action<AtlasMatchNetworkSnapshot>
         SnapshotChanged;
@@ -77,6 +90,7 @@ public sealed class AtlasBoardMatchRuntimeBridge :
     private async void Update()
     {
         if (!autoPollAfterMatchBootstrap ||
+            HasCriticalIntentInFlight ||
             pollInFlight ||
             Time.unscaledTime < nextPollAt)
         {
@@ -362,6 +376,80 @@ public sealed class AtlasBoardMatchRuntimeBridge :
                     observed.Phase ?? string.Empty
             },
             ParseIntentResultEnvelope);
+    }
+
+    public async Task<AtlasMatchNetworkResult>
+        SubmitCriticalIntentAsync(
+            string intentType,
+            string payloadJson,
+            string clientCommandId,
+            string matchId = "")
+    {
+        string resolvedMatchId =
+            ResolveMatchId(matchId);
+
+        AtlasMatchNetworkSnapshot observed =
+            currentSnapshot;
+
+        if (observed == null ||
+            !string.Equals(
+                observed.MatchId,
+                resolvedMatchId,
+                StringComparison.Ordinal))
+        {
+            return AtlasMatchNetworkResult.Fail(
+                "match.error.stale_client_state",
+                "No current authoritative match snapshot is available for this command.");
+        }
+
+        // Preserve this exact request envelope and command id across a
+        // transport retry. If the first response is lost after the server
+        // committed the intent, the backend returns an idempotent replay
+        // instead of creating a second command.
+        SubmitIntentRequest request =
+            new SubmitIntentRequest
+            {
+                matchId =
+                    resolvedMatchId,
+                intentType =
+                    intentType ?? string.Empty,
+                payloadJson =
+                    string.IsNullOrWhiteSpace(
+                        payloadJson)
+                        ? "{}"
+                        : payloadJson,
+                clientCommandId =
+                    clientCommandId ?? string.Empty,
+                observedRevision =
+                    observed.Revision,
+                observedEventSequence =
+                    observed.EventSequence,
+                observedAuthorityEpoch =
+                    observed.AuthorityEpoch,
+                observedPhase =
+                    observed.Phase ?? string.Empty
+            };
+
+        criticalIntentInFlightCount++;
+
+        try
+        {
+            return await CallAsync(
+                "matchSubmitIntent",
+                request,
+                ParseIntentResultEnvelope,
+                CriticalIntentTimeoutSeconds,
+                CriticalIntentTransportRetryCount,
+                CriticalIntentRetryDelayMs,
+                "critical_intent");
+        }
+        finally
+        {
+            criticalIntentInFlightCount =
+                Mathf.Max(
+                    0,
+                    criticalIntentInFlightCount - 1);
+        }
     }
 
     public async Task<AtlasMatchNetworkResult>
@@ -711,7 +799,11 @@ public sealed class AtlasBoardMatchRuntimeBridge :
             string functionName,
             TRequest requestData,
             Func<string, AtlasMatchNetworkResult>
-                parser)
+                parser,
+            int timeoutSeconds = 20,
+            int transportRetryCount = 0,
+            int retryDelayMs = 0,
+            string retryDiagnosticLabel = "")
     {
         ResolveReferences();
 
@@ -763,111 +855,216 @@ public sealed class AtlasBoardMatchRuntimeBridge :
             dataJson +
             "}";
 
-        using UnityWebRequest request =
-            new UnityWebRequest(
-                url,
-                UnityWebRequest.kHttpVerbPOST);
+        int boundedTimeoutSeconds =
+            Mathf.Max(
+                1,
+                timeoutSeconds);
 
-        request.uploadHandler =
-            new UploadHandlerRaw(
-                Encoding.UTF8.GetBytes(
-                    callableJson));
+        int boundedRetryCount =
+            Mathf.Max(
+                0,
+                transportRetryCount);
 
-        request.downloadHandler =
-            new DownloadHandlerBuffer();
-
-        request.SetRequestHeader(
-            "Content-Type",
-            "application/json");
-
-        request.SetRequestHeader(
-            "Authorization",
-            "Bearer " +
-            lobbyBridge
-                .AuthTokenForOnlineSubsystems);
-
-        request.timeout = 20;
-
-        await AtlasBoardAppCheckRequestSecurity.ApplyAsync(
-            request);
-
-        double requestStartedAt =
-            Time.realtimeSinceStartupAsDouble;
-
-        UnityWebRequestAsyncOperation operation =
-            request.SendWebRequest();
-
-        TaskCompletionSource<bool> completion =
-            new TaskCompletionSource<bool>();
-
-        operation.completed +=
-            _ => completion.TrySetResult(true);
-
-        await completion.Task;
-
-        float requestElapsedMs =
-            (float)(
-                (Time.realtimeSinceStartupAsDouble -
-                 requestStartedAt) *
-                1000.0);
-
-        string body =
-            request.downloadHandler != null
-                ? request.downloadHandler.text
-                : string.Empty;
-
-        if (request.result !=
-            UnityWebRequest.Result.Success)
+        for (int attempt = 0;
+             attempt <= boundedRetryCount;
+             attempt++)
         {
-            CallableErrorEnvelope error =
-                SafeFromJson<
-                    CallableErrorEnvelope>(
-                        body);
+            using UnityWebRequest request =
+                new UnityWebRequest(
+                    url,
+                    UnityWebRequest.kHttpVerbPOST);
 
-            string key =
-                error != null &&
-                error.error != null &&
-                error.error.details != null &&
-                !string.IsNullOrWhiteSpace(
-                    error.error.details.errorKey)
-                    ? error.error.details.errorKey
-                    : "match.error.unknown";
+            request.uploadHandler =
+                new UploadHandlerRaw(
+                    Encoding.UTF8.GetBytes(
+                        callableJson));
 
-            string technical =
-                error != null &&
-                error.error != null &&
-                !string.IsNullOrWhiteSpace(
-                    error.error.message)
-                    ? error.error.message
-                    : $"HTTP {request.responseCode}: " +
-                      request.error;
+            request.downloadHandler =
+                new DownloadHandlerBuffer();
+
+            request.SetRequestHeader(
+                "Content-Type",
+                "application/json");
+
+            request.SetRequestHeader(
+                "Authorization",
+                "Bearer " +
+                lobbyBridge
+                    .AuthTokenForOnlineSubsystems);
+
+            request.timeout =
+                boundedTimeoutSeconds;
+
+            await AtlasBoardAppCheckRequestSecurity.ApplyAsync(
+                request);
+
+            double requestStartedAt =
+                Time.realtimeSinceStartupAsDouble;
+
+            UnityWebRequestAsyncOperation operation =
+                request.SendWebRequest();
+
+            TaskCompletionSource<bool> completion =
+                new TaskCompletionSource<bool>();
+
+            operation.completed +=
+                _ => completion.TrySetResult(true);
+
+            await completion.Task;
+
+            float requestElapsedMs =
+                (float)(
+                    (Time.realtimeSinceStartupAsDouble -
+                     requestStartedAt) *
+                    1000.0);
+
+            string body =
+                request.downloadHandler != null
+                    ? request.downloadHandler.text
+                    : string.Empty;
+
+            if (request.result !=
+                UnityWebRequest.Result.Success)
+            {
+                CallableErrorEnvelope error =
+                    SafeFromJson<
+                        CallableErrorEnvelope>(
+                            body);
+
+                string key =
+                    error != null &&
+                    error.error != null &&
+                    error.error.details != null &&
+                    !string.IsNullOrWhiteSpace(
+                        error.error.details.errorKey)
+                        ? error.error.details.errorKey
+                        : "match.error.unknown";
+
+                string technical =
+                    error != null &&
+                    error.error != null &&
+                    !string.IsNullOrWhiteSpace(
+                        error.error.message)
+                        ? error.error.message
+                        : $"HTTP {request.responseCode}: " +
+                          request.error;
+
+                AtlasBoardNetworkTelemetry.Report(
+                    functionName,
+                    false,
+                    requestElapsedMs);
+
+                bool retryableTransportFailure =
+                    request.responseCode == 0 &&
+                    IsRetryableTransportFailure(
+                        request);
+
+                if (retryableTransportFailure &&
+                    attempt < boundedRetryCount)
+                {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                    string label =
+                        string.IsNullOrWhiteSpace(
+                            retryDiagnosticLabel)
+                            ? functionName
+                            : retryDiagnosticLabel;
+
+                    Debug.LogWarning(
+                        "AtlasBoard Phase 16H.4 transport retry: " +
+                        "Operation=" + label +
+                        ", Attempt=" + (attempt + 1) +
+                        "/" + (boundedRetryCount + 1) +
+                        ", ElapsedMs=" +
+                        Mathf.RoundToInt(requestElapsedMs) +
+                        ", CommandIdentity=preserved.",
+                        this);
+#endif
+
+                    if (retryDelayMs > 0)
+                    {
+                        await Task.Delay(
+                            retryDelayMs);
+                    }
+
+                    continue;
+                }
+
+                return AtlasMatchNetworkResult.Fail(
+                    key,
+                    technical);
+            }
+
+            AtlasMatchNetworkResult result =
+                parser(body);
 
             AtlasBoardNetworkTelemetry.Report(
                 functionName,
-                false,
+                result.Success,
                 requestElapsedMs);
 
-            return AtlasMatchNetworkResult.Fail(
-                key,
-                technical);
+            if (result.Success &&
+                result.Snapshot != null)
+            {
+                AcceptSnapshot(
+                    result.Snapshot);
+            }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (attempt > 0 &&
+                result.Success)
+            {
+                string label =
+                    string.IsNullOrWhiteSpace(
+                        retryDiagnosticLabel)
+                        ? functionName
+                        : retryDiagnosticLabel;
+
+                Debug.Log(
+                    "AtlasBoard Phase 16H.4 transport retry recovered: " +
+                    "Operation=" + label +
+                    ", Attempt=" + (attempt + 1) +
+                    "/" + (boundedRetryCount + 1) +
+                    ", CommandIdentity=preserved.",
+                    this);
+            }
+#endif
+
+            return result;
         }
 
-        AtlasMatchNetworkResult result =
-            parser(body);
+        return AtlasMatchNetworkResult.Fail(
+            "match.error.unknown",
+            "The match request did not complete.");
+    }
 
-        AtlasBoardNetworkTelemetry.Report(
-            functionName,
-            result.Success,
-            requestElapsedMs);
-
-        if (result.Success &&
-            result.Snapshot != null)
+    private static bool
+        IsRetryableTransportFailure(
+            UnityWebRequest request)
+    {
+        if (request == null ||
+            request.responseCode != 0)
         {
-            AcceptSnapshot(
-                result.Snapshot);
+            return false;
         }
 
-        return result;
+        if (request.result ==
+            UnityWebRequest.Result.ConnectionError)
+        {
+            return true;
+        }
+
+        string error =
+            request.error ?? string.Empty;
+
+        return error.IndexOf(
+                   "timeout",
+                   StringComparison.OrdinalIgnoreCase) >= 0 ||
+               error.IndexOf(
+                   "timed out",
+                   StringComparison.OrdinalIgnoreCase) >= 0 ||
+               error.IndexOf(
+                   "connection",
+                   StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     private static AtlasMatchNetworkResult

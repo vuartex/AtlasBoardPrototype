@@ -1,17 +1,17 @@
 # ATLAS BOARD
-## Master Architecture & Development Roadmap v5.9
+## Master Architecture & Development Roadmap v5.10
 
 **Canonical checkpoint:** 2026-10-11 (America/Denver)  
 **Repository:** `vuartex/AtlasBoardPrototype`  
-**Last verified pushed GitHub HEAD:** `74697e472b865f76afe8f23b3ba8036ac5d35032`  
-**Last verified pushed HEAD commit:** `Complete Phase 15 local close and stabilize Phase 16 Guest QA`  
-**Current accepted local checkpoint:** `Phase 16H / 16H.2 / 16H.3 accepted locally. Snapshot request single-flight/coalescing, host bootstrap prioritization, localized loading/bootstrap UX and ATB frontend diagnostic codes are working. Historical Windows Guest native crash remains mitigated/regression-watch. Phase 16I public-lobby scale/pagination/load validation is the next active phase.`  
+**Last verified pushed GitHub HEAD:** `e69510764d78de82be9a88d1816f340004273cd5`  
+**Last verified pushed HEAD commit:** `Complete Phase 16H loading and network responsiveness checkpoint`  
+**Current accepted local checkpoint:** `Phase 16H.1/16H.2/16H.3 are pushed at e6951076. The one-shot match-loading diagnostic housekeeping and Phase 16H.4 critical-intent transport reliability fix are accepted locally after that push. Historical Windows Guest native crash remains mitigated/regression-watch. Phase 16I is the next active phase, but no Phase 16I source package has been successfully created or applied yet.`  
 **Phase 12 close commit:** `0eca81450be91b30a5dc1cd66d901c46e2cab07c` — `Phase 12: finalize online resilience hardening and crash recovery`  
 **Phase 14 close commit:** `77b4a1c29fe3ee55dbd27f4d35e6ce5e9d02e157` — `Close Phase 14 UI/UX polish and finalize localization/input handling`  
 **Unity baseline:** Unity 6000.5.6f1, `Assets/Board_Prototype.unity`, unless a later committed upgrade explicitly changes it.  
 **Canonical repository roadmap location:** `Assets/Project/Documentation/MASTER_ROADMAP.md`
 
-This v5.9 checkpoint supersedes v5.8. It records the accepted Phase 16H networking/performance work, the Phase 16H.2 host-start prioritization, the Phase 16H.3 startup/match loading experience and frontend diagnostic-code system, and moves the active implementation target to Phase 16I.
+This v5.10 checkpoint supersedes v5.9. It records the pushed Phase 16H.1/16H.2/16H.3 checkpoint, the subsequently accepted local one-shot loading-log housekeeping and Phase 16H.4 critical-intent reliability fix, and moves the active implementation target to Phase 16I. Phase 16I has been inspected but not implemented; failed preparation attempts did not produce or apply a Phase 16I source package.
 
 # 1. Source, replacement and Git discipline
 
@@ -36,9 +36,10 @@ Before meaningful source changes:
 
 Current pushed authority:
 
-- `74697e472b865f76afe8f23b3ba8036ac5d35032` is the latest verified pushed checkpoint.
-- Phase 15 local close and Phase 16 Guest stabilization through that checkpoint are pushed.
-- Phase 16H / 16H.2 / 16H.3 are accepted locally but are not considered pushed until the user commits/pushes them.
+- `e69510764d78de82be9a88d1816f340004273cd5` is the latest verified pushed checkpoint.
+- That commit contains the accepted Phase 16H networking/loading checkpoint, including snapshot coalescing, host-bootstrap prioritization, loading/bootstrap UX and ATB frontend-code framework.
+- The later one-shot `ATB_MATCH_LOAD event=authoritative_ready` housekeeping and Phase 16H.4 critical-intent reliability changes are newer accepted local work and must not be overwritten by the pushed GitHub copies until the user commits/pushes them.
+- No Phase 16I implementation should be assumed present locally or on GitHub yet.
 
 # 2. Durable architecture invariants
 
@@ -515,27 +516,87 @@ Accepted startup evidence from the later healthy Guest sample:
 
 Cold emulator runs may still cross a delay threshold such as `ATB101`; if the operation subsequently succeeds, the game continues normally.
 
-### 16H housekeeping
-**Status: NON-BLOCKING CLEANUP.**
+### 16H housekeeping — one-shot match-loading completion
+**Status: PASS locally.**
 
-The accepted test showed repeated `ATB_MATCH_LOAD event=authoritative_ready` diagnostic lines while the overlay-close delay was still pending.
+The earlier accepted test showed repeated `ATB_MATCH_LOAD event=authoritative_ready` diagnostic lines while the short overlay-close delay was still pending.
 
-This is:
+Accepted fix:
 
-- not a network-request duplication;
-- not a gameplay blocker;
-- not a reason to reopen Phase 16H.
+- `AtlasBoardLoadingExperience.cs` uses a one-shot completion guard per match-loading cycle;
+- repeated `SnapshotChanged` notifications no longer duplicate the `authoritative_ready` completion log;
+- this does not change polling, networking, reconnect, host migration, backend calls or loading duration.
 
-Required cleanup:
+Acceptance evidence:
 
-- add a one-shot completion guard so each match-loading cycle logs authoritative readiness once.
+- later Guest runtime showed one `ATB_MATCH_LOAD event=authoritative_ready` line for each distinct loading cycle;
+- no duplicate completion spam was observed;
+- gameplay and networking remained healthy.
 
-This may be completed alongside the next source checkpoint.
+### 16H.4 — Critical gameplay-intent transport reliability
+**Status: PASS locally.**
+
+A real runtime defect was observed after the initial Phase 16H acceptance:
+
+- a remote purchase decision could surface client-side `HTTP 0: Request timeout`;
+- host-crash recovery/maintenance calls could time out in the same window;
+- backend execution itself was not consistently slow;
+- the missing usable purchase decision could reach the existing 10-second safe-AFK fallback and convert the action to `SKIP`/auction even though the player had acted.
+
+Accepted fix:
+
+- gameplay-critical intents use a short bounded transport attempt;
+- one transport retry is allowed only for retryable timeout/connection failure;
+- retry preserves the **same `clientCommandId`** so backend idempotency remains authoritative;
+- no new gameplay command identity is created for retry;
+- while a critical intent is active, non-critical client traffic is deprioritized/suppressed where safe so it does not compete with the decision request;
+- snapshot/reconnect/host-migration authority remains intact;
+- cosmetic traffic remains non-critical.
+
+Acceptance evidence from the later Editor + Guest test:
+
+- no `HTTP 0: Request timeout`;
+- no `Remote purchase decision failed`;
+- no host-recovery/sweep timeout regression;
+- real Guest and Editor purchase decisions completed successfully;
+- backend `matchSubmitIntent` examples completed in tens of milliseconds and were consumed/acknowledged by the host;
+- snapshot single-flight remained active;
+- host bootstrap remained active;
+- session ended with `SESSION_CLEAN_EXIT droppedMessages=0`.
+
+The retry branch itself did not need to trigger in the accepted healthy run; the test proves the normal path did not regress and the previously observed failure did not reproduce under the same local topology.
 
 ## 16I — Public lobby scale / discovery / measured capacity
-**Status: OPEN — NEXT ACTIVE PHASE.**
+**Status: OPEN — NEXT ACTIVE PHASE / NOT YET IMPLEMENTED.**
 
 Current room discovery is bounded per query/browser page and is not equivalent to a total system lobby limit.
+
+Verified pre-implementation baseline at pushed HEAD `e6951076`:
+
+- backend constants in `Backend/Firebase/functions/src/lobby/lobby.ts` are `PUBLIC_DISCOVERY_QUERY_LIMIT = 50` and `PUBLIC_BROWSER_MAX_RESULTS = 25`;
+- backend currently queries `lobby_discovery.where("joinable", "==", true).limit(50)` without a cursor/order-by contract, then applies compatibility/region/stale-host filtering in memory and sorts by `createdAtEpochMs`;
+- therefore a compatible valid room can be hidden if it falls outside the first raw 50 discovery documents;
+- `AtlasBoardLobbyRuntimeBridge.ListPublicRoomsAsync` currently clamps requested list size to `1..20`;
+- `AtlasBoardPublicLobbyBrowserController` currently calls `ListPublicRoomsAsync(20)`;
+- the built browser has six visible room rows and renders only `filtered.Take(rows.Length)`;
+- these are page/display bounds, not measured total AtlasBoard capacity.
+
+Important state:
+
+- three Phase 16I preparation attempts in the prior chat did **not** result in a valid Phase 16I ZIP being delivered/applied;
+- do not assume any 16I source modification exists;
+- start Phase 16I fresh from the newest verified sources after checking GitHub HEAD and preserving any newer local 16H.4 files.
+
+Primary source targets to inspect before implementation:
+
+- `Backend/Firebase/functions/src/lobby/lobby.ts`
+- `Backend/Firebase/functions/src/index.ts`
+- `Backend/Firebase/functions/scripts/public-lobby-discovery-e2e.mjs`
+- `Backend/Firebase/functions/scripts/qa.mjs`
+- `Assets/Project/Scripts/Online/AtlasLobbyModels.cs`
+- `Assets/Project/Scripts/Online/Firebase/AtlasBoardLobbyRuntimeBridge.cs`
+- `Assets/Project/Scripts/UI/Menu/AtlasBoardPublicLobbyBrowserController.cs`
+- `Assets/Project/Editor/AtlasBoardPublicLobbyBrowserV2Setup.cs` only if actual pagination controls require a scene/UI rebuild.
 
 Required work:
 
@@ -611,7 +672,7 @@ These must not displace Phase 16I without an explicit priority decision.
 # 9. Revised execution order from v5.9
 
 1. **Phase 14 — COMPLETE / CLOSED / PUSHED.**
-2. **Phase 15A–15K — local/emulator implementation accepted; checkpoint pushed through `74697e...`; production Steam cryptographic proof deferred.**
+2. **Phase 15A–15K — local/emulator implementation accepted; production Steam cryptographic proof deferred.**
 3. **Phase 16A — consolidated backend QA PASS.**
 4. **Phase 16B — Unity build readiness PASS.**
 5. **Phase 16C — canonical two-client Guest build PASS.**
@@ -621,11 +682,12 @@ These must not displace Phase 16I without an explicit priority decision.
 9. **Phase 16G — lobby/match responsive exit ACCEPTED.**
 10. **Phase 16H.1 — snapshot single-flight/coalescing PASS locally.**
 11. **Phase 16H.2 — host-bootstrap prioritization PASS locally.**
-12. **Phase 16H.3 — loading/bootstrap UX + ATB error-code system PASS locally.**
-13. **Phase 16H housekeeping — one-shot duplicate match-loading diagnostic cleanup; non-blocking.**
-14. **Phase 16I — NEXT: public-lobby pagination + scale/load/cost/capacity validation.**
-15. **Phase 17 — external/live/release-topology validation.**
-16. **Release candidate / Steam launch preparation.**
+12. **Phase 16H.3 — loading/bootstrap UX + ATB error-code system PASS / pushed at `e6951076`.**
+13. **Phase 16H housekeeping — one-shot match-loading completion PASS locally.**
+14. **Phase 16H.4 — critical-intent transport reliability PASS locally.**
+15. **Phase 16I — NEXT / NOT YET IMPLEMENTED: public-lobby pagination + scale/load/cost/capacity validation.**
+16. **Phase 17 — external/live/release-topology validation.**
+17. **Release candidate / Steam launch preparation.**
 
 # 10. Immediate next action
 
@@ -648,7 +710,7 @@ Start with architecture before synthetic load:
 11. later repeat against deployed backend and multiple physical clients;
 12. only then document measured capacity.
 
-Before or alongside the Phase 16I source checkpoint, perform the small 16H housekeeping item that suppresses repeated `ATB_MATCH_LOAD event=authoritative_ready` logging.
+The Phase 16H housekeeping and 16H.4 reliability work are already accepted locally. Do not reopen them unless regression evidence appears. Begin Phase 16I from a fresh source inspection and do not treat any failed prior 16I preparation attempt as applied code.
 
 # 11. Current checkpoint summary
 
@@ -671,6 +733,8 @@ Before or alongside the Phase 16I source checkpoint, perform the small 16H house
 - Seven-language loading-tip support.
 - Sanitized bootstrap timing diagnostics.
 - Clean-exit evidence in accepted Guest sessions.
+- One-shot match-loading completion logging.
+- Phase 16H.4 critical-intent reliability normal runtime acceptance.
 
 ## Yellow / active or watch
 
@@ -680,7 +744,7 @@ Before or alongside the Phase 16I source checkpoint, perform the small 16H house
 - Firebase quota/cost/load characterization.
 - Multi-PC/deployed latency testing.
 - Historical `0xC0000409` crash remains on regression watch.
-- Duplicate `ATB_MATCH_LOAD authoritative_ready` diagnostic lines need one-shot cleanup.
+- Phase 16I public-lobby pagination and measured scale/load remain unimplemented.
 
 ## Deferred production gates
 
@@ -698,34 +762,52 @@ Before or alongside the Phase 16I source checkpoint, perform the small 16H house
 
 A future AtlasBoard chat should start from these facts:
 
-- Canonical roadmap checkpoint: **v5.9, 2026-10-11 America/Denver**.
+- Canonical roadmap checkpoint: **v5.10, 2026-10-11 America/Denver**.
 - Repository: `vuartex/AtlasBoardPrototype`.
 - Last verified pushed GitHub HEAD:
-  `74697e472b865f76afe8f23b3ba8036ac5d35032`
+  `e69510764d78de82be9a88d1816f340004273cd5`
 - Pushed HEAD title:
-  `Complete Phase 15 local close and stabilize Phase 16 Guest QA`
-- Phase 16H / 16H.2 / 16H.3 are accepted locally and must not be assumed pushed until the next user commit.
+  `Complete Phase 16H loading and network responsiveness checkpoint`
+- The pushed checkpoint contains Phase 16H.1/16H.2/16H.3-era networking/loading work.
+- Newer accepted local work after that push:
+  - one-shot `ATB_MATCH_LOAD event=authoritative_ready` housekeeping;
+  - Phase 16H.4 critical gameplay-intent reliability.
+- Do not overwrite those newer local files with stale GitHub versions unless they have since been pushed and the new HEAD is verified.
 - Historical Guest crash signature:
   `BEX64 / 0xC0000409 / ucrtbase.dll / subcode 7`.
 - Exact native root was not symbolically proven.
 - Current local Guest mitigation isolates unnecessary native Firebase/Steam startup while preserving HTTP emulator multiplayer.
 - Do not casually re-enable native FirebaseAuth/Firestore, native App Check or Steam startup inside the canonical local Guest.
 - Release behavior remains separate and must be revalidated before launch.
-- Guest lobby/match local exit should remain immediate.
+- Guest lobby/match local exit must remain immediate.
 - Snapshot polling/reconnect/host-migration semantics must remain intact.
-- Phase 16H single-flight is accepted: overlapping snapshot callers share one in-flight network task.
-- Forced refresh can schedule at most one follow-up refresh.
+- Phase 16H.1 is accepted: overlapping snapshot callers share one in-flight network task and forced refresh allows at most one follow-up.
 - Remote cosmetic intent waits for an authoritative snapshot.
-- Phase 16H.2 host bootstrap publishes the first authoritative frame before maintenance traffic.
-- Phase 16H.3 adds localized startup/match loading and stable ATB frontend error codes.
-- Public UI must not expose provider/backend implementation details.
+- Phase 16H.2 is accepted: first authoritative host state is prioritized before non-critical maintenance traffic.
+- Phase 16H.3 is accepted: localized startup/match loading, seven-language tips and stable ATB frontend error codes.
+- Public UI must not expose Firebase/Firestore/Functions/Steam security implementation details.
 - `FRONTEND_ERROR_CODEBOOK.md` is the canonical ATB code reference.
-- `ATB101/102/103` are startup delay observations; `ATB301/302/303` are match-sync delay observations.
-- One non-blocking cleanup remains: suppress duplicate `ATB_MATCH_LOAD event=authoritative_ready` log entries per loading cycle.
+- Phase 16H housekeeping is accepted: one match-loading cycle logs authoritative completion once.
+- Phase 16H.4 is accepted:
+  - critical gameplay-intent retry preserves the same `clientCommandId`;
+  - non-critical client traffic is deprioritized while a critical decision is in flight;
+  - no new command identity is generated for retry;
+  - accepted runtime had no HTTP 0 timeout and ended cleanly.
 - Current active phase is **16I public-lobby pagination + measured scale/load**.
-- Do not claim a supported concurrent-player/lobby count until measured testing exists.
+- **No Phase 16I implementation has been applied yet.** Prior preparation attempts did not yield a valid applied ZIP.
+- Verified Phase 16I baseline at pushed HEAD `e6951076`:
+  - backend raw discovery limit = 50;
+  - backend browser result cap = 25;
+  - query has no cursor/order-by contract before filtering;
+  - Unity bridge list request is capped at 20;
+  - browser requests 20;
+  - browser currently has six visible rows.
+- First 16I goal is architectural pagination correctness, not a claimed capacity number.
+- Do not claim a supported concurrent-player/lobby count until measured load testing exists.
+- Backend QA remains consolidated under `Backend/Firebase/functions/scripts/qa.mjs`; reuse/extend the existing `public-lobby-discovery-e2e.mjs` rather than proliferating permanent phase scripts.
 - Do not auto-commit, auto-push or deploy.
-- Prefer complete replacement files over patches unless explicitly asked.
+- Never use `git add .`.
+- Prefer complete replacement source files in a ZIP; do not give patches/installers unless explicitly asked.
 
 # 13. Roadmap maintenance rule
 

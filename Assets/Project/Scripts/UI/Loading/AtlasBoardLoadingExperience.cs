@@ -114,6 +114,7 @@ public sealed class AtlasBoardLoadingExperience : MonoBehaviour
     private int startupGeneration;
     private string trackedMatchId = string.Empty;
     private int matchGeneration;
+    private bool matchCompletionSignaled;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Bootstrap()
@@ -566,6 +567,7 @@ public sealed class AtlasBoardLoadingExperience : MonoBehaviour
 
         trackedMatchId = matchId;
         matchGeneration++;
+        matchCompletionSignaled = false;
 
         BeginLoadingMode(LoadingMode.Match);
         SetProgress(0.28f);
@@ -583,8 +585,17 @@ public sealed class AtlasBoardLoadingExperience : MonoBehaviour
 
     private async void CompleteMatchLoading(AtlasMatchNetworkSnapshot snapshot)
     {
-        if (mode != LoadingMode.Match)
+        if (mode != LoadingMode.Match ||
+            matchCompletionSignaled)
+        {
             return;
+        }
+
+        // SnapshotChanged can fire several times during the short overlay-close
+        // delay. Completion is a presentation event, so accept only the first
+        // authoritative snapshot for this loading cycle. This does not alter
+        // snapshot polling, networking, reconnect or host-migration behavior.
+        matchCompletionSignaled = true;
 
         int generation = matchGeneration;
         float elapsedMs = (Time.realtimeSinceStartup - modeStartedAt) * 1000f;
@@ -906,6 +917,7 @@ public sealed class AtlasBoardLoadingExperience : MonoBehaviour
             blocker.SetActive(false);
 
         mode = LoadingMode.None;
+        matchCompletionSignaled = false;
         SetCode(string.Empty);
     }
 

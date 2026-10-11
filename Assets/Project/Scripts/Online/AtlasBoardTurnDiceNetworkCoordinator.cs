@@ -389,7 +389,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
         if (!localIsHost)
         {
-            if (!matchPresenceHeartbeatInFlight &&
+            bool criticalIntentActive =
+                matchBridge != null &&
+                matchBridge.HasCriticalIntentInFlight;
+
+            if (!criticalIntentActive &&
+                !matchPresenceHeartbeatInFlight &&
                 Time.unscaledTime >= nextMatchPresenceHeartbeatAt)
             {
                 nextMatchPresenceHeartbeatAt =
@@ -401,7 +406,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 await SendMatchPresenceHeartbeatAsync();
             }
 
-            if (!hostCrashRecoveryProbeInFlight &&
+            if (!criticalIntentActive &&
+                !hostCrashRecoveryProbeInFlight &&
                 Time.unscaledTime >= nextHostCrashRecoveryProbeAt &&
                 ShouldProbeCrashedHostRecovery())
             {
@@ -414,7 +420,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 await TryRecoverCrashedHostAsync();
             }
 
-            if (!remoteCosmeticSubmitInFlight &&
+            if (!criticalIntentActive &&
+                !remoteCosmeticSubmitInFlight &&
                 Time.unscaledTime >= nextRemoteCosmeticSubmitAt)
             {
                 await SubmitRemotePawnCosmeticsIfNeededAsync();
@@ -1320,7 +1327,7 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             Guid.NewGuid().ToString("N");
 
         AtlasMatchNetworkResult result =
-            await matchBridge.SubmitIntentAsync(
+            await matchBridge.SubmitCriticalIntentAsync(
                 "request_roll",
                 JsonUtility.ToJson(payload),
                 commandId);
@@ -4247,7 +4254,7 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             };
 
         AtlasMatchNetworkResult result =
-            await matchBridge.SubmitIntentAsync(
+            await matchBridge.SubmitCriticalIntentAsync(
                 "submit_decision",
                 JsonUtility.ToJson(payload),
                 "purchase-" +
@@ -4498,7 +4505,7 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             };
 
         AtlasMatchNetworkResult result =
-            await matchBridge.SubmitIntentAsync(
+            await matchBridge.SubmitCriticalIntentAsync(
                 "submit_decision",
                 JsonUtility.ToJson(payload),
                 "trade-offer-" +
@@ -4573,7 +4580,7 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 value = value ?? string.Empty
             };
 
-        return matchBridge.SubmitIntentAsync(
+        return matchBridge.SubmitCriticalIntentAsync(
             "submit_decision",
             JsonUtility.ToJson(payload),
             commandPrefix + "-" +
@@ -4584,7 +4591,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     {
         if (matchPresenceHeartbeatInFlight ||
             !prepared ||
-            matchBridge == null)
+            matchBridge == null ||
+            matchBridge.HasCriticalIntentInFlight)
         {
             return;
         }
@@ -4606,7 +4614,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         if (disconnectedSeatSweepInFlight ||
             !prepared ||
             !localIsHost ||
-            matchBridge == null)
+            matchBridge == null ||
+            matchBridge.HasCriticalIntentInFlight)
         {
             return;
         }
@@ -4678,6 +4687,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     private async Task TryRecoverCrashedHostAsync()
     {
         if (hostCrashRecoveryProbeInFlight ||
+            matchBridge == null ||
+            matchBridge.HasCriticalIntentInFlight ||
             !ShouldProbeCrashedHostRecovery())
         {
             return;
@@ -5693,6 +5704,7 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         if (!prepared ||
             !localIsHost ||
             matchBridge == null ||
+            matchBridge.HasCriticalIntentInFlight ||
             reconnectExpiryInFlight)
         {
             return;
