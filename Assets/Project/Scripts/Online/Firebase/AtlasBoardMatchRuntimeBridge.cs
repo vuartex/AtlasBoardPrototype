@@ -42,6 +42,20 @@ public sealed class AtlasBoardMatchRuntimeBridge :
     // Only true after an explicit local detach; normal reconnect polling stays active.
     private bool locallyDetachedFromMatch;
 
+    // Phase 16H: every client/match gets one authoritative snapshot request
+    // flight at a time. Normal polling, reconnect catch-up and explicit refresh
+    // callers join the same request instead of multiplying HTTP calls.
+    private sealed class SnapshotRequestFlight
+    {
+        public string MatchId = string.Empty;
+        public bool FollowUpRequested;
+        public int CoalescedJoinCount;
+        public int RequestCount;
+        public Task<AtlasMatchNetworkResult> Task;
+    }
+
+    private SnapshotRequestFlight snapshotFlight;
+
     public event Action<AtlasMatchNetworkSnapshot>
         SnapshotChanged;
 
@@ -119,14 +133,9 @@ public sealed class AtlasBoardMatchRuntimeBridge :
                 "No active matchId is available.");
         }
 
-        return await CallAsync(
-            "matchGetSnapshot",
-            new MatchIdRequest
-            {
-                matchId =
-                    resolvedMatchId
-            },
-            ParseSnapshotEnvelope);
+        return await GetOrStartSnapshotRequestAsync(
+            resolvedMatchId,
+            false);
     }
 
     public void ResetForMatchSession(
@@ -150,16 +159,158 @@ public sealed class AtlasBoardMatchRuntimeBridge :
         RefreshSnapshotNowAsync(
             string matchId = "")
     {
-        AtlasMatchNetworkResult result =
-            await GetSnapshotAsync(matchId);
+        string resolvedMatchId =
+            ResolveMatchId(matchId);
 
-        if (result.Success &&
-            result.Snapshot != null)
+        if (string.IsNullOrWhiteSpace(
+                resolvedMatchId))
         {
-            AcceptSnapshot(result.Snapshot);
+            return AtlasMatchNetworkResult.Fail(
+                "match.error.not_found",
+                "No active matchId is available.");
         }
 
-        return result;
+        // If a poll for this match is already in flight, join it and request
+        // exactly one follow-up read. This preserves explicit reconnect/catch-up
+        // freshness without creating parallel snapshot requests.
+        return await GetOrStartSnapshotRequestAsync(
+            resolvedMatchId,
+            true);
+    }
+
+    private async Task<AtlasMatchNetworkResult>
+        GetOrStartSnapshotRequestAsync(
+            string matchId,
+            bool requireFollowUpIfJoined)
+    {
+        SnapshotRequestFlight active =
+            snapshotFlight;
+
+        if (active != null &&
+            active.Task != null &&
+            !active.Task.IsCompleted &&
+            string.Equals(
+                active.MatchId,
+                matchId,
+                StringComparison.Ordinal))
+        {
+            active.CoalescedJoinCount++;
+
+            if (requireFollowUpIfJoined)
+            {
+                active.FollowUpRequested = true;
+            }
+
+            return await active.Task;
+        }
+
+        SnapshotRequestFlight flight =
+            new SnapshotRequestFlight
+            {
+                MatchId =
+                    matchId ?? string.Empty
+            };
+
+        snapshotFlight =
+            flight;
+
+        flight.Task =
+            RunSnapshotRequestFlightAsync(
+                flight);
+
+        return await flight.Task;
+    }
+
+    private async Task<AtlasMatchNetworkResult>
+        RunSnapshotRequestFlightAsync(
+            SnapshotRequestFlight flight)
+    {
+        AtlasMatchNetworkResult latest =
+            null;
+
+        try
+        {
+            while (true)
+            {
+                flight.RequestCount++;
+
+                latest =
+                    await CallAsync(
+                        "matchGetSnapshot",
+                        new MatchIdRequest
+                        {
+                            matchId =
+                                flight.MatchId
+                        },
+                        ParseSnapshotEnvelope);
+
+                bool runFollowUp =
+                    flight.FollowUpRequested;
+
+                flight.FollowUpRequested =
+                    false;
+
+                if (!runFollowUp ||
+                    !IsSnapshotSessionCurrent(
+                        flight.MatchId))
+                {
+                    break;
+                }
+            }
+
+            return latest ??
+                AtlasMatchNetworkResult.Fail(
+                    "match.error.invalid_response",
+                    "Snapshot request completed without a result.");
+        }
+        finally
+        {
+            if (ReferenceEquals(
+                    snapshotFlight,
+                    flight))
+            {
+                snapshotFlight =
+                    null;
+            }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (flight.CoalescedJoinCount > 0 ||
+                flight.RequestCount > 1)
+            {
+                Debug.Log(
+                    "AtlasBoard Phase 16H snapshot single-flight: " +
+                    "MatchId=" + flight.MatchId +
+                    ", NetworkRequests=" + flight.RequestCount +
+                    ", CoalescedCallers=" + flight.CoalescedJoinCount + ".",
+                    this);
+            }
+#endif
+        }
+    }
+
+    private bool IsSnapshotSessionCurrent(
+        string matchId)
+    {
+        if (locallyDetachedFromMatch ||
+            string.IsNullOrWhiteSpace(
+                matchId))
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(
+                expectedMatchId))
+        {
+            return string.Equals(
+                expectedMatchId,
+                matchId,
+                StringComparison.Ordinal);
+        }
+
+        return string.Equals(
+            CurrentMatchId,
+            matchId,
+            StringComparison.Ordinal);
     }
 
     public async Task<AtlasMatchNetworkResult>

@@ -219,6 +219,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     private bool prepared;
     private bool localIsHost;
     private bool hostNetworkInitialized;
+
+    // Phase 16H.2: cold-start bootstrap is serialized and prioritized.
+    // The Host publishes the first authoritative frame before launching
+    // maintenance callables (presence/sweep/reconnect expiry), preventing a
+    // first-match callable cold-start stampede from delaying follower dice.
+    private bool hostBootstrapInFlight;
+    private bool hostInitialPublishCompleted;
+
     private bool hostIntentPollInFlight;
     private bool hostPublishInFlight;
     private float nextIntentPollAt;
@@ -379,20 +387,20 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             return;
         }
 
-        if (!matchPresenceHeartbeatInFlight &&
-            Time.unscaledTime >= nextMatchPresenceHeartbeatAt)
-        {
-            nextMatchPresenceHeartbeatAt =
-                Time.unscaledTime +
-                Mathf.Max(
-                    1f,
-                    matchPresenceHeartbeatSeconds);
-
-            await SendMatchPresenceHeartbeatAsync();
-        }
-
         if (!localIsHost)
         {
+            if (!matchPresenceHeartbeatInFlight &&
+                Time.unscaledTime >= nextMatchPresenceHeartbeatAt)
+            {
+                nextMatchPresenceHeartbeatAt =
+                    Time.unscaledTime +
+                    Mathf.Max(
+                        1f,
+                        matchPresenceHeartbeatSeconds);
+
+                await SendMatchPresenceHeartbeatAsync();
+            }
+
             if (!hostCrashRecoveryProbeInFlight &&
                 Time.unscaledTime >= nextHostCrashRecoveryProbeAt &&
                 ShouldProbeCrashedHostRecovery())
@@ -417,42 +425,31 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             return;
         }
 
-        if (!disconnectedSeatSweepInFlight &&
-            Time.unscaledTime >= nextDisconnectedSeatSweepAt)
+        // Phase 16H.2:
+        // During a cold first match, several independent callables used to
+        // cold-start at once (presence, sweep, reconnect expiry, intent poll,
+        // publish). The follower cannot present starting dice until the Host
+        // publishes its first frame, so make that one path authoritative and
+        // serialized. Later maintenance keeps its existing cadence.
+        if (!hostInitialPublishCompleted)
         {
-            nextDisconnectedSeatSweepAt =
-                Time.unscaledTime +
-                Mathf.Max(
-                    2f,
-                    disconnectedSeatSweepSeconds);
-
-            await SweepDisconnectedMatchSeatsAsync();
-        }
-
-        if (!hostNetworkInitialized)
-        {
-            await InitializeHostNetworkAsync();
-
-            if (!hostNetworkInitialized)
+            if (!hostBootstrapInFlight)
             {
-                return;
+                await BootstrapHostInitialStateAsync();
             }
+
+            return;
         }
 
-        if (!reconnectExpiryInFlight &&
-            Time.unscaledTime >= nextReconnectExpiryCheckAt)
-        {
-            nextReconnectExpiryCheckAt =
-                Time.unscaledTime + 5f;
-            await ExpireReconnectReservationsAsync();
-        }
-
+        // Gameplay-critical Host traffic is evaluated before maintenance.
         if (!hostIntentPollInFlight &&
             Time.unscaledTime >= nextIntentPollAt)
         {
             nextIntentPollAt =
                 Time.unscaledTime +
-                Mathf.Max(0.1f, hostIntentPollSeconds);
+                Mathf.Max(
+                    0.1f,
+                    hostIntentPollSeconds);
 
             await PollHostIntentsAsync();
         }
@@ -467,6 +464,39 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     hostStatePublishCheckSeconds);
 
             await PublishHostStateIfChangedAsync();
+        }
+
+        if (!matchPresenceHeartbeatInFlight &&
+            Time.unscaledTime >= nextMatchPresenceHeartbeatAt)
+        {
+            nextMatchPresenceHeartbeatAt =
+                Time.unscaledTime +
+                Mathf.Max(
+                    1f,
+                    matchPresenceHeartbeatSeconds);
+
+            await SendMatchPresenceHeartbeatAsync();
+        }
+
+        if (!disconnectedSeatSweepInFlight &&
+            Time.unscaledTime >= nextDisconnectedSeatSweepAt)
+        {
+            nextDisconnectedSeatSweepAt =
+                Time.unscaledTime +
+                Mathf.Max(
+                    2f,
+                    disconnectedSeatSweepSeconds);
+
+            await SweepDisconnectedMatchSeatsAsync();
+        }
+
+        if (!reconnectExpiryInFlight &&
+            Time.unscaledTime >= nextReconnectExpiryCheckAt)
+        {
+            nextReconnectExpiryCheckAt =
+                Time.unscaledTime + 5f;
+
+            await ExpireReconnectReservationsAsync();
         }
     }
 
@@ -637,15 +667,23 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         lastObservedControllerBySlot.Clear();
         lastObservedConnectionBySlot.Clear();
         reconnectExpiryInFlight = false;
-        nextReconnectExpiryCheckAt = 0f;
+        // Phase 16H.2 delays non-critical maintenance during the first Host
+        // authoritative publish so cold callables cannot starve starting dice.
+        nextReconnectExpiryCheckAt =
+            Time.unscaledTime + 5f;
         rematchRequestInFlight = false;
         leaveRequestInFlight = false;
         hostMigrationQueued = false;
         hostMigrationQuitAfterHandoff = false;
         matchPresenceHeartbeatInFlight = false;
-        nextMatchPresenceHeartbeatAt = 0f;
+        nextMatchPresenceHeartbeatAt =
+            Time.unscaledTime + 1f;
         disconnectedSeatSweepInFlight = false;
-        nextDisconnectedSeatSweepAt = 0f;
+        nextDisconnectedSeatSweepAt =
+            Time.unscaledTime +
+            Mathf.Max(
+                2f,
+                disconnectedSeatSweepSeconds);
         hostCrashRecoveryProbeInFlight = false;
         nextHostCrashRecoveryProbeAt = 0f;
         localAfkExitScheduled = false;
@@ -657,6 +695,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
         hostKnownRevision = 0;
         hostNetworkInitialized = false;
+        hostBootstrapInFlight = false;
+        hostInitialPublishCompleted = false;
         lastPublishedFrameJson = string.Empty;
         nextIntentPollAt = 0f;
         nextPublishCheckAt = 0f;
@@ -1294,6 +1334,88 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 "AtlasBoard Phase 5B remote Roll intent failed: " +
                 result.TechnicalMessage,
                 this);
+        }
+    }
+
+    private async Task BootstrapHostInitialStateAsync()
+    {
+        if (hostBootstrapInFlight ||
+            hostInitialPublishCompleted ||
+            !prepared ||
+            !localIsHost ||
+            matchBridge == null)
+        {
+            return;
+        }
+
+        hostBootstrapInFlight = true;
+
+        double startedAt =
+            Time.realtimeSinceStartupAsDouble;
+
+        try
+        {
+            if (!hostNetworkInitialized)
+            {
+                await InitializeHostNetworkAsync();
+            }
+
+            if (!prepared ||
+                !localIsHost ||
+                !hostNetworkInitialized)
+            {
+                return;
+            }
+
+            // A fresh match intentionally starts with lastPublishedFrameJson
+            // empty, so this publishes the first authoritative Turn/Dice frame.
+            // On a transient publish failure the existing publish method
+            // refreshes the revision; this bootstrap simply retries next frame.
+            await PublishHostStateIfChangedAsync();
+
+            if (!prepared ||
+                !localIsHost ||
+                !hostNetworkInitialized ||
+                string.IsNullOrWhiteSpace(
+                    lastPublishedFrameJson))
+            {
+                return;
+            }
+
+            hostInitialPublishCompleted = true;
+
+            // The match has just started. Give gameplay traffic first access
+            // to cold callables; maintenance is safe to begin shortly after.
+            nextIntentPollAt = 0f;
+            nextPublishCheckAt = 0f;
+            nextMatchPresenceHeartbeatAt =
+                Time.unscaledTime + 1f;
+            nextDisconnectedSeatSweepAt =
+                Time.unscaledTime +
+                Mathf.Max(
+                    2f,
+                    disconnectedSeatSweepSeconds);
+            nextReconnectExpiryCheckAt =
+                Time.unscaledTime + 5f;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            float elapsedMs =
+                (float)(
+                    (Time.realtimeSinceStartupAsDouble -
+                     startedAt) *
+                    1000.0);
+
+            Debug.Log(
+                "AtlasBoard Phase 16H.2 host bootstrap ready: " +
+                "first authoritative frame published in " +
+                Mathf.RoundToInt(elapsedMs) +
+                "ms before maintenance traffic.",
+                this);
+#endif
+        }
+        finally
+        {
+            hostBootstrapInFlight = false;
         }
     }
 
@@ -2881,6 +3003,7 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
         hostIntentPollInFlight = false;
         hostPublishInFlight = false;
+        hostBootstrapInFlight = false;
         reconnectExpiryInFlight = false;
         disconnectedSeatSweepInFlight = false;
         hostCrashRecoveryProbeInFlight = false;
@@ -2895,6 +3018,9 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             hostKnownRevision =
                 snapshot.Revision;
             hostNetworkInitialized = true;
+            // Host migration already starts from an authoritative checkpoint;
+            // do not force the fresh-match bootstrap path again.
+            hostInitialPublishCompleted = true;
             lastPublishedFrameJson =
                 snapshot.SnapshotJson ??
                 string.Empty;
@@ -2915,6 +3041,7 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         else
         {
             hostNetworkInitialized = false;
+            hostInitialPublishCompleted = false;
             lastPublishedFrameJson =
                 string.Empty;
             followerNeedsInitialCheckpointSnap = true;
@@ -3976,6 +4103,27 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             matchBridge == null ||
             locallyControlledHumanSlots.Count == 0)
         {
+            return;
+        }
+
+        // Phase 16H: a Remote must observe the authoritative match snapshot
+        // before submitting revision-bound intents. During a cold start this
+        // prevents cosmetic sync from racing the first matchGetSnapshot and
+        // producing STALE_MATCH_CLIENT_STATE traffic.
+        AtlasMatchNetworkSnapshot authoritativeSnapshot =
+            matchBridge.CurrentSnapshot;
+
+        if (authoritativeSnapshot == null ||
+            string.IsNullOrWhiteSpace(
+                preparedMatchId) ||
+            !string.Equals(
+                authoritativeSnapshot.MatchId,
+                preparedMatchId,
+                StringComparison.Ordinal))
+        {
+            nextRemoteCosmeticSubmitAt =
+                Time.unscaledTime + 0.25f;
+
             return;
         }
 
@@ -5088,6 +5236,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     {
         prepared = false;
         hostNetworkInitialized = false;
+        hostBootstrapInFlight = false;
+        hostInitialPublishCompleted = false;
         preparedMatchId = string.Empty;
         locallyControlledHumanSlots.Clear();
         hostMigrationQueued = false;
@@ -5135,6 +5285,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         {
             prepared = false;
             hostNetworkInitialized = false;
+            hostBootstrapInFlight = false;
+            hostInitialPublishCompleted = false;
             lastPublishedFrameJson = string.Empty;
             preparedMatchId = string.Empty;
 
@@ -5469,6 +5621,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         {
             prepared = false;
             hostNetworkInitialized = false;
+            hostBootstrapInFlight = false;
+            hostInitialPublishCompleted = false;
             preparedMatchId = string.Empty;
             locallyControlledHumanSlots.Clear();
             matchBridge?.ResetForMatchSession(string.Empty);

@@ -1,17 +1,17 @@
 # ATLAS BOARD
-## Master Architecture & Development Roadmap v5.8
+## Master Architecture & Development Roadmap v5.9
 
 **Canonical checkpoint:** 2026-10-11 (America/Denver)  
 **Repository:** `vuartex/AtlasBoardPrototype`  
-**Last verified pushed GitHub HEAD:** `dcfc6550ea20a0f4719714abb5ecc2d125765021`  
-**Last verified pushed HEAD commit:** `Complete Phase 15F-15H security hardening`  
-**Current accepted local checkpoint:** `Phase 15I/15J/15K local security and operations validation completed. Phase 16 backend/build readiness is PASS. Two-client local Guest startup crash is currently mitigated and under regression watch. First-run multiplayer latency/request burst is the next active blocker.`  
+**Last verified pushed GitHub HEAD:** `74697e472b865f76afe8f23b3ba8036ac5d35032`  
+**Last verified pushed HEAD commit:** `Complete Phase 15 local close and stabilize Phase 16 Guest QA`  
+**Current accepted local checkpoint:** `Phase 16H / 16H.2 / 16H.3 accepted locally. Snapshot request single-flight/coalescing, host bootstrap prioritization, localized loading/bootstrap UX and ATB frontend diagnostic codes are working. Historical Windows Guest native crash remains mitigated/regression-watch. Phase 16I public-lobby scale/pagination/load validation is the next active phase.`  
 **Phase 12 close commit:** `0eca81450be91b30a5dc1cd66d901c46e2cab07c` — `Phase 12: finalize online resilience hardening and crash recovery`  
 **Phase 14 close commit:** `77b4a1c29fe3ee55dbd27f4d35e6ce5e9d02e157` — `Close Phase 14 UI/UX polish and finalize localization/input handling`  
 **Unity baseline:** Unity 6000.5.6f1, `Assets/Board_Prototype.unity`, unless a later committed upgrade explicitly changes it.  
 **Canonical repository roadmap location:** `Assets/Project/Documentation/MASTER_ROADMAP.md`
 
-This v5.8 checkpoint supersedes the v5.7 sequencing/status checkpoint. It records the completed local Phase 15I/15J/15K work, the Phase 16 backend/build QA checkpoint, the October 11 local Windows Guest native-crash investigation, the QA-only Firebase isolation introduced to stabilize two-client local testing, and the remaining first-run latency/request-concurrency work.
+This v5.9 checkpoint supersedes v5.8. It records the accepted Phase 16H networking/performance work, the Phase 16H.2 host-start prioritization, the Phase 16H.3 startup/match loading experience and frontend diagnostic-code system, and moves the active implementation target to Phase 16I.
 
 # 1. Source, replacement and Git discipline
 
@@ -20,24 +20,25 @@ Before meaningful source changes:
 - Inspect current GitHub `main` before using repository source as a baseline.
 - GitHub is authoritative only for work already committed and pushed.
 - Newer accepted local work must never be overwritten by an older GitHub copy.
-- For user-delivered Unity source changes, prefer complete replacement `.cs` files in the canonical project path.
-- Do not send/apply textual patches, `git apply` patches or installer scripts unless explicitly requested.
+- Prefer complete replacement `.cs` files in canonical project paths for user-delivered Unity source changes.
+- Do not use textual patches, `git apply` patches or installer scripts unless explicitly requested.
 - Do not auto-commit, auto-push, deploy or mutate production configuration.
 - Do not use `git add .`; stage only intended files.
 - Do not stage unrelated historical/font/generated changes.
-- Backend QA belongs in the existing `Backend/Firebase/functions/scripts/qa.mjs`; do not proliferate phase-specific permanent QA scripts.
-- Roadmap status changes belong in this canonical `MASTER_ROADMAP.md`; temporary phase notes are not the canonical source of truth.
+- Backend QA belongs in `Backend/Firebase/functions/scripts/qa.mjs`.
+- Roadmap status changes belong in this canonical `MASTER_ROADMAP.md`.
 - Firebase Functions source changes require TypeScript build and focused validation before acceptance.
 - Restart emulators after backend source changes when emulator runtime behavior is under test.
 - Unity runtime changes require compile + runtime smoke before acceptance.
 - Static review is not equivalent to production runtime acceptance.
 - Never place Steam publisher secrets, production credentials, App Check debug tokens or raw provider tickets in Unity source/logs.
-- Local-emulator QA shortcuts must be narrowly gated and must never silently apply to a release build.
+- Local-emulator QA shortcuts must be narrowly gated and must never silently apply to Release.
 
 Current pushed authority:
 
-- `dcfc6550ea20a0f4719714abb5ecc2d125765021` — Phase 15F–15H pushed checkpoint.
-- Phase 15I–15K, Phase 16 QA/build work and the October 11 Guest runtime stabilization are local until the user explicitly commits/pushes them.
+- `74697e472b865f76afe8f23b3ba8036ac5d35032` is the latest verified pushed checkpoint.
+- Phase 15 local close and Phase 16 Guest stabilization through that checkpoint are pushed.
+- Phase 16H / 16H.2 / 16H.3 are accepted locally but are not considered pushed until the user commits/pushes them.
 
 # 2. Durable architecture invariants
 
@@ -54,16 +55,16 @@ Current pushed authority:
 
 Backend/server authority remains required for:
 
-- Account identity and provider mappings.
-- Wallet/premium economy.
-- Inventory entitlements.
-- Promo/event rewards.
-- Lobby/session membership.
-- Match authority and authority transfer.
-- Presence/reconnect state.
-- Chat/moderation/report state.
-- Completed-match progression and achievements.
-- Future competitive/ranked outcomes.
+- account identity and provider mappings;
+- wallet/premium economy;
+- inventory entitlements;
+- promo/event rewards;
+- lobby/session membership;
+- match authority and authority transfer;
+- presence/reconnect state;
+- chat/moderation/report state;
+- completed-match progression and achievements;
+- future competitive/ranked outcomes.
 
 ## 2.3 Host/seat invariant
 
@@ -71,16 +72,16 @@ Gameplay state belongs to the Player Seat, not the current controller.
 
 `Human -> TemporaryBot -> Human` must preserve:
 
-- AccountId / SeatId
-- money
-- properties
-- pawn position
-- development
-- turn state
-- bankruptcy state
-- match-result state
+- AccountId / SeatId;
+- money;
+- properties;
+- pawn position;
+- development;
+- turn state;
+- bankruptcy state;
+- match-result state.
 
-Reconnect and snapshot optimization must preserve this invariant. Do not reduce polling or discard authoritative snapshots merely to improve apparent latency without proving reconnect/host-migration behavior still works.
+Reconnect and snapshot optimization must preserve this invariant. Do not reduce or discard required authoritative synchronization merely to improve apparent latency.
 
 ## 2.4 Hosting strategy
 
@@ -89,7 +90,7 @@ Reconnect and snapshot optimization must preserve this invariant. Do not reduce 
 - Steam does not automatically host AtlasBoard gameplay authority.
 - Steam Networking/SDR may be evaluated later as an optional transport optimization.
 - Current architecture remains Firebase-backed lobby/match persistence plus Host-authoritative turn simulation.
-- Local emulator limitations and cold-start behavior are QA-environment concerns; they must not be mistaken for measured deployed production latency.
+- Local emulator cold-start behavior must not be mistaken for measured deployed production latency.
 
 ## 2.5 App Check invariant
 
@@ -98,10 +99,10 @@ Reconnect and snapshot optimization must preserve this invariant. Do not reduce 
 - `platformSteamCreateAppCheckToken` remains the bootstrap endpoint and must not require an existing App Check token.
 - Production Steam custom App Check runtime acceptance remains deferred until a real AtlasBoard Steam AppID and publisher Web API secret exist.
 - Local Functions Emulator acceptance is not cryptographic proof of production App Check validity.
-- Local two-client Guest QA may use an explicit emulator-only placeholder App Check header only when all of the following are true:
-  - Development Build.
-  - Windows standalone Guest.
-  - explicit `-atlasLocalEmulators`.
+- Local two-client Guest QA may use an explicit emulator-only placeholder App Check header only when:
+  - Development Build;
+  - Windows standalone Guest;
+  - explicit `-atlasLocalEmulators`;
   - loopback Functions endpoint (`127.0.0.1` / `localhost`).
 - That placeholder is never a production credential.
 
@@ -114,6 +115,28 @@ Reconnect and snapshot optimization must preserve this invariant. Do not reduce 
 - Generic labels such as `Bölge N` resolve into the active locale.
 - Required localization target remains EN/TR/ES/FR/DE/KO/RU.
 - Rejected world-space P1/P2/P3/P4 ownership badges stay removed.
+
+## 2.7 Public error-message invariant
+
+Player-facing online/runtime errors must not expose backend implementation details.
+
+Public UI must never expose:
+
+- Firebase / Firestore / Functions provider names;
+- hostnames, ports or backend URLs;
+- project IDs;
+- raw HTTP/service responses;
+- auth headers or tokens;
+- database/collection names;
+- Steam publisher/security internals;
+- stack traces.
+
+Player-facing errors use:
+
+- a generic localized message;
+- a stable `ATBxxx` support code.
+
+Technical meaning belongs in protected diagnostics and the internal codebook.
 
 # 3. Accepted foundation summary
 
@@ -139,9 +162,14 @@ Accepted foundations include:
 - Graceful Host Migration and crash failover.
 - Phase 12 resilience hardening.
 - Phase 14A–14K UI/UX polish.
-- Phase 15A–15H pushed security hardening.
-- Phase 15I–15K local security/operations validation.
+- Phase 15 security/operations hardening through 15K at the documented local/emulator acceptance level.
 - Phase 16 backend QA and Unity build-readiness validation.
+- Local two-client Guest startup stabilization.
+- Runtime diagnostics.
+- Snapshot single-flight/coalescing.
+- Host-bootstrap prioritization.
+- Localized loading/bootstrap UX.
+- ATB frontend error-code framework.
 
 # 4. Phase status overview
 
@@ -155,19 +183,19 @@ Accepted foundations include:
 **Status: DONE.**
 
 ## Phase 4 — Public Lobby Browser
-**Status: DONE foundation; scale/pagination hardening remains Phase 16 work.**
+**Status: DONE foundation; pagination/scale hardening remains Phase 16I.**
 
 ## Phase 5 — Online Gameplay Networking
-**Status: MAIN PATH DONE / runtime flows proven; first-run latency/concurrency hardening remains Phase 16.**
+**Status: MAIN PATH DONE / runtime flows proven. Phase 16H latency/concurrency hardening accepted locally.**
 
 ## Phase 6 — Chat + Moderation Foundation
-**Status: DONE; Phase 15I local security/lifecycle close passed.**
+**Status: DONE.**
 
 ## Phase 8 — Gameplay / Content Checkpoint
 **Status: DONE.**
 
 ## Phase 9 — Store / Economy / Seasonal Event
-**Status: DONE foundation; security accepted through Phase 15H.**
+**Status: DONE foundation.**
 
 ## Phase 10 — Career / Progression / History / Achievements
 **Status: DONE foundation.**
@@ -206,130 +234,83 @@ Close commit:
 
 # 5. Phase 15 — Security and Production Backend Hardening
 
-**Overall engineering status: LOCAL SECURITY/OPERATIONS IMPLEMENTATION COMPLETE THROUGH 15K.**  
+**Overall engineering status: LOCAL/EMULATOR SECURITY AND OPERATIONS IMPLEMENTATION COMPLETE THROUGH 15K.**  
+**Checkpoint through Phase 15 local close is pushed in `74697e472b865f76afe8f23b3ba8036ac5d35032`.**  
 **Production Steam cryptographic acceptance: DEFERRED.**
 
 ## 15A — Firestore Direct-Client Security Boundary
 **Status: DONE / PUSHED.**
 
-- Deny-by-default boundary for unreviewed collections.
-- Owner-scoped access for reviewed profile/preference documents.
-- Server-authoritative wallet, inventory, commerce, progression, lobby, match and Steam-mapping data.
-- Rules/E2E acceptance completed.
-
 ## 15B — Unified Emulator Firebase Session
-**Status: DONE / PUSHED for the original Editor/dev architecture.**
-
-- FirebaseAuth SDK + Firestore Emulator identity was unified with the development lobby identity.
-- This remains valid for Editor QA.
-- Important Phase 16 qualification: the canonical standalone local Guest no longer starts this second native SDK session; see Phase 16 local Guest topology.
+**Status: DONE for Editor/dev architecture; standalone local Guest uses the isolated QA topology documented under Phase 16F.**
 
 ## 15C — App Check Transport Plumbing
 **Status: DONE / PUSHED.**
 
-Central request-security coverage exists for lobby, match, chat, moderation, economy, progression and Steam link traffic.
-
 ## 15D — Firebase App Check SDK + Editor Debug Provider
 **Status: DONE / PUSHED.**
 
-Editor/debug App Check path remains available and is not removed by the Phase 16 Guest isolation.
-
 ## 15E — Windows/Steam Production Custom App Check Provider
-**Status: CODE/BUILD ACCEPTED / PUSHED; REAL PRODUCTION RUNTIME PROOF DEFERRED.**
-
-- Desktop Steam provider architecture remains required for Release.
-- Local Guest QA isolation must never be used as evidence that the production Steam provider passed.
+**Status: CODE/BUILD ACCEPTED; REAL PRODUCTION RUNTIME PROOF DEFERRED.**
 
 ## 15F — Staged App Check Enforcement
-**Status: DONE / PUSHED.**
-
-- 44 protected runtime callables.
-- 9 emulator/dev exemptions.
-- 1 Steam App Check bootstrap exemption.
-- Missing-token rejection proven locally.
-- Production cryptographic invalid-token proof remains deferred.
+**Status: DONE at local/emulator level; deployed cryptographic invalid-token proof deferred.**
 
 ## 15G — Callable Authorization + Abuse Hardening
-**Status: DONE / PUSHED.**
-
-- 54-callable authorization inventory.
-- 51 require Firebase Auth.
-- 3 intentional auth exceptions.
-- Server-owned low-frequency abuse controls retained.
-- High-frequency polling/snapshot endpoints are not treated like low-frequency abuse-sensitive endpoints.
+**Status: DONE.**
 
 ## 15H — Economy / Commerce Security
-**Status: DONE / PUSHED.**
-
-- Wallet ledger/idempotency.
-- Inventory catalog authority.
-- Commerce server-price/refund ownership.
-- Promo replay/limit protections.
-- Seasonal config/catalog revalidation inside value-granting transactions.
+**Status: DONE.**
 
 ## 15I — Moderation + Data Lifecycle
-**Status: DONE / accepted locally; not yet pushed at this checkpoint.**
+**Status: DONE / PUSHED CHECKPOINT.**
 
-Accepted local direction:
+Accepted direction:
 
-- Moderator authority is explicit and not inferred from generic labels.
-- Normal users cannot self-escalate moderator operations.
-- Chat/report/sanction operations remain server-authoritative.
-- Deleted/expired chat records are excluded from normal reads.
-- Report/investigation evidence that must remain open is not prematurely expired.
-- Moderation audit/config evidence remains protected.
-- Local moderation security audit/validation passed.
-
-Permanent validation belongs in `qa.mjs`; do not keep one-off phase installer/validation scripts as the canonical QA entry point.
+- explicit moderator authority;
+- no user self-escalation;
+- server-authoritative chat/report/sanction flows;
+- deleted/expired chat excluded from normal reads;
+- open investigation evidence preserved;
+- audit/config evidence protected;
+- local moderation security validation passed.
 
 ## 15J — Production Operations / Environment Hardening
-**Status: DONE / accepted locally; not yet pushed at this checkpoint.**
+**Status: DONE / PUSHED CHECKPOINT.**
 
-Accepted local direction:
+Accepted direction:
 
-- Emulator services bind to loopback.
-- Development/staging/production environment boundaries fail closed.
-- Steam publisher secret remains Functions-secret/config territory, never client source.
-- Steam/App Check operational logs omit raw provider secrets/tickets and reduce unnecessary identifiers.
-- Transport/provider failures use bounded failure classes rather than raw sensitive payloads.
-- Local credentials and publisher-key file patterns are excluded from Git.
-- Production rollout remains blocked when real Steam production requirements are absent.
-- Operational/security validation passed locally.
+- loopback-only emulator exposure;
+- fail-closed environment boundaries;
+- publisher secret kept server-side;
+- sensitive Steam/App Check logs bounded/redacted;
+- credentials excluded from Git;
+- production rollout blocked until real production prerequisites exist.
 
 ## 15K — Steam / Backend Security Close
-**Status: LOCAL CODE/EMULATOR SECURITY CLOSE PASS; PRODUCTION CRYPTOGRAPHIC CLOSE DEFERRED.**
-
-Local acceptance includes:
-
-- Steam environment fail-closed guards.
-- App Check OFF/ON emulator regression.
-- Steam development link and returning-sign-in regression.
-- Abuse/economy/Firestore/security regression.
-- Historical Steam E2E compatibility repaired without weakening deny-by-default Firestore rules.
-- Phase 15I/15J/15K suites incorporated into the consolidated backend QA path.
+**Status: LOCAL CODE/EMULATOR SECURITY CLOSE PASS / PUSHED CHECKPOINT; PRODUCTION CRYPTOGRAPHIC CLOSE DEFERRED.**
 
 Still required before production security close:
 
-- Real AtlasBoard Steam AppID.
-- Real publisher Web API secret.
-- Real Steam ticket verification.
-- Real Windows standalone Steam custom App Check runtime acceptance.
-- Deployed missing-token and cryptographically invalid-token rejection proof.
-- Bootstrap exemption proof against deployed configuration.
+- real AtlasBoard Steam AppID;
+- real publisher Web API secret;
+- real Steam ticket verification;
+- real Windows standalone Steam custom App Check runtime acceptance;
+- deployed missing-token and cryptographically invalid-token rejection proof;
+- bootstrap exemption proof against deployed configuration;
 - Release verification that no local emulator shortcut can activate.
 
 # 6. Phase 16 — Build Readiness, Runtime Stability and Performance
 
-**Status: ACTIVE.**
+**Status: ACTIVE.**  
+**Current active subphase: 16I.**
 
 ## 16A — Consolidated backend QA
 **Status: PASS locally.**
 
-Canonical backend QA entry point:
+Canonical backend QA:
 
 `Backend/Firebase/functions/scripts/qa.mjs`
-
-Phase-specific permanent QA script proliferation is not desired. The consolidated QA path covers the accepted backend security/regression suites.
 
 ## 16B — Unity build readiness
 **Status: PASS locally.**
@@ -342,9 +323,8 @@ Canonical menu:
 
 `Atlas Board/QA & Diagnostics/QA/Validate Build Readiness`
 
-Build readiness checks passed at the current local checkpoint.
-
 ## 16C — Canonical two-client local Guest QA build
+**Status: IMPLEMENTED / ACCEPTED.**
 
 Canonical builder:
 
@@ -358,177 +338,251 @@ Output:
 
 `C:\Users\crazy\AtlasBoard_3D3C_GuestBuild\AtlasBoardGuest.exe`
 
-Local launch must use the generated BAT for emulator testing. The executable launched without the explicit local-emulator arguments may target a different runtime path.
-
-Canonical local arguments include:
-
-- `-atlasLocalEmulators`
-- `-atlasDevName="Guest Player"`
-- windowed 1280x720 development settings
+Local emulator testing must use the generated BAT with `-atlasLocalEmulators`.
 
 ## 16D — Automatic runtime/crash diagnostics
-**Status: IMPLEMENTED locally.**
+**Status: IMPLEMENTED / ACCEPTED.**
 
-Development Guest diagnostics:
+Canonical Development Guest diagnostics:
 
 `Assets/Project/Scripts/Online/AtlasBoardRuntimeDiagnostics.cs`
 
-Expected behavior:
+Diagnostics include:
 
-- starts automatically when the Guest starts;
-- creates timestamped session logs under the Guest build directory `Logs`;
-- records startup identity/build information;
-- records Unity warnings/errors;
-- records frame summaries and main-thread frame stalls;
-- records clean exit markers;
-- preserves separate files per run.
-
-Windows WER LocalDumps may additionally be configured to write native `.dmp` files under the build `Logs/CrashDumps` directory. Raw dumps may contain sensitive process memory and should not be casually shared.
+- startup/build metadata;
+- Unity warnings/errors;
+- frame summaries;
+- main-thread stalls;
+- session clean/unclean markers;
+- separate timestamped files per run.
 
 ## 16E — October 11 Windows Guest native-crash regression
+**Status: MITIGATED / CURRENT LOCAL QA PASS / REGRESSION WATCH.**
 
-**Current status: MITIGATED / PASS FOR CURRENT LOCAL QA SAMPLE / REGRESSION WATCH.**
+Historical signature:
 
-Observed failure before mitigation:
-
-- intermittent standalone Guest termination, including when no UI input was performed;
 - Windows WER `BEX64`;
-- exception `0xC0000409`;
-- subcode/P9 `7`;
-- faulting module reported as `ucrtbase.dll`;
-- repeated same fault offset;
-- D3D11 did not eliminate the crash;
-- native dump evidence placed Firebase C++ SDK frames in the failing process, but the exact native root function was not symbolically proven.
+- `0xC0000409`;
+- subcode `7`;
+- `ucrtbase.dll`;
+- repeated same fault offset.
 
 Important conclusion:
 
-The problem was not treated as a graphics-only issue and was not proven to be caused by the Firebase backend server load. The local standalone Guest was entering several native Firebase/Steam startup paths while it already had an authoritative HTTP emulator identity path. This created unnecessary local QA startup complexity and was strongly correlated with the intermittent native failure.
+- exact native root function was not symbolically proven;
+- D3D11 did not solve it;
+- backend latency was not sufficient to explain the native process death;
+- unnecessary overlapping native Firebase/Steam startup paths in the standalone local Guest were strongly correlated with the failure.
 
-Mitigations currently active for the explicit local Windows Development Guest:
+Current local Guest mitigation:
 
-1. Local callable App Check uses an emulator-only HTTP placeholder header on the loopback Functions Emulator path.
-2. Native Firebase App Check provider registration is bypassed for this explicit local Guest.
-3. Steam provider initialization/retry is bypassed for this explicit local Guest.
-4. The Phase 15B secondary FirebaseAuth/Firestore SDK sign-in is suppressed for this explicit local Guest.
-5. The canonical Guest build removes native `AtlasBoardAccountService` and old Firebase runtime test components from the temporary build-scene copy.
-6. Lobby/match identity for the Guest continues through the existing Auth Emulator + Functions Emulator HTTP transport.
-7. Editor and Release/production behavior are intentionally not disabled by these QA gates.
+1. loopback Development callable requests use an emulator-only App Check placeholder;
+2. native App Check provider registration is bypassed;
+3. Steam startup/provider path is bypassed;
+4. Phase 15B secondary FirebaseAuth/Firestore SDK emulator sign-in is suppressed;
+5. Guest build-scene native AccountService/test components are stripped;
+6. HTTP Auth Emulator + Functions Emulator multiplayer identity remains authoritative;
+7. Editor and Release behavior remain separate.
 
-Current runtime evidence:
+Repeated later Guest sessions have not reproduced the historical native crash and have reached gameplay/clean exit.
 
-- repeated Guest opens after the final isolation no longer reproduced the previous native crash in the current test sample;
-- long sessions reached match gameplay and exited cleanly;
-- Guest lobby/match exit responsiveness is improved and local exit no longer depends on waiting indefinitely for a server response.
+Do not claim the exact historical native root cause is mathematically proven. Reopen immediately if the same signature returns.
 
-Do not claim the historical native root cause is mathematically proven. Treat the issue as a mitigated regression and reopen it immediately if the same `0xC0000409` signature returns.
+## 16F — QA-only isolation and Release retest gate
+**Status: ACCEPTED.**
 
-## 16F — QA-only isolation: what is disabled and what must be re-tested
+Intentionally bypassed only in the explicit local Windows Development Guest:
 
-The following are intentionally disabled/bypassed only in the canonical explicit local Guest QA topology:
-
-- native FirebaseAuth initialization in the stripped Guest scene;
-- native Firestore initialization in the stripped Guest scene;
+- native FirebaseAuth initialization;
+- native Firestore initialization;
 - Phase 15B secondary SDK emulator sign-in;
 - native App Check provider registration;
-- SteamAPI/provider startup for the local emulator Guest.
+- SteamAPI/provider startup.
 
-These must **not** be manually re-enabled in the local Guest merely to make the QA executable resemble production. The purpose of this executable is reliable two-client local multiplayer testing.
+These must not be casually re-enabled in the local Guest.
 
-They are still required in the Release/production architecture. Before release:
+Before Release:
 
-- verify the build stripper does not affect normal Release output;
-- verify Release still initializes the intended Firebase account/profile path;
-- verify real Steam identity and returning sign-in;
+- verify build-strip logic cannot affect Release;
+- verify native Firebase account/profile path;
+- verify cloud preferences/profile persistence;
+- verify real Steam identity;
+- verify returning Steam sign-in;
 - verify real Steam custom App Check;
-- verify cloud profile/preferences behavior;
-- run repeated release startup/shutdown tests with Steam active;
-- re-open native crash investigation if production native Firebase + Steam startup reproduces the old failure.
+- run repeated Release startup/shutdown tests;
+- reopen native crash investigation if the historical signature returns.
 
-Therefore there is no forgotten feature that must be “turned back on” now. The required action is a future **Release-path acceptance test**, not removal of the local QA isolation.
+There is no forgotten feature to turn back on now. This is an explicit QA topology separation.
 
-## 16G — Lobby/match responsiveness changes
-**Status: PARTIALLY ACCEPTED.**
+## 16G — Lobby/match responsiveness
+**Status: ACCEPTED locally.**
 
 Accepted behavior:
 
-- Lobby Back remains usable instead of trapping the player behind a pending list request.
-- Guest can leave a match and return to the menu locally without waiting indefinitely for the backend.
-- Host exit retains safe authority-migration semantics rather than blindly abandoning a live human session.
-- After a local leave, stale responses from the old match must not reopen/overwrite the new local UI state.
+- Lobby Back remains usable during pending work.
+- Guest match/lobby exit is immediate locally.
+- Remote cleanup remains safe/asynchronous.
+- Host exit preserves authority handoff semantics.
+- stale responses from a departed match cannot reopen old UI/session state.
 
 Invariant:
 
-Do not disable reconnect snapshots, host-authoritative snapshots or required polling simply to reduce request count. Optimize duplicated/overlapping work while preserving recovery semantics.
+Do not break reconnect, host migration or authoritative snapshot semantics to improve apparent responsiveness.
 
-## 16H — First-run latency / request burst
-**Status: OPEN — NEXT ACTIVE BLOCKER.**
+## 16H — First-run latency / request concurrency
+**Status: PASS locally.**
 
-Observed local behavior is inconsistent between cold and warm emulator/runtime states:
+### 16H.1 — Snapshot single-flight / coalescing
+**Status: PASS locally.**
 
-- one Guest run observed a public-lobby list call near 4 seconds;
-- later runs observed the same lobby list path around tens of milliseconds;
-- the first invocation of some Functions emulator callables may take roughly 1–2 seconds while later invocations are much faster;
-- one early match showed the follower waiting far too long before receiving starting-roll state;
-- later matches synchronized starting dice quickly;
-- request logs show overlapping/repeated `matchGetSnapshot` traffic and periods where multiple requests are in flight;
-- timeout and host-recovery probes appeared during the bad first-match run.
+Accepted behavior:
 
-The next optimization must target **request concurrency and cold-start behavior**, not delete authoritative synchronization.
+- only one `matchGetSnapshot` network request per client/match may be in flight;
+- concurrent callers join the existing task;
+- forced refresh during an in-flight call becomes at most one follow-up refresh;
+- reconnect/host-migration/explicit refresh semantics remain intact;
+- polling cadence was not blindly removed;
+- remote pawn-cosmetic intent does not submit before a valid authoritative match snapshot exists.
+
+Observed acceptance evidence:
+
+- runtime diagnostics reported `NetworkRequests=1, CoalescedCallers=1` under overlapping callers;
+- previous large snapshot-request bursts were no longer reproduced;
+- warm `matchGetSnapshot` execution returned to normal tens-of-milliseconds behavior.
+
+### 16H.2 — Host bootstrap priority
+**Status: PASS locally.**
+
+Fresh-match startup now prioritizes:
+
+1. initial authoritative snapshot/readiness;
+2. first authoritative host publish;
+3. follower/starting-roll visibility;
+4. maintenance traffic after the critical frame.
+
+Non-critical startup maintenance such as presence/sweep/reconnect-expiry no longer races ahead of the first authoritative frame.
+
+Observed acceptance evidence:
+
+- first authoritative host frame was published in approximately `221 ms` in the accepted test;
+- follower match loading observed authoritative readiness in tens to low hundreds of milliseconds;
+- starting-roll flow remained functional.
+
+### 16H.3 — Localized loading/bootstrap UX + frontend diagnostic code system
+**Status: PASS locally.**
+
+New runtime files:
+
+- `Assets/Project/Scripts/UI/Loading/AtlasBoardLoadingExperience.cs`
+- `Assets/Project/Scripts/UI/Loading/AtlasBoardFrontendErrorCodes.cs`
+
+New documentation:
+
+- `Assets/Project/Documentation/FRONTEND_ERROR_CODEBOOK.md`
+
+Accepted behavior:
+
+- startup loading screen performs real readiness/bootstrap work;
+- Development/Editor may prefetch a small public-lobby read to absorb emulator cold start behind loading;
+- Release does not add speculative lobby traffic merely for warming;
+- match transition shows a short blocking loading state until an authoritative snapshot exists;
+- loading screens do not disable reconnect, host migration, snapshots or security;
+- localized tips rotate during loading;
+- supported loading languages remain EN/TR/ES/FR/DE/KO/RU;
+- public error text never exposes infrastructure/provider details;
+- player-facing problems use generic localized text plus stable `ATBxxx` codes;
+- Development logs include phase name, duration, status and sanitized diagnostic notes.
+
+Delay behavior:
+
+- Startup `10 s` -> `ATB101`
+- Startup `20 s` -> `ATB102`
+- Startup `30 s` -> `ATB103`
+- Match sync `10 s` -> `ATB301`
+- Match sync `20 s` -> `ATB302`
+- Match sync `30 s` -> `ATB303`
+
+Delay codes are observations, not automatic proof of backend failure.
+
+Accepted startup evidence from the later healthy Guest sample:
+
+- identity readiness approximately `75 ms`;
+- lobby prefetch approximately `238 ms`;
+- profile bootstrap approximately `994 ms`;
+- total startup bootstrap approximately `1203 ms`;
+- match authoritative readiness approximately `44–151 ms` depending on transition;
+- session completed with clean exit.
+
+Cold emulator runs may still cross a delay threshold such as `ATB101`; if the operation subsequently succeeds, the game continues normally.
+
+### 16H housekeeping
+**Status: NON-BLOCKING CLEANUP.**
+
+The accepted test showed repeated `ATB_MATCH_LOAD event=authoritative_ready` diagnostic lines while the overlay-close delay was still pending.
+
+This is:
+
+- not a network-request duplication;
+- not a gameplay blocker;
+- not a reason to reopen Phase 16H.
+
+Required cleanup:
+
+- add a one-shot completion guard so each match-loading cycle logs authoritative readiness once.
+
+This may be completed alongside the next source checkpoint.
+
+## 16I — Public lobby scale / discovery / measured capacity
+**Status: OPEN — NEXT ACTIVE PHASE.**
+
+Current room discovery is bounded per query/browser page and is not equivalent to a total system lobby limit.
 
 Required work:
 
-- add/verify one in-flight snapshot request per client/match;
-- coalesce duplicate snapshot requests rather than queueing them;
-- prevent per-frame/overlapping callers from multiplying the same network operation;
-- preserve a refresh request made while one call is in flight by scheduling one follow-up refresh, not dozens;
-- keep reconnect/host-migration forced refresh semantics;
-- review match chat/cosmetic/presence calls so they do not create startup contention;
-- do not submit remote pawn-cosmetic intents before the first authoritative match snapshot exists;
-- measure cold vs warm first-lobby and first-match timing separately.
-
-Acceptance targets for local emulator QA:
-
-- no 10–30 second UI wait for starting-roll synchronization;
-- normal warm-state authoritative turn/dice propagation should feel effectively immediate;
-- cold-start overhead may be visible, but must remain bounded and must not freeze or trap the user;
-- no unbounded overlap of `matchGetSnapshot`;
-- no functional regression in reconnect, host migration, rematch or match exit.
-
-## 16I — Public lobby scale / discovery
-**Status: OPEN before external scale testing.**
-
-Current room-list page limits are not the total number of rooms the backend can store, but discovery is currently bounded per request/query. Before assuming larger player populations:
-
 - implement cursor-based public-room pagination;
-- preserve server-side eligibility filtering;
-- avoid scanning a fixed small window that can hide valid rooms under load;
-- load-test realistic concurrent lobby + match polling;
-- measure backend read/write/callable volume per active match;
-- validate quota/cost behavior;
-- validate latency with multiple physical PCs and a deployed backend.
+- preserve server-side lobby eligibility filtering;
+- avoid fixed-window discovery that can hide valid rooms under scale;
+- define deterministic ordering/cursor behavior;
+- prevent duplicate rooms across pages;
+- preserve Join/Back responsiveness while page requests are pending;
+- add loading/empty/error presentation using ATB public-error policy;
+- measure callable/read/write volume per active lobby and match;
+- test concurrent public lobby discovery;
+- test realistic simultaneous active matches;
+- validate Firebase quota/cost implications;
+- separate emulator performance from deployed backend performance;
+- test multiple physical PCs and deployed backend before making capacity claims.
 
-Do not state a maximum supported concurrent player/lobby count until measured load tests exist.
+Acceptance rules:
+
+- no valid public lobby should become undiscoverable merely because it fell outside a fixed first-N scan;
+- pagination must not duplicate or skip rooms under stable data;
+- stale/closed/full rooms must be handled safely;
+- page fetch must not lock the menu;
+- reconnect/match networking must remain unaffected;
+- no supported concurrent-user/lobby claim may be published until measured load tests exist.
 
 # 7. Phase 17 — External / Live Testing
 
-**Status: FUTURE after Phase 16 runtime/performance gates.**
+**Status: FUTURE after Phase 16I.**
 
 Required:
 
 - real Internet;
 - multiple physical PCs;
 - multiple real accounts;
-- multiple time zones/regions;
-- real AtlasBoard Steam AppID;
+- multiple regions/time zones where feasible;
 - production-like backend;
+- real AtlasBoard Steam AppID;
 - real Steam provider verification;
 - repeated reconnect/host loss;
 - 2/3/4-player sessions;
-- cold/warm start measurements;
+- cold/warm measurements;
 - chat UTC behavior;
-- release topology validation;
+- Release topology validation;
 - production App Check validation;
-- sustained lobby/match load testing.
+- sustained lobby/match load testing;
+- repeated startup/shutdown stability on Release.
 
 # 8. Optional backlog — not committed scope
 
@@ -546,135 +600,142 @@ Possible later work:
 - Additional missions.
 - Alternate rules / tournament modes.
 - Steam Workshop/custom maps.
-- Colorblind palettes and additional accessibility options.
+- Colorblind palettes and additional accessibility.
 - Privacy-safe crash telemetry/analytics.
 - Feature flags / staged rollout.
 - Backend health dashboard.
 - Moderation dashboard.
 
-These must not displace the active Phase 16 networking/performance gates without an explicit priority decision.
+These must not displace Phase 16I without an explicit priority decision.
 
-# 9. Revised execution order from v5.8
+# 9. Revised execution order from v5.9
 
 1. **Phase 14 — COMPLETE / CLOSED / PUSHED.**
-2. **Phase 15A–15H — COMPLETE at documented level / PUSHED through `dcfc6550...`.**
-3. **Phase 15I — COMPLETE locally: moderation + data lifecycle.**
-4. **Phase 15J — COMPLETE locally: production operations/environment hardening.**
-5. **Phase 15K — LOCAL CODE/EMULATOR SECURITY CLOSE PASS; real production Steam/App Check proof deferred.**
-6. **Phase 16A — consolidated backend QA PASS locally.**
-7. **Phase 16B — Unity build readiness PASS locally.**
-8. **Phase 16C–G — canonical two-client Guest QA, diagnostics and exit responsiveness implemented.**
-9. **Phase 16D — historical native Guest crash currently mitigated / regression watch.**
-10. **Phase 16H — NEXT: first-run match latency + duplicate/overlapping snapshot request control.**
-11. **Phase 16I — public-lobby pagination + measured scalability/load testing.**
-12. **Phase 17 — external/live/release-topology validation.**
-13. **Release candidate / Steam launch preparation.**
+2. **Phase 15A–15K — local/emulator implementation accepted; checkpoint pushed through `74697e...`; production Steam cryptographic proof deferred.**
+3. **Phase 16A — consolidated backend QA PASS.**
+4. **Phase 16B — Unity build readiness PASS.**
+5. **Phase 16C — canonical two-client Guest build PASS.**
+6. **Phase 16D — automatic runtime diagnostics PASS.**
+7. **Phase 16E — historical Guest native crash MITIGATED / regression watch.**
+8. **Phase 16F — QA-only native Firebase/Steam isolation ACCEPTED.**
+9. **Phase 16G — lobby/match responsive exit ACCEPTED.**
+10. **Phase 16H.1 — snapshot single-flight/coalescing PASS locally.**
+11. **Phase 16H.2 — host-bootstrap prioritization PASS locally.**
+12. **Phase 16H.3 — loading/bootstrap UX + ATB error-code system PASS locally.**
+13. **Phase 16H housekeeping — one-shot duplicate match-loading diagnostic cleanup; non-blocking.**
+14. **Phase 16I — NEXT: public-lobby pagination + scale/load/cost/capacity validation.**
+15. **Phase 17 — external/live/release-topology validation.**
+16. **Release candidate / Steam launch preparation.**
 
 # 10. Immediate next action
 
-The next implementation step is:
+The next main implementation step is:
 
-**Phase 16H — First-run multiplayer latency and request-concurrency hardening.**
+**Phase 16I — Public lobby scale, pagination and measured capacity.**
 
-Start from evidence rather than reducing synchronization blindly:
+Start with architecture before synthetic load:
 
-1. Inspect all call sites that can trigger `matchGetSnapshot`.
-2. Identify whether more than one caller can have the same match snapshot request in flight.
-3. Implement request coalescing/single-flight behavior.
-4. Keep one pending refresh flag if a forced refresh arrives during an in-flight request.
-5. Preserve reconnect, host migration and explicit force-refresh semantics.
-6. Prevent cosmetic intent submission before a valid authoritative snapshot exists.
-7. Repeat two-client local test from a freshly started emulator and from a warmed emulator.
-8. Measure time from `lobbyStartMatch` to Guest starting-roll presentation.
-9. Confirm no native crash regression.
-10. Only after this is stable, proceed to pagination/load-capacity work.
+1. inspect current public-lobby query and client browser limits;
+2. define a cursor contract that is deterministic and stable;
+3. implement backend pagination without weakening server-side eligibility filtering;
+4. implement client next-page fetching without blocking Back/Join;
+5. deduplicate rooms by LobbyId;
+6. handle rooms that close/fill/change between pages;
+7. attach generic localized ATB error presentation;
+8. add focused QA for first page, next page, end-of-results and changing data;
+9. measure callable/read/write volume;
+10. perform emulator concurrency tests;
+11. later repeat against deployed backend and multiple physical clients;
+12. only then document measured capacity.
+
+Before or alongside the Phase 16I source checkpoint, perform the small 16H housekeeping item that suppresses repeated `ATB_MATCH_LOAD event=authoritative_ready` logging.
 
 # 11. Current checkpoint summary
 
-## Green / accepted locally
+## Green / accepted
 
-- Phase 15I moderation/data-lifecycle validation.
-- Phase 15J operational/environment validation.
-- Phase 15K local Steam/backend security regression.
+- Phase 15 local/emulator security and operations close at documented level.
 - Consolidated backend QA.
-- Unity Build Readiness validator.
-- Canonical two-client Guest builder.
-- Automatic per-session Development Guest logging.
-- Guest log storage under build `Logs`.
-- Immediate Guest match/lobby exit behavior.
-- Local Guest Steam startup bypass.
-- Local Guest native App Check provider bypass.
-- Local Guest Phase 15B secondary SDK-session suppression.
-- Canonical Guest build-scene native Firebase account/test-component stripping.
-- Current repeated Guest sample did not reproduce the old `0xC0000409` crash.
-- Long tested Guest sessions can reach match gameplay and exit cleanly.
+- Unity Build Readiness.
+- Canonical two-client Guest build.
+- Automatic Development Guest logs.
+- Immediate lobby/match exit behavior.
+- Local Guest native Firebase/Steam startup isolation.
+- Historical native Guest crash not reproduced in repeated accepted samples.
+- Snapshot single-flight/coalescing.
+- Pre-snapshot cosmetic-intent protection.
+- Host bootstrap priority.
+- Fast later authoritative match readiness.
+- Localized startup/match loading presentation.
+- ATB frontend error-code framework.
+- Seven-language loading-tip support.
+- Sanitized bootstrap timing diagnostics.
+- Clean-exit evidence in accepted Guest sessions.
 
-## Yellow / active
+## Yellow / active or watch
 
-- First-run/cold-start lobby latency.
-- First-match starting-roll synchronization latency.
-- Duplicate/overlapping `matchGetSnapshot` traffic.
-- Startup contention between snapshot/chat/cosmetic/presence/recovery calls.
-- Native crash remains on regression watch.
-- Public lobby pagination and measured concurrent capacity.
+- Public lobby pagination.
+- Measured concurrent lobby capacity.
+- Measured active-match capacity.
+- Firebase quota/cost/load characterization.
 - Multi-PC/deployed latency testing.
+- Historical `0xC0000409` crash remains on regression watch.
+- Duplicate `ATB_MATCH_LOAD authoritative_ready` diagnostic lines need one-shot cleanup.
 
 ## Deferred production gates
 
 - Real AtlasBoard Steam AppID.
 - Publisher Web API secret.
 - Real Steam returning sign-in.
-- Real custom App Check attestation.
+- Real custom Steam App Check attestation.
 - Deployed cryptographic invalid-token rejection.
 - Release verification of native FirebaseAuth/Firestore account/profile path.
 - Proof that local Guest QA isolation cannot activate in Release.
+- Release startup/shutdown regression.
 - External load/latency/quota/cost acceptance.
 
 # 12. Next-chat handoff block
 
 A future AtlasBoard chat should start from these facts:
 
-- Canonical roadmap checkpoint: **v5.8, 2026-10-11 America/Denver**.
+- Canonical roadmap checkpoint: **v5.9, 2026-10-11 America/Denver**.
 - Repository: `vuartex/AtlasBoardPrototype`.
 - Last verified pushed GitHub HEAD:
-  `dcfc6550ea20a0f4719714abb5ecc2d125765021`
+  `74697e472b865f76afe8f23b3ba8036ac5d35032`
 - Pushed HEAD title:
-  `Complete Phase 15F-15H security hardening`
-- Phase 15I/15J/15K are accepted locally but are not considered pushed until the user commits/pushes them.
-- Phase 16 backend QA is locally PASS.
-- Build Readiness validator is locally PASS.
-- Canonical Guest builder:
-  `Atlas Board/Online & Backend/Online/Build Two-Client Guest Test v1`
-- Guest executable:
-  `C:\Users\crazy\AtlasBoard_3D3C_GuestBuild\AtlasBoardGuest.exe`
-- Use the generated local-emulator BAT for local Guest QA.
-- Historical Guest crash:
+  `Complete Phase 15 local close and stabilize Phase 16 Guest QA`
+- Phase 16H / 16H.2 / 16H.3 are accepted locally and must not be assumed pushed until the next user commit.
+- Historical Guest crash signature:
   `BEX64 / 0xC0000409 / ucrtbase.dll / subcode 7`.
-- D3D11 did not fix that crash.
 - Exact native root was not symbolically proven.
-- Current mitigation isolates the explicit local Guest from unnecessary native Firebase/Steam startup while preserving the HTTP Auth/Functions emulator multiplayer path.
-- Do not re-enable native FirebaseAuth/Firestore, Steam startup or native App Check inside the canonical local Guest as a casual cleanup.
-- Editor/Release paths are intentionally not disabled.
-- Before release, production/native Firebase + real Steam + real App Check must be re-validated separately.
-- Current repeated local Guest tests no longer reproduce the historical native crash; status is **mitigated / regression watch**.
-- Guest lobby/match local exit is immediate and should remain so.
-- Do not break reconnect/snapshot/host-migration semantics while optimizing.
-- Current active blocker is first-run/cold match responsiveness.
-- Logs show duplicate/overlapping `matchGetSnapshot` traffic; optimize with single-flight/coalescing rather than blindly reducing required refreshes.
-- First authoritative snapshot must exist before remote cosmetic intents are submitted.
-- Public lobby discovery still needs pagination and measured scale testing.
-- Do not claim a supported concurrent player count until load testing exists.
+- Current local Guest mitigation isolates unnecessary native Firebase/Steam startup while preserving HTTP emulator multiplayer.
+- Do not casually re-enable native FirebaseAuth/Firestore, native App Check or Steam startup inside the canonical local Guest.
+- Release behavior remains separate and must be revalidated before launch.
+- Guest lobby/match local exit should remain immediate.
+- Snapshot polling/reconnect/host-migration semantics must remain intact.
+- Phase 16H single-flight is accepted: overlapping snapshot callers share one in-flight network task.
+- Forced refresh can schedule at most one follow-up refresh.
+- Remote cosmetic intent waits for an authoritative snapshot.
+- Phase 16H.2 host bootstrap publishes the first authoritative frame before maintenance traffic.
+- Phase 16H.3 adds localized startup/match loading and stable ATB frontend error codes.
+- Public UI must not expose provider/backend implementation details.
+- `FRONTEND_ERROR_CODEBOOK.md` is the canonical ATB code reference.
+- `ATB101/102/103` are startup delay observations; `ATB301/302/303` are match-sync delay observations.
+- One non-blocking cleanup remains: suppress duplicate `ATB_MATCH_LOAD event=authoritative_ready` log entries per loading cycle.
+- Current active phase is **16I public-lobby pagination + measured scale/load**.
+- Do not claim a supported concurrent-player/lobby count until measured testing exists.
 - Do not auto-commit, auto-push or deploy.
-- Prefer complete replacement files over patches unless the user explicitly asks for a patch.
+- Prefer complete replacement files over patches unless explicitly asked.
 
 # 13. Roadmap maintenance rule
 
 At every meaningful checkpoint:
 
-1. Record the latest already-existing pushed SHA/title; never invent the SHA of a commit that does not yet exist.
+1. Record the latest already-existing pushed SHA/title; never invent a SHA for a commit that does not yet exist.
 2. Preserve accepted local work until it is safely pushed.
 3. Update the current blocker and acceptance evidence.
-4. Explicitly separate local-emulator acceptance from production acceptance.
-5. Record QA-only bypasses and the release gate that proves they do not leak into Release.
-6. Remove obsolete future-scope wording when work is actually completed.
-7. Keep `Assets/Project/Documentation/MASTER_ROADMAP.md` as the canonical repository roadmap.
+4. Separate local/emulator acceptance from production acceptance.
+5. Record QA-only bypasses and the release gate proving they cannot leak into Release.
+6. Remove obsolete future-scope wording when work is completed.
+7. Keep `Assets/Project/Documentation/MASTER_ROADMAP.md` as the canonical roadmap.
+8. Keep player-facing ATB error codes stable once published/documented.
