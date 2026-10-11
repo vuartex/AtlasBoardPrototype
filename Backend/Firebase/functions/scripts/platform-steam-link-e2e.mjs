@@ -1,4 +1,5 @@
 import {createHash} from "node:crypto";
+import {getEmulatorDoc, deleteEmulatorDoc} from "./phase15k-emulator-docs.mjs";
 
 const PROJECT_ID = "atlasboard-usa";
 const REGION = "europe-west1";
@@ -63,14 +64,11 @@ function docUrl(path) {
 }
 
 async function getDoc(path) {
-  return requestJson(docUrl(path));
+  return getEmulatorDoc(path);
 }
 
 async function remove(path) {
-  await requestJson(
-    docUrl(path),
-    {method: "DELETE"},
-  );
+  await deleteEmulatorDoc(path);
 }
 
 async function signup(label, nonce) {

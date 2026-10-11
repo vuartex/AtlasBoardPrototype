@@ -4622,9 +4622,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
     public bool TryHandleLeaveMatch()
     {
-        if (!prepared || leaveRequestInFlight)
+        if (!prepared)
         {
             return false;
+        }
+
+        // The player's leave intent was already accepted. Do not trap the
+        // confirmation UI or issue a second server leave request.
+        if (leaveRequestInFlight || hostMigrationQueued)
+        {
+            return true;
         }
 
         if (localIsHost)
@@ -4655,6 +4662,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             return false;
         }
 
+        if (leaveRequestInFlight || hostMigrationQueued)
+        {
+            // Closing the app is always a user-controlled action; server
+            // reconnect/disconnect cleanup must not hold the process hostage.
+            QuitApplicationNow();
+            return true;
+        }
+
         if (localIsHost)
         {
             QueueHostMigrationLeave(
@@ -4681,6 +4696,10 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         hostMigrationQuitAfterHandoff =
             quitAfterHandoff;
 
+        // A pending network request can outlive the checkpoint loop. Keep
+        // a wall-clock bound even when the async method is awaiting HTTP.
+        StartCoroutine(HostLeaveWatchdog(preparedMatchId));
+
         Debug.Log(
             "AtlasBoard Phase 11G Host Migration: leave requested. " +
             "Authority handoff is queued until the current gameplay block " +
@@ -4688,6 +4707,24 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             this);
 
         HostMigrateAtSafeCheckpointAsync();
+    }
+
+    private System.Collections.IEnumerator HostLeaveWatchdog(string matchId)
+    {
+        yield return new WaitForSecondsRealtime(7f);
+
+        if (!hostMigrationQueued || !prepared || !localIsHost ||
+            !string.Equals(preparedMatchId, matchId, StringComparison.Ordinal))
+        {
+            yield break;
+        }
+
+        Debug.LogWarning(
+            "AtlasBoard UX: host leave watchdog expired. Detaching UI; " +
+            "server recovery must resolve the authoritative seat.", this);
+        bool quit = hostMigrationQuitAfterHandoff;
+        DetachLocalClientFromActiveMatch();
+        if (quit) QuitApplicationNow();
     }
 
     private async void HostMigrateAtSafeCheckpointAsync()
@@ -4705,22 +4742,45 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         {
             if (!HasOtherConnectedRemoteHumanSeat())
             {
-                bool handled =
-                    await TryFastCloseHostSessionWithoutSuccessorAsync();
-
-                if (handled)
+                // There is no connected human successor in the current
+                // authoritative snapshot. Start cleanup while all credentials
+                // and match identifiers are intact, then return the UI now.
+                string departingMatchId = preparedMatchId;
+                Task<AtlasMatchNetworkResult> pendingLeave =
+                    matchBridge.LeaveActiveMatchAsync(departingMatchId);
+                bool quitAfterLeave = hostMigrationQuitAfterHandoff;
+                DetachLocalClientFromActiveMatch();
+                if (quitAfterLeave)
                 {
-                    return;
+                    // Give the best-effort notification a bounded chance to
+                    // be delivered before terminating the process.
+                    await Task.WhenAny(pendingLeave, Task.Delay(1000));
+                    QuitApplicationNow();
                 }
-
-                // A Remote Human may have appeared in the authoritative
-                // snapshot while the request was in flight. Fall through to
-                // the normal safe-checkpoint Host Migration path.
+                else
+                {
+                    // Do not block the menu while waiting for the backend.
+                    _ = ObserveDetachedLeaveAsync(pendingLeave, "host-bot-only");
+                }
+                return;
             }
 
+            float migrationDeadline = Time.realtimeSinceStartup + 6f;
             while (prepared &&
                    localIsHost)
             {
+                if (Time.realtimeSinceStartup >= migrationDeadline)
+                {
+                    Debug.LogWarning(
+                        "AtlasBoard UX: graceful host migration exceeded 6 seconds; " +
+                        "local host is disconnecting. Other human seats will need " +
+                        "the existing crash-recovery/host-timeout path.", this);
+                    bool quitOnTimeout = hostMigrationQuitAfterHandoff;
+                    DetachLocalClientFromActiveMatch();
+                    if (quitOnTimeout) QuitApplicationNow();
+                    return;
+                }
+
                 if (!IsSafeHostMigrationCheckpoint() ||
                     hostIntentPollInFlight ||
                     hostPublishInFlight ||
@@ -4733,6 +4793,11 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 // Flush the exact final state before transferring authority.
                 await PublishHostStateIfChangedAsync();
 
+                if (!prepared || !localIsHost)
+                {
+                    return;
+                }
+
                 if (!IsSafeHostMigrationCheckpoint() ||
                     hostPublishInFlight)
                 {
@@ -4743,6 +4808,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 AtlasMatchNetworkResult result =
                     await matchBridge
                         .LeaveActiveMatchAsync();
+
+                if (!prepared || !localIsHost)
+                {
+                    // Watchdog already detached this client; do not revive it.
+                    return;
+                }
 
                 if (!result.Success)
                 {
@@ -4766,8 +4837,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
                     Debug.LogWarning(
                         "AtlasBoard Phase 11G Host Migration request failed: " +
-                        result.TechnicalMessage,
+                        result.TechnicalMessage +
+                        ". Local host is leaving; backend recovery must resolve the seat.",
                         this);
+                    bool quitAfterFailure = hostMigrationQuitAfterHandoff;
+                    DetachLocalClientFromActiveMatch();
+                    if (quitAfterFailure) QuitApplicationNow();
                     return;
                 }
 
@@ -4787,6 +4862,19 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 }
 
                 return;
+            }
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning(
+                "AtlasBoard UX: host leave/migration request faulted: " +
+                exception.Message +
+                ". Server disconnect recovery remains authoritative.", this);
+            if (prepared && localIsHost)
+            {
+                bool quitAfterFailure = hostMigrationQuitAfterHandoff;
+                DetachLocalClientFromActiveMatch();
+                if (quitAfterFailure) QuitApplicationNow();
             }
         }
         finally
@@ -4842,54 +4930,6 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
         return false;
-    }
-
-    private async Task<bool>
-        TryFastCloseHostSessionWithoutSuccessorAsync()
-    {
-        if (matchBridge == null)
-        {
-            return false;
-        }
-
-        AtlasMatchNetworkResult result =
-            await matchBridge
-                .LeaveActiveMatchAsync();
-
-        if (!result.Success)
-        {
-            if (IsTransientHostMigrationNotSafe(
-                    result))
-            {
-                // Server saw a Human successor or an older contract.
-                // Use the ordinary safe-checkpoint migration path.
-                return false;
-            }
-
-            Debug.LogWarning(
-                "AtlasBoard Host no-successor leave request failed: " +
-                result.TechnicalMessage,
-                this);
-
-            return true;
-        }
-
-        bool quit =
-            hostMigrationQuitAfterHandoff;
-
-        DetachLocalClientFromActiveMatch();
-
-        Debug.Log(
-            "AtlasBoard Host leave: no connected Remote Human successor; " +
-            "session closed and Host detached without waiting for a gameplay checkpoint.",
-            this);
-
-        if (quit)
-        {
-            QuitApplicationNow();
-        }
-
-        return true;
     }
 
     private static bool IsTransientHostMigrationNotSafe(
@@ -4950,7 +4990,7 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                    StringComparison.Ordinal);
     }
 
-    private async void LeaveActiveMatchAndReturnToMenuAsync()
+    private void LeaveActiveMatchAndReturnToMenuAsync()
     {
         if (leaveRequestInFlight || matchBridge == null)
         {
@@ -4958,21 +4998,21 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
         leaveRequestInFlight = true;
-
         try
         {
-            AtlasMatchNetworkResult result =
-                await matchBridge.LeaveActiveMatchAsync();
-
-            if (!result.Success)
-            {
-                Debug.LogWarning(
-                    "Phase 5F Leave Match request failed: " +
-                    result.TechnicalMessage,
-                    this);
-                return;
-            }
-
+            // Begin the authenticated server notification before detaching
+            // the local UI. No await sits on the player's navigation path.
+            string matchId = preparedMatchId;
+            Task<AtlasMatchNetworkResult> pendingLeave =
+                matchBridge.LeaveActiveMatchAsync(matchId);
+            DetachLocalClientFromActiveMatch();
+            _ = ObserveDetachedLeaveAsync(pendingLeave, "guest");
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning(
+                "AtlasBoard UX: guest leave notification failed to start: " +
+                exception.Message, this);
             DetachLocalClientFromActiveMatch();
         }
         finally
@@ -4981,18 +5021,52 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
     }
 
+    private async Task ObserveDetachedLeaveAsync(
+        Task<AtlasMatchNetworkResult> pendingLeave, string context)
+    {
+        try
+        {
+            AtlasMatchNetworkResult result = await pendingLeave;
+            if (result == null || !result.Success)
+            {
+                Debug.LogWarning(
+                    "AtlasBoard UX: " + context +
+                    " leave was not acknowledged. Server presence and " +
+                    "reconnect expiry must clean up the seat. " +
+                    (result != null ? result.TechnicalMessage : "Null result"),
+                    this);
+            }
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning(
+                "AtlasBoard UX: " + context +
+                " leave background notification faulted: " +
+                exception.Message, this);
+        }
+    }
+
     private async void LeaveActiveMatchAndQuitAsync()
     {
         if (leaveRequestInFlight || matchBridge == null)
         {
+            QuitApplicationNow();
             return;
         }
 
         leaveRequestInFlight = true;
-
         try
         {
-            await matchBridge.LeaveActiveMatchAsync();
+            Task<AtlasMatchNetworkResult> pendingLeave =
+                matchBridge.LeaveActiveMatchAsync(preparedMatchId);
+            // Best effort: 1s budget, never hold the quit path hostage.
+            await Task.WhenAny(pendingLeave, Task.Delay(1000));
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning(
+                "AtlasBoard UX: quit leave notification failed: " +
+                exception.Message, this);
         }
         finally
         {

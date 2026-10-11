@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using UnityEngine.Networking;
 
@@ -18,6 +19,22 @@ public static class AtlasBoardAppCheckRequestSecurity
         if (request == null) return false;
         RequestsSeen++;
 
+#if DEVELOPMENT_BUILD && !UNITY_EDITOR
+        // Phase 16 local Guest QA only: the Functions Emulator accepts
+        // non-empty App Check headers without cryptographic verification.
+        // Do not wait for production Steam App Check when the explicitly
+        // launched Guest is addressing the loopback Functions Emulator.
+        // This is NOT a production token and NOT a security acceptance proof.
+        if (IsExplicitLocalGuestCallable(request.url))
+        {
+            request.SetRequestHeader(
+                AtlasBoardAppCheckTokenSource.RequestHeaderName,
+                "atlasboard-local-emulator-development-only");
+            HeadersAttached++;
+            return true;
+        }
+#endif
+
         if (!AtlasBoardAppCheckTokenSource.IsSdkAvailable)
         {
             SdkUnavailableSkips++;
@@ -35,6 +52,45 @@ public static class AtlasBoardAppCheckRequestSecurity
         HeadersAttached++;
         return true;
     }
+
+#if DEVELOPMENT_BUILD && !UNITY_EDITOR
+    private static bool IsExplicitLocalGuestCallable(string url)
+    {
+        bool localEmulatorRequested = false;
+        foreach (string arg in Environment.GetCommandLineArgs())
+        {
+            if (string.Equals(
+                arg,
+                "-atlasLocalEmulators",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                localEmulatorRequested = true;
+                break;
+            }
+        }
+
+        if (!localEmulatorRequested ||
+            !Uri.TryCreate(url, UriKind.Absolute, out Uri endpoint))
+        {
+            return false;
+        }
+
+        // Do not authorize token substitution for LAN/remote emulators,
+        // non-callable paths, HTTPS/cloud endpoints or unexpected ports.
+        bool loopback =
+            string.Equals(endpoint.Host, "127.0.0.1", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(endpoint.Host, "localhost", StringComparison.OrdinalIgnoreCase);
+
+        return loopback &&
+            endpoint.Scheme == Uri.UriSchemeHttp &&
+            endpoint.Port == 5001 &&
+            endpoint.AbsolutePath.StartsWith(
+                "/atlasboard-usa/europe-west1/",
+                StringComparison.Ordinal) &&
+            endpoint.AbsolutePath.Length >
+                "/atlasboard-usa/europe-west1/".Length;
+    }
+#endif
 
 #if UNITY_EDITOR
     public static void EditorResetDiagnostics()

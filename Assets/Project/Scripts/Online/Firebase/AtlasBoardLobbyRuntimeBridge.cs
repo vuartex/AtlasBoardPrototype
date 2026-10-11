@@ -11,6 +11,11 @@ using UnityEngine.Networking;
 public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
 {
     private const string ProjectId = "atlasboard-usa";
+    // Firebase Web API keys are public client configuration. The local Guest
+    // uses this value only against the loopback Auth Emulator so it does not
+    // need to initialize the native Firebase desktop SDK during QA startup.
+    private const string FirebaseWebApiKey =
+        "AIzaSyAOnxprB0-59IZ2D5uvWM4xBtixzA_cRtU";
     private const string Region = "europe-west1";
     private const string DefaultEmulatorHost = "127.0.0.1";
     private const int AuthEmulatorPort = 9099;
@@ -71,6 +76,13 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
 
     public async Task<bool> RebindIdentityFromFirebaseAuthAsync()
     {
+        // The explicit loopback Development Guest is HTTP-only. Never wake
+        // the native Firebase Auth SDK from this compatibility path.
+        if (AtlasBoardAppCheckTokenSource.IsLocalEmulatorGuestSession)
+        {
+            return false;
+        }
+
         try
         {
             DependencyStatus dependencyStatus =
@@ -271,8 +283,15 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         ListPublicRoomsAsync(
             int limit = 6)
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        float listStartedAt = Time.realtimeSinceStartup;
+#endif
         AtlasLobbyOperationResult init =
             await EnsureIdentityAsync();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        float identityMilliseconds =
+            (Time.realtimeSinceStartup - listStartedAt) * 1000f;
+#endif
 
         if (!init.Success)
         {
@@ -334,6 +353,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         await AtlasBoardAppCheckRequestSecurity.ApplyAsync(
             webRequest);
         await SendRequestAsync(webRequest);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Debug.Log(
+            $"AtlasBoard lobby list timing: identity={identityMilliseconds:F0}ms, " +
+            $"total={(Time.realtimeSinceStartup - listStartedAt) * 1000f:F0}ms, " +
+            $"HTTP={webRequest.responseCode}.", this);
+#endif
 
         string body =
             webRequest.downloadHandler != null
@@ -1048,28 +1073,15 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             }
         }
 
-        DependencyStatus dependencyStatus =
-            await FirebaseApp.CheckAndFixDependenciesAsync();
-
-        if (dependencyStatus != DependencyStatus.Available)
-        {
-            return AtlasLobbyOperationResult.Fail(
-                "account.error.service_unavailable",
-                "Firebase dependencies unavailable: " + dependencyStatus);
-        }
-
-        FirebaseApp app =
-            FirebaseApp.DefaultInstance;
-
-        if (app == null ||
-            app.Options == null ||
-            app.Options.ProjectId != ProjectId)
-        {
-            return AtlasLobbyOperationResult.Fail(
-                "account.error.service_unavailable",
-                "Default Firebase project is not atlasboard-usa.");
-        }
-
+        /*
+         * IMPORTANT:
+         * This Development Guest already talks to the Auth/Functions
+         * emulators over HTTP. Do not initialize FirebaseApp/Auth/Firestore
+         * here. That native desktop initialization was racing with the
+         * standalone Guest startup and could terminate the process before the
+         * lobby identity became ready, especially while the Editor was also
+         * running.
+         */
         string devIdentityKey =
             BuildDeterministicDevelopmentIdentityKey(
                 ResolveDevelopmentDisplayName());
@@ -1090,7 +1102,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
 
         string apiKey =
             UnityWebRequest.EscapeURL(
-                app.Options.ApiKey ?? "fake-api-key");
+                FirebaseWebApiKey);
 
         string signInUrl =
             $"http://{EmulatorHostForOnlineSubsystems}:{AuthEmulatorPort}/" +

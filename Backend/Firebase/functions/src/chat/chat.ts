@@ -67,6 +67,7 @@ interface ChatSendData {
   senderUtcOffsetMinutes?: unknown;
   targetAccountId?: unknown;
   messageId?: unknown;
+  reportId?: unknown;
   reasonCode?: unknown;
   comment?: unknown;
   muted?: unknown;
@@ -159,7 +160,8 @@ function readScopeId(value: unknown): string {
   if (
     typeof value !== "string" ||
     value.length < 8 ||
-    value.length > 128
+    value.length > 128 ||
+    value.includes("/")
   ) {
     error(
       "invalid-argument",
@@ -180,7 +182,8 @@ function readAccountId(value: unknown): string {
   if (
     typeof value !== "string" ||
     value.length < 6 ||
-    value.length > 128
+    value.length > 128 ||
+    value.includes("/")
   ) {
     error(
       "invalid-argument",
@@ -201,7 +204,8 @@ function readMessageId(value: unknown): string {
   if (
     typeof value !== "string" ||
     value.length < 4 ||
-    value.length > 160
+    value.length > 160 ||
+    value.includes("/")
   ) {
     error(
       "invalid-argument",
@@ -714,12 +718,9 @@ async function readContext(
 function hasModeratorClaim(token: unknown): boolean {
   if (typeof token !== "object" || token === null) return false;
   const claims = token as Record<string, unknown>;
-  const role = typeof claims.role === "string" ? claims.role : "";
-  return claims.admin === true ||
-    claims.moderator === true ||
-    claims.atlasChatModerator === true ||
-    role === "admin" ||
-    role === "moderator";
+  // Explicit Atlas moderation privilege or trusted global administrator.
+  // Generic roles must not grant authority across unrelated features.
+  return claims.atlasChatModerator === true || claims.admin === true;
 }
 
 /**
@@ -831,10 +832,14 @@ async function requireTargetInScope(
       typeof data.localOwnerAccountId === "string" ?
         data.localOwnerAccountId : "";
 
-    if (
+    const connected = context.scopeType === "lobby" ?
+      data.active === true :
+      data.connectionState !== "kicked" &&
+      data.connectionState !== "afk_removed";
+    if (connected && (
       accountId === targetAccountId ||
       localOwnerAccountId === targetAccountId
-    ) {
+    )) {
       return safeDisplayName(data.displayName);
     }
   }
@@ -855,28 +860,28 @@ async function requireTargetInScope(
 }
 
 /**
- * Writes a moderator audit event.
+ * Builds an immutable moderator audit event for an atomic write.
+ * Audit/evidence events have no automatic TTL: a deliberate reviewed archive
+ * process must govern their deletion and any legal/investigation holds.
  * @param {string} moderatorUid Moderator account id.
  * @param {string} action Audit action.
- * @param {Record<string, unknown>} details Audit details.
- * @return {Promise<void>} Completion task.
+ * @param {Record<string, unknown>} details Audit evidence.
+ * @return {Record<string, unknown>} Audit document payload.
  */
-async function writeModeratorAudit(
+function moderatorAuditRecord(
   moderatorUid: string,
   action: string,
   details: Record<string, unknown>,
-): Promise<void> {
-  const db = getFirestore();
-  const now = Date.now();
-  await db.collection("chat_moderation_audit").add({
+): Record<string, unknown> {
+  return {
     moderatorAccountId: moderatorUid,
     action,
     details,
     createdAt: FieldValue.serverTimestamp(),
-    createdAtEpochMs: now,
-    expiresAt: Timestamp.fromMillis(now + 365 * DAY_MS),
-    schemaVersion: 1,
-  });
+    createdAtEpochMs: Date.now(),
+    retentionPolicy: "review_required_no_automatic_ttl_v1",
+    schemaVersion: 2,
+  };
 }
 
 /**
@@ -1125,7 +1130,10 @@ async function listMessages(
     const item = doc.data();
     const accountId =
       typeof item.accountId === "string" ? item.accountId : "";
-    return item.removed !== true &&
+    const expiresAt = item.expiresAt;
+    const unexpired = !(expiresAt instanceof Timestamp) ||
+      expiresAt.toMillis() > Date.now();
+    return item.removed !== true && unexpired &&
       !mutedAccountIds.has(accountId) &&
       !blockedAccountIds.has(accountId);
   });
@@ -1348,6 +1356,11 @@ async function captureReportContext(
     .get();
 
   return snapshot.docs
+    .filter((doc) => {
+      const expiresAt = doc.data().expiresAt;
+      return !(expiresAt instanceof Timestamp) ||
+        expiresAt.toMillis() > Date.now();
+    })
     .slice()
     .reverse()
     .map((doc) => {
@@ -1394,10 +1407,7 @@ async function reportPlayer(
 
   const reasonCode = readReasonCode(data.reasonCode);
   const comment = readComment(data.comment, 160);
-  const [context, config] = await Promise.all([
-    readContext(scopeType, uid, scopeId),
-    readModerationConfig(),
-  ]);
+  const context = await readContext(scopeType, uid, scopeId);
   const targetDisplayName = await requireTargetInScope(
     context,
     targetAccountId,
@@ -1422,10 +1432,8 @@ async function reportPlayer(
     contextMessages,
     createdAt: FieldValue.serverTimestamp(),
     createdAtEpochMs: now,
-    expiresAt: Timestamp.fromMillis(
-      now + config.reportRetentionDays * DAY_MS,
-    ),
-    schemaVersion: 1,
+    retentionPolicy: "open_case_hold_v1",
+    schemaVersion: 2,
   });
 
   return {
@@ -1450,10 +1458,7 @@ async function reportMessage(
   const messageId = readMessageId(data.messageId);
   const reasonCode = readReasonCode(data.reasonCode);
   const comment = readComment(data.comment, 160);
-  const [context, config] = await Promise.all([
-    readContext(scopeType, uid, scopeId),
-    readModerationConfig(),
-  ]);
+  const context = await readContext(scopeType, uid, scopeId);
   const messageRef = context.rootRef
     .collection("chat_messages")
     .doc(messageId);
@@ -1468,6 +1473,14 @@ async function reportMessage(
   }
 
   const message = messageSnap.data() ?? {};
+  if (message.expiresAt instanceof Timestamp &&
+      message.expiresAt.toMillis() <= Date.now()) {
+    error(
+      "not-found",
+      "CHAT_MESSAGE_EXPIRED",
+      "chat.error.message_not_found",
+    );
+  }
   const targetAccountId =
     typeof message.accountId === "string" ? message.accountId : "";
   if (!targetAccountId || targetAccountId === uid) {
@@ -1503,10 +1516,8 @@ async function reportMessage(
     contextMessages,
     createdAt: FieldValue.serverTimestamp(),
     createdAtEpochMs: now,
-    expiresAt: Timestamp.fromMillis(
-      now + config.reportRetentionDays * DAY_MS,
-    ),
-    schemaVersion: 1,
+    retentionPolicy: "open_case_hold_v1",
+    schemaVersion: 2,
   });
 
   return {
@@ -1584,43 +1595,51 @@ async function moderatorRemoveMessage(
     );
   }
 
+  const db = getFirestore();
   const messageRef = rootRef.collection("chat_messages").doc(messageId);
-  const messageSnap = await messageRef.get();
-  if (!messageSnap.exists) {
-    error(
-      "not-found",
-      "CHAT_MESSAGE_NOT_FOUND",
-      "chat.error.message_not_found",
-    );
-  }
-
-  await messageRef.set(
-    {
+  const auditRef = db.collection("chat_moderation_audit").doc();
+  let alreadyRemoved = false;
+  await db.runTransaction(async (tx) => {
+    const messageSnap = await tx.get(messageRef);
+    if (!messageSnap.exists) {
+      error(
+        "not-found", "CHAT_MESSAGE_NOT_FOUND", "chat.error.message_not_found",
+      );
+    }
+    const message = messageSnap.data() ?? {};
+    if (message.removed === true) {
+      alreadyRemoved = true;
+      return;
+    }
+    const now = Date.now();
+    tx.create(auditRef, moderatorAuditRecord(
+      moderatorUid,
+      "remove_message",
+      {
+        scopeType,
+        scopeId,
+        messageId,
+        reason,
+        evidence: {
+          accountId: message.accountId ?? "",
+          displayName: safeDisplayName(message.displayName),
+          body: typeof message.body === "string" ? message.body : "",
+          createdAtEpochMs: message.createdAtEpochMs ?? 0,
+          senderUtcOffsetMinutes: message.senderUtcOffsetMinutes ?? 0,
+        },
+      },
+    ));
+    tx.set(messageRef, {
       body: "",
       removed: true,
       removedAt: FieldValue.serverTimestamp(),
-      removedAtEpochMs: Date.now(),
+      removedAtEpochMs: now,
       removedBy: moderatorUid,
       removalReason: reason,
-    },
-    {merge: true},
-  );
+    }, {merge: true});
+  });
 
-  await writeModeratorAudit(
-    moderatorUid,
-    "remove_message",
-    {
-      scopeType,
-      scopeId,
-      messageId,
-      reason,
-    },
-  );
-
-  return {
-    ok: true,
-    messageId,
-  };
+  return {ok: true, messageId, alreadyRemoved};
 }
 
 /**
@@ -1681,16 +1700,16 @@ async function moderatorSetSanction(
     );
   }
 
-  await ref.set(update, {merge: true});
-  await writeModeratorAudit(
-    moderatorUid,
-    `sanction_${action}`,
-    {
+  const db = getFirestore();
+  const batch = db.batch();
+  batch.set(ref, update, {merge: true});
+  batch.create(db.collection("chat_moderation_audit").doc(),
+    moderatorAuditRecord(moderatorUid, `sanction_${action}`, {
       targetAccountId,
       reason,
       durationMinutes: data.durationMinutes ?? null,
-    },
-  );
+    }));
+  await batch.commit();
 
   return {
     ok: true,
@@ -1769,24 +1788,17 @@ async function moderatorUpdateConfig(
     ),
   };
 
-  await getFirestore()
-    .collection("chat_moderation_config")
-    .doc("current")
-    .set(
-      {
-        ...next,
-        updatedAt: FieldValue.serverTimestamp(),
-        updatedAtEpochMs: Date.now(),
-        updatedBy: moderatorUid,
-        schemaVersion: 1,
-      },
-      {merge: true},
-    );
-
-  await writeModeratorAudit(
-    moderatorUid,
-    "update_config",
-    {
+  const db = getFirestore();
+  const batch = db.batch();
+  batch.set(db.collection("chat_moderation_config").doc("current"), {
+    ...next,
+    updatedAt: FieldValue.serverTimestamp(),
+    updatedAtEpochMs: Date.now(),
+    updatedBy: moderatorUid,
+    schemaVersion: 1,
+  }, {merge: true});
+  batch.create(db.collection("chat_moderation_audit").doc(),
+    moderatorAuditRecord(moderatorUid, "update_config", {
       extraBlockedTermCount: next.extraBlockedTerms.length,
       blockExternalLinks: next.blockExternalLinks,
       messageRetentionDays: next.messageRetentionDays,
@@ -1794,13 +1806,84 @@ async function moderatorUpdateConfig(
       maxBurstPerMinute: next.maxBurstPerMinute,
       maxDuplicateRepeats: next.maxDuplicateRepeats,
       duplicateWindowMs: next.duplicateWindowMs,
-    },
-  );
+    }));
+  await batch.commit();
 
   return {
     ok: true,
     extraBlockedTermCount: next.extraBlockedTerms.length,
   };
+}
+
+/**
+ * Resolves/dismisses an investigation or reopens it with a server audit trail.
+ * Open cases have no TTL. Closed cases receive a fresh retention deadline.
+ * @param {string} moderatorUid Moderator account id.
+ * @param {unknown} token Firebase auth claims.
+ * @param {ChatSendData} data Operation parameters.
+ * @return {Promise<Record<string, unknown>>} Report status.
+ */
+async function moderatorReviewReport(
+  moderatorUid: string,
+  token: unknown,
+  data: ChatSendData,
+): Promise<Record<string, unknown>> {
+  requireModerator(token);
+  const reportId = readMessageId(data.reportId);
+  const action = readOperation(data.action, "");
+  if (!["resolve", "dismiss", "reopen"].includes(action)) {
+    error("invalid-argument", "INVALID_REPORT_REVIEW_ACTION",
+      "chat.error.invalid_request");
+  }
+  const reason = readComment(data.comment, 160);
+  const config = await readModerationConfig();
+  const db = getFirestore();
+  const ref = db.collection("chat_reports").doc(reportId);
+  const auditRef = db.collection("chat_moderation_audit").doc();
+  let status = "";
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) {
+      error("not-found", "CHAT_REPORT_NOT_FOUND", "chat.error.invalid_request");
+    }
+    const report = snap.data() ?? {};
+    const previousStatus = typeof report.status === "string" ?
+      report.status : "open";
+    status = action === "reopen" ? "open" :
+      action === "resolve" ? "resolved" : "dismissed";
+    if (previousStatus === status) {
+      error("failed-precondition", "CHAT_REPORT_ALREADY_IN_STATUS",
+        "chat.error.invalid_request");
+    }
+    const now = Date.now();
+    tx.set(ref, {
+      status,
+      reviewedAt: FieldValue.serverTimestamp(),
+      reviewedAtEpochMs: now,
+      reviewedBy: moderatorUid,
+      reviewReason: reason,
+      retentionPolicy: status === "open" ?
+        "open_case_hold_v1" : "closed_case_ttl_v1",
+      expiresAt: status === "open" ? FieldValue.delete() :
+        Timestamp.fromMillis(now + config.reportRetentionDays * DAY_MS),
+    }, {merge: true});
+    tx.create(auditRef, moderatorAuditRecord(
+      moderatorUid,
+      `report_${action}`,
+      {
+        reportId,
+        previousStatus,
+        newStatus: status,
+        reason,
+        reporterAccountId: report.reporterAccountId ?? "",
+        targetAccountId: report.targetAccountId ?? "",
+        scopeType: report.scopeType ?? "",
+        scopeId: report.scopeId ?? "",
+        messageId: report.messageId ?? "",
+      },
+    ));
+  });
+  return {ok: true, reportId, status};
 }
 
 /**
@@ -1885,6 +1968,9 @@ async function routeSendOperation(
   }
   if (operation === "moderator_update_config") {
     return moderatorUpdateConfig(uid, token, data);
+  }
+  if (operation === "moderator_review_report") {
+    return moderatorReviewReport(uid, token, data);
   }
 
   error(

@@ -1,3 +1,5 @@
+import {getEmulatorDoc, deleteEmulatorDoc} from "./phase15k-emulator-docs.mjs";
+
 const PROJECT_ID = "atlasboard-usa";
 const REGION = "europe-west1";
 const AUTH_BASE = "http://127.0.0.1:9099";
@@ -136,10 +138,7 @@ function docUrl(path) {
 }
 
 async function remove(path) {
-  await requestJson(
-    docUrl(path),
-    {method: "DELETE"},
-  );
+  await deleteEmulatorDoc(path);
 }
 
 console.log("Atlas Board Phase 11D Returning Steam Sign-In E2E");
@@ -312,10 +311,8 @@ assert(
 console.log("[9/10] PASS unknown SteamID cannot recover an account.");
 
 const providerDoc =
-  await requestJson(
-    docUrl(
-      `platform_identity_links/steam_${steamId}`,
-    ),
+  await getEmulatorDoc(
+    `platform_identity_links/steam_${steamId}`,
   );
 
 assert(

@@ -67,3 +67,14 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# Phase 15J: local credentials and publisher secrets must never be committed.
+.env.*
+!.env.example
+!.env.*.example
+**/*service-account*.json
+**/*serviceAccount*.json
+**/*credentials*.json
+**/*.pem
+**/*.p12
+**/*.key

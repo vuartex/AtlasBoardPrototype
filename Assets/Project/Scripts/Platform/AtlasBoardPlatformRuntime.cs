@@ -582,6 +582,14 @@ public sealed class AtlasBoardPlatformRuntime :
 
     private static bool ShouldUseSteamProvider()
     {
+#if DEVELOPMENT_BUILD && UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        // Two-Client Guest QA deliberately uses Firebase emulator identity.
+        // Avoid SteamAPI.Init / retry callbacks when no Steam client is needed.
+        if (AtlasBoardAppCheckTokenSource.IsLocalEmulatorGuestSession)
+        {
+            return false;
+        }
+#endif
         if (!AtlasBoardSteamRuntimeSettings
                 .IsDesktopSteamCandidate)
         {

@@ -11,6 +11,8 @@ import {
   onCall,
 } from "firebase-functions/v2/https";
 
+import {assertSteamVerifierEnvironment} from "../security/steam-environment";
+
 const REGION = "europe-west1";
 
 const STEAM_TICKET_IDENTITY =
@@ -114,6 +116,8 @@ async function verifySteamAppCheckProof(
     );
   }
 
+  assertSteamVerifierEnvironment(steamAppId);
+
   const publisherKey =
     STEAM_PUBLISHER_WEB_API_KEY
       .value()
@@ -156,15 +160,10 @@ async function verifySteamAppCheckProof(
           signal: controller.signal,
         },
       );
-  } catch (error) {
+  } catch {
     logger.error(
       "AtlasBoard Steam App Check verification request failed.",
-      {
-        error:
-          error instanceof Error ?
-            error.message :
-            String(error),
-      },
+      {failureClass: "steam_app_check_transport"},
     );
 
     throw new HttpsError(
@@ -199,9 +198,7 @@ async function verifySteamAppCheckProof(
       "AtlasBoard Steam App Check proof rejected.",
       {
         httpStatus: response.status,
-        steamError:
-          payload.response?.error?.errordesc ??
-          "",
+        failureClass: "steam_publisher_rejected",
       },
     );
 
@@ -281,15 +278,10 @@ export const platformSteamCreateAppCheckToken = onCall(
               ttlMillis: TOKEN_TTL_MS,
             },
           );
-    } catch (error) {
+    } catch {
       logger.error(
         "AtlasBoard could not mint a custom App Check token.",
-        {
-          error:
-            error instanceof Error ?
-              error.message :
-              String(error),
-        },
+        {failureClass: "app_check_token_mint"},
       );
 
       throw new HttpsError(

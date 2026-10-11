@@ -11,6 +11,9 @@ public static class AtlasBoardAppCheckTokenSource
     public const string DebugTokenEnvironmentVariable =
         "ATLAS_APP_CHECK_DEBUG_TOKEN";
 
+    public const string LocalEmulatorToken =
+        "atlasboard-local-emulator-development-only";
+
     private static bool debugProviderConfigured;
     private static bool steamProviderConfigured;
     private static string configurationMessage =
@@ -28,6 +31,81 @@ public static class AtlasBoardAppCheckTokenSource
     public static string ConfigurationMessage =>
         configurationMessage;
 
+    /// <summary>
+    /// True only for the explicit Windows Development Guest launched against
+    /// a loopback AtlasBoard emulator. Release players and Editor sessions
+    /// cannot enter this path.
+    /// </summary>
+    public static bool IsLocalEmulatorGuestSession
+    {
+        get
+        {
+#if DEVELOPMENT_BUILD && UNITY_STANDALONE_WIN && !UNITY_EDITOR
+            bool localEmulators = false;
+            string host = "127.0.0.1";
+
+            string[] args =
+                Environment.GetCommandLineArgs();
+
+            for (int index = 0;
+                 index < args.Length;
+                 index++)
+            {
+                string argument =
+                    args[index] ?? string.Empty;
+
+                if (string.Equals(
+                        argument,
+                        "-atlasLocalEmulators",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    localEmulators = true;
+                    continue;
+                }
+
+                const string hostPrefix =
+                    "-atlasEmulatorHost=";
+
+                if (argument.StartsWith(
+                        hostPrefix,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    host =
+                        argument.Substring(
+                            hostPrefix.Length);
+                    continue;
+                }
+
+                if (string.Equals(
+                        argument,
+                        "-atlasEmulatorHost",
+                        StringComparison.OrdinalIgnoreCase) &&
+                    index + 1 < args.Length)
+                {
+                    host =
+                        args[++index] ??
+                        string.Empty;
+                }
+            }
+
+            bool loopback =
+                string.Equals(
+                    host,
+                    "127.0.0.1",
+                    StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(
+                    host,
+                    "localhost",
+                    StringComparison.OrdinalIgnoreCase);
+
+            return localEmulators &&
+                loopback;
+#else
+            return false;
+#endif
+        }
+    }
+
     [RuntimeInitializeOnLoadMethod(
         RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ConfigureAtSubsystemRegistration()
@@ -41,6 +119,32 @@ public static class AtlasBoardAppCheckTokenSource
         configurationMessage =
             string.Empty;
 
+        /*
+         * IMPORTANT:
+         * Local two-client Guest QA already authenticates against the local
+         * Auth/Functions emulators through AtlasBoard's HTTP transport.
+         *
+         * Do NOT register a Firebase App Check provider here for that build.
+         * A previous Phase 16 workaround registered a custom App Check
+         * provider during SubsystemRegistration, which caused the local Guest
+         * to enter native Firebase App Check before normal startup had
+         * completed. Local callable requests already receive the explicit
+         * emulator-only header in AtlasBoardAppCheckRequestSecurity.
+         */
+        if (IsLocalEmulatorGuestSession)
+        {
+            configurationMessage =
+                "Local Guest QA: native Firebase App Check provider " +
+                "registration bypassed. Emulator-only HTTP token path active.";
+
+            Debug.Log(
+                "AtlasBoard LOCAL GUEST APPCHECK NATIVE BYPASS ACTIVE. " +
+                "No Firebase App Check provider was registered for this " +
+                "loopback Development Guest.");
+
+            return;
+        }
+
         ConfigureProviderForCurrentBuild();
     }
 
@@ -48,6 +152,11 @@ public static class AtlasBoardAppCheckTokenSource
         RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void ConfigureBeforeSceneLoad()
     {
+        if (IsLocalEmulatorGuestSession)
+        {
+            return;
+        }
+
         if (!debugProviderConfigured &&
             !steamProviderConfigured)
         {
@@ -151,6 +260,16 @@ public static class AtlasBoardAppCheckTokenSource
     public static async Task<string> GetTokenAsync(
         bool forceRefresh = false)
     {
+        if (IsLocalEmulatorGuestSession)
+        {
+            /*
+             * Emulator-only marker. This is intentionally not a production
+             * attestation token. Most local callable traffic is short-circuited
+             * by AtlasBoardAppCheckRequestSecurity before reaching this method.
+             */
+            return LocalEmulatorToken;
+        }
+
         if (!debugProviderConfigured &&
             !steamProviderConfigured)
         {
@@ -190,6 +309,15 @@ public static class AtlasBoardAppCheckTokenSource
 
     private static void ConfigureProviderForCurrentBuild()
     {
+        if (IsLocalEmulatorGuestSession)
+        {
+            configurationMessage =
+                "Local Guest QA: native Firebase App Check provider " +
+                "registration bypassed.";
+
+            return;
+        }
+
 #if UNITY_EDITOR
         TryConfigureDebugProviderFromEnvironment(
             out _);

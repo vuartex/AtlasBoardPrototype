@@ -81,6 +81,8 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
         Array.Empty<UnityEngine.Events.UnityAction>();
 
     private bool busy;
+    private bool refreshingRooms;
+    private int browserGeneration;
     private bool hooked;
     private AtlasPublicLobbyCard pendingJoinRoom;
     private int lastClickedRow = -1;
@@ -135,7 +137,7 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
 
     public void ShowBrowser()
     {
-        if (busy)
+        if (busy && !refreshingRooms)
         {
             return;
         }
@@ -148,8 +150,17 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
         SetActive(passwordPromptRoot, false);
         SetActive(joinByCodePromptRoot, false);
         RebuildFilterLabels();
-        ClearRows();
-        SetText(statusText, T("public_browser.loading", "Loading public rooms..."));
+        // Show cached cards immediately; refresh read-only data in the background.
+        // This does not change server join authority or discovery filtering.
+        if (allRooms.Count > 0)
+        {
+            ApplyFilters();
+        }
+        else
+        {
+            ClearRows();
+            SetText(statusText, T("public_browser.loading", "Loading public rooms..."));
+        }
         _ = RefreshRoomsAsync();
     }
 
@@ -171,11 +182,13 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
 
     public void BackToMainMenu()
     {
-        if (busy)
+        if (busy && !refreshingRooms)
         {
             return;
         }
 
+        // Invalidate pending read-only responses from the screen we just left.
+        browserGeneration++;
         SetActive(passwordPromptRoot, false);
         SetActive(browserRoot, false);
         SetActive(mainMenuRoot, true);
@@ -875,15 +888,27 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
             return;
         }
 
+        int requestedGeneration = browserGeneration;
         busy = true;
+        refreshingRooms = true;
         SetControlsInteractable(false);
 
         try
         {
-            SetText(statusText, T("public_browser.loading", "Loading public rooms..."));
+            if (allRooms.Count == 0)
+            {
+                SetText(statusText, T("public_browser.loading", "Loading public rooms..."));
+            }
 
             AtlasPublicLobbyListResult result =
                 await runtimeBridge.ListPublicRoomsAsync(20);
+
+            // A previous browser request must never repaint a newer screen.
+            if (requestedGeneration != browserGeneration ||
+                browserRoot == null || !browserRoot.activeSelf)
+            {
+                return;
+            }
 
             if (!result.Success)
             {
@@ -906,8 +931,16 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
         }
         finally
         {
+            refreshingRooms = false;
             busy = false;
             SetControlsInteractable(true);
+            // If the player left and re-opened the browser while a request was
+            // running, refresh the newly opened view instead of reusing old data.
+            if (requestedGeneration != browserGeneration &&
+                browserRoot != null && browserRoot.activeSelf)
+            {
+                _ = RefreshRoomsAsync();
+            }
         }
     }
 
@@ -1311,7 +1344,7 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
 
     private void SetControlsInteractable(bool interactable)
     {
-        if (backButton != null) backButton.interactable = interactable;
+        if (backButton != null) backButton.interactable = interactable || refreshingRooms;
         if (refreshButton != null) refreshButton.interactable = interactable;
         if (createPublicRoomButton != null) createPublicRoomButton.interactable = interactable;
         if (joinByCodeButton != null) joinByCodeButton.interactable = interactable;

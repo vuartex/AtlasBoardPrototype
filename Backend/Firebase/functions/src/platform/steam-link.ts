@@ -18,6 +18,7 @@ import {
 import {ATLAS_ENFORCE_APP_CHECK} from "../security/app-check-policy";
 
 import {assertAccountRateLimit} from "../security/callable-abuse";
+import {assertSteamVerifierEnvironment} from "../security/steam-environment";
 
 const REGION = "europe-west1";
 const PROVIDER = "steam";
@@ -823,6 +824,8 @@ async function verifySteamWebApiTicket(
     );
   }
 
+  assertSteamVerifierEnvironment(appId);
+
   const publisherKey =
     STEAM_PUBLISHER_WEB_API_KEY
       .value()
@@ -868,15 +871,10 @@ async function verifySteamWebApiTicket(
         signal: controller.signal,
       },
     );
-  } catch (error) {
+  } catch {
     logger.error(
       "AtlasBoard Steam ticket verification request failed.",
-      {
-        error:
-          error instanceof Error ?
-            error.message :
-            String(error),
-      },
+      {failureClass: "steam_publisher_transport"},
     );
 
     throw new HttpsError(
@@ -919,9 +917,7 @@ async function verifySteamWebApiTicket(
       "AtlasBoard Steam ticket rejected.",
       {
         httpStatus: response.status,
-        steamError:
-          payload.response?.error?.errordesc ??
-          "",
+        failureClass: "steam_publisher_rejected",
       },
     );
 
@@ -1027,9 +1023,7 @@ export const platformSteamLinkCurrentAccount = onCall(
     logger.info(
       "AtlasBoard verified Steam account link completed.",
       {
-        accountId: uid,
         provider: PROVIDER,
-        steamId: identity.steamId,
         appId: identity.appId,
         applied: result.applied,
         idempotentReplay:
@@ -1102,9 +1096,7 @@ export const platformSteamDevLinkCurrentAccount = onCall(
     logger.info(
       "AtlasBoard emulator Steam link proof completed.",
       {
-        accountId: uid,
         provider: PROVIDER,
-        steamId,
         appId,
         applied: result.applied,
         idempotentReplay:
@@ -1174,9 +1166,7 @@ export const platformSteamReturningSignIn = onCall(
     logger.info(
       "AtlasBoard returning Steam sign-in token issued.",
       {
-        accountId: mapping.accountId,
         provider: PROVIDER,
-        steamId: identity.steamId,
         appId: identity.appId,
         verified: true,
       },
@@ -1234,9 +1224,7 @@ export const platformSteamDevReturningSignIn = onCall(
     logger.info(
       "AtlasBoard emulator returning Steam sign-in issued.",
       {
-        accountId: mapping.accountId,
         provider: PROVIDER,
-        steamId,
         verified: mapping.verified,
         developmentOnly:
           mapping.developmentOnly,

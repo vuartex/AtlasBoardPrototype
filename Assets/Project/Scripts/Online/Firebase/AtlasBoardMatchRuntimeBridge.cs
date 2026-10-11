@@ -39,6 +39,8 @@ public sealed class AtlasBoardMatchRuntimeBridge :
     private bool pollInFlight;
     private float nextPollAt;
     private string expectedMatchId = string.Empty;
+    // Only true after an explicit local detach; normal reconnect polling stays active.
+    private bool locallyDetachedFromMatch;
 
     public event Action<AtlasMatchNetworkSnapshot>
         SnapshotChanged;
@@ -70,7 +72,7 @@ public sealed class AtlasBoardMatchRuntimeBridge :
         string matchId =
             CurrentMatchId;
 
-        if (string.IsNullOrWhiteSpace(matchId))
+        if (locallyDetachedFromMatch || string.IsNullOrWhiteSpace(matchId))
         {
             return;
         }
@@ -135,6 +137,8 @@ public sealed class AtlasBoardMatchRuntimeBridge :
         nextPollAt = 0f;
         expectedMatchId =
             matchId ?? string.Empty;
+        locallyDetachedFromMatch =
+            string.IsNullOrWhiteSpace(expectedMatchId);
 
         Debug.Log(
             "AtlasBoard match snapshot cache reset for session " +
@@ -425,7 +429,7 @@ public sealed class AtlasBoardMatchRuntimeBridge :
     private void AcceptSnapshot(
         AtlasMatchNetworkSnapshot snapshot)
     {
-        if (snapshot == null)
+        if (locallyDetachedFromMatch || snapshot == null)
         {
             return;
         }
