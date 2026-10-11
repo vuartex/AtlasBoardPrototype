@@ -77,6 +77,10 @@ import {
   tryRecoverCrashedHost,
 } from "./match/lifecycle";
 
+import {ATLAS_ENFORCE_APP_CHECK} from "./security/app-check-policy";
+
+import {assertAccountRateLimit} from "./security/callable-abuse";
+
 const REGION = "europe-west1";
 const PROJECT_ID = "atlasboard-usa";
 const BACKEND_SCHEMA_VERSION = 1;
@@ -180,7 +184,7 @@ export const economyHealthCheck = onCall(
   {
     region: REGION,
     maxInstances: 2,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -648,7 +652,7 @@ export const metaDailyRewardClaim = onCall(
   {
     region: REGION,
     maxInstances: 4,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -680,7 +684,7 @@ export const metaSeasonalGetActive = onCall(
   {
     region: REGION,
     maxInstances: 4,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     requireAuthenticatedUid(request);
@@ -700,7 +704,7 @@ export const metaSeasonalGetOverview = onCall(
   {
     region: REGION,
     maxInstances: 4,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -716,7 +720,7 @@ export const metaSeasonalClaimChallenge = onCall(
   {
     region: REGION,
     maxInstances: 4,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -751,7 +755,7 @@ export const metaSeasonalClaimTrackTier = onCall(
   {
     region: REGION,
     maxInstances: 4,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -786,7 +790,7 @@ export const metaSeasonalPurchaseLimitedItem = onCall(
   {
     region: REGION,
     maxInstances: 4,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -830,7 +834,7 @@ export const progressionGetProfile = onCall(
   {
     region: REGION,
     maxInstances: 30,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -862,7 +866,7 @@ export const progressionRecordCompletedMatch = onCall(
   {
     region: REGION,
     maxInstances: 30,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -1056,10 +1060,19 @@ export const lobbyCreatePrivateRoom = onCall(
   {
     region: REGION,
     maxInstances: 10,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
+    await assertAccountRateLimit(
+      uid,
+      "lobby_create",
+      6,
+      60000,
+      120000,
+      "lobby.error.too_many_attempts",
+    );
+
     const data = request.data ?? {};
 
     const settings: LobbySettingsInput = {
@@ -1117,10 +1130,19 @@ export const lobbyCreatePublicRoom = onCall(
   {
     region: REGION,
     maxInstances: 10,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
+    await assertAccountRateLimit(
+      uid,
+      "lobby_create",
+      6,
+      60000,
+      120000,
+      "lobby.error.too_many_attempts",
+    );
+
     const data = request.data ?? {};
 
     const settings: LobbySettingsInput = {
@@ -1177,7 +1199,7 @@ export const lobbyListPublicRooms = onCall(
   {
     region: REGION,
     maxInstances: 30,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -1213,10 +1235,19 @@ export const lobbyJoinPublicRoom = onCall(
   {
     region: REGION,
     maxInstances: 20,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
+    await assertAccountRateLimit(
+      uid,
+      "lobby_join",
+      20,
+      60000,
+      60000,
+      "lobby.error.too_many_attempts",
+    );
+
     const data = request.data ?? {};
     const versions: LobbyVersionInfo = {
       gameVersion: data.gameVersion as string,
@@ -1256,10 +1287,19 @@ export const lobbyJoinByCode = onCall(
   {
     region: REGION,
     maxInstances: 20,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
+    await assertAccountRateLimit(
+      uid,
+      "lobby_join",
+      20,
+      60000,
+      60000,
+      "lobby.error.too_many_attempts",
+    );
+
     const data = request.data ?? {};
 
     const versions: LobbyVersionInfo = {
@@ -1303,7 +1343,7 @@ export const lobbyUpdatePassword = onCall(
   {
     region: REGION,
     maxInstances: 10,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -1326,7 +1366,7 @@ export const lobbyCloseRoom = onCall(
   {
     region: REGION,
     maxInstances: 10,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -1353,7 +1393,7 @@ export const lobbyHostHeartbeat = onCall(
   {
     region: REGION,
     maxInstances: 30,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -1375,7 +1415,7 @@ export const lobbyUpdateSettings = onCall(
   {
     region: REGION,
     maxInstances: 10,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -1423,7 +1463,7 @@ export const lobbyConfigureSeats = onCall(
   {
     region: REGION,
     maxInstances: 10,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -1470,7 +1510,7 @@ export const lobbySetPawnCosmetic = onCall(
   {
     region: REGION,
     maxInstances: 20,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -1510,7 +1550,7 @@ export const lobbySetReady = onCall(
   {
     region: REGION,
     maxInstances: 20,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -1551,7 +1591,7 @@ export const lobbyKickMember = onCall(
   {
     region: REGION,
     maxInstances: 10,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -1588,7 +1628,7 @@ export const lobbyLeaveRoom = onCall(
   {
     region: REGION,
     maxInstances: 20,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -1626,7 +1666,7 @@ export const lobbyStartMatch = onCall(
   {
     region: REGION,
     maxInstances: 10,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -1666,7 +1706,7 @@ export const lobbyGetSnapshot = onCall(
   {
     region: REGION,
     maxInstances: 20,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -1691,7 +1731,7 @@ export const matchGetSnapshot = onCall(
   {
     region: REGION,
     maxInstances: 30,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -1717,7 +1757,7 @@ export const matchTouchPresence = onCall(
   {
     region: REGION,
     maxInstances: 40,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -1738,7 +1778,7 @@ export const matchHostSweepDisconnected = onCall(
   {
     region: REGION,
     maxInstances: 30,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -1760,7 +1800,7 @@ export const matchTryRecoverCrashedHost = onCall(
   {
     region: REGION,
     maxInstances: 40,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -1782,7 +1822,7 @@ export const matchLeaveActive = onCall(
   {
     region: REGION,
     maxInstances: 30,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -1801,7 +1841,7 @@ export const matchHostMarkAfkRemoved = onCall(
   {
     region: REGION,
     maxInstances: 20,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -1821,7 +1861,7 @@ export const matchHostExpireReconnects = onCall(
   {
     region: REGION,
     maxInstances: 20,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -1840,7 +1880,7 @@ export const matchHostPrepareRematch = onCall(
   {
     region: REGION,
     maxInstances: 20,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -1861,7 +1901,7 @@ export const matchSubmitIntent = onCall(
   {
     region: REGION,
     maxInstances: 40,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -1901,7 +1941,7 @@ export const matchHostListPendingIntents = onCall(
   {
     region: REGION,
     maxInstances: 30,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -1927,7 +1967,7 @@ export const matchHostPublishState = onCall(
   {
     region: REGION,
     maxInstances: 30,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);
@@ -1964,7 +2004,7 @@ export const matchHostAcknowledgeIntents = onCall(
   {
     region: REGION,
     maxInstances: 30,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireAuthenticatedUid(request);

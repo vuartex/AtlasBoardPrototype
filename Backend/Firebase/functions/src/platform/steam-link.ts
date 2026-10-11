@@ -15,6 +15,10 @@ import {
   onCall,
 } from "firebase-functions/v2/https";
 
+import {ATLAS_ENFORCE_APP_CHECK} from "../security/app-check-policy";
+
+import {assertAccountRateLimit} from "../security/callable-abuse";
+
 const REGION = "europe-west1";
 const PROVIDER = "steam";
 const SCHEMA_VERSION = 1;
@@ -962,7 +966,7 @@ export const platformSteamGetLinkStatus = onCall(
   {
     region: REGION,
     maxInstances: 10,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid =
@@ -986,7 +990,7 @@ export const platformSteamLinkCurrentAccount = onCall(
   {
     region: REGION,
     maxInstances: 10,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
     secrets: [
       STEAM_PUBLISHER_WEB_API_KEY,
     ],
@@ -994,6 +998,15 @@ export const platformSteamLinkCurrentAccount = onCall(
   async (request) => {
     const uid =
       requireAuthenticatedUid(request);
+    await assertAccountRateLimit(
+      uid,
+      "steam_link",
+      6,
+      300000,
+      300000,
+      "platform.error.rate_limited",
+    );
+
 
     const ticketHex =
       readTicketHex(
@@ -1113,7 +1126,7 @@ export const platformSteamReturningSignIn = onCall(
   {
     region: REGION,
     maxInstances: 10,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
     secrets: [
       STEAM_PUBLISHER_WEB_API_KEY,
     ],

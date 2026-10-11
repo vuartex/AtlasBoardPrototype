@@ -2,15 +2,9 @@ using System.Threading.Tasks;
 using UnityEngine.Networking;
 
 /// <summary>
-/// Phase 15C transport seam for Firebase App Check.
-///
-/// Current behavior is intentionally non-breaking:
-/// - If Firebase App Check SDK is absent, no header is added.
-/// - If the SDK is present but no token is available, no header is added.
-/// - If a token is available, X-Firebase-AppCheck is attached.
-///
-/// Cloud Functions App Check enforcement MUST remain disabled until the
-/// Windows/Steam production provider is implemented and validated.
+/// Central App Check transport seam. Protected callable enforcement is staged
+/// by the backend ATLAS_ENFORCE_APP_CHECK BooleanParam. Emulator-only dev
+/// callables and the Steam token bootstrap remain explicit exceptions.
 /// </summary>
 public static class AtlasBoardAppCheckRequestSecurity
 {
@@ -19,15 +13,9 @@ public static class AtlasBoardAppCheckRequestSecurity
     public static int SdkUnavailableSkips { get; private set; }
     public static int TokenUnavailableSkips { get; private set; }
 
-    public static async Task<bool> ApplyAsync(
-        UnityWebRequest request,
-        bool forceRefresh = false)
+    public static async Task<bool> ApplyAsync(UnityWebRequest request, bool forceRefresh = false)
     {
-        if (request == null)
-        {
-            return false;
-        }
-
+        if (request == null) return false;
         RequestsSeen++;
 
         if (!AtlasBoardAppCheckTokenSource.IsSdkAvailable)
@@ -36,20 +24,14 @@ public static class AtlasBoardAppCheckRequestSecurity
             return false;
         }
 
-        string token =
-            await AtlasBoardAppCheckTokenSource.GetTokenAsync(
-                forceRefresh);
-
+        string token = await AtlasBoardAppCheckTokenSource.GetTokenAsync(forceRefresh);
         if (string.IsNullOrWhiteSpace(token))
         {
             TokenUnavailableSkips++;
             return false;
         }
 
-        request.SetRequestHeader(
-            AtlasBoardAppCheckTokenSource.RequestHeaderName,
-            token);
-
+        request.SetRequestHeader(AtlasBoardAppCheckTokenSource.RequestHeaderName, token);
         HeadersAttached++;
         return true;
     }

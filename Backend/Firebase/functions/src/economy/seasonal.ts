@@ -391,6 +391,55 @@ export async function getActiveSeasonalEvent(): Promise<SeasonalEventSnapshot> {
 }
 
 /**
+ * Re-validates the live seasonal runtime from a transactional read.
+ * Value-granting transactions must not rely only on a pre-transaction event
+ * snapshot because the event can expire or be switched while a request is in
+ * flight.
+ * @param {FirebaseFirestore.DocumentSnapshot} snapshot Runtime document.
+ * @param {string} expectedEventId Event id selected before the transaction.
+ * @param {string} expectedTicketCurrencyId Expected event ticket currency.
+ */
+function assertTransactionalSeasonalRuntime(
+  snapshot: FirebaseFirestore.DocumentSnapshot,
+  expectedEventId: string,
+  expectedTicketCurrencyId: string,
+): void {
+  if (!snapshot.exists) {
+    throw new HttpsError(
+      "failed-precondition",
+      "SEASONAL_EVENT_CHANGED",
+      {errorKey: "seasonal.error.event_inactive"},
+    );
+  }
+
+  const data = snapshot.data() ?? {};
+  const now = Date.now();
+  const startsAtEpochMs = readNonNegativeInteger(
+    data.startsAtEpochMs,
+    "startsAtEpochMs",
+  );
+  const endsAtEpochMs = readNonNegativeInteger(
+    data.endsAtEpochMs,
+    "endsAtEpochMs",
+  );
+
+  if (
+    data.schemaVersion !== EVENT_SCHEMA_VERSION ||
+    data.active !== true ||
+    readOptionalString(data.eventId) !== expectedEventId ||
+    readOptionalString(data.ticketCurrencyId) !== expectedTicketCurrencyId ||
+    startsAtEpochMs > now ||
+    now > endsAtEpochMs
+  ) {
+    throw new HttpsError(
+      "failed-precondition",
+      "SEASONAL_EVENT_CHANGED",
+      {errorKey: "seasonal.error.event_inactive"},
+    );
+  }
+}
+
+/**
  * Returns the claim-period key for one challenge cadence.
  * @param {string} cadence Challenge cadence.
  * @return {string} Canonical period key.
@@ -691,9 +740,13 @@ export async function claimSeasonalChallenge(
     1,
     readNonNegativeInteger(definition.target, "target"),
   );
+  const criteriaType = readRequiredString(
+    definition.criteriaType,
+    "criteriaType",
+  );
   const currentProgress = await challengeProgress(
     uid,
-    readRequiredString(definition.criteriaType, "criteriaType"),
+    criteriaType,
     target,
   );
   if (currentProgress < target) {
@@ -737,15 +790,24 @@ export async function claimSeasonalChallenge(
     .collection("events")
     .doc(event.eventId);
   const ledgerRef = db.collection("wallet_ledger").doc(ledgerEntryId);
+  const eventRuntimeRef = db.collection("seasonal_runtime").doc("active");
 
   return db.runTransaction(async (transaction) => {
-    const [claimSnapshot, ticketSnapshot, progressSnapshot, ledgerSnapshot] =
-      await Promise.all([
-        transaction.get(claimRef),
-        transaction.get(ticketRef),
-        transaction.get(progressRef),
-        transaction.get(ledgerRef),
-      ]);
+    const [
+      claimSnapshot,
+      ticketSnapshot,
+      progressSnapshot,
+      ledgerSnapshot,
+      eventRuntimeSnapshot,
+      definitionTxnSnapshot,
+    ] = await Promise.all([
+      transaction.get(claimRef),
+      transaction.get(ticketRef),
+      transaction.get(progressRef),
+      transaction.get(ledgerRef),
+      transaction.get(eventRuntimeRef),
+      transaction.get(definitionRef),
+    ]);
 
     if (claimSnapshot.exists) {
       const data = claimSnapshot.data() ?? {};
@@ -763,6 +825,41 @@ export async function claimSeasonalChallenge(
         rewardType: "challenge",
         rewardAmount: rewardTickets,
       };
+    }
+
+    assertTransactionalSeasonalRuntime(
+      eventRuntimeSnapshot,
+      event.eventId,
+      event.ticketCurrencyId,
+    );
+
+    const definitionTxn = definitionTxnSnapshot.data() ?? {};
+    if (
+      !definitionTxnSnapshot.exists ||
+      definitionTxn.active !== true ||
+      readRequiredString(definitionTxn.cadence, "cadence") !== cadence ||
+      Math.max(
+        1,
+        readNonNegativeInteger(definitionTxn.target, "target"),
+      ) !== target ||
+      readRequiredString(
+        definitionTxn.criteriaType,
+        "criteriaType",
+      ) !== criteriaType ||
+      readNonNegativeInteger(
+        definitionTxn.rewardTickets,
+        "rewardTickets",
+      ) !== rewardTickets ||
+      readNonNegativeInteger(
+        definitionTxn.rewardXp,
+        "rewardXp",
+      ) !== rewardXp
+    ) {
+      throw new HttpsError(
+        "failed-precondition",
+        "SEASONAL_CHALLENGE_CHANGED",
+        {errorKey: "seasonal.error.state_invalid"},
+      );
     }
 
     if (ledgerSnapshot.exists && rewardTickets > 0) {
@@ -958,14 +1055,24 @@ export async function claimSeasonalTrackTier(
   );
   const ledgerEntryId = sha256(`${uid}:${transactionId}`);
   const ledgerRef = db.collection("wallet_ledger").doc(ledgerEntryId);
+  const eventRuntimeRef = db.collection("seasonal_runtime").doc("active");
 
   return db.runTransaction(async (transaction) => {
-    const [claimSnapshot, balanceSnapshot, ledgerSnapshot] =
-      await Promise.all([
-        transaction.get(claimRef),
-        transaction.get(balanceRef),
-        transaction.get(ledgerRef),
-      ]);
+    const [
+      claimSnapshot,
+      balanceSnapshot,
+      ledgerSnapshot,
+      eventRuntimeSnapshot,
+      tierTxnSnapshot,
+      progressTxnSnapshot,
+    ] = await Promise.all([
+      transaction.get(claimRef),
+      transaction.get(balanceRef),
+      transaction.get(ledgerRef),
+      transaction.get(eventRuntimeRef),
+      transaction.get(tierRef),
+      transaction.get(progressRef),
+    ]);
 
     if (claimSnapshot.exists) {
       const data = claimSnapshot.data() ?? {};
@@ -982,6 +1089,55 @@ export async function claimSeasonalTrackTier(
         rewardType,
         rewardAmount,
       };
+    }
+
+    assertTransactionalSeasonalRuntime(
+      eventRuntimeSnapshot,
+      event.eventId,
+      event.ticketCurrencyId,
+    );
+
+    const tierTxn = tierTxnSnapshot.data() ?? {};
+    const currentRequiredXp = readNonNegativeInteger(
+      tierTxn.requiredXp,
+      "requiredXp",
+    );
+    const currentRewardType = readRequiredString(
+      tierTxn.rewardType,
+      "rewardType",
+    );
+    const currentRewardAmount = readNonNegativeInteger(
+      tierTxn.rewardAmount,
+      "rewardAmount",
+    );
+    const currentXp = readNonNegativeInteger(
+      progressTxnSnapshot.data()?.xp,
+      "seasonal_progress.xp",
+    );
+
+    if (
+      !tierTxnSnapshot.exists ||
+      currentRequiredXp !== requiredXp ||
+      currentRewardType !== rewardType ||
+      currentRewardAmount !== rewardAmount
+    ) {
+      throw new HttpsError(
+        "failed-precondition",
+        "SEASONAL_TRACK_CHANGED",
+        {errorKey: "seasonal.error.state_invalid"},
+      );
+    }
+
+    if (currentXp < requiredXp) {
+      throw new HttpsError(
+        "failed-precondition",
+        "SEASONAL_TRACK_LOCKED",
+        {
+          errorKey: "seasonal.error.track_locked",
+          requiredXp,
+          currentXp,
+        },
+      );
     }
 
     if (ledgerSnapshot.exists) {
@@ -1153,6 +1309,7 @@ export async function purchaseSeasonalItem(
   const inventoryEventRef = inventoryRef
     .collection("events")
     .doc(inventoryEventId);
+  const eventRuntimeRef = db.collection("seasonal_runtime").doc("active");
 
   return db.runTransaction(async (transaction) => {
     const [
@@ -1161,12 +1318,16 @@ export async function purchaseSeasonalItem(
       ticketSnapshot,
       ledgerSnapshot,
       inventoryEventSnapshot,
+      eventRuntimeSnapshot,
+      catalogTxnSnapshot,
     ] = await Promise.all([
       transaction.get(purchaseRef),
       transaction.get(inventoryRef),
       transaction.get(ticketRef),
       transaction.get(ledgerRef),
       transaction.get(inventoryEventRef),
+      transaction.get(eventRuntimeRef),
+      transaction.get(catalogRef),
     ]);
 
     if (purchaseSnapshot.exists) {
@@ -1191,6 +1352,48 @@ export async function purchaseSeasonalItem(
         ),
         owned: true,
       };
+    }
+
+    assertTransactionalSeasonalRuntime(
+      eventRuntimeSnapshot,
+      event.eventId,
+      event.ticketCurrencyId,
+    );
+
+    if (!catalogTxnSnapshot.exists) {
+      throw new HttpsError(
+        "failed-precondition",
+        "SEASONAL_ITEM_CHANGED",
+        {errorKey: "seasonal.error.item_unavailable"},
+      );
+    }
+
+    const catalogTxn = catalogTxnSnapshot.data() ?? {};
+    const currentLimitedUntilEpochMs = readNonNegativeInteger(
+      catalogTxn.limitedUntilEpochMs,
+      "limitedUntilEpochMs",
+    );
+    const currentTicketPrice = readNonNegativeInteger(
+      catalogTxn.seasonalTicketPrice,
+      "seasonalTicketPrice",
+    );
+    const currentItemType = readRequiredString(
+      catalogTxn.itemType,
+      "itemType",
+    );
+
+    if (
+      catalogTxn.active !== true ||
+      catalogTxn.seasonalEventId !== event.eventId ||
+      currentLimitedUntilEpochMs < Date.now() ||
+      currentTicketPrice !== ticketPrice ||
+      currentItemType !== itemType
+    ) {
+      throw new HttpsError(
+        "failed-precondition",
+        "SEASONAL_ITEM_CHANGED",
+        {errorKey: "seasonal.error.item_unavailable"},
+      );
     }
 
     if (inventorySnapshot.data()?.owned === true) {

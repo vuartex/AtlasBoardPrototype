@@ -9,6 +9,8 @@ import {
   profanityStaticTermCount,
 } from "./profanity";
 
+import {ATLAS_ENFORCE_APP_CHECK} from "../security/app-check-policy";
+
 const REGION = "europe-west1";
 const CHAT_SCHEMA_VERSION = 2;
 const MAX_MESSAGE_CODEPOINTS = 120;
@@ -1929,7 +1931,7 @@ export const lobbyChatSend = onCall(
   {
     region: REGION,
     maxInstances: 10,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireUid(request);
@@ -1946,7 +1948,7 @@ export const lobbyChatList = onCall(
   {
     region: REGION,
     maxInstances: 10,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireUid(request);
@@ -1963,7 +1965,7 @@ export const matchChatSend = onCall(
   {
     region: REGION,
     maxInstances: 10,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireUid(request);
@@ -1980,7 +1982,7 @@ export const matchChatList = onCall(
   {
     region: REGION,
     maxInstances: 10,
-    enforceAppCheck: false,
+    enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
   },
   async (request) => {
     const uid = requireUid(request);
