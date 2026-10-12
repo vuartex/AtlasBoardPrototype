@@ -1,17 +1,17 @@
 # ATLAS BOARD
-## Master Architecture & Development Roadmap v5.10
+## Master Architecture & Development Roadmap v5.11
 
 **Canonical checkpoint:** 2026-10-11 (America/Denver)  
 **Repository:** `vuartex/AtlasBoardPrototype`  
-**Last verified pushed GitHub HEAD:** `e69510764d78de82be9a88d1816f340004273cd5`  
-**Last verified pushed HEAD commit:** `Complete Phase 16H loading and network responsiveness checkpoint`  
-**Current accepted local checkpoint:** `Phase 16H.1/16H.2/16H.3 are pushed at e6951076. The one-shot match-loading diagnostic housekeeping and Phase 16H.4 critical-intent transport reliability fix are accepted locally after that push. Historical Windows Guest native crash remains mitigated/regression-watch. Phase 16I is the next active phase, but no Phase 16I source package has been successfully created or applied yet.`  
+**Last verified pushed GitHub HEAD (checked 2026-10-11 America/Denver):** `ca3a9174146165e4238d2aeaa47eedd8a11156df`  
+**Last verified pushed HEAD commit:** `Finalize Phase 16H reliability and prepare Phase 16I`  
+**Current accepted local checkpoint:** `Phase 16I cursor pagination plus local emulator read/match/soak/mixed load and latency A/B checks accepted. Phase 17A Steam Editor runtime smoke PASS (AppID 480; Phase 11B 8/8). Phase 17B.2 opt-in Development Guest Steam invite overlay smoke PASS (SteamAPI.Init, invite dialog API, overlay activation); real Steam publisher, live ticket/App Check, cross-PC invite/join, and release validation are still blocked or pending. Local accepted source and this roadmap must be staged/pushed explicitly by the owner.`  
 **Phase 12 close commit:** `0eca81450be91b30a5dc1cd66d901c46e2cab07c` — `Phase 12: finalize online resilience hardening and crash recovery`  
 **Phase 14 close commit:** `77b4a1c29fe3ee55dbd27f4d35e6ce5e9d02e157` — `Close Phase 14 UI/UX polish and finalize localization/input handling`  
 **Unity baseline:** Unity 6000.5.6f1, `Assets/Board_Prototype.unity`, unless a later committed upgrade explicitly changes it.  
 **Canonical repository roadmap location:** `Assets/Project/Documentation/MASTER_ROADMAP.md`
 
-This v5.10 checkpoint supersedes v5.9. It records the pushed Phase 16H.1/16H.2/16H.3 checkpoint, the subsequently accepted local one-shot loading-log housekeeping and Phase 16H.4 critical-intent reliability fix, and moves the active implementation target to Phase 16I. Phase 16I has been inspected but not implemented; failed preparation attempts did not produce or apply a Phase 16I source package.
+This v5.11 checkpoint updates the prior v5.10 local roadmap baseline with accepted Phase 16I and Phase 17A/17B.2 evidence. The original pre-implementation notes are preserved only as historical baseline context; they are no longer the current implementation status. Production/release approval remains explicitly blocked. GitHub `main` is still behind accepted local Phase 16I/17B source until the owner stages, commits and pushes the verified files.
 
 # 1. Source, replacement and Git discipline
 
@@ -34,12 +34,13 @@ Before meaningful source changes:
 - Never place Steam publisher secrets, production credentials, App Check debug tokens or raw provider tickets in Unity source/logs.
 - Local-emulator QA shortcuts must be narrowly gated and must never silently apply to Release.
 
-Current pushed authority:
+Current source authority (checked 2026-10-11 America/Denver):
 
-- `e69510764d78de82be9a88d1816f340004273cd5` is the latest verified pushed checkpoint.
-- That commit contains the accepted Phase 16H networking/loading checkpoint, including snapshot coalescing, host-bootstrap prioritization, loading/bootstrap UX and ATB frontend-code framework.
-- The later one-shot `ATB_MATCH_LOAD event=authoritative_ready` housekeeping and Phase 16H.4 critical-intent reliability changes are newer accepted local work and must not be overwritten by the pushed GitHub copies until the user commits/pushes them.
-- No Phase 16I implementation should be assumed present locally or on GitHub yet.
+- Latest verified pushed `main`: `ca3a9174146165e4238d2aeaa47eedd8a11156df`, `Finalize Phase 16H reliability and prepare Phase 16I`.
+- That pushed checkpoint is **not** evidence that the subsequently accepted Phase 16I and Phase 17B.2 local files have been committed or pushed.
+- Latest user-accepted local source includes Phase 16I pagination and local load harnesses plus Phase 17B.2 opt-in Steam Guest invite QA. Preserve those local files.
+- The local owner must stage and push only intended source/doc files. Keep `steam_appid.txt` for AppID 480 as a local development file only; never stage Steam tickets, private tokens, Secret Manager values, logs, generated builds or emulator databases.
+- Before replacing this roadmap on a different workstation, compare it with that workstation's current canonical roadmap. Merge any newer local sections rather than overwriting them.
 
 # 2. Durable architecture invariants
 
@@ -184,7 +185,7 @@ Accepted foundations include:
 **Status: DONE.**
 
 ## Phase 4 — Public Lobby Browser
-**Status: DONE foundation; pagination/scale hardening remains Phase 16I.**
+**Status: DONE foundation; Phase 16I local cursor pagination accepted. Production-scale validation remains outstanding.**
 
 ## Phase 5 — Online Gameplay Networking
 **Status: MAIN PATH DONE / runtime flows proven. Phase 16H latency/concurrency hardening accepted locally.**
@@ -304,7 +305,7 @@ Still required before production security close:
 # 6. Phase 16 — Build Readiness, Runtime Stability and Performance
 
 **Status: ACTIVE.**  
-**Current active subphase: 16I.**
+**Current active subphase: Phase 17B.2 local Steam invite overlay accepted; Phase 17C external prerequisites next.**
 
 ## 16A — Consolidated backend QA
 **Status: PASS locally.**
@@ -567,83 +568,71 @@ Acceptance evidence from the later Editor + Guest test:
 The retry branch itself did not need to trigger in the accepted healthy run; the test proves the normal path did not regress and the previously observed failure did not reproduce under the same local topology.
 
 ## 16I — Public lobby scale / discovery / measured capacity
-**Status: OPEN — NEXT ACTIVE PHASE / NOT YET IMPLEMENTED.**
+**Status: LOCAL/EMULATOR ACCEPTED — PRODUCTION CAPACITY NOT PROVEN.**
 
-Current room discovery is bounded per query/browser page and is not equivalent to a total system lobby limit.
+Accepted local Phase 16I work:
 
-Verified pre-implementation baseline at pushed HEAD `e6951076`:
+- Server-side cursor-based public lobby discovery, callable contract, Unity paging client/browser and focused QA were delivered/tested locally. The implementation replaced the earlier fixed-first-N discovery behavior in this accepted local branch.
+- Public-lobby backend E2E, Auth/App Check and host-close test regressions passed in the accepted Phase 16I test sequence; consolidated local QA was reported PASS.
+- Initial capacity/read probes: 80 synthetic discovery projections with 2 real two-user test matches, 168/168 workflows; 120 projections with 4 matches, 960/960 workflows. Combined 1,128/1,128 successful measured workflows and 1,410 callable attempts, zero reported failures. These are local emulator observations, **not production user-capacity numbers**.
+- Active match transport smoke: 8 independent two-account matches, 56/56 full guest-intent/host-list/ACK/publish/guest-read cycles successful; idempotent replay and stale-revision guards passed.
+- Timed active-match soak: 8 concurrent matches 208/208 cycles PASS; 16 concurrent matches 480/480 cycles PASS; total 688/688, 0 errors and no idle matches in that local run.
+- Mixed load v1 revealed a **test harness bug**: synthetic discovery heartbeats expired during the run; 4 discovery workflow failures and no 32-match phase. This was not accepted as backend failure or PASS.
+- Mixed load v2 refreshed 100 synthetic room heartbeat projections every 8 seconds. With four concurrent browser workers: 16-match stage 184/184 cycles plus 91/91 discovery workflows; 32-match stage 677/677 cycles plus 98/98 discovery workflows. Combined 861/861 match cycles and 189/189 discovery workflows PASS. Zero cleanup warnings.
+- A/B latency diagnostic: all 32 match pairs prewarmed. Three 45-second stages: 16 synchronous 288/288 cycles, 32 synchronous 507/507 cycles, 32 staggered by 75 ms 576/576 cycles; 1,371/1,371 cycles and 216/216 discovery workflows successful, with 32 replay plus 64 stale-revision guard probes accepted. Local cleanup: 0 warnings.
+- A/B observed complete-cycle P95: 16 synchronous 1,354 ms; 32 synchronous 1,438 ms; 32 staggered 253 ms. Some synchronous-stage tail latency exceeded 19 seconds; staggered-stage P95 was approximately 253 ms. This indicates burst sensitivity in the **local emulator** and may also reflect warmup/order effects. It is not proof of a production pacing fix or production capacity.
 
-- backend constants in `Backend/Firebase/functions/src/lobby/lobby.ts` are `PUBLIC_DISCOVERY_QUERY_LIMIT = 50` and `PUBLIC_BROWSER_MAX_RESULTS = 25`;
-- backend currently queries `lobby_discovery.where("joinable", "==", true).limit(50)` without a cursor/order-by contract, then applies compatibility/region/stale-host filtering in memory and sorts by `createdAtEpochMs`;
-- therefore a compatible valid room can be hidden if it falls outside the first raw 50 discovery documents;
-- `AtlasBoardLobbyRuntimeBridge.ListPublicRoomsAsync` currently clamps requested list size to `1..20`;
-- `AtlasBoardPublicLobbyBrowserController` currently calls `ListPublicRoomsAsync(20)`;
-- the built browser has six visible room rows and renders only `filtered.Take(rows.Length)`;
-- these are page/display bounds, not measured total AtlasBoard capacity.
+Accepted tooling/evidence (local scripts and generated reports are QA artifacts):
 
-Important state:
+- `Backend/Firebase/functions/scripts/qa.mjs` and the focused public-lobby E2E suite.
+- `phase16i-active-match-load.mjs`, `phase16i-active-match-soak.mjs`, `phase16i-mixed-stress.mjs`, `phase16i-latency-diagnostic.mjs` local harnesses.
+- Representative output JSON: `AtlasBoard_Phase16I_ActiveMatchSoak_mv4i7m57d0bdef27.json`, `AtlasBoard_Phase16I_MixedStress_mv4j5jg3298f3f11.json`, `AtlasBoard_Phase16I_LatencyDiagnostic_mv4jve2k501ed80b.json`.
 
-- three Phase 16I preparation attempts in the prior chat did **not** result in a valid Phase 16I ZIP being delivered/applied;
-- do not assume any 16I source modification exists;
-- start Phase 16I fresh from the newest verified sources after checking GitHub HEAD and preserving any newer local 16H.4 files.
-
-Primary source targets to inspect before implementation:
-
-- `Backend/Firebase/functions/src/lobby/lobby.ts`
-- `Backend/Firebase/functions/src/index.ts`
-- `Backend/Firebase/functions/scripts/public-lobby-discovery-e2e.mjs`
-- `Backend/Firebase/functions/scripts/qa.mjs`
-- `Assets/Project/Scripts/Online/AtlasLobbyModels.cs`
-- `Assets/Project/Scripts/Online/Firebase/AtlasBoardLobbyRuntimeBridge.cs`
-- `Assets/Project/Scripts/UI/Menu/AtlasBoardPublicLobbyBrowserController.cs`
-- `Assets/Project/Editor/AtlasBoardPublicLobbyBrowserV2Setup.cs` only if actual pagination controls require a scene/UI rebuild.
-
-Required work:
-
-- implement cursor-based public-room pagination;
-- preserve server-side lobby eligibility filtering;
-- avoid fixed-window discovery that can hide valid rooms under scale;
-- define deterministic ordering/cursor behavior;
-- prevent duplicate rooms across pages;
-- preserve Join/Back responsiveness while page requests are pending;
-- add loading/empty/error presentation using ATB public-error policy;
-- measure callable/read/write volume per active lobby and match;
-- test concurrent public lobby discovery;
-- test realistic simultaneous active matches;
-- validate Firebase quota/cost implications;
-- separate emulator performance from deployed backend performance;
-- test multiple physical PCs and deployed backend before making capacity claims.
-
-Acceptance rules:
-
-- no valid public lobby should become undiscoverable merely because it fell outside a fixed first-N scan;
-- pagination must not duplicate or skip rooms under stable data;
-- stale/closed/full rooms must be handled safely;
-- page fetch must not lock the menu;
-- reconnect/match networking must remain unaffected;
-- no supported concurrent-user/lobby claim may be published until measured load tests exist.
+**Open Phase 16I external gates:** Firebase billing/quota/read/write cost measurements, production-like deployed capacity, physical Windows clients, multi-region latency, release build behavior. No assertion is made that 32 concurrent emulator matches equal a certified player limit. Full production acceptance is deferred to Phase 17.
 
 # 7. Phase 17 — External / Live Testing
 
-**Status: FUTURE after Phase 16I.**
+**Status: ACTIVE — 17A/17B LOCAL STEAM SMOKE ACCEPTED; EXTERNAL/PRODUCTION PENDING.**
 
-Required:
+## 17A — Steam development client readiness and Unity runtime
 
-- real Internet;
-- multiple physical PCs;
-- multiple real accounts;
-- multiple regions/time zones where feasible;
-- production-like backend;
-- real AtlasBoard Steam AppID;
-- real Steam provider verification;
-- repeated reconnect/host loss;
-- 2/3/4-player sessions;
-- cold/warm measurements;
-- chat UTC behavior;
-- Release topology validation;
-- production App Check validation;
-- sustained lobby/match load testing;
-- repeated startup/shutdown stability on Release.
+**Status: DEVELOPMENT STEAM RUNTIME SMOKE PASS; PUBLISHER VERIFICATION PENDING.**
+
+- Read-only Windows preflight found Steam desktop running, Steamworks.NET present, Unity platform/auth source present, and development AppID 480 configured; standalone build was not yet discovered at the initial preflight.
+- In Unity Editor Play Mode: Steam provider active (`steam`), Steam initialized, Steam AppID 480, Steam identity/persona nonempty, and Phase 11B static Steam validation PASS 8/8.
+- The Steamworks client/overlay smoke on AppID 480 is explicitly **not** real AtlasBoard Steam publisher authentication and does not prove a deployed App Check token or publisher-ticket verification.
+
+## 17B — Windows Development Guest / Steam invite overlay
+
+**Status: 17B.2 LOCAL OVERLAY OPEN PASS; REAL FRIEND INVITE/JOIN PENDING.**
+
+- Standard local Guest QA is still intentionally isolated from unnecessary native Firebase Auth/Firestore and automatic Steam initialization. In `AtlasBoardPlatformRuntime.ShouldUseSteamProvider()`, explicit loopback Development Guests use the development identity provider; the ordinary Steam-gated invite button therefore cannot be expected to show in this mode.
+- Phase 17B added a separate **opt-in Development Windows Guest QA component** `Assets/Project/Scripts/Platform/AtlasBoardSteamGuestOverlayQa.cs`. Only explicit `-atlasLocalEmulators` on loopback **and** `-atlasSteamOverlayQa` activate it. This does not change the production identity or App Check implementation.
+- First QA run proved the button was created and clicked, but `SteamAPI.Init()` failed. The later preflight proved `steam_appid.txt` was **missing beside the Guest EXE**. A development-only local file containing `480` was then created; no Steam secret was involved.
+- After rebuilding, preflight and manual correction, the accepted 2026-10-11 20:07 America/Denver Guest log showed:
+  - `ATB_BOOTSTRAP event=startup_ready` and a real local-emulator private Waiting lobby;
+  - `ATB_PHASE17_STEAM_OVERLAY_QA_V2 event=BUTTON_VISIBILITY visible=True`;
+  - `CLICK_RECEIVED` -> `STEAM_INIT_BEGIN` -> `STEAM_INIT_OK appid=480 overlay_enabled=True`;
+  - `OVERLAY_CALLBACK_REGISTERED` -> `INVITE_API_BEGIN` -> `INVITE_API_RETURNED` -> `OVERLAY_ACTIVATED`;
+  - overlay closing callback and `SESSION_CLEAN_EXIT droppedMessages=0`.
+- The user screenshot confirms the Steam Overlay opens directly to an **`INVITE ANYONE TO PLAY`** panel with **Spacewar** branding (AppID 480). The normal AtlasBoard production invitation/Steam friends join flow was **not** proved. The absent full direct-invite menu for Spacewar is a development AppID limitation/Steam client context; a real app AppID and publisher setup are necessary but not by themselves sufficient for acceptance.
+- V2 QA component diagnostics log button creation/visibility/clicks, environment/AppID paths, Steam process, Steam API init, invite API and Overlay activated/closed callbacks, with the **QA component's** raw room connect payload redacted; repeated failed native init is blocked for that run. **Privacy watch:** a separate, older private-room creation logger still prints the six-digit room code into the overall Guest session log; redact that inherited logger before any public telemetry/log sharing.
+- The QA-only Steam native init still carries historical Windows native-crash regression risk. Future production implementation must use the real platform adapter, not promote this QA component or AppID 480 as a release entitlement workaround.
+- **Expected Development Guest Steam launch options:**
+  `-atlasLocalEmulators -atlasSteamOverlayQa -atlasDevName="Colorado Player" -screen-width 1280 -screen-height 720 -screen-fullscreen 0`
+- **Dev-only AppID file:** `steam_appid.txt` alongside the Guest EXE with value `480` (local only, do not commit).
+- **Preflight tool:** `Tools/Phase17B/SteamGuestPreflight.ps1`; creates the missing development AppID file only with explicit `-FixDevAppId`.
+
+## Remaining Phase 17 acceptance gates
+
+1. Obtain the actual AtlasBoard Steam AppID; configure Steamworks title/app permissions/builds and real publisher credentials. Recheck native Steam initialization and actual friend invitations through Steamworks, including friend acceptance, start/join payload handling and canceled/invalid invites.
+2. Validate real Steam ticket server-side with Valve; verified account mapping and returning sign-in must keep canonical Atlas AccountId stable. Never treat a SteamID sent from the client as verified proof.
+3. Prove custom Steam App Check minting and deployed enforcement against an explicitly approved staging/production project; valid token positive control plus cryptographically invalid/missing token negative controls. No production deployment or enforcement changes without explicit authorization.
+4. Real two-, three- and four-player Unity matches using separate physical PCs and real Internet; examine invite, reconnect, host loss/migration, game-state consistency and match outcome. Local `127.0.0.1` emulators cannot connect separate geographic PCs.
+5. Multiple regions/providers where feasible, cold/warm launch, latency and jitter/loss observations, chat UTC timestamps, retry/timeout handling and real deployed quota/cost studies.
+6. Windows Release topology gate: prove dev-only flags do not work in Release, no native Firebase/Steam regression, clean build/startup/shutdown, crash diagnostics, signed-off release/security/operations controls.
+
+**Do not mark Phase 17 or production security CLOSED until these gates pass.**
 
 # 8. Optional backlog — not committed scope
 
@@ -667,147 +656,77 @@ Possible later work:
 - Backend health dashboard.
 - Moderation dashboard.
 
-These must not displace Phase 16I without an explicit priority decision.
+These remain optional and must not displace open Phase 17 release/security requirements without an explicit priority decision.
 
-# 9. Revised execution order from v5.9
+# 9. Revised execution order from v5.10
 
 1. **Phase 14 — COMPLETE / CLOSED / PUSHED.**
-2. **Phase 15A–15K — local/emulator implementation accepted; production Steam cryptographic proof deferred.**
-3. **Phase 16A — consolidated backend QA PASS.**
-4. **Phase 16B — Unity build readiness PASS.**
-5. **Phase 16C — canonical two-client Guest build PASS.**
-6. **Phase 16D — automatic runtime diagnostics PASS.**
-7. **Phase 16E — historical Guest native crash MITIGATED / regression watch.**
-8. **Phase 16F — QA-only native Firebase/Steam isolation ACCEPTED.**
-9. **Phase 16G — lobby/match responsive exit ACCEPTED.**
-10. **Phase 16H.1 — snapshot single-flight/coalescing PASS locally.**
-11. **Phase 16H.2 — host-bootstrap prioritization PASS locally.**
-12. **Phase 16H.3 — loading/bootstrap UX + ATB error-code system PASS / pushed at `e6951076`.**
-13. **Phase 16H housekeeping — one-shot match-loading completion PASS locally.**
-14. **Phase 16H.4 — critical-intent transport reliability PASS locally.**
-15. **Phase 16I — NEXT / NOT YET IMPLEMENTED: public-lobby pagination + scale/load/cost/capacity validation.**
-16. **Phase 17 — external/live/release-topology validation.**
-17. **Release candidate / Steam launch preparation.**
+2. **Phase 15A–15K — local/emulator hardening accepted; production publisher/App Check gates open.**
+3. **Phase 16A–16H.4 — locally accepted with documented native-crash regression watch.**
+4. **Phase 16I — LOCAL CURSOR PAGINATION + EMULATOR LOAD/DIAGNOSTIC ACCEPTED.**
+5. **Phase 17A — Unity Steam Editor/AppID 480 runtime smoke PASS (not publisher proof).**
+6. **Phase 17B.1 — Dev Guest Invite QA button surfaced; SteamAPI.Init initially failed (missing AppID file).**
+7. **Phase 17B.2 — after local development AppID 480 fix, Steam Overlay invite UI activation PASS.**
+8. **Phase 17C — NEXT: physical multi-client Steam invite/join planning + staged backend prerequisites; no production operations without explicit approval.**
+9. **Phase 17D+ — reconnect/host loss, region/latency, deployed App Check/Steam proof, Release gate.**
+10. **Release candidate / Steam launch preparation — NOT READY.**
 
 # 10. Immediate next action
 
-The next main implementation step is:
+**Do not repeat Phase 17B.2 solely to prove the Spacewar Overlay opens:** the accepted log and screenshot already establish that limited result.
 
-**Phase 16I — Public lobby scale, pagination and measured capacity.**
+Before starting the next external test, inventory the real Steam AppID/partner access, available physical test PCs/accounts and **approved** development/staging backend topology. Prepare Phase 17C real invite/accept/join test with a non-loopback backend; `127.0.0.1` must not be presented as a multi-PC shared service. If real Steam AppID or approved backend is missing, explicitly record the blocker and continue only safe preparation/QA; do not bypass publisher-ticket verification or production App Check for a release test.
 
-Start with architecture before synthetic load:
-
-1. inspect current public-lobby query and client browser limits;
-2. define a cursor contract that is deterministic and stable;
-3. implement backend pagination without weakening server-side eligibility filtering;
-4. implement client next-page fetching without blocking Back/Join;
-5. deduplicate rooms by LobbyId;
-6. handle rooms that close/fill/change between pages;
-7. attach generic localized ATB error presentation;
-8. add focused QA for first page, next page, end-of-results and changing data;
-9. measure callable/read/write volume;
-10. perform emulator concurrency tests;
-11. later repeat against deployed backend and multiple physical clients;
-12. only then document measured capacity.
-
-The Phase 16H housekeeping and 16H.4 reliability work are already accepted locally. Do not reopen them unless regression evidence appears. Begin Phase 16I from a fresh source inspection and do not treat any failed prior 16I preparation attempt as applied code.
+Until explicitly authorized, **do not deploy, change GitHub, change secrets or force production App Check enforcement.**
 
 # 11. Current checkpoint summary
 
-## Green / accepted
+## Green / accepted locally
 
-- Phase 15 local/emulator security and operations close at documented level.
-- Consolidated backend QA.
-- Unity Build Readiness.
-- Canonical two-client Guest build.
-- Automatic Development Guest logs.
-- Immediate lobby/match exit behavior.
-- Local Guest native Firebase/Steam startup isolation.
-- Historical native Guest crash not reproduced in repeated accepted samples.
-- Snapshot single-flight/coalescing.
-- Pre-snapshot cosmetic-intent protection.
-- Host bootstrap priority.
-- Fast later authoritative match readiness.
-- Localized startup/match loading presentation.
-- ATB frontend error-code framework.
-- Seven-language loading-tip support.
-- Sanitized bootstrap timing diagnostics.
-- Clean-exit evidence in accepted Guest sessions.
-- One-shot match-loading completion logging.
-- Phase 16H.4 critical-intent reliability normal runtime acceptance.
+- Phase 16A–H.4 local QA and runtime reliability baselines, subject to crash regression watch.
+- Phase 16I paginated public discovery and local emulator capacity/read/mixed load, including 32 concurrent match pairs and a 75 ms staggering A/B diagnostic.
+- Phase 17A Unity Steam provider initialization and Phase 11B static check 8/8 using AppID 480.
+- Phase 17B.2: Windows Development Guest local emulator identity, private lobby, QA-only SteamAPI Init AppID 480 and Steam invite Overlay activation.
+- Phase 17B.2: event-level Steam QA component diagnostics with its own invite payload redacted, and clean process exit; inherited lobby creation logger still exposes room code in the session log and must be hardened before public telemetry.
 
-## Yellow / active or watch
+## Yellow / current watch and active work
 
-- Public lobby pagination.
-- Measured concurrent lobby capacity.
-- Measured active-match capacity.
-- Firebase quota/cost/load characterization.
-- Multi-PC/deployed latency testing.
-- Historical `0xC0000409` crash remains on regression watch.
-- Phase 16I public-lobby pagination and measured scale/load remain unimplemented.
+- Actual Steam platform join/invite and multi-PC network acceptance is still pending.
+- Historical `BEX64 / 0xC0000409` native Windows Guest crash remains a regression watch; native Steam was re-enabled only on explicit QA user click in opt-in Development Guest.
+- Existing private-lobby creation logging still includes its six-digit room access code in the Guest session log; do not expose such raw logs to players or public issue trackers. Redaction is pending.
+- Emulator burst-tail latency and measured local workload cannot be extrapolated into a production capacity claim.
+- Phase 17C physical-client/back-end strategy requires verified real Steam AppID and safe shared environment design.
 
 ## Deferred production gates
 
-- Real AtlasBoard Steam AppID.
-- Publisher Web API secret.
-- Real Steam returning sign-in.
-- Real custom Steam App Check attestation.
-- Deployed cryptographic invalid-token rejection.
-- Release verification of native FirebaseAuth/Firestore account/profile path.
-- Proof that local Guest QA isolation cannot activate in Release.
-- Release startup/shutdown regression.
-- External load/latency/quota/cost acceptance.
+- Real AtlasBoard Steam AppID and Steamworks partner setup; published identity/invites/achievements.
+- Publisher Web API secret, real Valve Steam-ticket attestation and returning Steam sign-in.
+- Correct Firebase App ID and real custom Steam App Check token mint/enforcement/cryptographic rejection.
+- Production/staging separation, IAM, logging/alerts, TTL and billing/quota governance.
+- Real physical 2/3/4-player gameplay, reconnect, host loss and region/performance measurements.
+- Release compilation, startup/shutdown security regressions and confirmation QA-only native bypasses are excluded.
+- Release owner approval.
 
 # 12. Next-chat handoff block
 
-A future AtlasBoard chat should start from these facts:
+Future AtlasBoard chats should start from these facts:
 
-- Canonical roadmap checkpoint: **v5.10, 2026-10-11 America/Denver**.
-- Repository: `vuartex/AtlasBoardPrototype`.
-- Last verified pushed GitHub HEAD:
-  `e69510764d78de82be9a88d1816f340004273cd5`
-- Pushed HEAD title:
-  `Complete Phase 16H loading and network responsiveness checkpoint`
-- The pushed checkpoint contains Phase 16H.1/16H.2/16H.3-era networking/loading work.
-- Newer accepted local work after that push:
-  - one-shot `ATB_MATCH_LOAD event=authoritative_ready` housekeeping;
-  - Phase 16H.4 critical gameplay-intent reliability.
-- Do not overwrite those newer local files with stale GitHub versions unless they have since been pushed and the new HEAD is verified.
-- Historical Guest crash signature:
-  `BEX64 / 0xC0000409 / ucrtbase.dll / subcode 7`.
-- Exact native root was not symbolically proven.
-- Current local Guest mitigation isolates unnecessary native Firebase/Steam startup while preserving HTTP emulator multiplayer.
-- Do not casually re-enable native FirebaseAuth/Firestore, native App Check or Steam startup inside the canonical local Guest.
-- Release behavior remains separate and must be revalidated before launch.
-- Guest lobby/match local exit must remain immediate.
-- Snapshot polling/reconnect/host-migration semantics must remain intact.
-- Phase 16H.1 is accepted: overlapping snapshot callers share one in-flight network task and forced refresh allows at most one follow-up.
-- Remote cosmetic intent waits for an authoritative snapshot.
-- Phase 16H.2 is accepted: first authoritative host state is prioritized before non-critical maintenance traffic.
-- Phase 16H.3 is accepted: localized startup/match loading, seven-language tips and stable ATB frontend error codes.
-- Public UI must not expose Firebase/Firestore/Functions/Steam security implementation details.
-- `FRONTEND_ERROR_CODEBOOK.md` is the canonical ATB code reference.
-- Phase 16H housekeeping is accepted: one match-loading cycle logs authoritative completion once.
-- Phase 16H.4 is accepted:
-  - critical gameplay-intent retry preserves the same `clientCommandId`;
-  - non-critical client traffic is deprioritized while a critical decision is in flight;
-  - no new command identity is generated for retry;
-  - accepted runtime had no HTTP 0 timeout and ended cleanly.
-- Current active phase is **16I public-lobby pagination + measured scale/load**.
-- **No Phase 16I implementation has been applied yet.** Prior preparation attempts did not yield a valid applied ZIP.
-- Verified Phase 16I baseline at pushed HEAD `e6951076`:
-  - backend raw discovery limit = 50;
-  - backend browser result cap = 25;
-  - query has no cursor/order-by contract before filtering;
-  - Unity bridge list request is capped at 20;
-  - browser requests 20;
-  - browser currently has six visible rows.
-- First 16I goal is architectural pagination correctness, not a claimed capacity number.
-- Do not claim a supported concurrent-player/lobby count until measured load testing exists.
-- Backend QA remains consolidated under `Backend/Firebase/functions/scripts/qa.mjs`; reuse/extend the existing `public-lobby-discovery-e2e.mjs` rather than proliferating permanent phase scripts.
-- Do not auto-commit, auto-push or deploy.
-- Never use `git add .`.
-- Prefer complete replacement source files in a ZIP; do not give patches/installers unless explicitly asked.
+- Canonical roadmap candidate checkpoint: **v5.11, 2026-10-11 America/Denver**; verify against newer local roadmap before overwrite.
+- Repository: `vuartex/AtlasBoardPrototype`, Unity baseline 6000.5.6f1, scene `Assets/Board_Prototype.unity`.
+- Last **already pushed** `main` at latest read: `ca3a9174146165e4238d2aeaa47eedd8a11156df`, `Finalize Phase 16H reliability and prepare Phase 16I`. Do not fabricate a future commit SHA.
+- Subsequent local accepted Phase 16I and Phase 17B.2 work **may not yet be pushed**; inspect `git status`, staged files and local roadmap before replacing anything.
+- Phase 16I cursor pagination and local emulator mixed load PASS; 32 concurrent matches observed with no workflow failures in the accepted v2/A-B tests. Local result is not certified production capacity.
+- Phase 17A Editor: Steam initialized with AppID 480 and Phase 11B 8/8. Not real publisher verification.
+- Phase 17B.2 Guest on local emulators: opt-in `-atlasSteamOverlayQa` enables a separate QA invite control; `SteamAPI.Init`, `ActivateGameOverlayInviteDialogConnectString` and Overlay activation callback were observed PASS after adding local `steam_appid.txt=480` beside the EXE.
+- User-provided 2026-10-11 20:07 America/Denver Guest log demonstrated `STEAM_INIT_OK`, `INVITE_API_RETURNED`, `OVERLAY_ACTIVATED`, `SESSION_CLEAN_EXIT droppedMessages=0` with no credential/ticket exposure.
+- Screenshot: Steam opened invite UI with Spacewar branding. The real Steam friend invite/accept/join is NOT tested or accepted. Do not claim the actual real AppID alone automatically resolves all invitation behavior.
+- Keep `.local` tokens, app publisher secret and raw tickets out of source/logs; QA component itself redacts invite codes, but an existing lobby creation diagnostic still logs the raw room code. Treat logs as sensitive until this is fixed.
+- Production Steam custom App Check and returning sign-in gates remain blocked until real AppID/Valve/deployed proof.
+- Historical native Guest crash must remain on regression watch; explicit opt-in Steam Native Init is confined to the development-only test path.
+- Next work: plan 17C real physical Steam client(s), approved shared backend, verified identity, explicit release gates; do not connect remote clients to localhost emulator.
+- Existing Phase 16I/17B files should be treated as locally accepted, not overwritten from older `main` without local diff review.
+- Git discipline: stage only desired paths, no `git add .`, user performs commit/push. Never auto-push/deploy.
+- Deliver complete replacement files in small ZIPs, not textual patches; ensure no unrelated assets/Fonts/generated binaries are staged.
 
 # 13. Roadmap maintenance rule
 

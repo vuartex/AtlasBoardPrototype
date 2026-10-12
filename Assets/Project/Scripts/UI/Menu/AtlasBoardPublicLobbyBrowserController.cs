@@ -46,6 +46,8 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
     [SerializeField] private Button refreshButton;
     [SerializeField] private Button createPublicRoomButton;
     private Button joinByCodeButton;
+    private Button previousPageButton;
+    private Button nextPageButton;
 
     private GameObject joinByCodePromptRoot;
     private TMP_InputField joinByCodeCodeInput;
@@ -83,17 +85,22 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
     private bool busy;
     private bool refreshingRooms;
     private int browserGeneration;
+    private int currentPageIndex;
+    private string nextCursor = string.Empty;
+    private bool serverHasMore;
     private bool hooked;
     private AtlasPublicLobbyCard pendingJoinRoom;
     private int lastClickedRow = -1;
     private float lastRowClickAt = -10f;
 
     private const float DoubleClickSeconds = 0.38f;
+    private const int ServerPageSize = 20;
 
     private void Awake()
     {
         ResolveReferences();
         EnsureJoinByCodeButton();
+        EnsurePaginationButtons();
         EnsureJoinByCodePrompt();
         HookControls();
         SetActive(browserRoot, false);
@@ -144,6 +151,7 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
 
         ResolveReferences();
         EnsureJoinByCodeButton();
+        EnsurePaginationButtons();
         EnsureJoinByCodePrompt();
         SetActive(mainMenuRoot, false);
         SetActive(browserRoot, true);
@@ -212,6 +220,8 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
         AddClick(refreshButton, RefreshRooms);
         AddClick(createPublicRoomButton, CreatePublicRoom);
         AddClick(joinByCodeButton, OpenJoinByCode);
+        AddClick(previousPageButton, PreviousPage);
+        AddClick(nextPageButton, NextPage);
         AddClick(joinByCodeJoinButton, ConfirmJoinByCode);
         AddClick(joinByCodeCancelButton, HideJoinByCodePrompt);
         AddClick(passwordPromptJoinButton, ConfirmPasswordJoin);
@@ -253,6 +263,8 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
         RemoveClick(refreshButton, RefreshRooms);
         RemoveClick(createPublicRoomButton, CreatePublicRoom);
         RemoveClick(joinByCodeButton, OpenJoinByCode);
+        RemoveClick(previousPageButton, PreviousPage);
+        RemoveClick(nextPageButton, NextPage);
         RemoveClick(joinByCodeJoinButton, ConfirmJoinByCode);
         RemoveClick(joinByCodeCancelButton, HideJoinByCodePrompt);
         RemoveClick(passwordPromptJoinButton, ConfirmPasswordJoin);
@@ -359,6 +371,101 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
         }
 
         RefreshJoinByCodeLabel();
+    }
+
+    private void EnsurePaginationButtons()
+    {
+        if (refreshButton == null)
+        {
+            return;
+        }
+
+        Transform parent = refreshButton.transform.parent;
+        if (parent == null)
+        {
+            return;
+        }
+
+        previousPageButton ??=
+            parent.Find("Button_PublicLobbyPreviousPage")
+                ?.GetComponent<Button>();
+        nextPageButton ??=
+            parent.Find("Button_PublicLobbyNextPage")
+                ?.GetComponent<Button>();
+
+        if (previousPageButton == null)
+        {
+            previousPageButton = CreatePagerButton(
+                parent,
+                "Button_PublicLobbyPreviousPage",
+                "<");
+        }
+
+        if (nextPageButton == null)
+        {
+            nextPageButton = CreatePagerButton(
+                parent,
+                "Button_PublicLobbyNextPage",
+                ">");
+        }
+
+        RectTransform refreshRect =
+            refreshButton.GetComponent<RectTransform>();
+        RectTransform previousRect =
+            previousPageButton != null
+                ? previousPageButton.GetComponent<RectTransform>()
+                : null;
+        RectTransform nextRect =
+            nextPageButton != null
+                ? nextPageButton.GetComponent<RectTransform>()
+                : null;
+
+        float y = refreshRect != null
+            ? refreshRect.anchoredPosition.y
+            : 0f;
+
+        if (previousRect != null)
+        {
+            previousRect.anchoredPosition = new Vector2(405f, y);
+            previousRect.sizeDelta = new Vector2(90f, previousRect.sizeDelta.y);
+        }
+
+        if (nextRect != null)
+        {
+            nextRect.anchoredPosition = new Vector2(515f, y);
+            nextRect.sizeDelta = new Vector2(90f, nextRect.sizeDelta.y);
+        }
+
+        if (refreshRect != null)
+        {
+            refreshRect.anchoredPosition = new Vector2(690f, y);
+            refreshRect.sizeDelta = new Vector2(190f, refreshRect.sizeDelta.y);
+        }
+
+        UpdatePaginationControls();
+    }
+
+    private Button CreatePagerButton(
+        Transform parent,
+        string objectName,
+        string labelText)
+    {
+        GameObject clone = Instantiate(
+            refreshButton.gameObject,
+            parent,
+            false);
+        clone.name = objectName;
+
+        AtlasBoardLocalizedText inheritedLocalization =
+            clone.GetComponentInChildren<AtlasBoardLocalizedText>(true);
+        if (inheritedLocalization != null)
+        {
+            inheritedLocalization.enabled = false;
+        }
+
+        Button button = clone.GetComponent<Button>();
+        SetButtonLabel(button, labelText);
+        return button;
     }
 
     private void RefreshJoinByCodeLabel()
@@ -875,7 +982,7 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
 
     private void RefreshRooms()
     {
-        if (!busy)
+        if (!busy && !refreshingRooms)
         {
             _ = RefreshRoomsAsync();
         }
@@ -883,48 +990,123 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
 
     private async Task RefreshRoomsAsync()
     {
-        if (busy)
+        await FetchPageAsync(reset: true, advanceVisiblePage: false);
+    }
+
+    private void PreviousPage()
+    {
+        if (busy || refreshingRooms || currentPageIndex <= 0)
         {
             return;
         }
 
+        currentPageIndex--;
+        ApplyFilters();
+    }
+
+    private void NextPage()
+    {
+        if (busy || refreshingRooms)
+        {
+            return;
+        }
+
+        int nextStart = (currentPageIndex + 1) * Mathf.Max(1, rows.Length);
+        if (BuildFilteredRooms().Count > nextStart)
+        {
+            currentPageIndex++;
+            ApplyFilters();
+            return;
+        }
+
+        if (serverHasMore && !string.IsNullOrWhiteSpace(nextCursor))
+        {
+            _ = FetchPageAsync(reset: false, advanceVisiblePage: true);
+        }
+    }
+
+    private async Task FetchPageAsync(
+        bool reset,
+        bool advanceVisiblePage)
+    {
+        if (busy || refreshingRooms)
+        {
+            return;
+        }
+
+        ResolveReferences();
+        if (runtimeBridge == null)
+        {
+            PresentLobbyListFailure(
+                "Public lobby paging runtime bridge is unavailable.");
+            return;
+        }
+
         int requestedGeneration = browserGeneration;
-        busy = true;
+        string requestCursor = reset ? string.Empty : nextCursor;
         refreshingRooms = true;
-        SetControlsInteractable(false);
+        UpdatePaginationControls();
 
         try
         {
             if (allRooms.Count == 0)
             {
-                SetText(statusText, T("public_browser.loading", "Loading public rooms..."));
+                SetText(
+                    statusText,
+                    T("public_browser.loading", "Loading public rooms..."));
             }
 
-            AtlasPublicLobbyListResult result =
-                await runtimeBridge.ListPublicRoomsAsync(20);
+            AtlasPublicLobbyPageResult result =
+                await AtlasBoardPublicLobbyPagingClient.ListPageAsync(
+                    runtimeBridge,
+                    ServerPageSize,
+                    requestCursor);
 
-            // A previous browser request must never repaint a newer screen.
             if (requestedGeneration != browserGeneration ||
-                browserRoot == null || !browserRoot.activeSelf)
+                browserRoot == null ||
+                !browserRoot.activeSelf)
             {
                 return;
             }
 
             if (!result.Success)
             {
-                allRooms.Clear();
-                ClearRows();
-                SetText(
-                    statusText,
-                    TranslateError(result.ErrorLocalizationKey,
-                        "Could not load public rooms."));
+                PresentLobbyListFailure(result.TechnicalMessage);
                 return;
             }
 
-            allRooms.Clear();
-            if (result.Rooms != null)
+            if (reset)
             {
-                allRooms.AddRange(result.Rooms.Where(room => room != null));
+                ReplaceRooms(result.Rooms);
+                currentPageIndex = 0;
+            }
+            else
+            {
+                MergeRooms(result.Rooms);
+            }
+
+            nextCursor = result.NextCursor ?? string.Empty;
+            serverHasMore = result.HasMore &&
+                !string.IsNullOrWhiteSpace(nextCursor);
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.Log(
+                "ATB_PUBLIC_DISCOVERY_PAGE_ACCEPTED " +
+                $"reset={reset} rooms={result.Rooms?.Count ?? 0} " +
+                $"cached={allRooms.Count} hasMore={serverHasMore} " +
+                $"scanned={result.ScannedDocuments} queries={result.QueryCount} " +
+                $"scanLimit={result.ScanLimitReached}",
+                this);
+#endif
+
+            if (advanceVisiblePage)
+            {
+                int nextStart =
+                    (currentPageIndex + 1) * Mathf.Max(1, rows.Length);
+                if (BuildFilteredRooms().Count > nextStart)
+                {
+                    currentPageIndex++;
+                }
             }
 
             ApplyFilters();
@@ -932,16 +1114,69 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
         finally
         {
             refreshingRooms = false;
-            busy = false;
-            SetControlsInteractable(true);
-            // If the player left and re-opened the browser while a request was
-            // running, refresh the newly opened view instead of reusing old data.
+            UpdatePaginationControls();
+
             if (requestedGeneration != browserGeneration &&
-                browserRoot != null && browserRoot.activeSelf)
+                browserRoot != null &&
+                browserRoot.activeSelf)
             {
                 _ = RefreshRoomsAsync();
             }
         }
+    }
+
+    private void ReplaceRooms(
+        IReadOnlyList<AtlasPublicLobbyCard> roomsToUse)
+    {
+        allRooms.Clear();
+        MergeRooms(roomsToUse);
+    }
+
+    private void MergeRooms(
+        IReadOnlyList<AtlasPublicLobbyCard> roomsToMerge)
+    {
+        if (roomsToMerge == null)
+        {
+            return;
+        }
+
+        foreach (AtlasPublicLobbyCard room in roomsToMerge)
+        {
+            if (room == null ||
+                string.IsNullOrWhiteSpace(room.LobbyId))
+            {
+                continue;
+            }
+
+            int existingIndex = allRooms.FindIndex(
+                existing =>
+                    existing != null &&
+                    string.Equals(
+                        existing.LobbyId,
+                        room.LobbyId,
+                        StringComparison.Ordinal));
+
+            if (existingIndex >= 0)
+            {
+                allRooms[existingIndex] = room;
+            }
+            else
+            {
+                allRooms.Add(room);
+            }
+        }
+    }
+
+    private void PresentLobbyListFailure(string technicalMessage)
+    {
+        AtlasBoardFrontendErrorCodes.Report(
+            AtlasBoardFrontendErrorCodes.LobbyListFailed,
+            technicalMessage,
+            "public_lobby_browser");
+        SetText(
+            statusText,
+            AtlasBoardFrontendErrorCodes.PublicMessage(
+                AtlasBoardFrontendErrorCodes.LobbyListFailed));
     }
 
     private async void CreatePublicRoom()
@@ -996,6 +1231,7 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
     {
         if (!busy)
         {
+            currentPageIndex = 0;
             ApplyFilters();
         }
     }
@@ -1004,11 +1240,38 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
     {
         if (!busy)
         {
+            currentPageIndex = 0;
             ApplyFilters();
         }
     }
 
     private void ApplyFilters()
+    {
+        List<AtlasPublicLobbyCard> filtered = BuildFilteredRooms();
+        int pageSize = Mathf.Max(1, rows.Length);
+
+        if (filtered.Count == 0)
+        {
+            currentPageIndex = 0;
+        }
+        else
+        {
+            int lastCachedPage = Mathf.Max(0, (filtered.Count - 1) / pageSize);
+            currentPageIndex = Mathf.Clamp(
+                currentPageIndex,
+                0,
+                lastCachedPage);
+        }
+
+        RenderRooms(
+            filtered
+                .Skip(currentPageIndex * pageSize)
+                .Take(pageSize)
+                .ToList());
+        UpdatePaginationControls(filtered.Count);
+    }
+
+    private List<AtlasPublicLobbyCard> BuildFilteredRooms()
     {
         string search = searchInput != null
             ? (searchInput.text ?? string.Empty).Trim()
@@ -1039,7 +1302,10 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
         if (!string.IsNullOrEmpty(selectedMap))
         {
             filtered = filtered.Where(room =>
-                string.Equals(room.MapId, selectedMap, StringComparison.OrdinalIgnoreCase));
+                string.Equals(
+                    room.MapId,
+                    selectedMap,
+                    StringComparison.OrdinalIgnoreCase));
         }
 
         int selectedCapacity = playersIndex switch
@@ -1052,7 +1318,8 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
 
         if (selectedCapacity > 0)
         {
-            filtered = filtered.Where(room => room.MaxPlayers == selectedCapacity);
+            filtered = filtered.Where(
+                room => room.MaxPlayers == selectedCapacity);
         }
 
         int selectedRounds = roundIndex switch
@@ -1065,7 +1332,8 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
 
         if (selectedRounds > 0)
         {
-            filtered = filtered.Where(room => room.RoundLimit == selectedRounds);
+            filtered = filtered.Where(
+                room => room.RoundLimit == selectedRounds);
         }
 
         if (passwordIndex == 1)
@@ -1077,7 +1345,40 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
             filtered = filtered.Where(room => room.HasPassword);
         }
 
-        RenderRooms(filtered.Take(rows.Length).ToList());
+        return filtered.ToList();
+    }
+
+    private void UpdatePaginationControls()
+    {
+        UpdatePaginationControls(BuildFilteredRooms().Count);
+    }
+
+    private void UpdatePaginationControls(int filteredCount)
+    {
+        int pageSize = Mathf.Max(1, rows.Length);
+        int nextStart = (currentPageIndex + 1) * pageSize;
+        bool hasCachedNext = filteredCount > nextStart;
+        bool canInteract = !busy && !refreshingRooms;
+
+        if (previousPageButton != null)
+        {
+            previousPageButton.interactable =
+                canInteract && currentPageIndex > 0;
+        }
+
+        if (nextPageButton != null)
+        {
+            nextPageButton.interactable =
+                canInteract &&
+                (hasCachedNext ||
+                 (serverHasMore &&
+                  !string.IsNullOrWhiteSpace(nextCursor)));
+        }
+
+        if (refreshButton != null)
+        {
+            refreshButton.interactable = canInteract;
+        }
     }
 
     private void RenderRooms(List<AtlasPublicLobbyCard> rooms)
@@ -1297,7 +1598,18 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
     private async Task RefreshRoomsAfterJoinFailureAsync()
     {
         await Task.Yield();
-        if (!busy && browserRoot != null && browserRoot.activeSelf)
+
+        while (refreshingRooms &&
+               browserRoot != null &&
+               browserRoot.activeSelf)
+        {
+            await Task.Yield();
+        }
+
+        if (!busy &&
+            !refreshingRooms &&
+            browserRoot != null &&
+            browserRoot.activeSelf)
         {
             await RefreshRoomsAsync();
         }
@@ -1364,6 +1676,8 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
                 if (row?.RowButton != null) row.RowButton.interactable = interactable;
             }
         }
+
+        UpdatePaginationControls();
     }
 
     private static bool Contains(string source, string value)

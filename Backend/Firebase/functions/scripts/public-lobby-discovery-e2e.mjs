@@ -36,27 +36,36 @@ async function postJson(url, body, headers = {}) {
   });
 }
 
-async function patchJson(url, body) {
-  return requestJson(url, {
-    method: "PATCH",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify(body),
-  });
-}
-
-async function deleteUrl(url) {
-  return requestJson(url, {method: "DELETE"});
-}
-
 function callableUrl(name) {
   return `${FUNCTIONS_BASE}/${PROJECT_ID}/${REGION}/${name}`;
 }
 
+// Phase 15F protects online callables with App Check when explicitly enabled
+// in the local Functions Emulator. Its emulator accepts a non-empty placeholder
+// in lieu of production attestation, as proven by the existing Phase 15F/15G
+// negative/authorization suites. This value is NOT a real App Check token.
+// Do not send it to any non-loopback URL or deployed Firebase environment.
+const LOCAL_APP_CHECK_PLACEHOLDER = "phase16i-local-emulator-only";
+
 async function callFunction(name, token, data) {
+  const url = callableUrl(name);
+  const target = new URL(url);
+  assert(
+    target.protocol === "http:" &&
+    target.hostname === "127.0.0.1" &&
+    target.port === "5001" &&
+    target.pathname.startsWith(`/${PROJECT_ID}/${REGION}/`),
+    "Refusing emulator-only App Check header outside local Functions.",
+  );
+  assert(typeof token === "string" && token.length > 20,
+    `Missing emulator Firebase ID token for callable ${name}.`);
   return postJson(
-    callableUrl(name),
+    url,
     {data},
-    {Authorization: `Bearer ${token}`},
+    {
+      Authorization: `Bearer ${token}`,
+      "X-Firebase-AppCheck": LOCAL_APP_CHECK_PLACEHOLDER,
+    },
   );
 }
 
@@ -69,18 +78,44 @@ function firestoreUrl(path) {
     `/databases/(default)/documents/${path}`;
 }
 
+// Firestore Security Rules intentionally deny direct document writes. The
+// literal `owner` identity is an emulator-only administrative sentinel.
+// Restrict it to this fixed loopback Firestore endpoint; never send it to
+// deployed services or to Auth / Callable endpoints (those use real ID tokens).
+async function firestoreAdminRequest(path, method, fields) {
+  const url = firestoreUrl(path);
+  const parsed = new URL(url);
+  assert(
+    parsed.protocol === "http:" &&
+    parsed.hostname === "127.0.0.1" &&
+    parsed.port === "8080" &&
+    parsed.pathname.startsWith(
+      `/v1/projects/${PROJECT_ID}/databases/(default)/documents/`,
+    ),
+    "Refusing to send emulator administrator credential outside local Firestore.",
+  );
+  return requestJson(url, {
+    method,
+    headers: {
+      Authorization: "Bearer owner",
+      ...(fields === undefined ? {} : {"Content-Type": "application/json"}),
+    },
+    ...(fields === undefined ? {} : {body: JSON.stringify({fields})}),
+  });
+}
+
 async function getDoc(path) {
-  return requestJson(firestoreUrl(path));
+  return firestoreAdminRequest(path, "GET");
 }
 
 async function patchDoc(path, fields) {
-  return patchJson(firestoreUrl(path), {fields});
+  return firestoreAdminRequest(path, "PATCH", fields);
 }
 
 async function bestEffortDelete(path) {
   if (!path) return;
   try {
-    const call = await deleteUrl(firestoreUrl(path));
+    const call = await firestoreAdminRequest(path, "DELETE");
     if (!call.response.ok && call.response.status !== 404) {
       console.warn(`Cleanup warning ${path}: HTTP ${call.response.status}`);
     }
@@ -150,14 +185,16 @@ async function seedAccount(user, displayName) {
     membershipTier: {stringValue: "normal"},
     schemaVersion: {integerValue: "1"},
   });
-  assert(call.response.ok, `users/${user.uid} seed failed.`);
+  assert(call.response.ok,
+    `users/${user.uid} seed failed: HTTP ${call.response.status}; ${call.text}`);
   call = await patchDoc(`public_profiles/${user.uid}`, {
     displayName: {stringValue: displayName},
     avatarId: {stringValue: ""},
     profileFrameId: {stringValue: ""},
     schemaVersion: {integerValue: "1"},
   });
-  assert(call.response.ok, `public_profiles/${user.uid} seed failed.`);
+  assert(call.response.ok,
+    `public_profiles/${user.uid} seed failed: HTTP ${call.response.status}; ${call.text}`);
 }
 
 async function deleteAuthUser(user) {
@@ -178,6 +215,48 @@ function rooms(call) {
 
 function room(cards, lobbyId) {
   return cards.find((card) => card.lobbyId === lobbyId);
+}
+
+function discoveryFields({
+  lobbyId,
+  gameVersion,
+  regionId,
+  createdAtEpochMs,
+  hostHeartbeatAtEpochMs,
+  joinable = true,
+}) {
+  return {
+    schemaVersion: {integerValue: "1"},
+    lobbyId: {stringValue: lobbyId},
+    visibility: {stringValue: "public"},
+    lifecycleState: {stringValue: "waiting"},
+    joinable: {booleanValue: joinable},
+    hostDisplayName: {stringValue: `Scale ${lobbyId.slice(-8)}`},
+    mapId: {stringValue: "Turkey"},
+    themeId: {stringValue: "Classic Table"},
+    roundLimit: {integerValue: "20"},
+    maxPlayers: {integerValue: "4"},
+    occupiedPlayers: {integerValue: "1"},
+    openOnlineSeatCount: {integerValue: "3"},
+    regionId: {stringValue: regionId},
+    gameVersion: {stringValue: gameVersion},
+    protocolVersion: {integerValue: "1"},
+    rulesVersion: {integerValue: "1"},
+    contentVersion: {stringValue: "1"},
+    settingsRevision: {integerValue: "1"},
+    hasPassword: {booleanValue: false},
+    createdAtEpochMs: {integerValue: String(createdAtEpochMs)},
+    hostHeartbeatAtEpochMs: {integerValue: String(hostHeartbeatAtEpochMs)},
+    updatedAtEpochMs: {integerValue: String(hostHeartbeatAtEpochMs)},
+  };
+}
+
+function cursorOf(call) {
+  return result(call)?.nextCursor ?? "";
+}
+
+function hasMore(call) {
+  return result(call)?.hasMore === true;
 }
 
 const versions = {
@@ -202,11 +281,15 @@ let host;
 let remoteA;
 let remoteB;
 let browser;
+let closingHost;
 let privateLobbyId = "";
 let publicLobbyId = "";
 let privateRoomCode = "";
 let publicRoomCode = "";
 let matchId = "";
+let closingLobbyId = "";
+let closingRoomCode = "";
+const syntheticDiscoveryIds = [];
 
 try {
   console.log("AtlasBoard Phase 4A Public Lobby Discovery Local E2E v1");
@@ -386,7 +469,257 @@ try {
     "Starting public lobby discovery document was not deleted.");
   console.log("[11/11] PASSED. Starting public lobby removed from discovery.");
 
-  console.log("\nAtlasBoard Phase 4A Public Lobby Discovery Local E2E v1 PASSED.");
+  console.log("[16I-1/6] Seeding >50 ordered discovery docs for cursor scan...");
+  // The backend enforces a 32-character gameVersion maximum.
+  const scaleRun = `${Date.now().toString(36)}-` +
+    Math.floor(Math.random() * 1000000).toString(36);
+  const scaleVersions = {
+    gameVersion: `16i-${scaleRun}`,
+    protocolVersion: 1,
+    rulesVersion: 1,
+    contentVersion: "1",
+    regionId: "eur3",
+  };
+  const incompatibleVersion = `16i-bad-${scaleRun}`;
+  const baseCreatedAt = Date.now() + 100000;
+  // Artificial projections have no living host. Future-dated heartbeat keeps
+  // them stable across slower Windows machines; the separate stale fixture
+  // below uses an explicitly expired timestamp.
+  const heartbeatNow = Date.now() + 5 * 60 * 1000;
+  const expectedCompatible = [];
+
+  for (let index = 0; index < 60; index++) {
+    const lobbyId = `phase16i-${scaleRun}-incompatible-${String(index).padStart(3, "0")}`;
+    syntheticDiscoveryIds.push(lobbyId);
+    const write = await patchDoc(
+      `lobby_discovery/${lobbyId}`,
+      discoveryFields({
+        lobbyId,
+        gameVersion: incompatibleVersion,
+        regionId: "eur3",
+        createdAtEpochMs: baseCreatedAt - index,
+        hostHeartbeatAtEpochMs: heartbeatNow,
+      }),
+    );
+    assert(write.response.ok, `Synthetic incompatible seed failed: ${lobbyId}`);
+  }
+
+  for (let index = 0; index < 3; index++) {
+    const lobbyId = `phase16i-${scaleRun}-wrong-region-${String(index).padStart(3, "0")}`;
+    syntheticDiscoveryIds.push(lobbyId);
+    const write = await patchDoc(
+      `lobby_discovery/${lobbyId}`,
+      discoveryFields({
+        lobbyId,
+        gameVersion: scaleVersions.gameVersion,
+        regionId: "usa",
+        createdAtEpochMs: baseCreatedAt - 1000 - index,
+        hostHeartbeatAtEpochMs: heartbeatNow,
+      }),
+    );
+    assert(write.response.ok, `Synthetic region seed failed: ${lobbyId}`);
+  }
+
+  const staleLobbyId = `phase16i-${scaleRun}-stale`;
+  syntheticDiscoveryIds.push(staleLobbyId);
+  const staleWrite = await patchDoc(
+    `lobby_discovery/${staleLobbyId}`,
+    discoveryFields({
+      lobbyId: staleLobbyId,
+      gameVersion: scaleVersions.gameVersion,
+      regionId: "eur3",
+      createdAtEpochMs: baseCreatedAt - 1100,
+      hostHeartbeatAtEpochMs: Date.now() - 120000,
+    }),
+  );
+  assert(staleWrite.response.ok, "Synthetic stale seed failed.");
+
+  for (let index = 0; index < 23; index++) {
+    const lobbyId = `phase16i-${scaleRun}-compatible-${String(index).padStart(3, "0")}`;
+    syntheticDiscoveryIds.push(lobbyId);
+    const createdAtEpochMs = index < 2
+      ? baseCreatedAt - 2000
+      : baseCreatedAt - 2000 - index;
+    expectedCompatible.push({lobbyId, createdAtEpochMs});
+    const write = await patchDoc(
+      `lobby_discovery/${lobbyId}`,
+      discoveryFields({
+        lobbyId,
+        gameVersion: scaleVersions.gameVersion,
+        regionId: "eur3",
+        createdAtEpochMs,
+        hostHeartbeatAtEpochMs: heartbeatNow,
+      }),
+    );
+    assert(write.response.ok, `Synthetic compatible seed failed: ${lobbyId}`);
+  }
+
+  expectedCompatible.sort((left, right) =>
+    right.createdAtEpochMs - left.createdAtEpochMs ||
+    right.lobbyId.localeCompare(left.lobbyId));
+  console.log("[16I-1/6] PASSED. Scale dataset seeded.");
+
+  console.log("[16I-2/6] Proving first page scans past the old raw-50 boundary...");
+  const firstPage = await callFunction(
+    "lobbyListPublicRoomsPage",
+    browser.token,
+    {...scaleVersions, limit: 7, cursor: ""},
+  );
+  assert(firstPage.response.ok, `First cursor page failed: ${firstPage.text}`);
+  const firstIds = rooms(firstPage).map((card) => card.lobbyId);
+  assert(firstIds.length === 7, "Cursor first page did not return 7 compatible rooms.");
+  assert(firstIds.every((id) => id.includes("-compatible-")),
+    "Incompatible/region/stale document leaked into cursor page.");
+  assert((result(firstPage)?.diagnostics?.scannedDocuments ?? 0) > 50,
+    "Cursor discovery did not scan beyond the old first-50 raw boundary.");
+  assert(hasMore(firstPage) && cursorOf(firstPage),
+    "First cursor page did not advertise a continuation cursor.");
+
+  const firstPageRepeat = await callFunction(
+    "lobbyListPublicRoomsPage",
+    browser.token,
+    {...scaleVersions, limit: 7, cursor: ""},
+  );
+  assert(firstPageRepeat.response.ok, `Repeated first page failed: ${firstPageRepeat.text}`);
+  assert(JSON.stringify(firstIds) ===
+    JSON.stringify(rooms(firstPageRepeat).map((card) => card.lobbyId)),
+  "Stable dataset first page ordering is not deterministic.");
+  console.log("[16I-2/6] PASSED. Old raw-50 invisibility removed deterministically.");
+
+  console.log("[16I-3/6] Walking every cursor page with no duplicate or stable-data skip...");
+  const collectedIds = [];
+  let page = firstPage;
+  let pageGuard = 0;
+  while (true) {
+    for (const card of rooms(page)) {
+      collectedIds.push(card.lobbyId);
+    }
+    if (!hasMore(page)) break;
+    assert(cursorOf(page), "hasMore=true without nextCursor.");
+    page = await callFunction(
+      "lobbyListPublicRoomsPage",
+      browser.token,
+      {...scaleVersions, limit: 7, cursor: cursorOf(page)},
+    );
+    assert(page.response.ok, `Next cursor page failed: ${page.text}`);
+    pageGuard++;
+    assert(pageGuard < 20, "Cursor page walk exceeded safety guard.");
+  }
+
+  const uniqueCollected = new Set(collectedIds);
+  const expectedIds = expectedCompatible.map((entry) => entry.lobbyId);
+  assert(uniqueCollected.size === collectedIds.length,
+    "Duplicate LobbyId returned across cursor pages.");
+  assert(JSON.stringify(collectedIds) === JSON.stringify(expectedIds),
+    "Cursor pagination skipped or reordered stable compatible rooms.");
+  assert(result(page)?.hasMore === false,
+    "Final cursor page did not return hasMore=false.");
+  console.log("[16I-3/6] PASSED. Stable pagination has no duplicate/skip.");
+
+  console.log("[16I-4/6] Rejecting tampered cursor and filtering stale/region state...");
+  const validCursor = cursorOf(firstPage);
+  const cursorParts = validCursor.split(".");
+  assert(cursorParts.length === 2, "Valid cursor shape was unexpected.");
+  const tamperedSignature =
+    (cursorParts[1].startsWith("A") ? "B" : "A") +
+    cursorParts[1].slice(1);
+  const tamperedCursor = `${cursorParts[0]}.${tamperedSignature}`;
+  const tampered = await callFunction(
+    "lobbyListPublicRoomsPage",
+    browser.token,
+    {...scaleVersions, limit: 7, cursor: tamperedCursor},
+  );
+  assert(!tampered.response.ok,
+    "Tampered public-lobby cursor was unexpectedly accepted.");
+  assert(tampered.json?.error?.details?.errorKey === "lobby.error.invalid_request",
+    `Tampered cursor returned wrong public error: ${tampered.text}`);
+  assert(!collectedIds.includes(staleLobbyId),
+    "Stale discovery document leaked into paginated results.");
+  const staleAfterRead = await getDoc(`lobby_discovery/${staleLobbyId}`);
+  assert(staleAfterRead.response.status === 404,
+    "Stale discovery cleanup did not remove orphaned stale projection.");
+  console.log("[16I-4/6] PASSED. Cursor validation, region and stale filtering are safe.");
+
+  console.log("[16I-5/6] Concurrent first-page reads remain deterministic...");
+  const concurrent = await Promise.all(
+    Array.from({length: 8}, () =>
+      callFunction(
+        "lobbyListPublicRoomsPage",
+        browser.token,
+        {...scaleVersions, limit: 7, cursor: ""},
+      )),
+  );
+  for (const call of concurrent) {
+    assert(call.response.ok, `Concurrent discovery failed: ${call.text}`);
+    assert(JSON.stringify(rooms(call).map((card) => card.lobbyId)) ===
+      JSON.stringify(firstIds),
+    "Concurrent first-page result was not deterministic.");
+  }
+  console.log("[16I-5/6] PASSED. Concurrent discovery reads are deterministic locally.");
+
+  console.log("[16I-6/6] Closed-between-page-and-Join is rejected authoritatively...");
+  closingHost = await createAuthUser("closing-host");
+  await seedAccount(closingHost, "Closing Host");
+  const closingCreate = await callFunction(
+    "lobbyCreatePublicRoom",
+    closingHost.token,
+    {...settings, ...versions},
+  );
+  assert(closingCreate.response.ok, `Closing-room create failed: ${closingCreate.text}`);
+  closingLobbyId = result(closingCreate).snapshot?.lobbyId;
+  closingRoomCode = result(closingCreate).roomCode;
+
+  const beforeClose = await callFunction(
+    "lobbyListPublicRoomsPage",
+    browser.token,
+    {...versions, limit: 20, cursor: ""},
+  );
+  assert(beforeClose.response.ok, `Pre-close cursor list failed: ${beforeClose.text}`);
+  assert(room(rooms(beforeClose), closingLobbyId),
+    "Closing-room fixture was not visible before close.");
+
+  // The canonical host action is lobbyCloseRoom. lobbyLeaveRoom intentionally
+  // rejects host exits because host migration is a separate operation.
+  const close = await callFunction(
+    "lobbyCloseRoom",
+    closingHost.token,
+    {lobbyId: closingLobbyId},
+  );
+  assert(close.response.ok, `Host close failed: ${close.text}`);
+  assert(result(close)?.applied === true &&
+    result(close)?.snapshot?.lifecycleState === "closed",
+  "Host close did not transition the authoritative lobby to Closed.");
+
+  const discoveryAfterClose = await getDoc(`lobby_discovery/${closingLobbyId}`);
+  assert(discoveryAfterClose.response.status === 404,
+    "Closed lobby projection still exists in discovery.");
+  const listAfterClose = await callFunction(
+    "lobbyListPublicRoomsPage",
+    browser.token,
+    {...versions, limit: 20, cursor: ""},
+  );
+  assert(listAfterClose.response.ok, `Post-close cursor list failed: ${listAfterClose.text}`);
+  assert(!room(rooms(listAfterClose), closingLobbyId),
+    "Closed room remained visible after authoritative host close.");
+
+  const joinClosed = await callFunction(
+    "lobbyJoinPublicRoom",
+    browser.token,
+    {
+      lobbyId: closingLobbyId,
+      password: "",
+      idempotencyKey: `phase16i-closed-join-${scaleRun}`,
+      ...versions,
+    },
+  );
+  assert(!joinClosed.response.ok,
+    "Browser card remained authoritative after room closed.");
+  assert(joinClosed.json?.error?.status === "FAILED_PRECONDITION" &&
+    joinClosed.json?.error?.details?.errorKey === "lobby.error.not_joinable",
+  `Closed-room Join returned unexpected error: ${joinClosed.text}`);
+  console.log("[16I-6/6] PASSED. Join transaction rejects changed/closed room state.");
+
+  console.log("\nAtlasBoard Phase 4A + Phase 16I Public Lobby Discovery E2E PASSED.");
   console.log(
     "Verified: private rooms never discoverable; public sanitized card; " +
     "seat/join/leave/settings projection sync; full rooms hidden; compatible " +
@@ -401,6 +734,10 @@ try {
   await cleanupMatch(matchId);
   await cleanupLobby(publicLobbyId, publicRoomCode);
   await cleanupLobby(privateLobbyId, privateRoomCode);
+  await cleanupLobby(closingLobbyId, closingRoomCode);
+  for (const lobbyId of syntheticDiscoveryIds) {
+    await bestEffortDelete(`lobby_discovery/${lobbyId}`);
+  }
   await bestEffortDelete(host?.uid ? `users/${host.uid}` : "");
   await bestEffortDelete(host?.uid ? `public_profiles/${host.uid}` : "");
   await bestEffortDelete(remoteA?.uid ? `users/${remoteA.uid}` : "");
@@ -409,9 +746,12 @@ try {
   await bestEffortDelete(remoteB?.uid ? `public_profiles/${remoteB.uid}` : "");
   await bestEffortDelete(browser?.uid ? `users/${browser.uid}` : "");
   await bestEffortDelete(browser?.uid ? `public_profiles/${browser.uid}` : "");
+  await bestEffortDelete(closingHost?.uid ? `users/${closingHost.uid}` : "");
+  await bestEffortDelete(closingHost?.uid ? `public_profiles/${closingHost.uid}` : "");
   await deleteAuthUser(host);
   await deleteAuthUser(remoteA);
   await deleteAuthUser(remoteB);
   await deleteAuthUser(browser);
+  await deleteAuthUser(closingHost);
   console.log("[cleanup] Cleanup finished.");
 }

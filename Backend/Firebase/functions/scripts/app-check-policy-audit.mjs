@@ -15,13 +15,14 @@ const functionsDir =
 
 const sourceFiles = [
   "src/index.ts",
+  "src/lobby/public-lobby-pagination-callable.ts",
   "src/chat/chat.ts",
   "src/platform/steam-link.ts",
   "src/platform/app-check-steam.ts",
 ];
 
 const protectedCallables =
-  new Set(["economyHealthCheck", "metaDailyRewardClaim", "metaSeasonalGetActive", "metaSeasonalGetOverview", "metaSeasonalClaimChallenge", "metaSeasonalClaimTrackTier", "metaSeasonalPurchaseLimitedItem", "progressionGetProfile", "progressionRecordCompletedMatch", "lobbyCreatePrivateRoom", "lobbyCreatePublicRoom", "lobbyListPublicRooms", "lobbyJoinPublicRoom", "lobbyJoinByCode", "lobbyUpdatePassword", "lobbyCloseRoom", "lobbyHostHeartbeat", "lobbyUpdateSettings", "lobbyConfigureSeats", "lobbySetPawnCosmetic", "lobbySetReady", "lobbyKickMember", "lobbyLeaveRoom", "lobbyStartMatch", "lobbyGetSnapshot", "matchGetSnapshot", "matchTouchPresence", "matchHostSweepDisconnected", "matchTryRecoverCrashedHost", "matchLeaveActive", "matchHostMarkAfkRemoved", "matchHostExpireReconnects", "matchHostPrepareRematch", "matchSubmitIntent", "matchHostListPendingIntents", "matchHostPublishState", "matchHostAcknowledgeIntents", "lobbyChatSend", "lobbyChatList", "matchChatSend", "matchChatList", "platformSteamGetLinkStatus", "platformSteamLinkCurrentAccount", "platformSteamReturningSignIn"]);
+  new Set(["economyHealthCheck", "metaDailyRewardClaim", "metaSeasonalGetActive", "metaSeasonalGetOverview", "metaSeasonalClaimChallenge", "metaSeasonalClaimTrackTier", "metaSeasonalPurchaseLimitedItem", "progressionGetProfile", "progressionRecordCompletedMatch", "lobbyCreatePrivateRoom", "lobbyCreatePublicRoom", "lobbyListPublicRooms", "lobbyListPublicRoomsPage", "lobbyJoinPublicRoom", "lobbyJoinByCode", "lobbyUpdatePassword", "lobbyCloseRoom", "lobbyHostHeartbeat", "lobbyUpdateSettings", "lobbyConfigureSeats", "lobbySetPawnCosmetic", "lobbySetReady", "lobbyKickMember", "lobbyLeaveRoom", "lobbyStartMatch", "lobbyGetSnapshot", "matchGetSnapshot", "matchTouchPresence", "matchHostSweepDisconnected", "matchTryRecoverCrashedHost", "matchLeaveActive", "matchHostMarkAfkRemoved", "matchHostExpireReconnects", "matchHostPrepareRematch", "matchSubmitIntent", "matchHostListPendingIntents", "matchHostPublishState", "matchHostAcknowledgeIntents", "lobbyChatSend", "lobbyChatList", "matchChatSend", "matchChatList", "platformSteamGetLinkStatus", "platformSteamLinkCurrentAccount", "platformSteamReturningSignIn"]);
 
 const devExemptCallables =
   new Set(["walletTestMutation", "inventoryTestMutation", "commerceTestPurchase", "commerceTestRefund", "promoTestRedeem", "metaDevResetPurchasedEntitlements", "lobbyDevEnsureAccount", "platformSteamDevLinkCurrentAccount", "platformSteamDevReturningSignIn"]);
@@ -122,9 +123,9 @@ for (const relativePath of sourceFiles) {
   }
 }
 
-if (discovered.size !== 54) {
+if (discovered.size !== 55) {
   fail(
-    "callable inventory drift. Expected 54, found " +
+    "callable inventory drift. Expected 55, found " +
     discovered.size +
     ".",
   );
@@ -181,6 +182,6 @@ for (const [name, info] of discovered) {
 
 console.log(
   "Phase 15F App Check policy audit PASS. " +
-  "Protected=44, DevExempt=9, BootstrapExempt=1, Total=54. " +
+  "Protected=45, DevExempt=9, BootstrapExempt=1, Total=55. " +
   "Enforcement source=Functions Emulator .env.local only; production remains OFF.",
 );

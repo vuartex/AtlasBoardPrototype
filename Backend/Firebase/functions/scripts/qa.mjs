@@ -42,6 +42,7 @@ const integrationScripts = [
   'callable-authorization-abuse-e2e.mjs',
   'economy-commerce-security-e2e.mjs',
   'security-rules-e2e.mjs',
+  'public-lobby-discovery-e2e.mjs',
 ];
 const enforcementScripts = ['app-check-enforcement-negative-e2e.mjs'];
 

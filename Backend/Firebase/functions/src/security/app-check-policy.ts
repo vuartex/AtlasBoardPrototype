@@ -40,6 +40,7 @@ export const APP_CHECK_PROTECTED_CALLABLES = [
   "lobbyCreatePrivateRoom",
   "lobbyCreatePublicRoom",
   "lobbyListPublicRooms",
+  "lobbyListPublicRoomsPage",
   "lobbyJoinPublicRoom",
   "lobbyJoinByCode",
   "lobbyUpdatePassword",
