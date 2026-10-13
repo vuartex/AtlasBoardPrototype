@@ -3,7 +3,7 @@
  *
  * Usage (from Backend/Firebase/functions):
  *   node scripts/qa.mjs --check        # offline audit/build and Unity metadata
- *   node scripts/qa.mjs --full         # offline plus two fresh emulator suites
+ *   node scripts/qa.mjs --full         # offline build, integrated security and App Check E2E
  *   node scripts/qa.mjs --ci           # same as --full; suitable for CI
  *   node scripts/qa.mjs --self-test    # no dependencies, no emulators
  *   node scripts/qa.mjs --restore-env  # crash recovery of private env backup
@@ -41,8 +41,16 @@ const integrationScripts = [
   'platform-steam-returning-signin-e2e.mjs',
   'callable-authorization-abuse-e2e.mjs',
   'economy-commerce-security-e2e.mjs',
+  // Security Core 03: include the accepted entitlement and promo E2E baselines.
+  'inventory-entitlements-e2e.mjs',
+  'promo-event-tickets-e2e.mjs',
   'security-rules-e2e.mjs',
   'public-lobby-discovery-e2e.mjs',
+  // Run AFTER offline TypeScript build in the SAME full QA invocation.
+  // Verifies normal progression and malicious host-result rejection together.
+  'progression-phase10-e2e.mjs --security-suite',
+  // Security Core 03: disabled track, global promo races, daily and tier replay.
+  'security-core03-rewards-e2e.mjs',
 ];
 const enforcementScripts = ['app-check-enforcement-negative-e2e.mjs'];
 
@@ -107,7 +115,8 @@ function unityPreflight(root = repoDir) {
 }
 function requireLocalSuiteFiles() {
   const all = [...integrationScripts, ...enforcementScripts, 'phase15k-validation.mjs'];
-  for (const file of all) {
+  for (const scriptCommand of all) {
+    const file = scriptCommand.split(' ')[0];
     assert(existsSync(join(functionsDir, 'scripts', file)),
       `Missing accepted security regression: scripts/${file}. ` +
       'Apply the accepted 15I/15J/15K local packages first.');
@@ -179,10 +188,41 @@ function offlineChecks() {
   unityPreflight();
   run('Accepted security static regression / TypeScript build / ESLint',
     'node', ['scripts/phase15k-validation.mjs', '--static-only']);
+  // Regression fixtures are tested before paying the cost of starting emulators.
+  // These modes never load Firebase Admin SDK or open network connections.
+  for (const script of [
+    'inventory-entitlements-e2e.mjs',
+    'promo-event-tickets-e2e.mjs',
+    'security-core03-rewards-e2e.mjs',
+  ]) {
+    run(`Offline E2E fixture self-test: ${script}`,
+      'node', [`scripts/${script}`, '--self-test']);
+  }
   console.log('\nAtlasBoard QA OFFLINE PASS (no Unity Editor compile performed).');
+}
+function assertCompiledSecurityGate() {
+  const entry = text(join(functionsDir, 'lib', 'entry.js'));
+  const gate = text(join(functionsDir, 'lib', 'security', 'match-integrity-gates.js'));
+  assert(entry.includes('security/match-integrity-gates') &&
+    entry.includes('matchHostPublishState') &&
+    entry.includes('progressionRecordCompletedMatch'),
+  'Compiled Firebase entry is missing the protected security-gate exports. ' +
+    'Check the current src/entry.ts and rerun TypeScript compilation.');
+  const seasonal = text(join(functionsDir, 'lib', 'security',
+    'seasonal-track-integrity.js'));
+  assert(entry.includes('security/seasonal-track-integrity') &&
+    entry.includes('metaSeasonalClaimTrackTier') &&
+    seasonal.includes('SEASONAL_TRACK_INACTIVE') &&
+    seasonal.includes('currentTier.active'),
+  'Compiled seasonal tier security gate is missing or stale.');
+  assert(gate.includes('pending_authoritative_verification') &&
+    gate.includes('match_result_verifications'),
+  'Compiled match-integrity security gate is stale or incomplete.');
+  console.log('PASS compiled security gate and progression fail-closed contract.');
 }
 function runFull() {
   offlineChecks();
+  assertCompiledSecurityGate();
   beginEmulatorConfig();
   try {
     setEmulatorEnforcement(false);
@@ -211,7 +251,19 @@ function selfTest() {
       .includes('Assets/Board_Prototype.unity'), 'Scene parsing failed.');
     assert(enabledScenePaths('m_Scenes:\n  - enabled: 0\n    path: Assets/Board_Prototype.unity\n')
       .length === 0, 'Disabled scenes should not pass.');
-    console.log('AtlasBoard QA self-test PASS: settings preservation and Unity scene parsing.');
+    assert(integrationScripts.includes('progression-phase10-e2e.mjs --security-suite'),
+      'Host result security audit must be in full QA.');
+    assert(integrationScripts.includes('security-core03-rewards-e2e.mjs') &&
+      integrationScripts.at(-1) === 'security-core03-rewards-e2e.mjs',
+    'Security Core 03 must run after integrated regressions.');
+    assert(integrationScripts.indexOf('inventory-entitlements-e2e.mjs') >= 0 &&
+      integrationScripts.indexOf('promo-event-tickets-e2e.mjs') >= 0 &&
+      integrationScripts.indexOf('inventory-entitlements-e2e.mjs') <
+        integrationScripts.indexOf('promo-event-tickets-e2e.mjs') &&
+      integrationScripts.indexOf('promo-event-tickets-e2e.mjs') <
+        integrationScripts.indexOf('security-core03-rewards-e2e.mjs'),
+    'Admin-backed inventory and promo E2E must precede Security Core 03.');
+    console.log('AtlasBoard QA self-test PASS: settings, Unity scenes and integrated host security suite.');
   } finally {
     rmSync(root, {recursive: true, force: true});
   }

@@ -1,850 +1,304 @@
-import {createHash} from "node:crypto";
+/**
+ * Phase 3C.4E promo/event tickets E2E, local emulator-only Admin fixtures.
+ * Replaces legacy unsigned Firestore REST writes blocked by Rules (403).
+ * The callable is ALWAYS exercised as the authenticated temporary user.
+ */
+import {createHash, randomBytes} from "node:crypto";
 
-const PROJECT_ID = "atlasboard-usa";
-const REGION = "europe-west1";
-const AUTH_BASE = "http://127.0.0.1:9099";
-const FUNCTIONS_BASE = "http://127.0.0.1:5001";
-const FIRESTORE_BASE = "http://127.0.0.1:8080";
-const HUB_BASE = "http://127.0.0.1:4400";
-const API_KEY = "atlasboard-local-emulator-only";
-const TIMEOUT_MS = 10000;
+const PROJECT = "atlasboard-usa";
+const AUTH = "http://127.0.0.1:9099";
+const FUNCTIONS = `http://127.0.0.1:5001/${PROJECT}/europe-west1`;
+const HUB = "http://127.0.0.1:4400";
+const FIRESTORE = `http://127.0.0.1:8080/v1/projects/${PROJECT}/` +
+  "databases/(default)/documents";
+const nonce = randomBytes(8).toString("hex");
+const itemId = `e2e_frame_${nonce}`;
+const ticketId = `ticket_e2e_${nonce}`;
+const prefix = `PROMOE2E${nonce.toUpperCase()}`;
+const code = {
+  valid: `${prefix}GOOD`,
+  expired: `${prefix}EXPIRED`,
+  disabled: `${prefix}DISABLED`,
+  future: `${prefix}FUTURE`,
+  full: `${prefix}FULL`,
+};
+const digest = (x) => createHash("sha256").update(x).digest("hex");
+const promoId = (value) => digest(`atlasboard:promo:${value.toUpperCase()}`);
+const redemptionId = (uid, pid) => digest(`${uid}:promo_redemption:${pid}`);
+const redemptionEventId = (rid, key) => digest(`${rid}:event:${key}`);
+const walletLedgerId = (uid, key) => digest(`${uid}:${key}`);
+const inventoryEventId = (uid, item, key) => digest(`${uid}:${item}:${key}`);
+const redeemKey = `promo-redeem-${nonce}`;
+let db;
+let auth;
+let user;
+let checks = 0;
+const promoIds = [];
+const ledgers = [];
+let completed = false;
 
-function assert(condition, message) {
-  if (!condition) {
-    throw new Error(message);
-  }
-}
-
-async function requestJson(url, options = {}) {
-  const response = await fetch(url, {
-    ...options,
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-  });
-
+function assert(value, message) { if (!value) throw new Error(message); }
+function check(label) { console.log(`[${++checks}/13] PASSED. ${label}`); }
+async function request(url, options = {}) {
+  const response = await fetch(url, {...options,
+    signal: AbortSignal.timeout(25000)});
   const text = await response.text();
-  let json = null;
-
-  if (text) {
-    try {
-      json = JSON.parse(text);
-    } catch {
-      json = {raw: text};
-    }
-  }
-
-  return {response, json, text};
+  let body;
+  try { body = JSON.parse(text); } catch { body = {raw: text}; }
+  return {response, body};
 }
-
-async function postJson(url, body, headers = {}) {
-  return requestJson(url, {
+async function preflight() {
+  assert(process.env.FIRESTORE_EMULATOR_HOST === "127.0.0.1:8080",
+    "Refusing Admin SDK access without local Firestore Emulator.");
+  assert(process.env.FIREBASE_AUTH_EMULATOR_HOST === "127.0.0.1:9099",
+    "Refusing Auth access without local Auth Emulator.");
+  for (const key of ["GCLOUD_PROJECT", "GOOGLE_CLOUD_PROJECT", "ATLAS_FIREBASE_PROJECT_ID"]) {
+    assert(!process.env[key] || process.env[key] === PROJECT,
+      `Unapproved project from ${key}.`);
+  }
+  const response = await request(`${HUB}/emulators`);
+  assert(response.response.ok, "Firebase Emulator Hub not available.");
+  for (const name of ["auth", "firestore", "functions"]) {
+    assert(response.body?.[name]?.host === "127.0.0.1",
+      `Unexpected ${name} emulator bind address.`);
+  }
+  assert(response.body.auth.port === 9099 &&
+    response.body.firestore.port === 8080 &&
+    response.body.functions.port === 5001,
+  "Unexpected local emulator port.");
+  // Admin SDK is deliberately loaded AFTER emulator checks.
+  const [{getApps, initializeApp}, {getFirestore}, {getAuth}] = await Promise.all([
+    import("firebase-admin/app"), import("firebase-admin/firestore"),
+    import("firebase-admin/auth"),
+  ]);
+  if (getApps().length === 0) initializeApp({projectId: PROJECT});
+  db = getFirestore();
+  auth = getAuth();
+  console.log("[0/13] PASSED. Auth/Firestore/Functions Emulators verified; Admin SDK LOCAL.");
+}
+async function signup() {
+  const value = await request(`${AUTH}/identitytoolkit.googleapis.com/v1/` +
+    "accounts:signUp?key=atlasboard-local", {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      email: `atlasboard.promo.${nonce}@example.test`,
+      password: "AtlasBoard-Promo-Emulator-123!", returnSecureToken: true,
+    }),
+  });
+  assert(value.response.ok && typeof value.body.idToken === "string" &&
+    typeof value.body.localId === "string",
+  `Emulator Auth signup failed: ${JSON.stringify(value.body)}`);
+  user = {uid: value.body.localId, token: value.body.idToken};
+}
+async function callable(value, key = redeemKey) {
+  return request(`${FUNCTIONS}/promoTestRedeem`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...headers,
-    },
-    body: JSON.stringify(body),
+    headers: {"Content-Type": "application/json",
+      Authorization: `Bearer ${user.token}`,
+      "X-Firebase-AppCheck": "atlasboard-promo-local-token"},
+    body: JSON.stringify({data: {code: value, idempotencyKey: key}}),
   });
 }
-
-async function patchJson(url, body) {
-  return requestJson(url, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
+const result = (x) => x.body?.result;
+function assertError(x, status, errorKey) {
+  assert(!x.response.ok && x.body?.error?.status === status &&
+    x.body?.error?.details?.errorKey === errorKey,
+  `Expected ${status}/${errorKey}; got HTTP ${x.response.status}: ` +
+    JSON.stringify(x.body));
+}
+async function seedPromo(value, {active, starts, ends, globalLimit,
+  redemptionCount, perAccountLimit, rewards}) {
+  const id = promoId(value);
+  await db.doc(`promo_codes/${id}`).create({
+    promoId: id, codeHash: id, active,
+    startsAtEpochMs: starts, endsAtEpochMs: ends,
+    globalLimit, redemptionCount, perAccountLimit,
+    rewards, schemaVersion: 1,
   });
-}
-
-async function deleteUrl(url) {
-  return requestJson(url, {method: "DELETE"});
-}
-
-function callableUrl(functionName) {
-  return `${FUNCTIONS_BASE}/${PROJECT_ID}/${REGION}/${functionName}`;
-}
-
-async function callFunction(functionName, idToken, data) {
-  return postJson(
-    callableUrl(functionName),
-    {data},
-    {Authorization: `Bearer ${idToken}`},
-  );
-}
-
-function getCallableResult(callable) {
-  return callable.json?.result ?? callable.json?.data;
-}
-
-function firestoreDocumentUrl(path) {
-  return `${FIRESTORE_BASE}/v1/projects/${PROJECT_ID}` +
-    `/databases/(default)/documents/${path}`;
-}
-
-async function getFirestoreDocument(path) {
-  return requestJson(firestoreDocumentUrl(path));
-}
-
-async function patchFirestoreDocument(path, fields) {
-  return patchJson(
-    firestoreDocumentUrl(path),
-    {fields},
-  );
-}
-
-async function bestEffortDeleteFirestore(path) {
-  try {
-    const deletion = await deleteUrl(firestoreDocumentUrl(path));
-    if (!deletion.response.ok && deletion.response.status !== 404) {
-      console.warn(
-        `Cleanup warning for ${path}: HTTP ${deletion.response.status}`,
-      );
-    }
-  } catch (error) {
-    console.warn(`Cleanup warning for ${path}:`, error);
-  }
-}
-
-function firestoreString(document, fieldName) {
-  return document?.fields?.[fieldName]?.stringValue;
-}
-
-function firestoreBoolean(document, fieldName) {
-  return document?.fields?.[fieldName]?.booleanValue;
-}
-
-function firestoreInteger(document, fieldName) {
-  const value = document?.fields?.[fieldName]?.integerValue;
-  return value === undefined ? undefined : Number.parseInt(value, 10);
-}
-
-function sha256(value) {
-  return createHash("sha256")
-    .update(value, "utf8")
-    .digest("hex");
-}
-
-function normalizePromoCode(code) {
-  return code.trim().toUpperCase();
-}
-
-function promoId(code) {
-  return sha256(`atlasboard:promo:${normalizePromoCode(code)}`);
-}
-
-function redemptionId(uid, promoDocumentId) {
-  return sha256(`${uid}:promo_redemption:${promoDocumentId}`);
-}
-
-function redemptionEventId(redemptionDocumentId, idempotencyKey) {
-  return sha256(`${redemptionDocumentId}:event:${idempotencyKey}`);
-}
-
-function walletLedgerId(uid, idempotencyKey) {
-  return sha256(`${uid}:${idempotencyKey}`);
-}
-
-function inventoryEventId(uid, itemId, idempotencyKey) {
-  return sha256(`${uid}:${itemId}:${idempotencyKey}`);
-}
-
-function rewardArrayValue(rewards) {
-  return {
-    arrayValue: {
-      values: rewards.map((reward) => ({
-        mapValue: {
-          fields: Object.fromEntries(
-            Object.entries(reward).map(([key, value]) => {
-              if (typeof value === "string") {
-                return [key, {stringValue: value}];
-              }
-              if (typeof value === "number") {
-                return [key, {integerValue: String(value)}];
-              }
-              throw new Error(`Unsupported reward seed value for ${key}.`);
-            }),
-          ),
-        },
-      })),
-    },
-  };
-}
-
-async function seedPromo(
-  code,
-  {
-    active,
-    startsAtEpochMs,
-    endsAtEpochMs,
-    globalLimit,
-    redemptionCount,
-    perAccountLimit,
-    rewards,
-  },
-) {
-  const id = promoId(code);
-
-  const result = await patchFirestoreDocument(
-    `promo_codes/${id}`,
-    {
-      promoId: {stringValue: id},
-      codeHash: {stringValue: id},
-      active: {booleanValue: active},
-      startsAtEpochMs: {integerValue: String(startsAtEpochMs)},
-      endsAtEpochMs: {integerValue: String(endsAtEpochMs)},
-      globalLimit: {integerValue: String(globalLimit)},
-      redemptionCount: {integerValue: String(redemptionCount)},
-      perAccountLimit: {integerValue: String(perAccountLimit)},
-      rewards: rewardArrayValue(rewards),
-      schemaVersion: {integerValue: "1"},
-    },
-  );
-
-  assert(
-    result.response.ok,
-    `Promo seed failed for ${code}: ${result.text}`,
-  );
-
+  promoIds.push(id);
   return id;
 }
-
-async function expectCallableError(
-  call,
-  expectedStatus,
-  expectedErrorKey,
-  label,
-) {
-  assert(
-    !call.response.ok,
-    `${label} unexpectedly succeeded.`,
-  );
-  assert(
-    call.json?.error?.status === expectedStatus,
-    `${label}: expected ${expectedStatus}, got ` +
-      `${call.json?.error?.status}.`,
-  );
-  assert(
-    call.json?.error?.details?.errorKey === expectedErrorKey,
-    `${label}: expected errorKey=${expectedErrorKey}, got ` +
-      `${call.json?.error?.details?.errorKey}.`,
-  );
+async function data(path) {
+  const doc = await db.doc(path).get();
+  return doc.exists ? doc.data() : null;
 }
-
-async function verifyEmulatorPreflight() {
-  const hub = await requestJson(`${HUB_BASE}/emulators`);
-
-  assert(
-    hub.response.ok,
-    "Emulator Hub is not reachable on 127.0.0.1:4400.",
-  );
-
-  const emulators = hub.json ?? {};
-  const required = ["auth", "functions", "firestore"];
-
-  for (const name of required) {
-    assert(
-      emulators[name],
-      `Required emulator is not running: ${name}.`,
-    );
-  }
-
-  const firestoreHost =
-    `${emulators.firestore.host}:${emulators.firestore.port}`;
-
-  assert(
-    firestoreHost === "127.0.0.1:8080" ||
-      firestoreHost === "localhost:8080",
-    `Unexpected Firestore Emulator address: ${firestoreHost}`,
-  );
-}
-
-const nonce = `${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
-const compactNonce = Date.now().toString(36).toUpperCase();
-const email = `atlasboard.promo.e2e.${nonce}@example.com`;
-const password = `AtlasBoardPromoE2E!${nonce}`;
-
-const validCode = `ATLAS-${compactNonce}`;
-const expiredCode = `OLD-${compactNonce}`;
-const disabledCode = `OFF-${compactNonce}`;
-const futureCode = `NEXT-${compactNonce}`;
-const globalFullCode = `FULL-${compactNonce}`;
-
-const itemId = `e2e_frame_${nonce}`;
-const ticketCurrencyId = "ticket_winter_2027";
-const redeemKey = `promo-redeem-${nonce}`;
-const accountLimitKey = `promo-account-limit-${nonce}`;
-
-let idToken = null;
-let localId = null;
-let validPromoId = null;
-let expiredPromoId = null;
-let disabledPromoId = null;
-let futurePromoId = null;
-let globalFullPromoId = null;
-let validRedemptionId = null;
-let validRedemptionEventId = null;
-let goldLedgerId = null;
-let atlasCoinLedgerId = null;
-let ticketLedgerId = null;
-let frameEventId = null;
-let testPassed = false;
-
-console.log("AtlasBoard Promo Codes + Event Tickets Local E2E v1");
-console.log(
-  "Safety: localhost Auth/Firestore/Functions emulators only; " +
-  "promo, wallet, event-ticket, entitlement, and audit data are temporary.",
-);
-
-try {
-  console.log("[0/13] Verifying emulator safety preflight...");
-  await verifyEmulatorPreflight();
-  console.log("[0/13] PASSED. Auth/Firestore/Functions emulators detected.");
-
-  console.log("[1/13] Creating temporary Auth Emulator user...");
-  const signUp = await postJson(
-    `${AUTH_BASE}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=${API_KEY}`,
-    {
-      email,
-      password,
-      returnSecureToken: true,
-    },
-  );
-
-  assert(
-    signUp.response.ok,
-    `Auth Emulator sign-up failed: HTTP ${signUp.response.status} ` +
-      signUp.text,
-  );
-
-  idToken = signUp.json?.idToken;
-  localId = signUp.json?.localId;
-
-  assert(
-    typeof idToken === "string" && idToken.length > 20,
-    "Auth Emulator returned no valid idToken.",
-  );
-  assert(
-    typeof localId === "string" && localId.length > 0,
-    "Auth Emulator returned no localId.",
-  );
-
-  console.log(`[1/13] PASSED. Local UID=${localId}`);
-
-  console.log("[2/13] Seeding catalog item and promo definitions...");
-  const catalogSeed = await patchFirestoreDocument(
-    `item_catalog/${itemId}`,
-    {
-      itemId: {stringValue: itemId},
-      itemType: {stringValue: "profile_frame"},
-      active: {booleanValue: true},
-      schemaVersion: {integerValue: "1"},
-    },
-  );
-  assert(
-    catalogSeed.response.ok,
-    `Catalog seed failed: ${catalogSeed.text}`,
-  );
-
+async function exercise() {
+  await preflight();
+  await signup();
+  check("Temporary authenticated account created");
+  await db.doc(`item_catalog/${itemId}`).create({
+    itemId, itemType: "profile_frame", active: true, schemaVersion: 1,
+  });
   const now = Date.now();
-  const validRewards = [
+  const active = {active: true, starts: now - 60000, ends: now + 3600000,
+    globalLimit: 10, redemptionCount: 0, perAccountLimit: 1};
+  const validId = await seedPromo(code.valid, {...active, rewards: [
     {type: "gold", amount: 250},
     {type: "atlas_coin", amount: 7},
-    {
-      type: "event_ticket",
-      currencyId: ticketCurrencyId,
-      amount: 2,
-    },
+    {type: "event_ticket", currencyId: ticketId, amount: 2},
     {type: "inventory_item", itemId},
+  ]});
+  const expiredId = await seedPromo(code.expired, {...active,
+    starts: now - 120000, ends: now - 60000,
+    rewards: [{type: "gold", amount: 1}]});
+  const disabledId = await seedPromo(code.disabled, {...active,
+    active: false, rewards: [{type: "gold", amount: 1}]});
+  const futureId = await seedPromo(code.future, {...active,
+    starts: now + 3600000, ends: now + 7200000,
+    rewards: [{type: "gold", amount: 1}]});
+  const fullId = await seedPromo(code.full, {...active,
+    globalLimit: 1, redemptionCount: 1,
+    rewards: [{type: "gold", amount: 1}]});
+  check("Catalog and valid/expired/disabled/future/full promos seeded with Admin SDK");
+
+  const rid = redemptionId(user.uid, validId);
+  const eid = redemptionEventId(rid, redeemKey);
+  // Register deterministic ledger cleanup BEFORE the mutation can succeed.
+  // Even a test assertion failure after a real credit cannot leak fixtures.
+  const rewardIds = [
+    walletLedgerId(user.uid, `promo:${validId}:${eid}:wallet:0`),
+    walletLedgerId(user.uid, `promo:${validId}:${eid}:wallet:1`),
+    walletLedgerId(user.uid, `promo:${validId}:${eid}:wallet:2`),
   ];
+  ledgers.push(...rewardIds);
+  const response = await callable(code.valid.toLowerCase());
+  assert(response.response.ok && result(response)?.ok === true &&
+    result(response)?.applied === true &&
+    result(response)?.idempotentReplay === false &&
+    result(response)?.promoId === validId &&
+    result(response)?.redemptionId === rid &&
+    result(response)?.redemptionEventId === eid &&
+    result(response)?.redemptionCount === 1 &&
+    result(response)?.globalRedemptionCount === 1 &&
+    result(response)?.rewards?.length === 4,
+  `Valid multi-reward redeem failed: ${JSON.stringify(response.body)}`);
+  check("Gold/Atlas Coin/event ticket/frame rewards granted by backend");
 
-  validPromoId = await seedPromo(
-    validCode,
-    {
-      active: true,
-      startsAtEpochMs: now - 60_000,
-      endsAtEpochMs: now + 3_600_000,
-      globalLimit: 10,
-      redemptionCount: 0,
-      perAccountLimit: 1,
-      rewards: validRewards,
-    },
-  );
+  const replay = await callable(code.valid);
+  assert(replay.response.ok && result(replay)?.applied === false &&
+    result(replay)?.idempotentReplay === true &&
+    result(replay)?.redemptionCount === 1 &&
+    result(replay)?.globalRedemptionCount === 1,
+  "Exact promo replay mutated account/global counters.");
+  check("Same-key promo replay does not apply twice");
 
-  expiredPromoId = await seedPromo(
-    expiredCode,
-    {
-      active: true,
-      startsAtEpochMs: now - 120_000,
-      endsAtEpochMs: now - 60_000,
-      globalLimit: 10,
-      redemptionCount: 0,
-      perAccountLimit: 1,
-      rewards: [{type: "gold", amount: 1}],
-    },
-  );
+  const [gold, atlas, ticket, inventory] = await Promise.all([
+    data(`wallets/${user.uid}/balances/gold`),
+    data(`wallets/${user.uid}/balances/atlas_coin`),
+    data(`wallets/${user.uid}/balances/${ticketId}`),
+    data(`inventories/${user.uid}/items/${itemId}`),
+  ]);
+  assert(gold?.amount === 250 && atlas?.amount === 7 &&
+    ticket?.amount === 2 && ticket.currencyId === ticketId &&
+    ticket.currencyKind === "event" && inventory?.owned === true,
+  "Promo balance/entitlement state mismatch.");
+  check("All four wallet/currency/inventory reward states match exactly");
 
-  disabledPromoId = await seedPromo(
-    disabledCode,
-    {
-      active: false,
-      startsAtEpochMs: now - 60_000,
-      endsAtEpochMs: now + 3_600_000,
-      globalLimit: 10,
-      redemptionCount: 0,
-      perAccountLimit: 1,
-      rewards: [{type: "gold", amount: 1}],
-    },
-  );
+  const invEventId = inventoryEventId(user.uid, itemId,
+    `promo:${validId}:${eid}:inventory:3`);
+  const [goldLedger, atlasLedger, ticketLedger, invEvent, redemption,
+    redemptionEvent, promo] = await Promise.all([
+    data(`wallet_ledger/${rewardIds[0]}`),
+    data(`wallet_ledger/${rewardIds[1]}`),
+    data(`wallet_ledger/${rewardIds[2]}`),
+    data(`inventories/${user.uid}/items/${itemId}/events/${invEventId}`),
+    data(`promo_redemptions/${rid}`),
+    data(`promo_redemptions/${rid}/events/${eid}`),
+    data(`promo_codes/${validId}`),
+  ]);
+  assert(goldLedger?.delta === 250 && atlasLedger?.delta === 7 &&
+    ticketLedger?.delta === 2 &&
+    invEvent?.reason === "promo_redemption" &&
+    redemption?.redemptionCount === 1 &&
+    redemptionEvent?.promoId === validId && promo?.redemptionCount === 1,
+  "Missing/invalid immutable promo ledger or redemption evidence.");
+  check("Ledger, inventory event and redemption audit consistent");
 
-  futurePromoId = await seedPromo(
-    futureCode,
-    {
-      active: true,
-      startsAtEpochMs: now + 3_600_000,
-      endsAtEpochMs: now + 7_200_000,
-      globalLimit: 10,
-      redemptionCount: 0,
-      perAccountLimit: 1,
-      rewards: [{type: "gold", amount: 1}],
-    },
-  );
+  assertError(await callable(code.valid, `account-${nonce}`),
+    "RESOURCE_EXHAUSTED", "promo.error.account_limit_reached");
+  check("Per-account redemption limit enforced");
+  assertError(await callable(code.expired, `expired-${nonce}`),
+    "FAILED_PRECONDITION", "promo.error.expired");
+  check("Expired promo rejected");
+  assertError(await callable(code.disabled, `disabled-${nonce}`),
+    "FAILED_PRECONDITION", "promo.error.disabled");
+  check("Disabled promo rejected");
+  assertError(await callable(code.future, `future-${nonce}`),
+    "FAILED_PRECONDITION", "promo.error.not_started");
+  check("Not-yet-started promo rejected");
+  assertError(await callable(code.full, `full-${nonce}`),
+    "RESOURCE_EXHAUSTED", "promo.error.global_limit_reached");
+  check("Global redemption limit enforced");
 
-  globalFullPromoId = await seedPromo(
-    globalFullCode,
-    {
-      active: true,
-      startsAtEpochMs: now - 60_000,
-      endsAtEpochMs: now + 3_600_000,
-      globalLimit: 1,
-      redemptionCount: 1,
-      perAccountLimit: 1,
-      rewards: [{type: "gold", amount: 1}],
-    },
-  );
-
-  validRedemptionId = redemptionId(localId, validPromoId);
-  validRedemptionEventId = redemptionEventId(
-    validRedemptionId,
-    redeemKey,
-  );
-
-  goldLedgerId = walletLedgerId(
-    localId,
-    `promo:${validPromoId}:${validRedemptionEventId}:wallet:0`,
-  );
-  atlasCoinLedgerId = walletLedgerId(
-    localId,
-    `promo:${validPromoId}:${validRedemptionEventId}:wallet:1`,
-  );
-  ticketLedgerId = walletLedgerId(
-    localId,
-    `promo:${validPromoId}:${validRedemptionEventId}:wallet:2`,
-  );
-  frameEventId = inventoryEventId(
-    localId,
-    itemId,
-    `promo:${validPromoId}:${validRedemptionEventId}:inventory:3`,
-  );
-
-  console.log("[2/13] PASSED. Valid/expired/disabled/future/full promos seeded.");
-
-  console.log("[3/13] Redeeming valid multi-reward promo...");
-  const redeem = await callFunction(
-    "promoTestRedeem",
-    idToken,
-    {
-      code: validCode.toLowerCase(),
-      idempotencyKey: redeemKey,
-    },
-  );
-
-  assert(
-    redeem.response.ok,
-    `Valid promo redemption failed: HTTP ${redeem.response.status} ` +
-      redeem.text,
-  );
-
-  const redeemResult = getCallableResult(redeem);
-  assert(redeemResult?.ok === true, "Promo redemption returned ok != true.");
-  assert(redeemResult?.applied === true, "Promo redemption was not applied.");
-  assert(
-    redeemResult?.idempotentReplay === false,
-    "First promo redemption was incorrectly marked replay.",
-  );
-  assert(
-    redeemResult?.promoId === validPromoId,
-    "Promo id mismatch.",
-  );
-  assert(
-    redeemResult?.redemptionId === validRedemptionId,
-    "Promo redemption id mismatch.",
-  );
-  assert(
-    redeemResult?.redemptionEventId === validRedemptionEventId,
-    "Promo redemption event id mismatch.",
-  );
-  assert(
-    redeemResult?.redemptionCount === 1,
-    "Expected account redemption count=1.",
-  );
-  assert(
-    redeemResult?.globalRedemptionCount === 1,
-    "Expected global redemption count=1.",
-  );
-  assert(
-    Array.isArray(redeemResult?.rewards) &&
-      redeemResult.rewards.length === 4,
-    "Expected exactly four promo rewards.",
-  );
-
-  console.log(
-    "[3/13] PASSED. Gold + Atlas Coin + event ticket + profile frame granted.",
-  );
-
-  console.log("[4/13] Replaying exact promo idempotency key...");
-  const replay = await callFunction(
-    "promoTestRedeem",
-    idToken,
-    {
-      code: validCode,
-      idempotencyKey: redeemKey,
-    },
-  );
-
-  assert(
-    replay.response.ok,
-    `Promo replay failed: HTTP ${replay.response.status} ${replay.text}`,
-  );
-
-  const replayResult = getCallableResult(replay);
-  assert(replayResult?.applied === false,
-    "Promo replay applied rewards again.");
-  assert(replayResult?.idempotentReplay === true,
-    "Promo replay not identified as idempotent.");
-  assert(replayResult?.redemptionCount === 1,
-    "Promo replay changed account redemption count.");
-  assert(replayResult?.globalRedemptionCount === 1,
-    "Promo replay changed global redemption count.");
-
-  console.log("[4/13] PASSED. Exact replay did not duplicate any reward.");
-
-  console.log("[5/13] Verifying wallet, ticket, and inventory rewards...");
-  const goldBalance = await getFirestoreDocument(
-    `wallets/${localId}/balances/gold`,
-  );
-  const atlasBalance = await getFirestoreDocument(
-    `wallets/${localId}/balances/atlas_coin`,
-  );
-  const ticketBalance = await getFirestoreDocument(
-    `wallets/${localId}/balances/${ticketCurrencyId}`,
-  );
-  const inventory = await getFirestoreDocument(
-    `inventories/${localId}/items/${itemId}`,
-  );
-
-  assert(goldBalance.response.ok, "Gold promo balance missing.");
-  assert(atlasBalance.response.ok, "Atlas Coin promo balance missing.");
-  assert(ticketBalance.response.ok, "Event ticket promo balance missing.");
-  assert(inventory.response.ok, "Promo inventory entitlement missing.");
-
-  assert(firestoreInteger(goldBalance.json, "amount") === 250,
-    "Expected Gold balance=250.");
-  assert(firestoreInteger(atlasBalance.json, "amount") === 7,
-    "Expected Atlas Coin balance=7.");
-  assert(firestoreInteger(ticketBalance.json, "amount") === 2,
-    "Expected event ticket balance=2.");
-  assert(
-    firestoreString(ticketBalance.json, "currencyId") === ticketCurrencyId,
-    "Event ticket currency id mismatch.",
-  );
-  assert(
-    firestoreString(ticketBalance.json, "currencyKind") === "event",
-    "Event ticket currency kind mismatch.",
-  );
-  assert(firestoreBoolean(inventory.json, "owned") === true,
-    "Promo profile frame is not owned.");
-
-  console.log("[5/13] PASSED. All four reward states verified directly.");
-
-  console.log("[6/13] Verifying immutable reward and redemption audit records...");
-  const goldLedger = await getFirestoreDocument(
-    `wallet_ledger/${goldLedgerId}`,
-  );
-  const atlasLedger = await getFirestoreDocument(
-    `wallet_ledger/${atlasCoinLedgerId}`,
-  );
-  const ticketLedger = await getFirestoreDocument(
-    `wallet_ledger/${ticketLedgerId}`,
-  );
-  const inventoryEvent = await getFirestoreDocument(
-    `inventories/${localId}/items/${itemId}/events/${frameEventId}`,
-  );
-  const redemption = await getFirestoreDocument(
-    `promo_redemptions/${validRedemptionId}`,
-  );
-  const redemptionEvent = await getFirestoreDocument(
-    `promo_redemptions/${validRedemptionId}/events/${validRedemptionEventId}`,
-  );
-  const validPromo = await getFirestoreDocument(
-    `promo_codes/${validPromoId}`,
-  );
-
-  assert(goldLedger.response.ok, "Gold promo ledger missing.");
-  assert(atlasLedger.response.ok, "Atlas Coin promo ledger missing.");
-  assert(ticketLedger.response.ok, "Ticket promo ledger missing.");
-  assert(inventoryEvent.response.ok, "Promo inventory event missing.");
-  assert(redemption.response.ok, "Promo redemption aggregate missing.");
-  assert(redemptionEvent.response.ok, "Promo redemption event missing.");
-  assert(validPromo.response.ok, "Valid promo document missing.");
-
-  assert(firestoreInteger(goldLedger.json, "delta") === 250,
-    "Gold promo ledger delta mismatch.");
-  assert(firestoreInteger(atlasLedger.json, "delta") === 7,
-    "Atlas Coin promo ledger delta mismatch.");
-  assert(firestoreInteger(ticketLedger.json, "delta") === 2,
-    "Ticket promo ledger delta mismatch.");
-  assert(
-    firestoreString(inventoryEvent.json, "reason") === "promo_redemption",
-    "Promo inventory event reason mismatch.",
-  );
-  assert(firestoreInteger(redemption.json, "redemptionCount") === 1,
-    "Account promo redemption count mismatch.");
-  assert(
-    firestoreString(redemptionEvent.json, "promoId") === validPromoId,
-    "Promo redemption event promo id mismatch.",
-  );
-  assert(firestoreInteger(validPromo.json, "redemptionCount") === 1,
-    "Global promo redemption count mismatch.");
-
-  console.log(
-    "[6/13] PASSED. Wallet ledger + inventory event + redemption audit verified.",
-  );
-
-  console.log("[7/13] Testing per-account redemption limit...");
-  const accountLimit = await callFunction(
-    "promoTestRedeem",
-    idToken,
-    {
-      code: validCode,
-      idempotencyKey: accountLimitKey,
-    },
-  );
-  await expectCallableError(
-    accountLimit,
-    "RESOURCE_EXHAUSTED",
-    "promo.error.account_limit_reached",
-    "Account-limit redemption",
-  );
-  console.log("[7/13] PASSED. Per-account limit rejected second redemption.");
-
-  console.log("[8/13] Testing expired promo rejection...");
-  const expired = await callFunction(
-    "promoTestRedeem",
-    idToken,
-    {
-      code: expiredCode,
-      idempotencyKey: `expired-${nonce}`,
-    },
-  );
-  await expectCallableError(
-    expired,
-    "FAILED_PRECONDITION",
-    "promo.error.expired",
-    "Expired promo",
-  );
-  console.log("[8/13] PASSED. Expired promo rejected safely.");
-
-  console.log("[9/13] Testing disabled promo rejection...");
-  const disabled = await callFunction(
-    "promoTestRedeem",
-    idToken,
-    {
-      code: disabledCode,
-      idempotencyKey: `disabled-${nonce}`,
-    },
-  );
-  await expectCallableError(
-    disabled,
-    "FAILED_PRECONDITION",
-    "promo.error.disabled",
-    "Disabled promo",
-  );
-  console.log("[9/13] PASSED. Disabled promo rejected safely.");
-
-  console.log("[10/13] Testing not-started promo rejection...");
-  const future = await callFunction(
-    "promoTestRedeem",
-    idToken,
-    {
-      code: futureCode,
-      idempotencyKey: `future-${nonce}`,
-    },
-  );
-  await expectCallableError(
-    future,
-    "FAILED_PRECONDITION",
-    "promo.error.not_started",
-    "Future promo",
-  );
-  console.log("[10/13] PASSED. Future promo rejected before start time.");
-
-  console.log("[11/13] Testing exhausted global redemption limit...");
-  const globalFull = await callFunction(
-    "promoTestRedeem",
-    idToken,
-    {
-      code: globalFullCode,
-      idempotencyKey: `global-${nonce}`,
-    },
-  );
-  await expectCallableError(
-    globalFull,
-    "RESOURCE_EXHAUSTED",
-    "promo.error.global_limit_reached",
-    "Global-limit promo",
-  );
-  console.log("[11/13] PASSED. Exhausted global promo rejected safely.");
-
-  console.log("[12/13] Verifying rejected attempts caused no reward mutation...");
-  const finalGold = await getFirestoreDocument(
-    `wallets/${localId}/balances/gold`,
-  );
-  const finalAtlas = await getFirestoreDocument(
-    `wallets/${localId}/balances/atlas_coin`,
-  );
-  const finalTicket = await getFirestoreDocument(
-    `wallets/${localId}/balances/${ticketCurrencyId}`,
-  );
-  const finalPromo = await getFirestoreDocument(
-    `promo_codes/${validPromoId}`,
-  );
-  const rejectedPromoIds = [
-    expiredPromoId,
-    disabledPromoId,
-    futurePromoId,
-    globalFullPromoId,
-  ];
-
-  assert(firestoreInteger(finalGold.json, "amount") === 250,
-    "Rejected promo changed Gold balance.");
-  assert(firestoreInteger(finalAtlas.json, "amount") === 7,
-    "Rejected promo changed Atlas Coin balance.");
-  assert(firestoreInteger(finalTicket.json, "amount") === 2,
-    "Rejected promo changed event ticket balance.");
-  assert(firestoreInteger(finalPromo.json, "redemptionCount") === 1,
-    "Rejected/replayed promo changed valid global count.");
-
-  for (const id of rejectedPromoIds) {
-    const rejectedRedemption = redemptionId(localId, id);
-    const rejectedDoc = await getFirestoreDocument(
-      `promo_redemptions/${rejectedRedemption}`,
-    );
-    assert(
-      rejectedDoc.response.status === 404,
-      `Rejected promo unexpectedly created redemption state: ${id}`,
-    );
+  assert((await data(`wallets/${user.uid}/balances/gold`))?.amount === 250 &&
+    (await data(`wallets/${user.uid}/balances/atlas_coin`))?.amount === 7 &&
+    (await data(`wallets/${user.uid}/balances/${ticketId}`))?.amount === 2 &&
+    (await data(`promo_codes/${validId}`))?.redemptionCount === 1,
+  "Rejected promo attempts mutated balances/global counters.");
+  for (const id of [expiredId, disabledId, futureId, fullId]) {
+    assert(!(await db.doc(`promo_redemptions/${redemptionId(user.uid, id)}`).get()).exists,
+      `Rejected promo unexpectedly created redemption record: ${id}`);
   }
-
-  console.log(
-    "[12/13] PASSED. Replays/rejections left balances and audit counts stable.",
-  );
-
-  console.log("[13/13] Cleaning temporary emulator data...");
-  testPassed = true;
-} catch (error) {
-  console.error("\nAtlasBoard Promo Codes + Event Tickets Local E2E v1 FAILED.");
-  console.error(error);
-  process.exitCode = 1;
-} finally {
-  const cleanupPaths = [];
-
-  if (localId) {
-    cleanupPaths.push(
-      `wallets/${localId}/balances/gold`,
-      `wallets/${localId}/balances/atlas_coin`,
-      `wallets/${localId}/balances/${ticketCurrencyId}`,
-      `inventories/${localId}/items/${itemId}/events/${frameEventId}`,
-      `inventories/${localId}/items/${itemId}`,
-    );
-  }
-
-  if (goldLedgerId) {
-    cleanupPaths.push(`wallet_ledger/${goldLedgerId}`);
-  }
-  if (atlasCoinLedgerId) {
-    cleanupPaths.push(`wallet_ledger/${atlasCoinLedgerId}`);
-  }
-  if (ticketLedgerId) {
-    cleanupPaths.push(`wallet_ledger/${ticketLedgerId}`);
-  }
-
-  if (validRedemptionId && validRedemptionEventId) {
-    cleanupPaths.push(
-      `promo_redemptions/${validRedemptionId}/events/${validRedemptionEventId}`,
-      `promo_redemptions/${validRedemptionId}`,
-    );
-  }
-
-  if (localId) {
-    for (const id of [
-      expiredPromoId,
-      disabledPromoId,
-      futurePromoId,
-      globalFullPromoId,
-    ]) {
-      if (id) {
-        cleanupPaths.push(
-          `promo_redemptions/${redemptionId(localId, id)}`,
-        );
+  // Authenticated client still forbidden to write a catalog/promo definition.
+  const unauthorized = await request(`${FIRESTORE}/promo_codes/${validId}`, {
+    method: "PATCH", headers: {"Content-Type": "application/json",
+      Authorization: `Bearer ${user.token}`},
+    body: JSON.stringify({fields: {active: {booleanValue: false}}}),
+  });
+  assert(unauthorized.response.status === 403,
+    `Authenticated client was able to modify promo: HTTP ${unauthorized.response.status}`);
+  check("Replays/rejections have no side effects; direct promo writes denied");
+  assert(checks === 12, "Promo pre-cleanup count mismatch.");
+  completed = true;
+}
+async function cleanup() {
+  const warnings = [];
+  const safe = async (label, work) => {
+    try { await work(); } catch (error) { warnings.push(`${label}: ${String(error)}`); }
+  };
+  if (db) {
+    if (user) {
+      for (const base of ["wallets", "inventories"]) {
+        await safe(`cleanup ${base}`, () =>
+          db.recursiveDelete(db.doc(`${base}/${user.uid}`)));
       }
+      const rid = redemptionId(user.uid, promoId(code.valid));
+      await safe("cleanup redemption", () =>
+        db.recursiveDelete(db.doc(`promo_redemptions/${rid}`)));
     }
-  }
-
-  cleanupPaths.push(`item_catalog/${itemId}`);
-
-  for (const id of [
-    validPromoId,
-    expiredPromoId,
-    disabledPromoId,
-    futurePromoId,
-    globalFullPromoId,
-  ]) {
-    if (id) {
-      cleanupPaths.push(`promo_codes/${id}`);
+    for (const id of promoIds) {
+      await safe(`cleanup promo ${id}`, () =>
+        db.doc(`promo_codes/${id}`).delete());
     }
-  }
-
-  for (const path of cleanupPaths) {
-    await bestEffortDeleteFirestore(path);
-  }
-
-  if (idToken) {
-    try {
-      const deleteAccount = await postJson(
-        `${AUTH_BASE}/identitytoolkit.googleapis.com/v1/accounts:delete?key=${API_KEY}`,
-        {idToken},
-      );
-      if (!deleteAccount.response.ok) {
-        console.warn(
-          "Temporary Auth Emulator user cleanup warning: " +
-            deleteAccount.text,
-        );
-      }
-    } catch (error) {
-      console.warn("Temporary Auth Emulator user cleanup warning:", error);
+    for (const id of ledgers) {
+      await safe(`cleanup ledger ${id}`, () =>
+        db.doc(`wallet_ledger/${id}`).delete());
     }
+    await safe("cleanup catalog", () => db.doc(`item_catalog/${itemId}`).delete());
   }
-
-  console.log("[cleanup] Cleanup finished.");
-
-  if (testPassed) {
-    console.log(
-      "\nAtlasBoard Promo Codes + Event Tickets Local E2E v1 PASSED.",
-    );
-    console.log(
-      "Verified: hashed promo lookup -> active/time/limit enforcement -> " +
-      "atomic Gold + Atlas Coin + event ticket + entitlement rewards -> " +
-      "idempotent replay -> immutable audit -> rejected-attempt safety -> cleanup.",
-    );
+  if (user && auth) await safe("cleanup Auth account", () => auth.deleteUser(user.uid));
+  if (warnings.length) throw new Error(`Promo cleanup warnings:\n${warnings.join("\n")}`);
+  if (db || user) console.log("Promo local fixture cleanup complete.");
+  else console.log("Promo cleanup not required (preflight denied all access).");
+}
+if (process.argv.includes("--self-test")) {
+  assert(promoId("TEST") === digest("atlasboard:promo:TEST") &&
+    redemptionId("x", "y") === digest("x:promo_redemption:y") &&
+    ticketId.startsWith("ticket_"),
+  "Promo id/fixture offline self-test failed.");
+  console.log("Promo E2E offline self-test PASS.");
+} else {
+  const failures = [];
+  try { await exercise(); } catch (error) { failures.push(error); }
+  try { await cleanup(); } catch (error) { failures.push(error); }
+  if (failures.length > 0) {
+    for (const failure of failures) {
+      console.error("AtlasBoard Promo Codes + Event Tickets Local E2E FAILED:", failure);
+    }
+    process.exitCode = 1;
+  } else if (completed) {
+    assert(checks === 12, "Promo checks unexpectedly changed before cleanup.");
+    console.log("[13/13] PASSED. Local fixtures and Auth account cleaned.");
+    console.log("AtlasBoard Promo Codes + Event Tickets Local E2E v2 PASSED: 13/13.");
   }
 }

@@ -1,616 +1,227 @@
-import {createHash} from "node:crypto";
+/**
+ * Phase 3C.4C inventory regression: emulator-only, Admin SDK fixtures.
+ * Never relax Firestore Security Rules to seed trusted test data.
+ * Run via node scripts/qa.mjs --full (the Firebase CLI starts emulators).
+ */
+import {createHash, randomBytes} from "node:crypto";
 
-const PROJECT_ID = "atlasboard-usa";
-const REGION = "europe-west1";
-const AUTH_BASE = "http://127.0.0.1:9099";
-const FUNCTIONS_BASE = "http://127.0.0.1:5001";
-const FIRESTORE_BASE = "http://127.0.0.1:8080";
-const HUB_BASE = "http://127.0.0.1:4400";
-const API_KEY = "atlasboard-local-emulator-only";
-const TIMEOUT_MS = 10000;
+const PROJECT = "atlasboard-usa";
+const AUTH = "http://127.0.0.1:9099";
+const FUNCTIONS = `http://127.0.0.1:5001/${PROJECT}/europe-west1`;
+const HUB = "http://127.0.0.1:4400";
+const FIRESTORE = `http://127.0.0.1:8080/v1/projects/${PROJECT}/` +
+  "databases/(default)/documents";
+const nonce = randomBytes(8).toString("hex");
+const itemId = `e2e_pawn_${nonce}`;
+const missingId = `e2e_unknown_${nonce}`;
+const digest = (value) => createHash("sha256").update(value).digest("hex");
+const eventId = (uid, item, key) => digest(`${uid}:${item}:${key}`);
+const TOKEN = "atlasboard-inventory-local-emulator-token";
+let db;
+let auth;
+let user;
+let checks = 0;
 
-function assert(condition, message) {
-  if (!condition) {
-    throw new Error(message);
-  }
+function assert(condition, description) {
+  if (!condition) throw new Error(description);
 }
-
-async function requestJson(url, options = {}) {
+function check(description) {
+  console.log(`[${++checks}/11] PASSED. ${description}`);
+}
+async function request(url, options = {}) {
   const response = await fetch(url, {
     ...options,
-    signal: AbortSignal.timeout(TIMEOUT_MS),
+    signal: AbortSignal.timeout(25000),
   });
-
   const text = await response.text();
-  let json = null;
-
-  if (text) {
-    try {
-      json = JSON.parse(text);
-    } catch {
-      json = {raw: text};
-    }
+  let body;
+  try { body = JSON.parse(text); } catch { body = {raw: text}; }
+  return {response, body};
+}
+async function preflight() {
+  // Check ALL runtime boundaries before loading Admin SDK or performing writes.
+  assert(process.env.FIRESTORE_EMULATOR_HOST === "127.0.0.1:8080",
+    "Firestore Emulator MUST be 127.0.0.1:8080.");
+  assert(process.env.FIREBASE_AUTH_EMULATOR_HOST === "127.0.0.1:9099",
+    "Auth Emulator MUST be 127.0.0.1:9099.");
+  for (const key of ["GCLOUD_PROJECT", "GOOGLE_CLOUD_PROJECT", "ATLAS_FIREBASE_PROJECT_ID"]) {
+    assert(!process.env[key] || process.env[key] === PROJECT,
+      `${key} must not select a production project.`);
   }
-
-  return {response, json, text};
-}
-
-async function postJson(url, body, headers = {}) {
-  return requestJson(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...headers,
-    },
-    body: JSON.stringify(body),
-  });
-}
-
-async function patchJson(url, body) {
-  return requestJson(url, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-}
-
-async function deleteUrl(url) {
-  return requestJson(url, {method: "DELETE"});
-}
-
-function callableUrl(functionName) {
-  return `${FUNCTIONS_BASE}/${PROJECT_ID}/${REGION}/${functionName}`;
-}
-
-async function callFunction(functionName, idToken, data) {
-  return postJson(
-    callableUrl(functionName),
-    {data},
-    {Authorization: `Bearer ${idToken}`},
-  );
-}
-
-function getCallableResult(callable) {
-  return callable.json?.result ?? callable.json?.data;
-}
-
-function firestoreDocumentUrl(path) {
-  return `${FIRESTORE_BASE}/v1/projects/${PROJECT_ID}` +
-    `/databases/(default)/documents/${path}`;
-}
-
-async function getFirestoreDocument(path) {
-  return requestJson(firestoreDocumentUrl(path));
-}
-
-async function patchFirestoreDocument(path, fields) {
-  return patchJson(
-    firestoreDocumentUrl(path),
-    {fields},
-  );
-}
-
-async function bestEffortDeleteFirestore(path) {
-  try {
-    const deletion = await deleteUrl(firestoreDocumentUrl(path));
-    if (!deletion.response.ok && deletion.response.status !== 404) {
-      console.warn(
-        `Cleanup warning for ${path}: HTTP ${deletion.response.status}`,
-      );
-    }
-  } catch (error) {
-    console.warn(`Cleanup warning for ${path}:`, error);
+  const hub = await request(`${HUB}/emulators`);
+  assert(hub.response.ok, "Local Firebase Emulator Hub is unavailable.");
+  for (const name of ["auth", "firestore", "functions"]) {
+    assert(hub.body?.[name]?.host === "127.0.0.1",
+      `${name} emulator must be bound to 127.0.0.1.`);
   }
+  assert(hub.body.auth.port === 9099 && hub.body.firestore.port === 8080 &&
+    hub.body.functions.port === 5001,
+  "Unexpected emulator port(s).");
+  const [{getApps, initializeApp}, {getFirestore}, {getAuth}] = await Promise.all([
+    import("firebase-admin/app"),
+    import("firebase-admin/firestore"),
+    import("firebase-admin/auth"),
+  ]);
+  if (getApps().length === 0) initializeApp({projectId: PROJECT});
+  db = getFirestore();
+  auth = getAuth();
+  await db.doc("atlasboard_qa_health/inventory_readonly").get();
+  console.log("[0/11] PASSED. Auth/Firestore/Functions Emulator isolation.");
 }
-
-function firestoreString(document, fieldName) {
-  return document?.fields?.[fieldName]?.stringValue;
-}
-
-function firestoreBoolean(document, fieldName) {
-  return document?.fields?.[fieldName]?.booleanValue;
-}
-
-function firestoreInteger(document, fieldName) {
-  const value = document?.fields?.[fieldName]?.integerValue;
-  return value === undefined ? undefined : Number.parseInt(value, 10);
-}
-
-function eventId(uid, itemId, idempotencyKey) {
-  return createHash("sha256")
-    .update(`${uid}:${itemId}:${idempotencyKey}`, "utf8")
-    .digest("hex");
-}
-
-async function verifyEmulatorPreflight() {
-  const hub = await requestJson(`${HUB_BASE}/emulators`);
-
-  assert(
-    hub.response.ok,
-    "Emulator Hub is not reachable on 127.0.0.1:4400.",
-  );
-
-  const emulators = hub.json ?? {};
-  const required = ["auth", "functions", "firestore"];
-
-  for (const name of required) {
-    assert(
-      emulators[name],
-      `Required emulator is not running: ${name}. ` +
-      "Start auth,firestore,functions together before this test.",
-    );
-  }
-
-  const firestoreHost =
-    `${emulators.firestore.host}:${emulators.firestore.port}`;
-  assert(
-    firestoreHost === "127.0.0.1:8080" ||
-      firestoreHost === "localhost:8080",
-    `Unexpected Firestore Emulator address: ${firestoreHost}`,
-  );
-}
-
-const nonce = `${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
-const email = `atlasboard.inventory.e2e.${nonce}@example.com`;
-const password = `AtlasBoardInventoryE2E!${nonce}`;
-const itemId = `e2e_pawn_${nonce}`;
-const unknownItemId = `e2e_unknown_${nonce}`;
-
-const grantKey = `inventory-e2e-grant-${nonce}`;
-const duplicateGrantKey = `inventory-e2e-duplicate-${nonce}`;
-const revokeKey = `inventory-e2e-revoke-${nonce}`;
-const regrantKey = `inventory-e2e-regrant-${nonce}`;
-const unknownKey = `inventory-e2e-unknown-${nonce}`;
-
-const grantTransactionId = `inventory-grant-tx-${nonce}`;
-const duplicateTransactionId = `inventory-duplicate-tx-${nonce}`;
-const revokeTransactionId = `inventory-revoke-tx-${nonce}`;
-const regrantTransactionId = `inventory-regrant-tx-${nonce}`;
-const unknownTransactionId = `inventory-unknown-tx-${nonce}`;
-
-let idToken = null;
-let localId = null;
-let grantEventId = null;
-let duplicateGrantEventId = null;
-let revokeEventId = null;
-let regrantEventId = null;
-let unknownEventId = null;
-let testPassed = false;
-
-console.log("AtlasBoard Inventory + Entitlements Local E2E v1");
-console.log(
-  "Safety: localhost emulators only; catalog and entitlement test data " +
-  "are temporary and production data is not touched.",
-);
-
-try {
-  console.log("[0/11] Verifying emulator safety preflight...");
-  await verifyEmulatorPreflight();
-  console.log("[0/11] PASSED. Auth/Firestore/Functions emulators detected.");
-
-  console.log("[1/11] Creating temporary Auth Emulator user...");
-  const signUp = await postJson(
-    `${AUTH_BASE}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=${API_KEY}`,
-    {
-      email,
-      password,
+async function signup() {
+  const out = await request(`${AUTH}/identitytoolkit.googleapis.com/v1/` +
+    "accounts:signUp?key=atlasboard-local", {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      email: `atlasboard.inventory.${nonce}@example.test`,
+      password: "AtlasBoard-Inventory-Emulator-123!",
       returnSecureToken: true,
-    },
-  );
-
-  assert(
-    signUp.response.ok,
-    `Auth Emulator sign-up failed: HTTP ${signUp.response.status} ` +
-    signUp.text,
-  );
-
-  idToken = signUp.json?.idToken;
-  localId = signUp.json?.localId;
-
-  assert(
-    typeof idToken === "string" && idToken.length > 20,
-    "Auth Emulator returned no valid idToken.",
-  );
-  assert(
-    typeof localId === "string" && localId.length > 0,
-    "Auth Emulator returned no localId.",
-  );
-
-  grantEventId = eventId(localId, itemId, grantKey);
-  duplicateGrantEventId =
-    eventId(localId, itemId, duplicateGrantKey);
-  revokeEventId = eventId(localId, itemId, revokeKey);
-  regrantEventId = eventId(localId, itemId, regrantKey);
-  unknownEventId = eventId(localId, unknownItemId, unknownKey);
-
-  console.log(`[1/11] PASSED. Local UID=${localId}`);
-
-  console.log("[2/11] Seeding one temporary active catalog item...");
-  const catalogSeed = await patchFirestoreDocument(
-    `item_catalog/${itemId}`,
-    {
-      itemId: {stringValue: itemId},
-      itemType: {stringValue: "pawn"},
-      active: {booleanValue: true},
-      schemaVersion: {integerValue: "1"},
-    },
-  );
-
-  assert(
-    catalogSeed.response.ok,
-    `Catalog seed failed: HTTP ${catalogSeed.response.status} ` +
-    catalogSeed.text,
-  );
-  console.log("[2/11] PASSED. Temporary pawn catalog item created.");
-
-  console.log("[3/11] Granting entitlement through authenticated backend...");
-  const grant = await callFunction("inventoryTestMutation", idToken, {
-    operation: "grant",
-    itemId,
-    reason: "test_grant",
-    transactionId: grantTransactionId,
-    idempotencyKey: grantKey,
+    }),
   });
-
-  assert(
-    grant.response.ok,
-    `Grant failed: HTTP ${grant.response.status} ${grant.text}`,
-  );
-
-  const grantResult = getCallableResult(grant);
-  assert(grantResult?.ok === true, "Grant returned ok != true.");
-  assert(grantResult?.applied === true, "Grant was not applied.");
-  assert(
-    grantResult?.idempotentReplay === false,
-    "First grant was incorrectly marked as replay.",
-  );
-  assert(grantResult?.ownedBefore === false,
-    "First grant expected ownedBefore=false.");
-  assert(grantResult?.ownedAfter === true,
-    "First grant expected ownedAfter=true.");
-  assert(grantResult?.itemType === "pawn",
-    `Expected pawn item type, got ${grantResult?.itemType}`);
-  assert(grantResult?.eventId === grantEventId,
-    "Grant event ID mismatch.");
-
-  console.log("[3/11] PASSED. Entitlement changed not-owned -> owned.");
-
-  console.log("[4/11] Replaying the exact grant idempotency key...");
-  const replay = await callFunction("inventoryTestMutation", idToken, {
-    operation: "grant",
-    itemId,
-    reason: "test_grant",
-    transactionId: grantTransactionId,
-    idempotencyKey: grantKey,
-  });
-
-  assert(
-    replay.response.ok,
-    `Grant replay failed: HTTP ${replay.response.status} ${replay.text}`,
-  );
-
-  const replayResult = getCallableResult(replay);
-  assert(replayResult?.applied === false,
-    "Grant replay incorrectly applied again.");
-  assert(replayResult?.idempotentReplay === true,
-    "Grant replay was not identified as idempotent.");
-  assert(replayResult?.ownedAfter === true,
-    "Grant replay changed final ownership.");
-  assert(replayResult?.eventId === grantEventId,
-    "Grant replay did not resolve to original event.");
-
-  console.log("[4/11] PASSED. Exact replay did not duplicate entitlement.");
-
-  console.log("[5/11] Trying a second grant with a new idempotency key...");
-  const duplicateGrant = await callFunction(
-    "inventoryTestMutation",
-    idToken,
-    {
-      operation: "grant",
-      itemId,
-      reason: "test_duplicate_grant",
-      transactionId: duplicateTransactionId,
-      idempotencyKey: duplicateGrantKey,
-    },
-  );
-
-  const duplicateStatus = duplicateGrant.json?.error?.status;
-  const duplicateErrorKey =
-    duplicateGrant.json?.error?.details?.errorKey;
-
-  assert(!duplicateGrant.response.ok,
-    "Duplicate grant unexpectedly succeeded.");
-  assert(
-    duplicateStatus === "ALREADY_EXISTS",
-    `Expected ALREADY_EXISTS, got ${duplicateStatus}. ` +
-    `Body=${duplicateGrant.text}`,
-  );
-  assert(
-    duplicateErrorKey === "inventory.error.already_owned",
-    `Unexpected duplicate-grant errorKey: ${duplicateErrorKey}`,
-  );
-
-  const duplicateEvent = await getFirestoreDocument(
-    `inventories/${localId}/items/${itemId}/events/` +
-    duplicateGrantEventId,
-  );
-  assert(
-    duplicateEvent.response.status === 404,
-    "Rejected duplicate grant unexpectedly created an event.",
-  );
-
-  console.log("[5/11] PASSED. Already-owned item cannot be granted twice.");
-
-  console.log("[6/11] Verifying owned item and grant event directly...");
-  const ownedItem = await getFirestoreDocument(
-    `inventories/${localId}/items/${itemId}`,
-  );
-  assert(ownedItem.response.ok,
-    `Owned inventory item missing: ${ownedItem.text}`);
-  assert(firestoreString(ownedItem.json, "uid") === localId,
-    "Inventory UID mismatch.");
-  assert(firestoreString(ownedItem.json, "itemId") === itemId,
-    "Inventory itemId mismatch.");
-  assert(firestoreString(ownedItem.json, "itemType") === "pawn",
-    "Inventory itemType mismatch.");
-  assert(firestoreBoolean(ownedItem.json, "owned") === true,
-    "Inventory owned flag is not true.");
-  assert(firestoreInteger(ownedItem.json, "quantity") === 1,
-    "Owned entitlement quantity expected 1.");
-
-  const grantEvent = await getFirestoreDocument(
-    `inventories/${localId}/items/${itemId}/events/${grantEventId}`,
-  );
-  assert(grantEvent.response.ok, "Grant entitlement event is missing.");
-  assert(firestoreString(grantEvent.json, "operation") === "grant",
-    "Grant event operation mismatch.");
-  assert(firestoreBoolean(grantEvent.json, "ownedBefore") === false,
-    "Grant event ownedBefore mismatch.");
-  assert(firestoreBoolean(grantEvent.json, "ownedAfter") === true,
-    "Grant event ownedAfter mismatch.");
-
-  console.log(
-    "[6/11] PASSED. Current ownership and immutable grant event verified.",
-  );
-
-  console.log("[7/11] Revoking entitlement through authenticated backend...");
-  const revoke = await callFunction("inventoryTestMutation", idToken, {
-    operation: "revoke",
-    itemId,
-    reason: "test_revoke",
-    transactionId: revokeTransactionId,
-    idempotencyKey: revokeKey,
-  });
-
-  assert(
-    revoke.response.ok,
-    `Revoke failed: HTTP ${revoke.response.status} ${revoke.text}`,
-  );
-
-  const revokeResult = getCallableResult(revoke);
-  assert(revokeResult?.applied === true, "Revoke was not applied.");
-  assert(revokeResult?.ownedBefore === true,
-    "Revoke expected ownedBefore=true.");
-  assert(revokeResult?.ownedAfter === false,
-    "Revoke expected ownedAfter=false.");
-  assert(revokeResult?.eventId === revokeEventId,
-    "Revoke event ID mismatch.");
-
-  console.log("[7/11] PASSED. Entitlement changed owned -> revoked.");
-
-  console.log("[8/11] Replaying revoke and verifying revoked state...");
-  const revokeReplay = await callFunction(
-    "inventoryTestMutation",
-    idToken,
-    {
-      operation: "revoke",
-      itemId,
-      reason: "test_revoke",
-      transactionId: revokeTransactionId,
-      idempotencyKey: revokeKey,
-    },
-  );
-
-  assert(
-    revokeReplay.response.ok,
-    `Revoke replay failed: HTTP ${revokeReplay.response.status} ` +
-    revokeReplay.text,
-  );
-
-  const revokeReplayResult = getCallableResult(revokeReplay);
-  assert(revokeReplayResult?.applied === false,
-    "Revoke replay incorrectly applied again.");
-  assert(revokeReplayResult?.idempotentReplay === true,
-    "Revoke replay was not identified as idempotent.");
-
-  const revokedItem = await getFirestoreDocument(
-    `inventories/${localId}/items/${itemId}`,
-  );
-  assert(revokedItem.response.ok, "Revoked inventory item is missing.");
-  assert(firestoreBoolean(revokedItem.json, "owned") === false,
-    "Revoked item still reports owned=true.");
-  assert(firestoreInteger(revokedItem.json, "quantity") === 0,
-    "Revoked entitlement quantity expected 0.");
-
-  const revokeEvent = await getFirestoreDocument(
-    `inventories/${localId}/items/${itemId}/events/${revokeEventId}`,
-  );
-  assert(revokeEvent.response.ok, "Revoke entitlement event is missing.");
-  assert(firestoreString(revokeEvent.json, "operation") === "revoke",
-    "Revoke event operation mismatch.");
-
-  console.log("[8/11] PASSED. Revoke replay is idempotent and state is false.");
-
-  console.log("[9/11] Re-granting the revoked entitlement...");
-  const regrant = await callFunction("inventoryTestMutation", idToken, {
-    operation: "grant",
-    itemId,
-    reason: "test_regrant",
-    transactionId: regrantTransactionId,
-    idempotencyKey: regrantKey,
-  });
-
-  assert(
-    regrant.response.ok,
-    `Re-grant failed: HTTP ${regrant.response.status} ${regrant.text}`,
-  );
-
-  const regrantResult = getCallableResult(regrant);
-  assert(regrantResult?.applied === true, "Re-grant was not applied.");
-  assert(regrantResult?.ownedBefore === false,
-    "Re-grant expected ownedBefore=false.");
-  assert(regrantResult?.ownedAfter === true,
-    "Re-grant expected ownedAfter=true.");
-
-  const regrantEvent = await getFirestoreDocument(
-    `inventories/${localId}/items/${itemId}/events/${regrantEventId}`,
-  );
-  assert(regrantEvent.response.ok, "Re-grant event is missing.");
-
-  console.log("[9/11] PASSED. Revoked entitlement can be granted again.");
-
-  console.log("[10/11] Rejecting grant for an unknown catalog item...");
-  const unknownGrant = await callFunction(
-    "inventoryTestMutation",
-    idToken,
-    {
-      operation: "grant",
-      itemId: unknownItemId,
-      reason: "test_unknown_item",
-      transactionId: unknownTransactionId,
-      idempotencyKey: unknownKey,
-    },
-  );
-
-  const unknownStatus = unknownGrant.json?.error?.status;
-  const unknownErrorKey =
-    unknownGrant.json?.error?.details?.errorKey;
-
-  assert(!unknownGrant.response.ok,
-    "Unknown catalog item unexpectedly granted.");
-  assert(
-    unknownStatus === "NOT_FOUND",
-    `Expected NOT_FOUND, got ${unknownStatus}. Body=${unknownGrant.text}`,
-  );
-  assert(
-    unknownErrorKey === "inventory.error.catalog_item_not_found",
-    `Unexpected unknown-item errorKey: ${unknownErrorKey}`,
-  );
-
-  const unknownItem = await getFirestoreDocument(
-    `inventories/${localId}/items/${unknownItemId}`,
-  );
-  assert(unknownItem.response.status === 404,
-    "Unknown item unexpectedly created an inventory document.");
-
-  const unknownEvent = await getFirestoreDocument(
-    `inventories/${localId}/items/${unknownItemId}/events/` +
-    unknownEventId,
-  );
-  assert(unknownEvent.response.status === 404,
-    "Unknown item unexpectedly created an entitlement event.");
-
-  console.log("[10/11] PASSED. Unknown catalog item was rejected safely.");
-
-  console.log("[11/11] Verifying final inventory state...");
-  const finalItem = await getFirestoreDocument(
-    `inventories/${localId}/items/${itemId}`,
-  );
-  assert(finalItem.response.ok, "Final inventory item is missing.");
-  assert(firestoreBoolean(finalItem.json, "owned") === true,
-    "Final entitlement should be owned after re-grant.");
-  assert(firestoreInteger(finalItem.json, "quantity") === 1,
-    "Final entitlement quantity expected 1.");
-  assert(
-    firestoreString(finalItem.json, "lastTransactionId") ===
-      regrantTransactionId,
-    "Final inventory transaction reference mismatch.",
-  );
-
-  console.log(
-    "[11/11] PASSED. Final state is owned with verified lifecycle history.",
-  );
-
-  testPassed = true;
-} catch (error) {
-  console.error("");
-  console.error("AtlasBoard Inventory + Entitlements Local E2E v1 FAILED.");
-  console.error(error instanceof Error ? error.stack ?? error.message : error);
-  process.exitCode = 1;
-} finally {
-  console.log("[cleanup] Cleaning temporary emulator data...");
-
-  if (localId) {
-    if (grantEventId) {
-      await bestEffortDeleteFirestore(
-        `inventories/${localId}/items/${itemId}/events/${grantEventId}`,
-      );
-    }
-    if (duplicateGrantEventId) {
-      await bestEffortDeleteFirestore(
-        `inventories/${localId}/items/${itemId}/events/` +
-        duplicateGrantEventId,
-      );
-    }
-    if (revokeEventId) {
-      await bestEffortDeleteFirestore(
-        `inventories/${localId}/items/${itemId}/events/${revokeEventId}`,
-      );
-    }
-    if (regrantEventId) {
-      await bestEffortDeleteFirestore(
-        `inventories/${localId}/items/${itemId}/events/${regrantEventId}`,
-      );
-    }
-    if (unknownEventId) {
-      await bestEffortDeleteFirestore(
-        `inventories/${localId}/items/${unknownItemId}/events/` +
-        unknownEventId,
-      );
-    }
-
-    await bestEffortDeleteFirestore(
-      `inventories/${localId}/items/${itemId}`,
-    );
-    await bestEffortDeleteFirestore(
-      `inventories/${localId}/items/${unknownItemId}`,
-    );
-  }
-
-  await bestEffortDeleteFirestore(`item_catalog/${itemId}`);
-
-  if (idToken) {
-    try {
-      const deletion = await postJson(
-        `${AUTH_BASE}/identitytoolkit.googleapis.com/v1/accounts:delete?key=${API_KEY}`,
-        {idToken},
-      );
-      if (!deletion.response.ok) {
-        console.warn(
-          `Auth cleanup warning: HTTP ${deletion.response.status} ` +
-          deletion.text,
-        );
-      }
-    } catch (error) {
-      console.warn("Auth cleanup warning:", error);
-    }
-  }
-
-  console.log("[cleanup] Cleanup finished.");
+  assert(out.response.ok && typeof out.body.idToken === "string" &&
+    typeof out.body.localId === "string", `Auth signup failed: ${JSON.stringify(out.body)}`);
+  user = {uid: out.body.localId, token: out.body.idToken};
 }
-
-if (testPassed) {
-  console.log("");
-  console.log("AtlasBoard Inventory + Entitlements Local E2E v1 PASSED.");
-  console.log(
-    "Verified: catalog-backed grant -> idempotent replay -> duplicate " +
-    "ownership rejection -> immutable event verification -> revoke -> " +
-    "revoke replay -> re-grant -> unknown-item rejection -> cleanup.",
-  );
-  process.exitCode = 0;
+async function call(data) {
+  return request(`${FUNCTIONS}/inventoryTestMutation`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json",
+      Authorization: `Bearer ${user.token}`, "X-Firebase-AppCheck": TOKEN},
+    body: JSON.stringify({data}),
+  });
+}
+function result(out) { return out.body?.result; }
+function errorKey(out) { return out.body?.error?.details?.errorKey; }
+function mutation(operation, key) {
+  return {
+    operation, itemId, reason: `test_${key.split("-")[0]}`,
+    transactionId: `inventory-${operation}-tx-${key}`,
+    idempotencyKey: `inventory-e2e-${key}`,
+  };
+}
+async function exercise() {
+  await preflight();
+  await signup();
+  check("Authenticated temporary Auth Emulator account created");
+  await db.doc(`item_catalog/${itemId}`).create({
+    itemId, itemType: "pawn", active: true, schemaVersion: 1,
+  });
+  check("Server-authorized catalog fixture created without relaxing Rules");
+  const grantInput = mutation("grant", `grant-${nonce}`);
+  const grantId = eventId(user.uid, itemId, grantInput.idempotencyKey);
+  const grant = await call(grantInput);
+  assert(grant.response.ok && result(grant)?.ok === true &&
+    result(grant)?.applied === true && result(grant)?.idempotentReplay === false &&
+    result(grant)?.ownedBefore === false && result(grant)?.ownedAfter === true &&
+    result(grant)?.itemType === "pawn" && result(grant)?.eventId === grantId,
+  `Grant failed: ${JSON.stringify(grant.body)}`);
+  check("Not-owned entitlement granted exactly once by authenticated backend");
+  const replay = await call(grantInput);
+  assert(replay.response.ok && result(replay)?.applied === false &&
+    result(replay)?.idempotentReplay === true && result(replay)?.eventId === grantId,
+  "Grant replay was not idempotent.");
+  check("Exact grant replay idempotent");
+  const duplicateInput = mutation("grant", `duplicate-${nonce}`);
+  const duplicate = await call(duplicateInput);
+  assert(!duplicate.response.ok &&
+    duplicate.body?.error?.status === "ALREADY_EXISTS" &&
+    errorKey(duplicate) === "inventory.error.already_owned" &&
+    !(await db.doc(`inventories/${user.uid}/items/${itemId}/events/` +
+      eventId(user.uid, itemId, duplicateInput.idempotencyKey)).get()).exists,
+  `Duplicate grant not rejected safely: ${JSON.stringify(duplicate.body)}`);
+  check("Different-key duplicate entitlement denied without event");
+  const itemRef = db.doc(`inventories/${user.uid}/items/${itemId}`);
+  const item = await itemRef.get();
+  const evidence = await itemRef.collection("events").doc(grantId).get();
+  assert(item.data()?.uid === user.uid && item.data()?.itemId === itemId &&
+    item.data()?.itemType === "pawn" && item.data()?.owned === true &&
+    item.data()?.quantity === 1 && evidence.exists &&
+    evidence.data()?.operation === "grant" &&
+    evidence.data()?.ownedBefore === false && evidence.data()?.ownedAfter === true,
+  "Grant item or immutable event evidence mismatch.");
+  check("Inventory ownership and immutable grant evidence stored");
+  const revokeInput = mutation("revoke", `revoke-${nonce}`);
+  const revoke = await call(revokeInput);
+  assert(revoke.response.ok && result(revoke)?.applied === true &&
+    result(revoke)?.ownedBefore === true && result(revoke)?.ownedAfter === false &&
+    result(revoke)?.eventId === eventId(user.uid, itemId, revokeInput.idempotencyKey),
+  `Revoke failed: ${JSON.stringify(revoke.body)}`);
+  check("Owned entitlement revoked");
+  const revokeReplay = await call(revokeInput);
+  const revoked = await itemRef.get();
+  const revokedEvent = await itemRef.collection("events")
+    .doc(eventId(user.uid, itemId, revokeInput.idempotencyKey)).get();
+  assert(revokeReplay.response.ok && result(revokeReplay)?.applied === false &&
+    result(revokeReplay)?.idempotentReplay === true &&
+    revoked.data()?.owned === false && revoked.data()?.quantity === 0 &&
+    revokedEvent.data()?.operation === "revoke",
+  "Revoke replay or evidence inconsistent.");
+  check("Revoke replay idempotent; ownership and audit updated");
+  const regrantInput = mutation("grant", `regrant-${nonce}`);
+  const regrant = await call(regrantInput);
+  assert(regrant.response.ok && result(regrant)?.applied === true &&
+    result(regrant)?.ownedBefore === false && result(regrant)?.ownedAfter === true &&
+    (await itemRef.collection("events")
+      .doc(eventId(user.uid, itemId, regrantInput.idempotencyKey)).get()).exists,
+  `Regrant failed: ${JSON.stringify(regrant.body)}`);
+  check("Previously revoked item re-granted and audited");
+  const unknownInput = {
+    ...mutation("grant", `unknown-${nonce}`), itemId: missingId,
+  };
+  const unknown = await call(unknownInput);
+  assert(!unknown.response.ok && unknown.body?.error?.status === "NOT_FOUND" &&
+    errorKey(unknown) === "inventory.error.catalog_item_not_found" &&
+    !(await db.doc(`inventories/${user.uid}/items/${missingId}`).get()).exists &&
+    !(await db.doc(`inventories/${user.uid}/items/${missingId}/events/` +
+      eventId(user.uid, missingId, unknownInput.idempotencyKey)).get()).exists,
+  `Unknown catalog item accepted: ${JSON.stringify(unknown.body)}`);
+  check("Unknown catalog item rejected without partial documents");
+  const final = await itemRef.get();
+  assert(final.data()?.owned === true && final.data()?.quantity === 1 &&
+    final.data()?.lastTransactionId === regrantInput.transactionId,
+  "Final ownership state inconsistent.");
+  // Authenticated client MUST NOT be able to mutate catalog (403) even when
+  // the Admin SDK is authorized to seed this same document.
+  const clientPatch = await request(`${FIRESTORE}/item_catalog/${itemId}`, {
+    method: "PATCH",
+    headers: {"Content-Type": "application/json",
+      Authorization: `Bearer ${user.token}`},
+    body: JSON.stringify({fields: {active: {booleanValue: false}}}),
+  });
+  assert(clientPatch.response.status === 403,
+    `Authenticated client was able to modify catalog: HTTP ${clientPatch.response.status}`);
+  check("Final inventory state correct; direct-client catalog write denied (403)");
+  assert(checks === 11, "Inventory 11-check total mismatch.");
+  console.log("AtlasBoard Inventory + Entitlements Local E2E v2 PASSED: 11/11.");
+}
+async function cleanup() {
+  const warnings = [];
+  const safe = async (label, work) => {
+    try { await work(); } catch (e) { warnings.push(`${label}: ${String(e)}`); }
+  };
+  if (db) {
+    await safe("temporary inventory", async () => {
+      if (user) await db.recursiveDelete(db.doc(`inventories/${user.uid}`));
+    });
+    await safe("temporary catalog", () => db.doc(`item_catalog/${itemId}`).delete());
+  }
+  if (user && auth) await safe("temporary Auth user", () => auth.deleteUser(user.uid));
+  if (warnings.length) throw new Error(`Inventory fixture cleanup errors:\n${warnings.join("\n")}`);
+  if (db || user) console.log("Inventory local fixture cleanup complete.");
+  else console.log("Inventory cleanup not required (preflight denied all access).");
+}
+if (process.argv.includes("--self-test")) {
+  assert(digest("x").length === 64 && eventId("a", "b", "c") === digest("a:b:c"),
+    "Inventory deterministic id fixture failed.");
+  console.log("Inventory E2E offline self-test PASS.");
 } else {
-  console.error("");
-  console.error("Do not mark Phase 3C.4C Local E2E as passed.");
+  const failures = [];
+  try { await exercise(); } catch (e) { failures.push(e); }
+  try { await cleanup(); } catch (e) { failures.push(e); }
+  if (failures.length > 0) {
+    for (const failure of failures) {
+      console.error("AtlasBoard Inventory + Entitlements Local E2E FAILED:", failure);
+    }
+    process.exitCode = 1;
+  }
 }
