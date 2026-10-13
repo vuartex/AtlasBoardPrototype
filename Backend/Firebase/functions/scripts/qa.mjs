@@ -34,7 +34,13 @@ const npx = windows ? 'npx.cmd' : 'npx';
 const PROJECT = 'atlasboard-usa';
 const scriptBase = 'functions/scripts/';
 
+// Run SEC07 first; accepted SEC06 still runs immediately afterwards.
+// A new privacy-policy regression aborts before the long existing suites.
 const integrationScripts = [
+  // New Phase 17A security gate first; fail fast before expensive regression suite.
+  'match-result-consistency-e2e.mjs',
+  'security-core07-public-profile-enumeration-e2e.mjs',
+  'security-core06-settings-schema-e2e.mjs',
   'chat-moderation-e2e.mjs',
   'phase15j-runtime-e2e.mjs',
   'platform-steam-link-e2e.mjs',
@@ -51,6 +57,10 @@ const integrationScripts = [
   'progression-phase10-e2e.mjs --security-suite',
   // Security Core 03: disabled track, global promo races, daily and tier replay.
   'security-core03-rewards-e2e.mjs',
+  // Security Core 04: shared public-discovery budget and malformed cursor inputs.
+  'security-core04-auth-privacy-abuse-e2e.mjs',
+  // Security Core 05: owner/peer/anonymous Rules isolation and public profile policy.
+  'security-core05-profile-privacy-e2e.mjs',
 ];
 const enforcementScripts = ['app-check-enforcement-negative-e2e.mjs'];
 
@@ -188,17 +198,63 @@ function offlineChecks() {
   unityPreflight();
   run('Accepted security static regression / TypeScript build / ESLint',
     'node', ['scripts/phase15k-validation.mjs', '--static-only']);
+  assertCallableEntrypointContract();
+  run('Security Core 04 changed TypeScript ESLint', npx, [
+    'eslint', 'src/entry.ts',
+    'src/security/legacy-public-discovery-gate.ts',
+    'src/lobby/public-lobby-pagination-callable.ts',
+  ]);
   // Regression fixtures are tested before paying the cost of starting emulators.
   // These modes never load Firebase Admin SDK or open network connections.
   for (const script of [
+    'match-result-consistency-e2e.mjs',
     'inventory-entitlements-e2e.mjs',
     'promo-event-tickets-e2e.mjs',
     'security-core03-rewards-e2e.mjs',
+    'security-core04-auth-privacy-abuse-e2e.mjs',
+    'security-core05-profile-privacy-e2e.mjs',
+    'security-core06-settings-schema-e2e.mjs',
+    'security-core07-public-profile-enumeration-e2e.mjs',
   ]) {
     run(`Offline E2E fixture self-test: ${script}`,
       'node', [`scripts/${script}`, '--self-test']);
   }
   console.log('\nAtlasBoard QA OFFLINE PASS (no Unity Editor compile performed).');
+}
+function assertCallableEntrypointContract() {
+  // Every old public callable must still be exported exactly once, even when
+  // its implementation moves to a guarded Security Core module.
+  const entry = text(join(functionsDir, 'src', 'entry.ts'));
+  const index = text(join(functionsDir, 'src', 'index.ts'));
+  assert(!/export\s*\*\s*from/.test(entry),
+    'Entrypoint wildcard export can reintroduce duplicate security gate names.');
+  function namedExports(source) {
+    const names = [];
+    const re = /export\s*\{([^}]+)\}\s*from\s*["'][^"']+["']/g;
+    for (const found of source.matchAll(re)) {
+      for (const item of found[1].split(',')) {
+        const name = item.trim().split(/\s+as\s+/).at(-1);
+        if (name) names.push(name);
+      }
+    }
+    return names;
+  }
+  const expected = new Set([
+    ...[...index.matchAll(/export\s+const\s+([A-Za-z0-9_]+)\s*=/g)]
+      .map((matched) => matched[1]),
+    ...namedExports(index),
+    'lobbyListPublicRoomsPage',
+  ]);
+  const actual = namedExports(entry);
+  assert(expected.size === 55,
+    `Unexpected canonical callable inventory: expected 55, found ${expected.size}.`);
+  assert(actual.length === expected.size && new Set(actual).size === actual.length,
+    'Entrypoint must export each callable exactly once.');
+  const missing = [...expected].filter((name) => !actual.includes(name));
+  const unexpected = actual.filter((name) => !expected.has(name));
+  assert(missing.length === 0 && unexpected.length === 0,
+    `Callable export contract drift; missing=${missing.join(',')}; extra=${unexpected.join(',')}`);
+  console.log(`PASS Security Core 04 explicit callable export contract: ${actual.length}/${expected.size}.`);
 }
 function assertCompiledSecurityGate() {
   const entry = text(join(functionsDir, 'lib', 'entry.js'));
@@ -218,10 +274,19 @@ function assertCompiledSecurityGate() {
   assert(gate.includes('pending_authoritative_verification') &&
     gate.includes('match_result_verifications'),
   'Compiled match-integrity security gate is stale or incomplete.');
-  console.log('PASS compiled security gate and progression fail-closed contract.');
+  const legacy = text(join(functionsDir, 'lib', 'security', 'legacy-public-discovery-gate.js'));
+  const page = text(join(functionsDir, 'lib', 'lobby', 'public-lobby-pagination-callable.js'));
+  assert(entry.includes('security/legacy-public-discovery-gate') &&
+    legacy.includes('lobby_discovery') &&
+    page.includes('lobby_discovery') &&
+    legacy.includes('assertAccountRateLimit') &&
+    page.includes('assertAccountRateLimit'),
+  'Compiled Security Core 04 shared discovery read guard missing or stale.');
+  console.log('PASS compiled security gates including shared discovery read budget.');
 }
 function runFull() {
   offlineChecks();
+  assertCallableEntrypointContract();
   assertCompiledSecurityGate();
   beginEmulatorConfig();
   try {
@@ -254,8 +319,15 @@ function selfTest() {
     assert(integrationScripts.includes('progression-phase10-e2e.mjs --security-suite'),
       'Host result security audit must be in full QA.');
     assert(integrationScripts.includes('security-core03-rewards-e2e.mjs') &&
-      integrationScripts.at(-1) === 'security-core03-rewards-e2e.mjs',
-    'Security Core 03 must run after integrated regressions.');
+      integrationScripts.includes('security-core04-auth-privacy-abuse-e2e.mjs') &&
+      integrationScripts[0] === 'match-result-consistency-e2e.mjs' &&
+      integrationScripts[1] === 'security-core07-public-profile-enumeration-e2e.mjs' &&
+      integrationScripts[2] === 'security-core06-settings-schema-e2e.mjs' &&
+      integrationScripts.indexOf('security-core04-auth-privacy-abuse-e2e.mjs') ===
+        integrationScripts.length - 2 &&
+      integrationScripts.indexOf('security-core05-profile-privacy-e2e.mjs') ===
+        integrationScripts.length - 1,
+    'Phase 17A then Security Core 07/06 must run first; accepted Core 03-05 ordering is retained.');
     assert(integrationScripts.indexOf('inventory-entitlements-e2e.mjs') >= 0 &&
       integrationScripts.indexOf('promo-event-tickets-e2e.mjs') >= 0 &&
       integrationScripts.indexOf('inventory-entitlements-e2e.mjs') <
@@ -263,7 +335,7 @@ function selfTest() {
       integrationScripts.indexOf('promo-event-tickets-e2e.mjs') <
         integrationScripts.indexOf('security-core03-rewards-e2e.mjs'),
     'Admin-backed inventory and promo E2E must precede Security Core 03.');
-    console.log('AtlasBoard QA self-test PASS: settings, Unity scenes and integrated host security suite.');
+    console.log('AtlasBoard QA self-test PASS: settings, scenes, Security Cores 01-07 and Phase 17A.');
   } finally {
     rmSync(root, {recursive: true, force: true});
   }

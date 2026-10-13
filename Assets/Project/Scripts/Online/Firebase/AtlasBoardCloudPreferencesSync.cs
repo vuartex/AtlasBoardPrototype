@@ -1,8 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Firebase.Firestore;
 using UnityEngine;
 
+// Security Core 06 v2. One bounded Firestore document per supported platform.
+// Root preferences retain language, audio, crossplay and global gameplay;
+// legacy root graphics / platform gameplay are read as migration input only.
 [DefaultExecutionOrder(250)]
 [DisallowMultipleComponent]
 public sealed class AtlasBoardCloudPreferencesSync : MonoBehaviour
@@ -12,27 +16,20 @@ public sealed class AtlasBoardCloudPreferencesSync : MonoBehaviour
     private const float FailedSyncRetrySeconds = 5.00f;
 
     private AtlasBoardAccountService accountService;
-
     private string syncedAccountId = string.Empty;
-    private AtlasCloudPreferences cachedCloudPreferences;
-
     private bool applyingCloudToLocal;
     private bool syncBusy;
     private bool uploadPending;
-
     private float nextAccountPollTime;
     private float nextUploadTime;
     private float nextSyncRetryTime;
-
     private string platformKey = "unknown";
 
     public bool IsSynchronized =>
         !string.IsNullOrWhiteSpace(syncedAccountId) &&
         accountService != null &&
         accountService.IsSignedIn &&
-        string.Equals(
-            syncedAccountId,
-            accountService.CurrentAccountId,
+        string.Equals(syncedAccountId, accountService.CurrentAccountId,
             StringComparison.Ordinal);
 
     public string PlatformKey => platformKey;
@@ -40,541 +37,272 @@ public sealed class AtlasBoardCloudPreferencesSync : MonoBehaviour
     private void Awake()
     {
         platformKey = ResolvePlatformKey();
-        accountService =
-            GetComponent<AtlasBoardAccountService>();
-
-        if (accountService == null)
-        {
-            accountService =
-                AtlasBoardAccountService.Instance;
-        }
+        accountService = GetComponent<AtlasBoardAccountService>() ??
+            AtlasBoardAccountService.Instance;
     }
 
     private void OnEnable()
     {
-        AtlasBoardUserSettingsStore.SettingsSaved +=
-            HandleLocalSettingsSaved;
-
-        AtlasBoardAudioSettings.SettingsSaved +=
-            HandleLocalSettingsSaved;
+        AtlasBoardUserSettingsStore.SettingsSaved += HandleLocalSettingsSaved;
+        AtlasBoardAudioSettings.SettingsSaved += HandleLocalSettingsSaved;
     }
 
     private void OnDisable()
     {
-        AtlasBoardUserSettingsStore.SettingsSaved -=
-            HandleLocalSettingsSaved;
-
-        AtlasBoardAudioSettings.SettingsSaved -=
-            HandleLocalSettingsSaved;
+        AtlasBoardUserSettingsStore.SettingsSaved -= HandleLocalSettingsSaved;
+        AtlasBoardAudioSettings.SettingsSaved -= HandleLocalSettingsSaved;
     }
 
     private void Update()
     {
-        if (Time.unscaledTime < nextAccountPollTime)
-        {
-            return;
-        }
-
-        nextAccountPollTime =
-            Time.unscaledTime +
-            AccountPollIntervalSeconds;
+        if (Time.unscaledTime < nextAccountPollTime) return;
+        nextAccountPollTime = Time.unscaledTime + AccountPollIntervalSeconds;
 
         if (accountService == null)
-        {
-            accountService =
-                AtlasBoardAccountService.Instance;
-
-            if (accountService == null)
-            {
-                return;
-            }
-        }
-
-        if (!accountService.IsInitialized)
-        {
-            return;
-        }
-
+            accountService = AtlasBoardAccountService.Instance;
+        if (accountService == null || !accountService.IsInitialized) return;
         if (!accountService.IsSignedIn)
         {
             ResetSignedInState();
             return;
         }
 
-        string accountId =
-            accountService.CurrentAccountId;
-
-        if (string.IsNullOrWhiteSpace(accountId))
-        {
-            return;
-        }
-
-        if (!string.Equals(
-                syncedAccountId,
-                accountId,
+        string accountId = accountService.CurrentAccountId;
+        if (string.IsNullOrWhiteSpace(accountId)) return;
+        if (!string.Equals(syncedAccountId, accountId,
                 StringComparison.Ordinal))
         {
-            if (!syncBusy &&
-                Time.unscaledTime >=
-                nextSyncRetryTime)
-            {
-                _ = SynchronizeAfterSignInAsync(
-                    accountId);
-            }
-
+            if (!syncBusy && Time.unscaledTime >= nextSyncRetryTime)
+                _ = SynchronizeAfterSignInAsync(accountId);
             return;
         }
-
-        if (uploadPending &&
-            !syncBusy &&
-            Time.unscaledTime >=
-            nextUploadTime)
-        {
+        if (uploadPending && !syncBusy && Time.unscaledTime >= nextUploadTime)
             _ = UploadCurrentLocalPreferencesAsync();
-        }
     }
 
     private void HandleLocalSettingsSaved()
     {
-        if (applyingCloudToLocal)
-        {
+        if (applyingCloudToLocal || accountService == null ||
+            !accountService.IsInitialized || !accountService.IsSignedIn)
             return;
-        }
-
-        if (accountService == null ||
-            !accountService.IsInitialized ||
-            !accountService.IsSignedIn)
-        {
-            return;
-        }
-
         uploadPending = true;
-        nextUploadTime =
-            Time.unscaledTime +
-            UploadDebounceSeconds;
+        nextUploadTime = Time.unscaledTime + UploadDebounceSeconds;
     }
 
-    private async Task SynchronizeAfterSignInAsync(
-        string accountId)
+    private bool SupportedPlatform =>
+        platformKey == "android" || platformKey == "ios" ||
+        platformKey == "windows" || platformKey == "macos" ||
+        platformKey == "linux";
+
+    private DocumentReference PlatformDocument(string uid)
     {
-        if (syncBusy ||
-            accountService == null)
-        {
-            return;
-        }
+        return FirebaseFirestore.DefaultInstance.Collection("preferences")
+            .Document(uid).Collection("platforms").Document(platformKey);
+    }
 
+    private async Task SynchronizeAfterSignInAsync(string accountId)
+    {
+        if (syncBusy || accountService == null) return;
         syncBusy = true;
-
         try
         {
-            AtlasAccountSnapshot snapshot =
-                await accountService
-                    .LoadCurrentAccountAsync();
+            if (!SupportedPlatform)
+                throw new InvalidOperationException(
+                    "Unsupported Settings platform: " + platformKey);
 
-            if (snapshot == null ||
-                !string.Equals(
-                    snapshot.AccountId,
-                    accountId,
+            AtlasAccountSnapshot snapshot = await accountService.LoadCurrentAccountAsync();
+            if (snapshot == null || !string.Equals(snapshot.AccountId, accountId,
                     StringComparison.Ordinal))
-            {
-                nextSyncRetryTime =
-                    Time.unscaledTime +
-                    FailedSyncRetrySeconds;
+                throw new InvalidOperationException("Account documents not ready.");
 
-                Debug.LogWarning(
-                    "AtlasBoard Cloud Preferences could not load the " +
-                    "signed-in account yet. Local PlayerPrefs remain " +
-                    "active and cloud sync will retry automatically.",
-                    this);
-
-                return;
-            }
-
-            AtlasCloudPreferences remote =
-                snapshot.Preferences ??
+            // Only the CURRENT platform is read. No cross-device collection
+            // scans or wholesale nested map rewrites are performed.
+            DocumentSnapshot platformSnapshot =
+                await PlatformDocument(accountId).GetSnapshotAsync();
+            AtlasCloudPreferences legacy = snapshot.Preferences ??
                 new AtlasCloudPreferences();
+            bool missing = MergeCloudIntoLocal(legacy,
+                platformSnapshot.Exists ? platformSnapshot.ToDictionary() : null);
 
-            bool cloudWasCompletedFromLocal =
-                MergeRemoteIntoLocal(
-                    remote);
-
-            cachedCloudPreferences =
-                BuildCloudPreferencesFromCurrentLocal(
-                    remote);
-
-            if (cloudWasCompletedFromLocal)
-            {
-                AtlasAccountOperationResult seedResult =
-                    await accountService
-                        .SaveCloudPreferencesAsync(
-                            cachedCloudPreferences);
-
-                if (!seedResult.Success)
-                {
-                    Debug.LogWarning(
-                        "AtlasBoard Cloud Preferences loaded successfully, " +
-                        "but missing local sections could not be seeded to " +
-                        "Firestore yet. " +
-                        seedResult.TechnicalMessage,
-                        this);
-                }
-            }
-
-            string localLanguage =
-                AtlasBoardLocalizationLanguages.Normalize(
-                    AtlasBoardUserSettingsStore
-                        .Load()
-                        .LanguageCode);
-
-            if (!string.Equals(
-                    snapshot.PreferredLanguage,
-                    localLanguage,
-                    StringComparison.OrdinalIgnoreCase) &&
-                !string.IsNullOrWhiteSpace(
-                    snapshot.CountryCode))
-            {
-                await accountService.UpdateAccountLocaleAsync(
-                    snapshot.CountryCode,
-                    localLanguage);
-            }
+            if (missing || !platformSnapshot.Exists)
+                await PersistCurrentSettingsAsync(accountId, legacy);
 
             syncedAccountId = accountId;
             uploadPending = false;
             nextSyncRetryTime = 0f;
-
-            Debug.Log(
-                "AtlasBoard Cloud Preferences sync ready. " +
-                $"UID={accountId}; platform={platformKey}. " +
-                "Language/audio/global gameplay use shared cloud values; " +
-                "graphics and camera controls are platform-scoped. " +
-                "Missing platform sections are seeded from existing " +
-                "PlayerPrefs without moving or replacing the Settings UI.",
-                this);
+            await SyncUserLocaleAsync(snapshot);
+            Debug.Log("AtlasBoard Cloud Preferences v2 ready. Platform=" +
+                platformKey + "; root shared + isolated platform document.", this);
         }
         catch (Exception exception)
         {
-            nextSyncRetryTime =
-                Time.unscaledTime +
-                FailedSyncRetrySeconds;
-
-            Debug.LogWarning(
-                "AtlasBoard Cloud Preferences initial sync failed. " +
+            nextSyncRetryTime = Time.unscaledTime + FailedSyncRetrySeconds;
+            Debug.LogWarning("AtlasBoard Cloud Preferences v2 sign-in sync failed. " +
                 "Local settings remain active; retry scheduled. " +
-                exception.Message,
-                this);
+                exception.Message, this);
         }
-        finally
-        {
-            syncBusy = false;
-        }
-    }
-
-    private bool MergeRemoteIntoLocal(
-        AtlasCloudPreferences remote)
-    {
-        AtlasBoardUserSettingsValues localUser =
-            AtlasBoardUserSettingsStore.Load();
-
-        AtlasBoardAudioSettingsValues localAudio =
-            AtlasBoardAudioSettings.Load();
-
-        bool seededAnyMissingSection = false;
-
-        if (remote != null &&
-            AtlasBoardAccountConstants
-                .SupportedLanguageCodes
-                .Contains(remote.Language))
-        {
-            localUser.LanguageCode =
-                AtlasBoardLocalizationLanguages.Normalize(
-                    remote.Language);
-        }
-        else
-        {
-            seededAnyMissingSection = true;
-        }
-
-        if (remote != null &&
-            HasAudioSection(remote.Audio))
-        {
-            ApplyAudioMap(
-                remote.Audio,
-                ref localAudio,
-                ref localUser.AudioMuted);
-        }
-        else
-        {
-            seededAnyMissingSection = true;
-        }
-
-        Dictionary<string, object> remoteGraphics =
-            remote != null
-                ? remote.Graphics
-                : null;
-
-        if (TryGetNestedMap(
-                remoteGraphics,
-                platformKey,
-                out Dictionary<string, object>
-                    platformGraphics) &&
-            platformGraphics.Count > 0)
-        {
-            ApplyGraphicsMap(
-                platformGraphics,
-                ref localUser.Graphics);
-        }
-        else
-        {
-            seededAnyMissingSection = true;
-        }
-
-        Dictionary<string, object> remoteGameplay =
-            remote != null
-                ? remote.Gameplay
-                : null;
-
-        if (TryGetNestedMap(
-                remoteGameplay,
-                "global",
-                out Dictionary<string, object>
-                    globalGameplay) &&
-            globalGameplay.Count > 0)
-        {
-            ApplyGlobalGameplayMap(
-                globalGameplay,
-                ref localUser.Gameplay);
-        }
-        else
-        {
-            seededAnyMissingSection = true;
-        }
-
-        if (TryGetNestedMap(
-                remoteGameplay,
-                platformKey,
-                out Dictionary<string, object>
-                    platformGameplay) &&
-            platformGameplay.Count > 0)
-        {
-            ApplyPlatformGameplayMap(
-                platformGameplay,
-                ref localUser.Gameplay);
-        }
-        else
-        {
-            seededAnyMissingSection = true;
-        }
-
-        localUser =
-            AtlasBoardUserSettingsStore.Clamp(
-                localUser);
-
-        localAudio =
-            AtlasBoardAudioSettings.Clamp(
-                localAudio);
-
-        applyingCloudToLocal = true;
-
-        try
-        {
-            AtlasBoardAudioSettings.Save(
-                localAudio);
-
-            AtlasBoardUserSettingsStore.Save(
-                localUser);
-
-            ApplyPersistedLocalSettingsToRuntime(
-                localUser,
-                localAudio);
-        }
-        finally
-        {
-            applyingCloudToLocal = false;
-        }
-
-        return seededAnyMissingSection;
+        finally { syncBusy = false; }
     }
 
     private async Task UploadCurrentLocalPreferencesAsync()
     {
-        if (syncBusy ||
-            accountService == null ||
-            !accountService.IsSignedIn)
-        {
+        if (syncBusy || accountService == null || !accountService.IsSignedIn)
             return;
-        }
-
         syncBusy = true;
-
         try
         {
-            // Re-read the newest remote document before every write so a
-            // Windows client never erases Android/iOS platform sections and
-            // vice versa.
-            AtlasAccountSnapshot latestSnapshot =
-                await accountService
-                    .LoadCurrentAccountAsync();
+            string uid = accountService.CurrentAccountId;
+            if (!SupportedPlatform || string.IsNullOrWhiteSpace(uid))
+                throw new InvalidOperationException("Unsupported or unsigned platform.");
 
-            AtlasCloudPreferences basis =
-                latestSnapshot != null &&
-                latestSnapshot.Preferences != null
-                    ? latestSnapshot.Preferences
-                    : cachedCloudPreferences ??
-                      new AtlasCloudPreferences();
-
-            AtlasCloudPreferences outgoing =
-                BuildCloudPreferencesFromCurrentLocal(
-                    basis);
-
-            AtlasAccountOperationResult result =
-                await accountService
-                    .SaveCloudPreferencesAsync(
-                        outgoing);
-
-            if (!result.Success)
-            {
-                uploadPending = true;
-                nextUploadTime =
-                    Time.unscaledTime +
-                    FailedSyncRetrySeconds;
-
-                Debug.LogWarning(
-                    "AtlasBoard Cloud Preferences upload failed. " +
-                    "Local PlayerPrefs were already saved; cloud retry " +
-                    "will occur automatically. " +
-                    result.TechnicalMessage,
-                    this);
-
-                return;
-            }
-
-            cachedCloudPreferences = outgoing;
+            // AccountSnapshot is used only for shared metadata and locale.
+            // The new platform write never includes other platform documents.
+            AtlasAccountSnapshot snapshot =
+                await accountService.LoadCurrentAccountAsync();
+            if (snapshot == null || snapshot.AccountId != uid)
+                throw new InvalidOperationException("Account snapshot unavailable.");
+            await PersistCurrentSettingsAsync(uid,
+                snapshot.Preferences ?? new AtlasCloudPreferences());
             uploadPending = false;
-
-            if (latestSnapshot != null)
-            {
-                string localLanguage =
-                    AtlasBoardLocalizationLanguages.Normalize(
-                        outgoing.Language);
-
-                if (!string.Equals(
-                        latestSnapshot.PreferredLanguage,
-                        localLanguage,
-                        StringComparison.OrdinalIgnoreCase) &&
-                    !string.IsNullOrWhiteSpace(
-                        latestSnapshot.CountryCode))
-                {
-                    await accountService.UpdateAccountLocaleAsync(
-                        latestSnapshot.CountryCode,
-                        localLanguage);
-                }
-            }
-
-            Debug.Log(
-                "AtlasBoard Cloud Preferences updated from local " +
-                $"Settings. UID={accountService.CurrentAccountId}; " +
-                $"platform={platformKey}.",
-                this);
+            await SyncUserLocaleAsync(snapshot);
         }
         catch (Exception exception)
         {
             uploadPending = true;
-            nextUploadTime =
-                Time.unscaledTime +
-                FailedSyncRetrySeconds;
-
-            Debug.LogWarning(
-                "AtlasBoard Cloud Preferences upload encountered a " +
-                "temporary failure. Local PlayerPrefs remain authoritative " +
-                "for this device until retry. " +
-                exception.Message,
-                this);
+            nextUploadTime = Time.unscaledTime + FailedSyncRetrySeconds;
+            Debug.LogWarning("AtlasBoard Cloud Preferences v2 upload failed. " +
+                "Local Settings retained; retry scheduled. " +
+                exception.Message, this);
         }
-        finally
-        {
-            syncBusy = false;
-        }
+        finally { syncBusy = false; }
     }
 
-    private AtlasCloudPreferences
-        BuildCloudPreferencesFromCurrentLocal(
-            AtlasCloudPreferences basis)
+    private async Task PersistCurrentSettingsAsync(string uid,
+        AtlasCloudPreferences existing)
     {
-        AtlasBoardUserSettingsValues user =
-            AtlasBoardUserSettingsStore.Load();
+        AtlasBoardUserSettingsValues user = AtlasBoardUserSettingsStore.Load();
+        AtlasBoardAudioSettingsValues audio = AtlasBoardAudioSettings.Load();
 
-        AtlasBoardAudioSettingsValues audio =
-            AtlasBoardAudioSettings.Load();
-
-        AtlasCloudPreferences result =
-            basis ??
-            new AtlasCloudPreferences();
-
-        result.Language =
-            AtlasBoardLocalizationLanguages.Normalize(
-                user.LanguageCode);
-
-        result.Audio =
-            BuildAudioMap(
-                audio,
-                user.AudioMuted);
-
-        result.Graphics =
-            CloneMap(result.Graphics);
-
-        result.Graphics[platformKey] =
-            BuildGraphicsMap(
-                user.Graphics);
-
-        result.Gameplay =
-            CloneMap(result.Gameplay);
-
-        result.Gameplay["global"] =
-            BuildGlobalGameplayMap(
-                user.Gameplay);
-
-        result.Gameplay[platformKey] =
-            BuildPlatformGameplayMap(
-                user.Gameplay);
-
-        // Controls do not yet have a shipping Atlas Board Settings model.
-        // Preserve any future/mobile/Steam data instead of replacing it.
-        result.Controls =
-            CloneMap(result.Controls);
-
-        if (string.IsNullOrWhiteSpace(
-                result.CrossplayPreference))
+        // MergeAll for root preserves legacy graphics and other platforms'
+        // historic gameplay maps. Rules permit only global gameplay changes.
+        Dictionary<string, object> root = new Dictionary<string, object>
         {
-            result.CrossplayPreference =
-                AtlasBoardAccountConstants
-                    .DefaultCrossplayPreference;
-        }
+            { "language", AtlasBoardLocalizationLanguages.Normalize(user.LanguageCode) },
+            { "audio", BuildAudioMap(audio, user.AudioMuted) },
+            { "gameplay", new Dictionary<string, object>
+                { { "global", BuildGlobalGameplayMap(user.Gameplay) } } },
+            { "updatedAt", FieldValue.ServerTimestamp }
+        };
 
-        return result;
+        // Keep the user's saved crossplay choice. This component doesn't
+        // currently expose its own crossplay toggle.
+        if (existing != null &&
+            !string.IsNullOrWhiteSpace(existing.CrossplayPreference))
+            root["crossplayPreference"] = existing.CrossplayPreference;
+
+        Dictionary<string, object> platform = new Dictionary<string, object>
+        {
+            { "schemaVersion", 1 },
+            { "graphics", BuildGraphicsMap(user.Graphics) },
+            { "gameplay", BuildPlatformGameplayMap(user.Gameplay) },
+            { "updatedAt", FieldValue.ServerTimestamp }
+        };
+
+        FirebaseFirestore db = FirebaseFirestore.DefaultInstance;
+        WriteBatch batch = db.StartBatch();
+        batch.Set(db.Collection("preferences").Document(uid),
+            root, SetOptions.MergeAll);
+        batch.Set(PlatformDocument(uid), platform, SetOptions.Overwrite);
+        await batch.CommitAsync();
     }
 
-    private static Dictionary<string, object>
-        BuildAudioMap(
-            AtlasBoardAudioSettingsValues audio,
-            bool muted)
+    private async Task SyncUserLocaleAsync(AtlasAccountSnapshot snapshot)
     {
-        return new Dictionary<string, object>
+        if (snapshot == null || string.IsNullOrWhiteSpace(snapshot.CountryCode))
+            return;
+        string language = AtlasBoardLocalizationLanguages.Normalize(
+            AtlasBoardUserSettingsStore.Load().LanguageCode);
+        if (!string.Equals(snapshot.PreferredLanguage, language,
+                StringComparison.OrdinalIgnoreCase))
+            await accountService.UpdateAccountLocaleAsync(
+                snapshot.CountryCode, language);
+    }
+
+    private bool MergeCloudIntoLocal(AtlasCloudPreferences root,
+        Dictionary<string, object> platformDoc)
+    {
+        AtlasBoardUserSettingsValues user = AtlasBoardUserSettingsStore.Load();
+        AtlasBoardAudioSettingsValues audio = AtlasBoardAudioSettings.Load();
+        bool missing = false;
+
+        if (root != null && AtlasBoardAccountConstants.SupportedLanguageCodes
+            .Contains(root.Language))
+            user.LanguageCode = AtlasBoardLocalizationLanguages.Normalize(root.Language);
+        else missing = true;
+
+        if (root != null && HasAudioSection(root.Audio))
+            ApplyAudioMap(root.Audio, ref audio, ref user.AudioMuted);
+        else missing = true;
+
+        Dictionary<string, object> global;
+        if (root != null && TryGetNestedMap(root.Gameplay, "global", out global)
+            && global.Count > 0)
+            ApplyGlobalGameplayMap(global, ref user.Gameplay);
+        else missing = true;
+
+        // New v2 platform doc wins. If missing, migrate the v1 ROOT platform
+        // map for this OS, or seed from this device's existing PlayerPrefs.
+        Dictionary<string, object> graphics;
+        if (TryGetNestedMap(platformDoc, "graphics", out graphics)
+            && graphics.Count > 0)
+            ApplyGraphicsMap(graphics, ref user.Graphics);
+        else
         {
-            { "master", audio.Master },
-            { "mainMusic", audio.MainMusic },
-            { "theme", audio.Theme },
-            { "dice", audio.Dice },
-            { "effects", audio.Effects },
-            { "muted", muted }
+            missing = true;
+            if (root != null && TryGetNestedMap(root.Graphics, platformKey,
+                    out graphics) && graphics.Count > 0)
+                ApplyGraphicsMap(graphics, ref user.Graphics);
+        }
+
+        Dictionary<string, object> gameplay;
+        if (TryGetNestedMap(platformDoc, "gameplay", out gameplay)
+            && gameplay.Count > 0)
+            ApplyPlatformGameplayMap(gameplay, ref user.Gameplay);
+        else
+        {
+            missing = true;
+            if (root != null && TryGetNestedMap(root.Gameplay, platformKey,
+                    out gameplay) && gameplay.Count > 0)
+                ApplyPlatformGameplayMap(gameplay, ref user.Gameplay);
+        }
+
+        user = AtlasBoardUserSettingsStore.Clamp(user);
+        audio = AtlasBoardAudioSettings.Clamp(audio);
+        applyingCloudToLocal = true;
+        try
+        {
+            AtlasBoardAudioSettings.Save(audio);
+            AtlasBoardUserSettingsStore.Save(user);
+            ApplyPersistedLocalSettingsToRuntime(user, audio);
+        }
+        finally { applyingCloudToLocal = false; }
+        return missing;
+    }
+
+    private static Dictionary<string, object> BuildAudioMap(
+        AtlasBoardAudioSettingsValues audio, bool muted)
+    {
+        return new Dictionary<string, object> {
+            { "master", audio.Master }, { "mainMusic", audio.MainMusic },
+            { "theme", audio.Theme }, { "dice", audio.Dice },
+            { "effects", audio.Effects }, { "muted", muted }
         };
     }
 
-    private static Dictionary<string, object>
-        BuildGraphicsMap(
-            AtlasBoardGraphicsSettingsValues graphics)
+    private static Dictionary<string, object> BuildGraphicsMap(
+        AtlasBoardGraphicsSettingsValues graphics)
     {
-        return new Dictionary<string, object>
-        {
+        return new Dictionary<string, object> {
             { "resolutionWidth", graphics.ResolutionWidth },
             { "resolutionHeight", graphics.ResolutionHeight },
             { "refreshRate", graphics.RefreshRate },
@@ -588,361 +316,151 @@ public sealed class AtlasBoardCloudPreferencesSync : MonoBehaviour
         };
     }
 
-    private static Dictionary<string, object>
-        BuildGlobalGameplayMap(
-            AtlasBoardGameplaySettingsValues gameplay)
+    private static Dictionary<string, object> BuildGlobalGameplayMap(
+        AtlasBoardGameplaySettingsValues gameplay)
     {
-        return new Dictionary<string, object>
-        {
+        return new Dictionary<string, object> {
             { "botTurnSpeed", gameplay.BotTurnSpeed },
             { "uiHints", gameplay.UiHints },
-            {
-                "gameplayConfirmations",
-                gameplay.GameplayConfirmations
-            }
+            { "gameplayConfirmations", gameplay.GameplayConfirmations }
         };
     }
 
-    private static Dictionary<string, object>
-        BuildPlatformGameplayMap(
-            AtlasBoardGameplaySettingsValues gameplay)
+    private static Dictionary<string, object> BuildPlatformGameplayMap(
+        AtlasBoardGameplaySettingsValues gameplay)
     {
-        return new Dictionary<string, object>
-        {
-            {
-                "cameraSensitivity",
-                gameplay.CameraSensitivity
-            },
-            {
-                "cameraZoomSensitivity",
-                gameplay.CameraZoomSensitivity
-            },
-            {
-                "cameraPanSensitivity",
-                gameplay.CameraPanSensitivity
-            },
-            {
-                "reduceCameraMotion",
-                gameplay.ReduceCameraMotion
-            }
+        return new Dictionary<string, object> {
+            { "cameraSensitivity", gameplay.CameraSensitivity },
+            { "cameraZoomSensitivity", gameplay.CameraZoomSensitivity },
+            { "cameraPanSensitivity", gameplay.CameraPanSensitivity },
+            { "reduceCameraMotion", gameplay.ReduceCameraMotion }
         };
     }
 
-    private static void ApplyAudioMap(
-        Dictionary<string, object> map,
-        ref AtlasBoardAudioSettingsValues audio,
-        ref bool muted)
+    private static bool HasAudioSection(Dictionary<string, object> section)
     {
-        audio.Master =
-            GetFloat(map, "master", audio.Master);
-
-        audio.MainMusic =
-            GetFloat(map, "mainMusic", audio.MainMusic);
-
-        audio.Theme =
-            GetFloat(map, "theme", audio.Theme);
-
-        audio.Dice =
-            GetFloat(map, "dice", audio.Dice);
-
-        audio.Effects =
-            GetFloat(map, "effects", audio.Effects);
-
-        muted =
-            GetBool(map, "muted", muted);
+        return section != null && section.Count > 0 &&
+            (section.ContainsKey("master") ||
+             section.ContainsKey("mainMusic") || section.ContainsKey("effects"));
     }
 
-    private static void ApplyGraphicsMap(
-        Dictionary<string, object> map,
-        ref AtlasBoardGraphicsSettingsValues graphics)
+    private static bool TryGetNestedMap(Dictionary<string, object> parent,
+        string key, out Dictionary<string, object> result)
     {
-        graphics.ResolutionWidth =
-            GetInt(
-                map,
-                "resolutionWidth",
-                graphics.ResolutionWidth);
-
-        graphics.ResolutionHeight =
-            GetInt(
-                map,
-                "resolutionHeight",
-                graphics.ResolutionHeight);
-
-        graphics.RefreshRate =
-            GetInt(
-                map,
-                "refreshRate",
-                graphics.RefreshRate);
-
-        graphics.DisplayMode =
-            GetInt(
-                map,
-                "displayMode",
-                graphics.DisplayMode);
-
-        graphics.QualityPreset =
-            GetInt(
-                map,
-                "qualityPreset",
-                graphics.QualityPreset);
-
-        graphics.VSync =
-            GetBool(
-                map,
-                "vsync",
-                graphics.VSync);
-
-        graphics.FpsLimit =
-            GetInt(
-                map,
-                "fpsLimit",
-                graphics.FpsLimit);
-
-        graphics.ShadowQuality =
-            GetInt(
-                map,
-                "shadowQuality",
-                graphics.ShadowQuality);
-
-        graphics.AntiAliasing =
-            GetInt(
-                map,
-                "antiAliasing",
-                graphics.AntiAliasing);
-
-        graphics.ShowFps =
-            GetBool(
-                map,
-                "showFps",
-                graphics.ShowFps);
-    }
-
-    private static void ApplyGlobalGameplayMap(
-        Dictionary<string, object> map,
-        ref AtlasBoardGameplaySettingsValues gameplay)
-    {
-        gameplay.BotTurnSpeed =
-            GetInt(
-                map,
-                "botTurnSpeed",
-                gameplay.BotTurnSpeed);
-
-        gameplay.UiHints =
-            GetBool(
-                map,
-                "uiHints",
-                gameplay.UiHints);
-
-        gameplay.GameplayConfirmations =
-            GetBool(
-                map,
-                "gameplayConfirmations",
-                gameplay.GameplayConfirmations);
-    }
-
-    private static void ApplyPlatformGameplayMap(
-        Dictionary<string, object> map,
-        ref AtlasBoardGameplaySettingsValues gameplay)
-    {
-        gameplay.CameraSensitivity =
-            GetInt(
-                map,
-                "cameraSensitivity",
-                gameplay.CameraSensitivity);
-
-        gameplay.CameraZoomSensitivity =
-            GetInt(
-                map,
-                "cameraZoomSensitivity",
-                gameplay.CameraZoomSensitivity);
-
-        gameplay.CameraPanSensitivity =
-            GetInt(
-                map,
-                "cameraPanSensitivity",
-                gameplay.CameraPanSensitivity);
-
-        gameplay.ReduceCameraMotion =
-            GetBool(
-                map,
-                "reduceCameraMotion",
-                gameplay.ReduceCameraMotion);
-    }
-
-    private static bool HasAudioSection(
-        Dictionary<string, object> map)
-    {
-        return map != null &&
-               map.Count > 0 &&
-               (map.ContainsKey("master") ||
-                map.ContainsKey("mainMusic") ||
-                map.ContainsKey("effects"));
-    }
-
-    private static bool TryGetNestedMap(
-        Dictionary<string, object> parent,
-        string key,
-        out Dictionary<string, object> map)
-    {
-        map = null;
-
-        if (parent == null ||
-            !parent.TryGetValue(
-                key,
-                out object value) ||
-            value == null)
+        result = null;
+        if (parent == null || !parent.TryGetValue(key, out object value) ||
+            value == null) return false;
+        if (value is Dictionary<string, object> known)
         {
-            return false;
-        }
-
-        if (value is Dictionary<string, object>
-            dictionary)
-        {
-            map = dictionary;
+            result = known;
             return true;
         }
-
-        if (value is IDictionary<string, object>
-            interfaceMap)
+        if (value is IDictionary<string, object> other)
         {
-            map =
-                new Dictionary<string, object>(
-                    interfaceMap);
-
+            result = new Dictionary<string, object>(other);
             return true;
         }
-
         return false;
     }
 
-    private static Dictionary<string, object> CloneMap(
-        Dictionary<string, object> source)
+    private static int GetInt(Dictionary<string, object> section,
+        string key, int fallback)
     {
-        return source == null
-            ? new Dictionary<string, object>()
-            : new Dictionary<string, object>(source);
+        if (section == null || !section.TryGetValue(key, out object value) ||
+            value == null) return fallback;
+        try { return Convert.ToInt32(value); }
+        catch { return fallback; }
     }
 
-    private static int GetInt(
-        Dictionary<string, object> map,
-        string key,
-        int fallback)
+    private static float GetFloat(Dictionary<string, object> section,
+        string key, float fallback)
     {
-        if (map == null ||
-            !map.TryGetValue(key, out object value) ||
-            value == null)
-        {
-            return fallback;
-        }
-
-        try
-        {
-            return Convert.ToInt32(value);
-        }
-        catch
-        {
-            return fallback;
-        }
+        if (section == null || !section.TryGetValue(key, out object value) ||
+            value == null) return fallback;
+        try { return Convert.ToSingle(value); }
+        catch { return fallback; }
     }
 
-    private static float GetFloat(
-        Dictionary<string, object> map,
-        string key,
-        float fallback)
+    private static bool GetBool(Dictionary<string, object> section,
+        string key, bool fallback)
     {
-        if (map == null ||
-            !map.TryGetValue(key, out object value) ||
-            value == null)
-        {
-            return fallback;
-        }
-
-        try
-        {
-            return Convert.ToSingle(value);
-        }
+        if (section == null || !section.TryGetValue(key, out object value) ||
+            value == null) return fallback;
+        if (value is bool b) return b;
+        try { return Convert.ToInt32(value) != 0; }
         catch
         {
-            return fallback;
+            return bool.TryParse(value.ToString(), out bool parsed)
+                ? parsed : fallback;
         }
     }
 
-    private static bool GetBool(
-        Dictionary<string, object> map,
-        string key,
-        bool fallback)
+    private static void ApplyAudioMap(Dictionary<string, object> m,
+        ref AtlasBoardAudioSettingsValues a, ref bool muted)
     {
-        if (map == null ||
-            !map.TryGetValue(key, out object value) ||
-            value == null)
-        {
-            return fallback;
-        }
+        a.Master = GetFloat(m, "master", a.Master);
+        a.MainMusic = GetFloat(m, "mainMusic", a.MainMusic);
+        a.Theme = GetFloat(m, "theme", a.Theme);
+        a.Dice = GetFloat(m, "dice", a.Dice);
+        a.Effects = GetFloat(m, "effects", a.Effects);
+        muted = GetBool(m, "muted", muted);
+    }
 
-        if (value is bool boolValue)
-        {
-            return boolValue;
-        }
+    private static void ApplyGraphicsMap(Dictionary<string, object> m,
+        ref AtlasBoardGraphicsSettingsValues g)
+    {
+        g.ResolutionWidth = GetInt(m, "resolutionWidth", g.ResolutionWidth);
+        g.ResolutionHeight = GetInt(m, "resolutionHeight", g.ResolutionHeight);
+        g.RefreshRate = GetInt(m, "refreshRate", g.RefreshRate);
+        g.DisplayMode = GetInt(m, "displayMode", g.DisplayMode);
+        g.QualityPreset = GetInt(m, "qualityPreset", g.QualityPreset);
+        g.VSync = GetBool(m, "vsync", g.VSync);
+        g.FpsLimit = GetInt(m, "fpsLimit", g.FpsLimit);
+        g.ShadowQuality = GetInt(m, "shadowQuality", g.ShadowQuality);
+        g.AntiAliasing = GetInt(m, "antiAliasing", g.AntiAliasing);
+        g.ShowFps = GetBool(m, "showFps", g.ShowFps);
+    }
 
-        try
-        {
-            return Convert.ToInt32(value) != 0;
-        }
-        catch
-        {
-            if (bool.TryParse(
-                    value.ToString(),
-                    out bool parsed))
-            {
-                return parsed;
-            }
+    private static void ApplyGlobalGameplayMap(Dictionary<string, object> m,
+        ref AtlasBoardGameplaySettingsValues g)
+    {
+        g.BotTurnSpeed = GetInt(m, "botTurnSpeed", g.BotTurnSpeed);
+        g.UiHints = GetBool(m, "uiHints", g.UiHints);
+        g.GameplayConfirmations = GetBool(m, "gameplayConfirmations",
+            g.GameplayConfirmations);
+    }
 
-            return fallback;
-        }
+    private static void ApplyPlatformGameplayMap(Dictionary<string, object> m,
+        ref AtlasBoardGameplaySettingsValues g)
+    {
+        g.CameraSensitivity = GetInt(m, "cameraSensitivity", g.CameraSensitivity);
+        g.CameraZoomSensitivity = GetInt(m, "cameraZoomSensitivity",
+            g.CameraZoomSensitivity);
+        g.CameraPanSensitivity = GetInt(m, "cameraPanSensitivity",
+            g.CameraPanSensitivity);
+        g.ReduceCameraMotion = GetBool(m, "reduceCameraMotion",
+            g.ReduceCameraMotion);
     }
 
     private void ApplyPersistedLocalSettingsToRuntime(
-        AtlasBoardUserSettingsValues user,
-        AtlasBoardAudioSettingsValues audio)
+        AtlasBoardUserSettingsValues user, AtlasBoardAudioSettingsValues audio)
     {
         AtlasBoardSettingsV2Controller controller =
             AtlasBoardSettingsV2Controller.Instance;
-
         if (controller != null)
         {
-            controller
-                .ReloadAndApplyPersistedSettingsFromExternalSync();
-
+            controller.ReloadAndApplyPersistedSettingsFromExternalSync();
             return;
         }
-
-        AtlasBoardUserSettingsRuntime.SetCurrent(
-            user);
-
-        AtlasBoardLocalizationManager.Instance
-            ?.SetLanguage(
-                user.LanguageCode);
-
-        AtlasBoardAudioManager.Instance
-            ?.ApplySettings(
-                audio);
-
-        AudioListener.volume =
-            user.AudioMuted ? 0f : 1f;
+        AtlasBoardUserSettingsRuntime.SetCurrent(user);
+        AtlasBoardLocalizationManager.Instance?.SetLanguage(user.LanguageCode);
+        AtlasBoardAudioManager.Instance?.ApplySettings(audio);
+        AudioListener.volume = user.AudioMuted ? 0f : 1f;
     }
 
     private void ResetSignedInState()
     {
-        if (string.IsNullOrWhiteSpace(
-                syncedAccountId) &&
-            cachedCloudPreferences == null &&
-            !uploadPending)
-        {
-            return;
-        }
-
         syncedAccountId = string.Empty;
-        cachedCloudPreferences = null;
         uploadPending = false;
         nextSyncRetryTime = 0f;
     }
@@ -952,27 +470,14 @@ public sealed class AtlasBoardCloudPreferencesSync : MonoBehaviour
         switch (Application.platform)
         {
             case RuntimePlatform.WindowsEditor:
-            case RuntimePlatform.WindowsPlayer:
-                return "windows";
-
+            case RuntimePlatform.WindowsPlayer: return "windows";
             case RuntimePlatform.OSXEditor:
-            case RuntimePlatform.OSXPlayer:
-                return "macos";
-
+            case RuntimePlatform.OSXPlayer: return "macos";
             case RuntimePlatform.LinuxEditor:
-            case RuntimePlatform.LinuxPlayer:
-                return "linux";
-
-            case RuntimePlatform.Android:
-                return "android";
-
-            case RuntimePlatform.IPhonePlayer:
-                return "ios";
-
-            default:
-                return Application.platform
-                    .ToString()
-                    .ToLowerInvariant();
+            case RuntimePlatform.LinuxPlayer: return "linux";
+            case RuntimePlatform.Android: return "android";
+            case RuntimePlatform.IPhonePlayer: return "ios";
+            default: return "unknown"; // fail closed pending schema review
         }
     }
 }

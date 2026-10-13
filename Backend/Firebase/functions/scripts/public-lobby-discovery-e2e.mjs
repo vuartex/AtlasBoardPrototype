@@ -7,7 +7,13 @@ const FUNCTIONS_BASE = "http://127.0.0.1:5001";
 const FIRESTORE_BASE = "http://127.0.0.1:8080";
 const HUB_BASE = "http://127.0.0.1:4400";
 const API_KEY = "atlasboard-local-emulator-only";
-const TIMEOUT_MS = 10000;
+// Keep a consistent baseline for the existing local emulator E2E requests.
+const TIMEOUT_MS = 15000;
+// Phase 17A.2: the full 8-way emulator burst may queue cold Functions workers.
+// This upper bound applies ONLY to the dedicated parallel-discovery probe.
+// It is not an approved Android/Google Play production latency target.
+const DISCOVERY_CONCURRENT_TIMEOUT_MS = 30000;
+const DISCOVERY_SLOW_REQUEST_MS = 5000;
 const LOCAL_JOIN_CODE_PEPPER =
   "atlasboard-local-emulator-lobby-code-pepper-v1";
 
@@ -16,9 +22,13 @@ function assert(condition, message) {
 }
 
 async function requestJson(url, options = {}) {
+  const {timeoutMs = TIMEOUT_MS, ...fetchOptions} = options;
+  assert(Number.isSafeInteger(timeoutMs) && timeoutMs >= 1000 &&
+    timeoutMs <= DISCOVERY_CONCURRENT_TIMEOUT_MS,
+  "Invalid emulator request timeout override.");
   const response = await fetch(url, {
-    ...options,
-    signal: AbortSignal.timeout(TIMEOUT_MS),
+    ...fetchOptions,
+    signal: AbortSignal.timeout(timeoutMs),
   });
   const text = await response.text();
   let json = null;
@@ -28,11 +38,12 @@ async function requestJson(url, options = {}) {
   return {response, json, text};
 }
 
-async function postJson(url, body, headers = {}) {
+async function postJson(url, body, headers = {}, timeoutMs = TIMEOUT_MS) {
   return requestJson(url, {
     method: "POST",
     headers: {"Content-Type": "application/json", ...headers},
     body: JSON.stringify(body),
+    timeoutMs,
   });
 }
 
@@ -47,7 +58,7 @@ function callableUrl(name) {
 // Do not send it to any non-loopback URL or deployed Firebase environment.
 const LOCAL_APP_CHECK_PLACEHOLDER = "phase16i-local-emulator-only";
 
-async function callFunction(name, token, data) {
+async function callFunction(name, token, data, timeoutMs = TIMEOUT_MS) {
   const url = callableUrl(name);
   const target = new URL(url);
   assert(
@@ -66,6 +77,7 @@ async function callFunction(name, token, data) {
       Authorization: `Bearer ${token}`,
       "X-Firebase-AppCheck": LOCAL_APP_CHECK_PLACEHOLDER,
     },
+    timeoutMs,
   );
 }
 
@@ -641,21 +653,58 @@ try {
   console.log("[16I-4/6] PASSED. Cursor validation, region and stale filtering are safe.");
 
   console.log("[16I-5/6] Concurrent first-page reads remain deterministic...");
+  // PHASE17A_DISCOVERY_CONCURRENCY_V5232
+  // IMPORTANT: launch all EIGHT calls before awaiting any; no serializing,
+  // skipped checks, blind retries, fake responses or weakened data assertions.
+  // The emulator may create/queue cold workers during this burst. Capture the
+  // actual latency and response for each request before deciding PASS/FAIL.
+  const burstStartedAt = performance.now();
   const concurrent = await Promise.all(
-    Array.from({length: 8}, () =>
-      callFunction(
-        "lobbyListPublicRoomsPage",
-        browser.token,
-        {...scaleVersions, limit: 7, cursor: ""},
-      )),
+    Array.from({length: 8}, async (_, index) => {
+      const startedAt = performance.now();
+      try {
+        const call = await callFunction(
+          "lobbyListPublicRoomsPage",
+          browser.token,
+          {...scaleVersions, limit: 7, cursor: ""},
+          DISCOVERY_CONCURRENT_TIMEOUT_MS,
+        );
+        return {index: index + 1, elapsedMs: Math.round(performance.now() - startedAt), call};
+      } catch (error) {
+        // A transport timeout remains a test failure; collect all 8 timings
+        // rather than hiding the other outcomes via Promise.all rejection.
+        return {index: index + 1, elapsedMs: Math.round(performance.now() - startedAt),
+          error: error instanceof Error ? `${error.name}: ${error.message}` : String(error)};
+      }
+    }),
   );
-  for (const call of concurrent) {
-    assert(call.response.ok, `Concurrent discovery failed: ${call.text}`);
-    assert(JSON.stringify(rooms(call).map((card) => card.lobbyId)) ===
-      JSON.stringify(firstIds),
-    "Concurrent first-page result was not deterministic.");
+  assert(concurrent.length === 8, "All eight concurrent requests must report outcomes.");
+  console.log("[16I-5/6] 8-way request latency (ms): " +
+    concurrent.map(({index, elapsedMs}) => `#${index}=${elapsedMs}`).join(", ") +
+    `; burstWallMs=${Math.round(performance.now() - burstStartedAt)}`);
+  const failed = concurrent.filter(({call, error}) =>
+    error !== undefined || call?.response?.ok !== true);
+  assert(failed.length === 0,
+    "8-way discovery transport/HTTP failure: " +
+    failed.map(({index, elapsedMs, error, call}) =>
+      `#${index} (${elapsedMs}ms) ` +
+      (error ?? `HTTP ${call?.response?.status ?? "unknown"}: ${call?.text ?? ""}`)
+    ).join(" | "));
+  for (const {index, call} of concurrent) {
+    const actualIds = rooms(call).map((card) => card.lobbyId);
+    assert(JSON.stringify(actualIds) === JSON.stringify(firstIds),
+      `Concurrent discovery #${index} changed first-page ordering/content: ` +
+      JSON.stringify(actualIds));
   }
-  console.log("[16I-5/6] PASSED. Concurrent discovery reads are deterministic locally.");
+  const slow = concurrent.filter(({elapsedMs}) =>
+    elapsedMs > DISCOVERY_SLOW_REQUEST_MS);
+  if (slow.length) {
+    console.warn(`[16I-5/6] PERFORMANCE OPEN: ${slow.length}/8 emulator requests ` +
+      `exceeded ${DISCOVERY_SLOW_REQUEST_MS}ms. ` +
+      "This remains a release performance gate for actual Android devices/staging.");
+  }
+  console.log("[16I-5/6] PASSED. All 8 parallel calls succeeded and returned exact stable data; " +
+    "local emulator latency was measured separately.");
 
   console.log("[16I-6/6] Closed-between-page-and-Join is rejected authoritatively...");
   closingHost = await createAuthUser("closing-host");

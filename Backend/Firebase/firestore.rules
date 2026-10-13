@@ -129,35 +129,135 @@ service cloud.firestore {
         request.resource.data.updatedAt is timestamp;
     }
 
-    function validPreferences() {
-      return request.resource.data.keys().hasOnly([
-          'language',
-          'audio',
-          'graphics',
-          'controls',
-          'gameplay',
-          'crossplayPreference',
-          'updatedAt'
+    // SEC06 v2: isolate device Settings in ONE document per platform.
+    // Legacy graphics/gameplay children in /preferences/{uid} are READ-ONLY
+    // and remain available during the client-side migration; never overwrite
+    // those historical maps from a platform sync.
+    function intBetween(v, low, high) {
+      return v is int && v >= low && v <= high;
+    }
+
+    function audioBetween(v) {
+      return v is number && v >= 0 && v <= 1;
+    }
+
+    function validAudioV2(section) {
+      return section is map &&
+        section.keys().hasOnly([
+          'master', 'mainMusic', 'theme', 'dice', 'effects', 'muted'
         ]) &&
-        request.resource.data.keys().hasAll([
-          'language',
-          'audio',
-          'graphics',
-          'controls',
-          'gameplay',
-          'crossplayPreference',
-          'updatedAt'
+        audioBetween(section.get('master', 0)) &&
+        audioBetween(section.get('mainMusic', 0)) &&
+        audioBetween(section.get('theme', 0)) &&
+        audioBetween(section.get('dice', 0)) &&
+        audioBetween(section.get('effects', 0)) &&
+        section.get('muted', false) is bool;
+    }
+
+    function validGraphicsV2(section) {
+      return section is map &&
+        section.keys().hasOnly([
+          'resolutionWidth', 'resolutionHeight', 'refreshRate',
+          'displayMode', 'qualityPreset', 'vsync', 'fpsLimit',
+          'shadowQuality', 'antiAliasing', 'showFps'
         ]) &&
-        supportedLanguage(
-          request.resource.data.language
-        ) &&
-        request.resource.data.audio is map &&
-        request.resource.data.graphics is map &&
+        intBetween(section.get('resolutionWidth', 0), 0, 32768) &&
+        intBetween(section.get('resolutionHeight', 0), 0, 32768) &&
+        intBetween(section.get('refreshRate', 0), 0, 1000) &&
+        intBetween(section.get('displayMode', 0), 0, 2) &&
+        intBetween(section.get('qualityPreset', 0), 0, 3) &&
+        section.get('vsync', false) is bool &&
+        intBetween(section.get('fpsLimit', 0), 0, 1000) &&
+        intBetween(section.get('shadowQuality', 0), 0, 3) &&
+        intBetween(section.get('antiAliasing', 0), 0, 3) &&
+        section.get('showFps', false) is bool;
+    }
+
+    function validGlobalGameplayV2(section) {
+      return section is map &&
+        section.keys().hasOnly([
+          'botTurnSpeed', 'uiHints', 'gameplayConfirmations'
+        ]) &&
+        intBetween(section.get('botTurnSpeed', 50), 1, 100) &&
+        section.get('uiHints', false) is bool &&
+        section.get('gameplayConfirmations', false) is bool;
+    }
+
+    function validPlatformGameplayV2(section) {
+      return section is map &&
+        section.keys().hasOnly([
+          'cameraSensitivity', 'cameraZoomSensitivity',
+          'cameraPanSensitivity', 'reduceCameraMotion'
+        ]) &&
+        intBetween(section.get('cameraSensitivity', 50), 1, 100) &&
+        intBetween(section.get('cameraZoomSensitivity', 50), 1, 100) &&
+        intBetween(section.get('cameraPanSensitivity', 50), 1, 100) &&
+        section.get('reduceCameraMotion', false) is bool;
+    }
+
+    function validRootShape(data) {
+      return data.keys().hasOnly([
+          'language','audio','graphics','controls','gameplay',
+          'crossplayPreference','updatedAt'
+        ]) &&
+        data.keys().hasAll([
+          'language','audio','graphics','controls','gameplay',
+          'crossplayPreference','updatedAt'
+        ]) &&
+        supportedLanguage(data.language) &&
+        validAudioV2(data.audio) &&
+        data.graphics is map &&
+        data.controls is map &&
+        data.gameplay is map &&
+        data.crossplayPreference in ['enabled','disabled'] &&
+        data.updatedAt is timestamp;
+    }
+
+    function validNewPreferences() {
+      return request.resource.data.graphics is map &&
+        request.resource.data.graphics.size() == 0 &&
         request.resource.data.controls is map &&
+        request.resource.data.controls.size() == 0 &&
         request.resource.data.gameplay is map &&
-        request.resource.data.crossplayPreference is string &&
-        request.resource.data.crossplayPreference.size() <= 32 &&
-        request.resource.data.updatedAt is timestamp;
+        request.resource.data.gameplay.size() == 0 &&
+        validRootShape(request.resource.data);
+    }
+
+    function validRootGameplayDelta(next, previous) {
+      return next is map && previous is map &&
+        next.diff(previous).affectedKeys().hasOnly(['global']) &&
+        (!previous.keys().hasAny(['global']) ||
+          next.keys().hasAny(['global'])) &&
+        (!next.keys().hasAny(['global']) ||
+          validGlobalGameplayV2(next.global));
+    }
+
+    function validUpdatedPreferences() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'language','audio','gameplay','crossplayPreference','updatedAt'
+        ]) &&
+        validRootShape(request.resource.data) &&
+        validRootGameplayDelta(
+          request.resource.data.gameplay, resource.data.gameplay);
+    }
+
+    // New platforms require a deliberate client + rules version update.
+    // Do not permit arbitrary platform IDs (e.g., path traversal/garbage).
+    function supportedSettingsPlatform(platform) {
+      return platform in ['windows','macos','linux','android','ios'];
+    }
+
+    function validPlatformSettingsDocument(data) {
+      return data.keys().hasOnly([
+          'schemaVersion','graphics','gameplay','updatedAt'
+        ]) &&
+        data.keys().hasAll([
+          'schemaVersion','graphics','gameplay','updatedAt'
+        ]) &&
+        data.schemaVersion == 1 &&
+        validGraphicsV2(data.graphics) &&
+        validPlatformGameplayV2(data.gameplay) &&
+        data.updatedAt is timestamp;
     }
 
     // Private canonical account document.
@@ -181,12 +281,15 @@ service cloud.firestore {
       allow list, delete: if false;
     }
 
-    // Public-facing profile projection.
-    //
-    // Reading still requires an authenticated Atlas account. Only the owner
-    // can write the profile document.
+    // SEC07: Public profile projections support targeted UID lookups only.
+    // Unity uses Document(uid).GetSnapshotAsync(), not a directory LIST.
+    // No signed-in client may enumerate the full account registry or issue
+    // collection/runQuery scans. Admin SDK server lookups remain unaffected.
+    // Product note: a future friend-search directory must use a dedicated
+    // callable with server-side quota, opt-in and minimal safe projections.
     match /public_profiles/{uid} {
-      allow get, list: if signedIn();
+      allow get: if signedIn();
+      allow list: if false;
 
       allow create, update: if owns(uid) &&
         validPublicProfile();
@@ -194,17 +297,26 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // User-owned cloud settings.
-    //
-    // These are intentionally client-controlled preferences, not authority or
-    // economy state.
+    // Shared preferences preserve the registration document contract.
+    // Any existing platform maps in the root document are immutable legacy
+    // data, read during on-device migration but never modified by new sync.
     match /preferences/{uid} {
       allow get: if owns(uid);
-
-      allow create, update: if owns(uid) &&
-        validPreferences();
-
+      allow create: if owns(uid) && validNewPreferences();
+      allow update: if owns(uid) && validUpdatedPreferences();
       allow list, delete: if false;
+
+      // One bounded document per OS / device family. Android is fully
+      // supported before the Steam release; desktop/mobile do not share
+      // graphics/camera settings. Feature-specific future subcollections
+      // remain DENIED until their own schema and permissions are reviewed.
+      match /platforms/{platform} {
+        allow get: if owns(uid) && supportedSettingsPlatform(platform);
+        allow create, update: if owns(uid) &&
+          supportedSettingsPlatform(platform) &&
+          validPlatformSettingsDocument(request.resource.data);
+        allow list, delete: if false;
+      }
     }
 
     // Everything else is backend-only by default.

@@ -1,16 +1,10 @@
 /**
- * AtlasBoard SECURITY-CORE-01: fail-closed persistence of unverified host results.
+ * AtlasBoard SECURITY-CORE-01 / Phase 17A: fail-closed unverified host results.
  *
- * Host-authoritative gameplay is NOT server-authenticated gameplay. A Firebase
- * Auth token proves who sent the host snapshot, not that the claimed victory,
- * balance or development actually happened. Only a privileged, independently
- * verifying SERVER process may create the match_result_verifications receipt.
- * This project does not yet implement that verifier: online progression rewards
- * therefore remain PENDING until it is implemented and accepted.
- *
- * Never create such receipts from the Unity client, a host callback, a
- * client-acknowledgement counter, or a purely elapsed-time/turn-count check.
- * This file intentionally does not implement any emulator/prod bypass.
+ * A host-supplied snapshot is NOT independently verified game history.
+ * Server-side scoreboard consistency checks prevent malformed/contradictory
+ * completions, but MUST NEVER mint match_result_verifications or grant XP.
+ * Only a future independent gameplay replay verifier can grant that proof.
  */
 import {createHash} from "crypto";
 import {getFirestore} from "firebase-admin/firestore";
@@ -21,6 +15,7 @@ import {
   ProgressionSlotTelemetryInput,
 } from "../progression/progression";
 import {ATLAS_ENFORCE_APP_CHECK} from "./app-check-policy";
+import {validateMatchResultConsistency} from "./match-result-consistency";
 
 const REGION = "europe-west1";
 const VERIFICATION_SCHEMA_VERSION = 1;
@@ -38,9 +33,7 @@ function invalidMatchId(value: unknown): string {
   return value;
 }
 
-function requireAuthenticatedUid(
-  auth: {uid: string} | undefined,
-): string {
+function requireAuthenticatedUid(auth: {uid: string} | undefined): string {
   if (!auth?.uid) {
     throw new HttpsError("unauthenticated", "AUTHENTICATION_REQUIRED", {
       errorKey: "account.error.unauthenticated",
@@ -49,16 +42,8 @@ function requireAuthenticatedUid(
   return auth.uid;
 }
 
-/**
- * Result verification is a privileged write-only receipt, NOT host testimony.
- * Even if the host controls the snapshot, it cannot mint its own receipt since
- * direct Firestore writes to these collections are denied by security rules.
- * The future verifier must also freeze the approved revision atomically.
- */
-async function hasTrustedMatchResult(
-  matchId: string,
-  uid: string,
-): Promise<boolean> {
+/** A separately minted, protected replay receipt is mandatory for all rewards. */
+async function hasTrustedMatchResult(matchId: string, uid: string): Promise<boolean> {
   const db = getFirestore();
   const matchRef = db.collection("matches").doc(matchId);
   const [matchSnap, networkSnap, verificationSnap] = await Promise.all([
@@ -72,20 +57,14 @@ async function hasTrustedMatchResult(
       errorKey: "progression.error.host_required",
     });
   }
-  if (!networkSnap.exists || !verificationSnap.exists) {
-    return false;
-  }
+  if (!networkSnap.exists || !verificationSnap.exists) return false;
   const match = matchSnap.data() ?? {};
   const network = networkSnap.data() ?? {};
   const proof = verificationSnap.data() ?? {};
   const snapshotJson = network.snapshotJson;
   if (typeof snapshotJson !== "string" || snapshotJson.length < 2 ||
-    snapshotJson.length > 64 * 1024) {
-    return false;
-  }
-  const sha256 = createHash("sha256")
-    .update(snapshotJson, "utf8")
-    .digest("hex");
+    snapshotJson.length > 64 * 1024) return false;
+  const sha256 = createHash("sha256").update(snapshotJson, "utf8").digest("hex");
   return (
     proof.schemaVersion === VERIFICATION_SCHEMA_VERSION &&
     proof.verificationStatus === "verified" &&
@@ -107,9 +86,8 @@ async function hasTrustedMatchResult(
 }
 
 /**
- * Hardening for obvious zero-turn completions and post-completion rewrites.
- * This check is a defense-in-depth measure, NOT cryptographic game authority.
- * Full transition/rules validation is still needed for official progression.
+ * Host-authoritative transport with additional deterministic scoreboard checks.
+ * All previously enforced host, seat and revision checks remain in network.ts.
  */
 export const matchHostPublishState = onCall(
   {
@@ -127,8 +105,6 @@ export const matchHostPublishState = onCall(
       db.collection("match_result_verifications").doc(matchId).get(),
     ]);
 
-    // The original publishMatchNetworkState performs the authoritative host,
-    // seat and transaction revision checks; do not weaken these.
     if (match.exists && match.data()?.hostAccountId === uid) {
       if (match.data()?.status === "complete" ||
         match.data()?.status === "completed" || proof.exists) {
@@ -155,13 +131,21 @@ export const matchHostPublishState = onCall(
             errorKey: "match.error.invalid_request",
           });
         }
-        const result = frame.matchResult as Record<string, unknown> | null;
         if (!frame || frame.phase !== COMPLETED_PHASE ||
-          !result || result.valid !== true) {
+          !frame.matchResult ||
+          (frame.matchResult as Record<string, unknown>).valid !== true) {
           throw new HttpsError("failed-precondition", "MATCH_RESULT_NOT_READY", {
             errorKey: "match.error.premature_completion",
           });
         }
+        const check = validateMatchResultConsistency(frame);
+        if (!check.ok) {
+          throw new HttpsError("failed-precondition", "INCONSISTENT_MATCH_RESULT", {
+            errorKey: "match.error.invalid_result_consistency",
+            reason: check.reason,
+          });
+        }
+        // A consistency PASS never creates proof, XP, achievements or wins.
       }
     }
 
@@ -179,11 +163,9 @@ export const matchHostPublishState = onCall(
 );
 
 /**
- * Fail closed for permanent XP, career wins, match-history rewards and
- * achievements until an independent server verifier signs the exact network
- * state. A pending response is successful at the transport level so Unity's
- * current completion recorder does not repeatedly retry or block the game.
- * It deliberately has applied=false and affectedAccountCount=0.
+ * Permanent progression stays PENDING until an independent server replay
+ * creates the exact protected receipt. Return transport OK to keep current
+ * Unity completion UX nonblocking without issuing permanent rewards.
  */
 export const progressionRecordCompletedMatch = onCall(
   {
@@ -195,7 +177,6 @@ export const progressionRecordCompletedMatch = onCall(
     const uid = requireAuthenticatedUid(request.auth);
     const data = request.data ?? {};
     const matchId = invalidMatchId(data.matchId);
-
     if (!await hasTrustedMatchResult(matchId, uid)) {
       return {
         ok: true,
@@ -225,9 +206,6 @@ export const progressionRecordCompletedMatch = onCall(
       completedTurns: Number(data.completedTurns ?? 0),
       telemetry,
     });
-    return {
-      ...result,
-      verificationStatus: "verified",
-    };
+    return {...result, verificationStatus: "verified"};
   },
 );
