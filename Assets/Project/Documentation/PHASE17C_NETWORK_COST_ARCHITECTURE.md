@@ -1,6 +1,6 @@
 # AtlasBoard — Phase 17C Network Cost Architecture
 
-Version: v5.26.0 candidate
+Version: v5.26.1 candidate
 Date: 2026-10-14
 
 ## 1. Goal
@@ -188,3 +188,86 @@ Not yet implemented / do not claim complete:
 8. Replace legacy polling incrementally while retaining fallback until parity.
 9. Measure requests, bandwidth, Firestore reads/writes and latency.
 10. Only then design Online Rewarded checkpoint/final-verification traffic.
+
+## 7. v5.26.1 RTDB schema and security contract
+
+The owner created the AtlasBoard Realtime Database in the Belgium/Europe region.
+It must begin in Locked Mode. `Backend/Firebase/database.rules.json` is the
+canonical rules source. `firebase.json` now points to that file.
+
+Planned RTDB paths:
+- `/joinCodes/{code}`: short-lived mapping to a high-entropy room id. Authenticated
+  reads only while unexpired; only the owning host may create/update/delete it.
+- `/roomMeta/{roomId}`: Private Casual Online room metadata. Client-created RTDB
+  rooms are explicitly restricted to `privateCasualOnline`; they cannot declare
+  themselves rewarded/ranked.
+- `/joinRequests/{roomId}/{uid}`: authenticated guest requests admission.
+- `/roomMembers/{roomId}/{uid}`: host-controlled membership; a non-host can only
+  be added after a join request exists.
+- `/presence/{roomId}/{uid}`: each accepted member writes only its own presence.
+- `/intents/{roomId}/{uid}/{intentId}`: each accepted remote human creates only
+  its own bounded intent; the host reads/processes and may delete it.
+- `/intentAcks/{roomId}/{uid}/{intentId}`: host acknowledgement for that remote
+  human.
+- `/roomState/{roomId}`: host-only monotonic revision/event state, read by active
+  room members.
+- `/publicRoomDirectory`: authenticated read-only client directory reserved for
+  trusted/admin publishing; indexed on `joinable` and `updatedAt`.
+- `/catalogs`: authenticated read-only store/event/public-promotion DISPLAY
+  metadata. Client writes are denied. Secret redeem codes and reward issuance do
+  not belong here.
+
+The rules are deny-by-default at the database root. Rewarded/ranked room creation
+and secure economy/progression mutation are intentionally NOT granted to RTDB
+clients. Firebase Admin/trusted services bypass client rules when those services
+are implemented.
+
+## 8. Index policy
+
+RTDB direct-key paths (`roomMeta`, `roomMembers`, `presence`, `intents`,
+`roomState`, `joinCodes`) do not need query indexes for the planned access pattern.
+Query-oriented paths declare `.indexOn` now:
+- `publicRoomDirectory`: `joinable`, `updatedAt`;
+- `catalogs/storeItems`: `active`, `sortOrder`;
+- `catalogs/events`: `active`, `startsAt`, `endsAt`;
+- `catalogs/publicPromotions`: `active`, `startsAt`, `endsAt`.
+
+Firestore composite indexes remain empty until an actual Firestore query requires
+one. Adding indexes does not reduce callable invocation counts; the large savings
+come from eliminating polling and rereads.
+
+## 9. Capacity model (targets, not measured acceptance)
+
+Legacy four-player, 20-round, ~30-minute polling estimate:
+- ~32,280 Cloud Function/callable requests per match;
+- ~158,400 Firestore reads per match from snapshot/pending-intent polling and
+  associated document reads.
+
+Phase 17C targets:
+- Local Offline: 0 gameplay Functions, 0 gameplay Firestore, 0 gameplay RTDB.
+  Backend gameplay traffic reduction: effectively 100%.
+- Private Casual Online: 0 normal gameplay Functions and 0 live Firestore polling.
+  RTDB carries only event-driven membership/presence/intents/state. Design target
+  is ~1–5 MB downloaded per four-player 20-round match after batching. At the
+  Spark 10 GB/month download ceiling this is approximately 2,000–10,000 matches
+  per month before other app RTDB traffic. Spark allows 100 simultaneous RTDB
+  connections, so approximately 25 four-player or 50 two-player matches can be
+  connected at once.
+- Online Rewarded: RTDB remains the live transport, while trusted validation is
+  bounded to meaningful security boundaries. A 200–500 trusted-call target is
+  98.5–99.4% fewer calls than ~32,280. A 100–300 secure-Firestore-read target is
+  over 99.8% fewer reads than ~158,400. These are engineering targets and must
+  be replaced by measured counters after implementation.
+
+Important: Spark RTDB can support Casual Online without Cloud Functions, but
+secure permanent XP/wallet/purchase issuance cannot be delegated to the host or
+RTDB rules. Until a trusted backend is available, Online Rewarded must remain
+non-rewarded/disabled rather than minting valuable state from an untrusted host.
+
+## 10. v5.26.1 compile repair
+
+The first v5.26.0 Android build failed because `AtlasBoardOfflineModeBootstrap`
+subscribed to `PublicCodeRaised` with `HandlePublicCode`, but the implemented
+callback is `HandlePublicCodeRaised`. All subscribe/unsubscribe references now use
+`HandlePublicCodeRaised`. No gameplay/security policy was relaxed by this repair.
+

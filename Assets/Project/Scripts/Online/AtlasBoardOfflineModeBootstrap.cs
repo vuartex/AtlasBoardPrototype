@@ -46,8 +46,8 @@ public sealed class AtlasBoardOfflineModeBootstrap : MonoBehaviour
         }
 
         instance = this;
-        AtlasBoardFrontendErrorCodes.PublicCodeRaised -= HandlePublicCode;
-        AtlasBoardFrontendErrorCodes.PublicCodeRaised += HandlePublicCode;
+        AtlasBoardFrontendErrorCodes.PublicCodeRaised -= HandlePublicCodeRaised;
+        AtlasBoardFrontendErrorCodes.PublicCodeRaised += HandlePublicCodeRaised;
     }
 
     private void OnDestroy()
@@ -55,7 +55,7 @@ public sealed class AtlasBoardOfflineModeBootstrap : MonoBehaviour
         if (instance != this)
             return;
 
-        AtlasBoardFrontendErrorCodes.PublicCodeRaised -= HandlePublicCode;
+        AtlasBoardFrontendErrorCodes.PublicCodeRaised -= HandlePublicCodeRaised;
         instance = null;
     }
 
