@@ -1,10 +1,14 @@
 # ATLAS BOARD
-## Master Architecture & Development Roadmap v5.24.0 — PHASE 17A.3 FINALIZATION RACE QA CANDIDATE
+## Master Architecture & Development Roadmap v5.26.0 — PHASE 17C NETWORK COST / OFFLINE-FIRST ARCHITECTURE CANDIDATE
 
+
+**v5.26.0 current checkpoint (2026-10-14):** Android physical-device evidence from Samsung SM-G780G / Android 13 confirms LandscapeLeft startup, native 2400x1080 viewport, safe area x=88 width=2312, Android native Back registration, mobile canvas fitting and on-device log sharing. The same log proves startup falls back because online identity is not ready (ATB110) and proves the v5.25.x resolution repair observed transient 1080x2400 pixels twice after Settings interaction. v5.26.0 therefore removes active mobile SetResolution repair, makes mobile Apply use the active landscape viewport, reduces the mobile reference height from 1248 to 1160, and establishes the Local Offline / Private Casual Online / Online Rewarded networking contract. Local/bot-only play is explicitly zero-cloud and non-rewarded. Private Casual Online is targeted to Firebase Realtime Database + host authority with no persistent progression. Online Rewarded is targeted to RTDB live transport plus narrowly bounded trusted Functions/Firestore operations and independent verification. RTDB transport itself is NOT yet implemented in this candidate.
+
+**GitHub source note:** live GitHub API read on 2026-10-14 still reports `0a5a1b1a03f6067729015b85d8a6779706da157f` as `main` HEAD; the owner's reported `android test` push is not visible through the repository API yet. This package therefore preserves the newer owner-local Android v5.25.3 full-file baseline rather than replacing it with older GitHub copies.
 **Canonical current checkpoint (2026-10-13 UTC):** Security Cores 01–07 plus Phase 17A 19/19 compiled-unit and 12/12 Firebase callable E2E have passed owner Windows emulator tests. **Phase 16I Public Lobby v5.23.2: FULL LOCAL QA PASS** received in owner log `Pasted text(20261013-042741).txt`; 8/8 concurrent requests returned exact stable data, but 4/8 exceeded 5 seconds (`PERFORMANCE OPEN`). This v5.24.0 candidate extends the existing full-file Phase 17A E2E with nine dedicated Phase 17A.3 finalization/proof contention cases; **owner emulator retest is PENDING**. Full independent server replay verifier, live Android/Unity, Play Integrity App Check enforcement and production deployment remain OPEN. Earlier historical checkpoints are retained below.  
 **Repository:** `vuartex/AtlasBoardPrototype`  
-**Latest verified pushed GitHub HEAD (Security Core 04 read):** `8e1cc9da2187d5af7f5bbbaa9dece68ae7aedb21`  
-**Last verified pushed HEAD commit:** `Harden AtlasBoard Security Cores 01–03 and expand Firebase QA`  
+**Latest verified pushed GitHub HEAD visible through API (2026-10-14):** `0a5a1b1a03f6067729015b85d8a6779706da157f`  
+**Last verified pushed HEAD commit visible through API:** `Harden Security Cores 04–07 and expand Phase 17A match integrity QA`  
 **Previous verified pushed HEAD (v5.17):** `bed153c2071716e1d7216fe0e3e8ecdb36f3f341`  
 **Historical accepted checkpoint (superseded by sections 25.7 and 25.9):** `SECURITY CORE 01/02/03 LOCAL QA ACCEPTED by owner on Windows: SEC01 normal progression 14/14 plus guarded host-result negative checks; SEC02 economy 19/19; SEC03 rewards 15/15; restored inventory 11/11 and promo 13/13; terminal AtlasBoard QA FULL LOCAL PASS. SEC11 interim reward gate protects against observed fabricated-match XP (XP=0, wins=0, first_win=false), but an independent server-side full gameplay/result verifier is still NOT implemented and unverified permanent match rewards remain PENDING. All new source/test changes and this roadmap are OWNER LOCAL until pushed; no production deployment. Execution order: remaining Security/Core Audit -> optional pre-release gameplay/UX features -> real Steamworks Phase17C -> final feature-frozen audit -> owner GO/NO-GO.`  
 **Phase 12 close commit:** `0eca81450be91b30a5dc1cd66d901c46e2cab07c` — `Phase 12: finalize online resilience hardening and crash recovery`  
@@ -87,11 +91,13 @@ Reconnect and snapshot optimization must preserve this invariant. Do not reduce 
 
 ## 2.4 Hosting strategy
 
-- Firebase / managed Google Cloud remains the selected backend direction.
+- Managed Firebase remains the account/persistence foundation, but live transport is now mode-specific.
+- Local Offline uses no backend.
+- Private Casual Online targets Firebase Realtime Database + host-authoritative simulation and intentionally carries no persistent competitive rewards.
+- Online Rewarded targets RTDB for transient live transport while trusted Functions/Firestore are reserved for secure economy, moderation, bounded verification and permanent progression.
 - Do not add a self-managed always-on VPS/game server by default.
 - Steam does not automatically host AtlasBoard gameplay authority.
 - Steam Networking/SDR may be evaluated later as an optional transport optimization.
-- Current architecture remains Firebase-backed lobby/match persistence plus Host-authoritative turn simulation.
 - Local emulator cold-start behavior must not be mistaken for measured deployed production latency.
 
 ## 2.5 App Check invariant
@@ -139,6 +145,51 @@ Player-facing errors use:
 - a stable `ATBxxx` support code.
 
 Technical meaning belongs in protected diagnostics and the internal codebook.
+
+
+# 2A. Offline-first / cost-bounded session architecture (v5.26.0)
+
+This section supersedes any older statement that every AtlasBoard lobby/match must continuously use Firebase Functions/Firestore. The authoritative product contract is now mode-specific.
+
+## 2A.1 Local Offline
+- One device with local humans and/or bots requires no internet.
+- PRIVATE TABLE without an authenticated online identity routes to the existing local lobby.
+- No RTDB, Firestore gameplay traffic or Cloud Functions gameplay traffic.
+- Host device resolves all bots and local turns.
+- No server anti-cheat requirement because the session cannot mint persistent value.
+- No permanent XP, wins, achievements, wallet currency, competitive rating or authenticated cloud match history.
+
+## 2A.2 Private Casual Online
+- At least one remote human; local humans/bots remain permitted.
+- Target live transport is Firebase Realtime Database persistent/event-driven state, not Cloud Functions polling.
+- Host-authoritative simulation remains acceptable because the mode is casual/non-rewarded.
+- No permanent XP/wins/achievements/premium rewards/rating.
+- RTDB rules still require authenticated membership and per-user intent ownership.
+- Presence/reconnect should use RTDB connection semantics rather than 0.25/0.5/1/3/5-second HTTP polling loops.
+
+## 2A.3 Online Rewarded
+- Persistent rewards are potentially eligible only with at least two distinct authenticated human accounts.
+- RTDB is the target live transport for state revisions, presence and remote-human intents.
+- Host computes bots locally and sends only meaningful results/revisions; bot micro-steps are not network traffic.
+- Cloud Functions are reserved for trusted boundaries: protected admission where necessary, economy/purchases/promos, moderation, server-owned randomness/proof, bounded checkpoint/final verification and permanent progression finalization.
+- Firestore remains the persistent trusted store for valuable/account records.
+- A consistent host result is NOT independent proof; the server-authoritative replay/proof gate remains a release blocker for rewarded results.
+
+## 2A.4 Storage placement
+- Firestore/trusted Functions: accounts/provider links, wallet/ledger, inventory/entitlements, purchases/refunds, promo redemption, progression/achievements, protected verification receipts, moderation audit.
+- RTDB target: transient room state, presence, ready/connectivity, remote-human intents, host live-state revisions, reconnect signaling and other ephemeral match transport.
+- Static catalog/display metadata should be bundled/cached whenever possible. Moving purchase authority or promo eligibility to an untrusted RTDB client is forbidden even if display metadata is delivered there.
+
+## 2A.5 Cost rules
+- No per-frame or sub-second Cloud Function polling in the target architecture.
+- Batch compatible turn changes into one revision/event bundle.
+- Publish only on authoritative state change.
+- Coalesce rapid settings/lobby edits.
+- Do not upload bot think/movement micro-steps.
+- Cache immutable/slow-changing documents.
+- Measure bandwidth/reads/writes after RTDB migration before making player-capacity claims.
+
+See `Assets/Project/Documentation/PHASE17C_NETWORK_COST_ARCHITECTURE.md` for the detailed implementation/acceptance plan.
 
 # 3. Accepted foundation summary
 
