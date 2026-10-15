@@ -18,6 +18,19 @@ public sealed class AtlasBoardStableProfileNameView : MonoBehaviour
     private Color sourceColor;
     private string lastName = string.Empty;
 
+    public enum AliasSurface { ProfileCard, LocalHostLobbySeat, LocalHostMatchHud }
+    private AliasSurface surface = AliasSurface.ProfileCard;
+
+    // Presentation only: Steam owns the alias, not an authenticated cloud UID.
+    public void ConfigureAliasSurface(AliasSurface target)
+    {
+        surface = target;
+        lastName = string.Empty;
+    }
+
+    public static string ResolvedSteamPersona() =>
+        AtlasBoardCanonicalPlayerIdentity.ValidSteamPersona();
+
     private void Awake()
     {
         source = GetComponent<TMP_Text>();
@@ -76,6 +89,13 @@ public sealed class AtlasBoardStableProfileNameView : MonoBehaviour
             ? current.Substring(0, at) : current;
     }
 
+    private static string ResolveYouLabel()
+    {
+        string label = AtlasBoardL.T("lobby.online.you_short");
+        return string.IsNullOrWhiteSpace(label) ||
+               label == "lobby.online.you_short" ? "YOU" : label;
+    }
+
     private void UpdateDisplay()
     {
         if (source == null) return;
@@ -112,6 +132,13 @@ public sealed class AtlasBoardStableProfileNameView : MonoBehaviour
         if (displayed.color != sourceColor) displayed.color = sourceColor;
 
         string name = WithoutLevel(source.text);
+        string canonical = AtlasBoardCanonicalPlayerIdentity.CurrentDisplayName;
+        if (!string.IsNullOrWhiteSpace(canonical))
+        {
+            name = surface == AliasSurface.LocalHostLobbySeat
+                ? canonical + " (" + ResolveYouLabel() + ")"
+                : canonical;
+        }
         // Keep the most recent valid canonical presentation during momentary
         // placeholder changes; never infer a new Firebase identity.
         if (string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(lastName))

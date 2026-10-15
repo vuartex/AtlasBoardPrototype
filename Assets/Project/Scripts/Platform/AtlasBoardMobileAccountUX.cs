@@ -232,8 +232,8 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
         if (status != null)
         {
             RectTransform rect = status.rectTransform;
-            rect.anchoredPosition = new Vector2(0f, register ? -288f : -293f);
-            rect.sizeDelta = new Vector2(865f, register ? 42f : 42f);
+            rect.anchoredPosition = new Vector2(0f, -303f);
+            rect.sizeDelta = new Vector2(840f, 42f);
             status.fontSize = register ? 18f : 19f;
             status.enableAutoSizing = true;
             status.fontSizeMin = 15f;
@@ -242,7 +242,7 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
         }
         if (busy != null)
         {
-            busy.rectTransform.anchoredPosition = new Vector2(0f, register ? -289f : -299f);
+            busy.rectTransform.anchoredPosition = new Vector2(0f, register ? -246f : -243f);
             busy.rectTransform.sizeDelta = new Vector2(550f, 40f);
         }
     }

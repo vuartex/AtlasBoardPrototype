@@ -36,6 +36,23 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
     private Button cachedContextButton;
     private Button cachedControlsButton;
     private RectTransform cachedCareerRoot;
+    private AtlasBoardPrivateLobbyUIController steamLobby;
+    private TMP_Text steamHostSeatLabel;
+    private PlayerHudPanel steamHostHud;
+    private TMP_Text steamHostMatchLabel;
+    private float nextSteamAliasResolveAt;
+    private static readonly FieldInfo PrivateSeatNamesField =
+        typeof(AtlasBoardPrivateLobbyUIController).GetField("privateSeatNames",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+    private static readonly FieldInfo LocalIsHostField =
+        typeof(AtlasBoardPrivateLobbyUIController).GetField("localIsHost",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+    private static readonly FieldInfo LobbyRoomActiveField =
+        typeof(AtlasBoardPrivateLobbyUIController).GetField("roomActive",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+    private static readonly FieldInfo MatchHudNameField =
+        typeof(PlayerHudPanel).GetField("playerNameText",
+            BindingFlags.Instance | BindingFlags.NonPublic);
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Bootstrap()
@@ -74,6 +91,7 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
             RemoveLegacyCareerFootnote();
             ResolveProfileSource();
             EnsureStableProfileNames();
+            ResolveSteamLocalSurfaces();
         }
         if (now >= nextNavigationScan)
         {
@@ -92,6 +110,8 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
             menuProfileName.GetComponent<AtlasBoardStableProfileNameView>() == null)
             menuProfileName.gameObject.AddComponent<AtlasBoardStableProfileNameView>();
         CopyHudTexts();
+        // Existing PlayerHudPanel/UnifiedProfilePresentation may refresh in Update.
+        // Our child-only display does not mutate their authoritative identity data.
     }
 
     private static string L(string en, string tr, string es, string fr,
@@ -317,10 +337,80 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
             return;
         // Cached source fields: no hierarchy recursion or remote read per frame.
         if (menuProfileName == null) return;
-        SetIfChanged(hudName, WithoutLevelSuffix(menuProfileName.text));
+        string steamName = AtlasBoardStableProfileNameView.ResolvedSteamPersona();
+        string visibleName = string.IsNullOrEmpty(steamName)
+            ? WithoutLevelSuffix(menuProfileName.text) : steamName;
+        SetIfChanged(hudName, visibleName);
+        if (!string.IsNullOrEmpty(steamName))
+            SetIfChanged(hudInitial, steamName.Substring(0, 1).ToUpperInvariant());
         SetIfChanged(hudGold, menuProfileGold != null ? menuProfileGold.text : "Gold: 0");
         SetIfChanged(hudCoin, menuProfileCoin != null ? menuProfileCoin.text : "Atlas Coin: 0");
-        SetIfChanged(hudInitial, menuAvatarInitial != null ? menuAvatarInitial.text : "G");
+        if (string.IsNullOrEmpty(steamName))
+            SetIfChanged(hudInitial, menuAvatarInitial != null ? menuAvatarInitial.text : "G");
+    }
+
+    // Provider-bound display aliases. We deliberately never modify PlayerGameState,
+    // FirebaseAuth, RTDB, lobby snapshots, local save data or platform authority.
+    // Only a locally controlled HOST seat gets this overlay. A remotely-owned
+    // P1 must keep the authoritative remote player's name on this client.
+    private void ResolveSteamLocalSurfaces()
+    {
+        if (string.IsNullOrEmpty(AtlasBoardStableProfileNameView.ResolvedSteamPersona()))
+            return;
+        if (Time.unscaledTime < nextSteamAliasResolveAt)
+            return;
+        nextSteamAliasResolveAt = Time.unscaledTime + 2f;
+
+        if (steamLobby == null)
+        {
+            steamHostSeatLabel = null;
+            steamLobby = UnityEngine.Object.FindAnyObjectByType<AtlasBoardPrivateLobbyUIController>(FindObjectsInactive.Include);
+        }
+        if (steamLobby != null && PrivateSeatNamesField != null &&
+            LocalIsHostField != null && LobbyRoomActiveField != null &&
+            LocalIsHostField.GetValue(steamLobby) is bool isHost && isHost &&
+            LobbyRoomActiveField.GetValue(steamLobby) is bool roomActive && roomActive)
+        {
+            TMP_Text[] seatNames = PrivateSeatNamesField.GetValue(steamLobby) as TMP_Text[];
+            TMP_Text firstSeat = seatNames != null && seatNames.Length > 0 ? seatNames[0] : null;
+            if (firstSeat != null && firstSeat != steamHostSeatLabel)
+            {
+                steamHostSeatLabel = firstSeat;
+                AtlasBoardStableProfileNameView guard =
+                    firstSeat.GetComponent<AtlasBoardStableProfileNameView>();
+                if (guard == null)
+                    guard = firstSeat.gameObject.AddComponent<AtlasBoardStableProfileNameView>();
+                guard.ConfigureAliasSurface(
+                    AtlasBoardStableProfileNameView.AliasSurface.LocalHostLobbySeat);
+            }
+        }
+
+        if (MatchHudNameField == null) return;
+        if (steamHostHud == null || steamHostMatchLabel == null)
+        {
+            steamHostHud = null;
+            steamHostMatchLabel = null;
+            PlayerHudPanel[] panels = UnityEngine.Object.FindObjectsByType<PlayerHudPanel>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            foreach (PlayerHudPanel panel in panels)
+            {
+                PlayerGameState player = panel != null ? panel.Player : null;
+                if (player == null || player.PlayerSlotIndex != 0 ||
+                    !player.IsParticipating || player.IsOnlineBotControlled) continue;
+                // When an online seat mirror exists, don't relabel a remote host.
+                if (player.OnlineSeatStateActive) continue;
+                steamHostHud = panel;
+                steamHostMatchLabel = MatchHudNameField.GetValue(panel) as TMP_Text;
+                break;
+            }
+        }
+        if (steamHostMatchLabel != null &&
+            steamHostMatchLabel.GetComponent<AtlasBoardStableProfileNameView>() == null)
+        {
+            AtlasBoardStableProfileNameView guard =
+                steamHostMatchLabel.gameObject.AddComponent<AtlasBoardStableProfileNameView>();
+            guard.ConfigureAliasSurface(
+                AtlasBoardStableProfileNameView.AliasSurface.LocalHostMatchHud);
+        }
     }
 
     private static void SetIfChanged(TMP_Text label, string value)
@@ -350,11 +440,13 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         if (form == null || form.Find("Button_ResetPassword") == null) return;
         TMP_Text status = GetText(window, "Status");
         if (status == null || status.transform.parent != window) return;
-        status.rectTransform.anchoredPosition = new Vector2(0f, -303f);
-        status.rectTransform.sizeDelta = new Vector2(840f, 42f);
-        status.enableAutoSizing = true;
-        status.fontSizeMin = 15f;
-        status.fontSizeMax = 19f;
+        if (status.rectTransform.anchoredPosition != new Vector2(0f, -303f))
+            status.rectTransform.anchoredPosition = new Vector2(0f, -303f);
+        if (status.rectTransform.sizeDelta != new Vector2(840f, 42f))
+            status.rectTransform.sizeDelta = new Vector2(840f, 42f);
+        if (!status.enableAutoSizing) status.enableAutoSizing = true;
+        if (status.fontSizeMin != 15f) status.fontSizeMin = 15f;
+        if (status.fontSizeMax != 19f) status.fontSizeMax = 19f;
     }
 
     private void EnsureSharedAccountTabs()
@@ -370,8 +462,8 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
             CanvasGroup hidden = original.GetComponent<CanvasGroup>();
             if (hidden == null) hidden = original.gameObject.AddComponent<CanvasGroup>();
             if (hidden.alpha != 0f) hidden.alpha = 0f;
-            hidden.interactable = false;
-            hidden.blocksRaycasts = false;
+            if (hidden.interactable) hidden.interactable = false;
+            if (hidden.blocksRaycasts) hidden.blocksRaycasts = false;
         }
 
         if (settingsAccountTab != null && careerAccountTab != null &&
@@ -396,10 +488,12 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         {
             RectTransform tab = parent.Find(names[i]) as RectTransform;
             if (tab == null) return;
-            Vector2 position = new Vector2(-532f + 266f * i, 325f);
+            // Six shared Settings tabs (Audio, Gameplay, Graphics, Controls,
+            // Account, Server Status) always share the same banner geometry.
+            Vector2 position = new Vector2(-550f + 220f * i, 325f);
             if (tab.anchoredPosition != position) tab.anchoredPosition = position;
-            if (tab.sizeDelta != new Vector2(240f, 54f))
-                tab.sizeDelta = new Vector2(240f, 54f);
+            if (tab.sizeDelta != new Vector2(206f, 54f))
+                tab.sizeDelta = new Vector2(206f, 54f);
         }
         if (settingsAccountTab == null || settingsAccountTab.transform.parent != parent)
         {
@@ -417,8 +511,10 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         }
         if (settingsAccountTab == null) return;
         RectTransform accountRect = settingsAccountTab.transform as RectTransform;
-        accountRect.anchoredPosition = new Vector2(532f, 325f);
-        accountRect.sizeDelta = new Vector2(240f, 54f);
+        if (accountRect.anchoredPosition != new Vector2(330f, 325f))
+            accountRect.anchoredPosition = new Vector2(330f, 325f);
+        if (accountRect.sizeDelta != new Vector2(206f, 54f))
+            accountRect.sizeDelta = new Vector2(206f, 54f);
         TMP_Text label = settingsAccountTab.GetComponentInChildren<TMP_Text>(true);
         if (label != null)
         {
@@ -430,8 +526,8 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         Image target = settingsAccountTab.GetComponent<Image>();
         if (source != null && target != null)
         {
-            target.sprite = source.sprite;
-            target.type = source.type;
+            if (target.sprite != source.sprite) target.sprite = source.sprite;
+            if (target.type != source.type) target.type = source.type;
             // Inactive = brighter. Controls may be the selected (dark) tab.
             Color idleColor = source.color;
             foreach (string name in names)
@@ -443,7 +539,7 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
                     idleColor.r + idleColor.g + idleColor.b)
                     idleColor = candidate.color;
             }
-            target.color = idleColor;
+            if (target.color != idleColor) target.color = idleColor;
         }
     }
 
@@ -495,10 +591,16 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         }
         if (careerAccountTab == null) return;
         RectTransform rect = careerAccountTab.transform as RectTransform;
-        rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.anchoredPosition = new Vector2(390f, 345f);
-        rect.sizeDelta = new Vector2(235f, 50f);
+        if (rect.anchorMin != new Vector2(0.5f, 0.5f))
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+        if (rect.anchorMax != new Vector2(0.5f, 0.5f))
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+        if (rect.pivot != new Vector2(0.5f, 0.5f))
+            rect.pivot = new Vector2(0.5f, 0.5f);
+        if (rect.anchoredPosition != new Vector2(390f, 345f))
+            rect.anchoredPosition = new Vector2(390f, 345f);
+        if (rect.sizeDelta != new Vector2(235f, 50f))
+            rect.sizeDelta = new Vector2(235f, 50f);
         TMP_Text label = careerAccountTab.GetComponentInChildren<TMP_Text>(true);
         if (label != null)
         {
@@ -507,7 +609,7 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         }
         // Match the ordinary unselected tabs, not a special purple button.
         Image image = careerAccountTab.GetComponent<Image>();
-        if (image != null)
+        if (image != null && image.color != new Color32(28, 157, 211, 255))
             image.color = new Color32(28, 157, 211, 255);
     }
 

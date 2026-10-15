@@ -166,3 +166,142 @@ This section **supersedes conflicting UI/platform wording in Sections 1, 2 and 6
 - [ ] Private/Public RTDB transport, public discovery, trustworthy XP and achievements, Guest RTDB deletion, and full 2-device tests remain **OPEN**. v5.30.6 is a UI recovery, not backend completion.
 
 **Packaging:** ZIP contains only complete `Assets/Project/Scripts/Platform/AtlasBoardUniversalCareerTheme.cs`, new `AtlasBoardStableProfileNameView.cs`, new `AtlasBoardSharedPauseDiagnostics.cs`, and this entire updated Phase17F roadmap. GitHub's older canonical `MASTER_ROADMAP.md`, `AtlasBoardProgressionUI.cs`, `AtlasBoardLeaveFlowController.cs`, network telemetry and the owner's existing project sources are NOT overwritten. No Rules deploy, Blaze activation or push.
+
+---
+
+## 10. PHASE 17F.6 — v5.30.7 Steam persona / mobile account status / mobile UI CPU hygiene (2026-10-15)
+
+**SOURCE CANDIDATE — Unity Editor compile and Android physical-device validation still required.** This section incorporates the latest owner report, does not rewrite or replace the newer unknown local `MASTER_ROADMAP.md`, and preserves all previous milestones, security gates and platform policies.
+
+### Owner-confirmed acceptance carried forward from v5.30.6
+
+- PASS by owner test: native Career Account tab no longer purple, Settings Account tab looks native, Account tabs do not visibly slide on open, upper-left Career HUD no longer overlaps navigation, Guest name no longer oscillates with `Lv. 1`, ESC local session shows missing room/network metrics honestly, Career's Continue as Guest opens the non-rewarded overview.
+- No reversion to local/seats, countdown, second/third match integrity, mobile touch/safe-area, Steam keyboard/mouse, Firebase login persistence, RTDB account sync or security/rules.
+- These are **functional observations only**, not authorization, deployed RTDB transport or release-ready performance acceptance.
+
+### New reports, root causes, scoped fixes
+
+1. Steam provider is available and the Steam Account modal presents the real Steam persona, but Main Menu shows `Guest#####X`. **Fix candidate:** on any platform where the actual Steam provider is active, initialized, has a nonzero SteamID and nonempty Steam persona, visible menu ProfileName and Career HUD now render the Steam persona instead of a generated device Guest label. The v5.30.7 shared helper also decorates the local HOST lobby seat and locally controlled offline P1 HUD presentation. It does NOT substitute Steam persona for Firebase UID, forge a verified server identity, edit remote player names, relabel a remotely-owned host or grant rewards. Real Steam returning sign-in still depends on the trusted provider backend; online network seat identity consistency remains an end-to-end acceptance gate.
+2. The Android account login footer sentence below Forgot Password visually oscillates. Root cause: `AtlasBoardUniversalCareerTheme` and `AtlasBoardMobileAccountUX` alternated between `Status.y=-303` and `Status.y=-293` with inconsistent width; while Busy used nearby coordinates. **Fix candidate:** both helpers now agree on the same login status position and 840x42 dimensions, while Busy is laid out separately. Repeat registration/forgot-password/keyboard overlay tests in real Android landscape.
+3. Source-level mobile UI cost: navigation helpers assigned identical Image properties and RectTransform anchors every single frame, which can dirty Unity Canvas rebuild state even when nothing changes. **Fix candidate:** guard assignments by equality for Settings and Career Account tab sprite/type/tint, positions and other presentation properties. This preserves immediate same-frame tab reconstruction, and does not modify input, gameplay animation timing or desktop saved graphics settings.
+4. Android measured **~20–22 FPS despite GPU frame times mostly ~2.5–5 ms and CPU ~40–65 ms**. Treat as **CPU-bound evidence, NOT FPS FIXED**. On Samsung S20 FE with `BUILTIN_OR_DEFAULT` render pipeline, dynamic render buffer scaling reported values do not prove true backbuffer downscaling. Next profiling gate must use Unity Profiler/Development build's main-thread and rendering-thread samples to rank costly Update, UI rebuild, reflection scans, scene-object searches, logging and physics before changing game simulation. Test warm 90-second gameplay, Development vs Release, first/second/third match and low-graphics equivalence. Do not claim 60 FPS.
+5. Android Public/Private Rooms still HTTP 404 (`ATB202` and lobby backend request failures) because callable Functions endpoints are unavailable on Spark and RTDB 2-device room/game transport has not replaced them. LocalOffline Editor Private Table matches can play **without proving online transport**. Require owner-newest local lobby/match scripts before full-file replacement; implement event-driven RTDB private-room membership, room code resolution, host authority, state revisions, reconnect, public browse safely; require a true two-device acceptance run. Do not deploy paid Functions or weaken RTDB rules.
+6. RTDB Career fetch HTTP **401**, not evidence that user has no XP: `/careerProfiles/{uid}` rules are not deployed/matched, or token and path mismatch. Server-owned Career profile must remain read-only to clients; no arbitrarily client-minted XP, wins or achievements. Keep honest zero-value presentation; do not deploy new rules until matching full server flow and security negative tests exist.
+7. Owner approved the existing visible OFFLINE/NO ROOM/Ping N/A pause placeholders when there is no online room. Retain original room Show/Copy and real ping/jitter/loss for actual connected network matches; a true online room still requires verified server state and telemetry.
+
+### Shared vs platform-specific regression register
+
+| Scope | Invariant |
+| --- | --- |
+| Common ALL platforms | Player-facing profile identity chosen from verified canonical account or active provider persona; stable in menu, Career, lobby and locally owned game HUD |
+| Common ALL platforms | Career purple, Shop orange; common native Account tabs and profile HUD; ESC room-code/network display with honest unavailable status |
+| Steam ONLY | Steam API/SteamID/persona and trusted ticket-based online sign-in; no email registration forced; persona display does NOT prove server auth |
+| Android/iOS ONLY | Keyboard focus, status/layout, safe-area, touch, runtime graphics and measured CPU-focused performance; never mutate desktop options |
+| Firebase Auth | Passwords/session and UID; no password anywhere in RTDB, Firestore, PlayerPrefs or log |
+| RTDB common online | Private room code/join/presence/ephemeral gameplay, safe casual profiles; no client authority to mint permanent progress |
+| Trusted backend common | Durable XP/wins/achievements/wallet/rewards require verified server authority, anti-cheat/replay gates |
+| Offline ALL platforms | Local seats/bots/5-to-1 countdown, no permanent XP or network requirement |
+
+### v5.30.7 acceptance (not yet executed)
+
+- [ ] Unity Editor zero compiler errors after full-file package import.
+- [ ] Steam provider on, SteamID present: persona name in Main Menu and Career, host lobby and locally owned P1; no competing Guest or `Lv.` redraw after 30 seconds / navigation / second match. Remote host name unchanged.
+- [ ] Steam provider unavailable or disabled: existing persistent Guest fallback; Firebase canonical email account remains canonical on non-Steam platform.
+- [ ] Android landscape login, keyboard, register, password visibility, forgot-password status: fixed, no vertical oscillation and no overlap.
+- [ ] Settings/Career Account tabs remain native style with instant no-slide behavior and correct provider routing.
+- [ ] Android 90-second CPU/GPU FPS evidence with the same Development build settings; report actual post-change improvement or regression, no PASS claim without measurement.
+- [ ] Android online 404 and RTDB Career 401 explicitly still OPEN until compatible secure RTDB transport and deployed server-owned data paths exist.
+- [ ] Guest RTDB ephemeral identity/cleanup, secure persistent Career rewards and two-device multiplayer remain OPEN, not part of this scoped UI stability ZIP.
+
+**Packaging:** Three complete C# files (`AtlasBoardUniversalCareerTheme.cs`, `AtlasBoardStableProfileNameView.cs`, `AtlasBoardMobileAccountUX.cs`) plus this complete Phase 17F continuation roadmap under project-relative paths. No patch/diff/apply or new Firebase rules. No auto-push, no Blaze, no deploy, no overwriting locally newer gameplay/Steam/match sources.
+
+---
+
+## 11. PHASE 17F.7 — v5.30.8 shared runtime recovery, Steam gameplay identity, Server Status (2026-10-15)
+
+**SOURCE CANDIDATE / NOT UNITY OR DEVICE PASS.** This entry is ADDITIVE to the existing complete Phase17F register. It does not overwrite the owner's newer local `MASTER_ROADMAP.md`; do not discard the master sections from Sections 1–29 or earlier Phases 15–17. All safeguards and pending security gates remain applicable.
+
+### 11.1 Owner-observed regression evidence and confirmations
+
+- **Accepted from owner:** v5.30.6 ESC Local Offline diagnostics; no `Lv. 1` Guest flicker; common Settings/Career Account tabs visually consistent and stable; Career HUD no longer collides with navigation; Career can continue as Guest; v5.30.7 Steam provider persona visible in main menu, Shop, Career and local P1 HUD. Preserve those fixes on Android, Windows and Steam.
+- **Confirmed outstanding:** top-center turn and dice status can still show `Guest#####X`; Property/Trade names may show Guest even when Steam name `Vuartex` appears in P1 HUD. First lobby/match can briefly show Guest before Steam persona resolves.
+- **Confirmed outstanding:** second match after returning from gameplay to Main Menu/lobby can expose old Property/Tablet and lose City Information. Shop after returning to Menu can show legacy “Shop foundation is ready” instead of Store v2, although the first entry works.
+- **New requested shared feature:** Settings sixth `Server Status` tab, same visual banner/sprite/size/tint as Controls/Account; concise online status toast in top-right when service state is degraded; timestamp including seconds. Probe with bounded interval (at most once every 60 seconds **while visible and foregrounded**) to protect Spark quota and battery. No fake green online status.
+- **Physical device facts carried forward:** Samsung S20 FE Android 13 local ~20–22 FPS; CPU-bound evidence, no measured performance fix. Public/Private Cloud Functions HTTP 404; RTDB Career HTTP 401; account Auth and RTDB `/users/{uid}` sync work. Steam test is Editor/Windows, **not** evidence of Android multiplayer.
+
+### 11.2 Source change and ownership boundaries
+
+- `AtlasBoardUniversalCareerTheme.cs`: shared six-tab Settings positions (Audio, Gameplay, Graphics, Controls, Account, Server Status) inside the original 1360x940 Settings Window; Account is now the fifth position with room reserved for Server Status, without moving the other shared Career layout. This is a common UI decision, **not** a mobile exception.
+- New `AtlasBoardServerStatusUI.cs`: sixth native-look Settings tab and non-interactive feedback toast, created once per scene/Settings window. Service checks explicitly distinguish Firebase Auth, Local Bots, Online Matches, Shop catalog UI, private RTDB read, and Career read. The browser UI being available is not the same as commercial transaction authorization. Online Matches stay unavailable until a real RTDB transport and two-device test exists, even if `/users` is reachable. Firebase Auth token and RTDB data probes are bounded to tab visibility and at most once per 60s; no token or email in logs. No Firebase Rules writes/deploy. No Firestore reads are added.
+- New `AtlasBoardSharedRuntimeRecovery.cs`: platform-agnostic re-entry state for Board scene/reused matches; checks existing modern presentation owners and rearms them only AFTER a completed match has returned to the lobby/menu. Never recreates a modal during live gameplay. Includes Property, Auction, Trade, Development, City Info, camera/UI-input guards. Does not modify gameplay turn timing, scene files, existing persistent account services or backend authority. A Shop Card transparent topmost input target routes to the existing Phase 9 Store v2 entry instead of the inspector-wired legacy Shop foundation modal; removed/rebuilt Shop Cards are rediscovered. The Store's actual cloud transactions remain gated by their existing backend.
+- Steam alias propagation: if Steam provider has initialized with valid SteamID and persona, update the **locally controlled non-network seat's `PlayerGameState.displayName` presentation field only** and invoke its normal identity-updated listeners. This is necessary for top-bar, property and Trade texts that read the gameplay state; untouched: remote participants, Bots, RTDB/Firebase UID, Steam trust, account credentials, match authorization and permanent XP. Old already-rendered status labels using this device's exact Guest#####X are also corrected in targeted cached visual references; never rename another remote Guest account by broad/global search.
+
+### 11.3 Shared vs platform-specific invariant table
+
+| Common to all platforms | Platform-specific |
+| --- | --- |
+| Persistent menu → lobby → match → menu → second/third match modern UI and City Info | Android/iOS mobile touch, safe area and keyboard |
+| Shop Store v2 entry on every visit; violet Career, native Account + Server Status tabs | Android CPU/GPU optimization and FPS acceptance per device |
+| Correct signed-in/provider persona in menu, Career, *locally owned* gameplay, Property, Trade and turn status | SteamAPI/SteamID/persona only for selected and initialized Steam provider |
+| Honest Room Code / Ping/Jitter/Loss N/A when local; real telemetry when online | Steam provider must use trusted ticket identity for online UID; no email-only prompt |
+| RTDB room/session catalogue is shared across Steam/Android if later supported | Firebase Email/Password Auth for supported non-Steam accounts |
+| Valuable persistent progression remains server-authoritative, not direct client XP writes | Platform-specific graphics/settings documents avoid desktop pollution |
+
+### 11.4 Remaining P0/P1 gates (not marked done)
+
+1. Editor compile zero red errors and compare first, second, third match. Test Steam persona **first frame of lobby**, Property, Trade, top-center turn and roll messages; second/third match must retain modern UI and City Info; P1 alias must never contaminate a real remote seat. Source-only handoff does not prove these results.
+2. Shop open after LocalOffline match exit and scene reload must always route Store v2; show no legacy “Shop foundation” popup. Ensure no duplicate Store v2 opens from old listener; test button focus/keyboard/touch.
+3. Server Status: six tabs same natural style and 206x54 reference size in one banner; none moving or clipping at desktop and landscape Android/tablet. Test Auth signed-in/unsigned, offline, RTDB success/denied, Career 401, and server status timestamps; one foreground check max per minute while tab visible. Status toast must never overlap blocking error dialog or show false positivity. Localization polish still pending.
+4. Android Private/Public 404 **NOT FIXED**; implement actual secure RTDB room code/create/join/public browse, host-authoritative state/intents/reconnect, accurate real network telemetry and cross-device acceptance. No paid Cloud Functions/Blaze without owner authorization. Real room code and ping only for genuine connected online sessions; Local Offline remains zero backend.
+5. RTDB Career 401 **NOT FIXED**; authenticated rules/data migration, read-only client access and trusted writes for permanent XP, wins, achievements, wallet. No unverified reward fallback, no client-trusted permanent leaderboards. Guest ephemeral server profile and safe cleanup on successful sign-in still pending; cannot expose unauthenticated global guest deletion.
+6. Samsung S20 FE 20–22 FPS **NOT FIXED**; Unity Profiler CPU main-thread/GC/Canvas/TMP/FindObjects samples before performance claim. Compare Android Development vs Release, 60-second steady game and second/third match. Avoid per-frame scene-wide searches added by this candidate. Android UI instrumentation is limited; original desktop/Steam graphics unchanged.
+7. Pre-release Phase15 security QA, independent match-result replay verifier, true multi-device RTDB transport, Steam trusted auto-sign-in and Play Integrity/App Check are still release-blocking. Existing Firestore and RTDB rules already deployed by owner are NOT redeployed by v5.30.8.
+
+**Package contract:** exactly the four full project-relative files listed above, no patch/diff/apply, no GitHub push, no direct Firebase rules overwrite, no automatic cloud writes, no Android APK build request before Editor compile and runtime smoke. No additional actual PASS is asserted in this candidate.
+
+
+---
+
+## Phase 17F.9 — v5.30.9 shared tablet HUD gate and Travel presentation (2026-10-15; CANDIDATE)
+
+**Owner Editor evidence for v5.30.8 (accepted only for explicitly observed features):** Steam `Vuartex` appears in the turn/status bar, purchase name, Trade and P1; Shop V2 reopens after leave-to-menu, and modern City Info/other tablet presentations survive the second local match. The 6-tab Server Status panel renders as intended. Owner has not yet pushed v5.30.8 to GitHub; local working copies and the v5.30.8 ZIP are newer than GitHub main. Preserve these components.
+
+**New P0 presentation defect (OPEN until tested):** with a tablet open, local P1 `PlayerHudPanel` repeatedly appears/disappears. Original `UXOverlayController.LateUpdate()` hides HUD while `TabletUIManager` tablet root is open, while `PlayerHudPanel.Refresh()` can re-enable the panel when other systems update identity/money. A writer conflict causes blinking. The new scene-scoped `AtlasBoardTabletHudVisibilityGate` caches a `CanvasGroup` on all HUD panels and the status bar. When the tablet is open it applies alpha=0 and disables raycast hit testing without changing game state or forcing `SetActive()`. Recomputes only on tablet open/close and when scene-relevant refs change; reference discovery is throttled to 1 second while unbound and stops after successful binding. No cross-platform restriction: should work in Unity Editor, Windows/Steam, Android and iOS, including local second/third match. Must prove no HUD flicker for >=30 seconds while Property/Travel/Trade tablets remain open, plus reappearance after close.
+
+**Travel UI coverage correction:** Earlier modern-polish work covered Purchase/Auction/Trade/Development/Match Result/City Info, but not Travel. The owner’s screenshot of the black legacy TRAVEL HUB is a legitimate missing modern presentation, not an accepted modern Travel design. New `AtlasBoardTravelPresentationPolish` builds a modern dark card, prominent destination text and green/gray primary actions over the old Travel panel on *every* platform. Retains TileResolutionManager ownership, the existing original action UnityEvents, original button `interactable` decisions, network vs LocalOffline decision handling, and localized source text. No Cloud or travel-rule logic is rewritten. New overlay is created only once per scene/panel and reused on later Travel visits. Accept only after original actions and remote pending/disabled states are exercised.
+
+**Scope & platform policy:** HUD suppression while tablet open and Travel appearance are shared general product behavior; do NOT make Android-exclusive. Android-only FPS/safe-area/touch constraints and Steam-specific platform identity remain separate. Do not add per-frame FindObjects scans, continuously call UI layout setters or change Windows/Steam graphics quality. Modern UI must survive match->lobby->match again and full scene reload with no duplicate overlays.
+
+**Still OPEN, not fixed by this handoff:** Android HTTP 404 and real cross-device RTDB online transport, Career RTDB 401, secure permanent XP/win/achievement authority, production App Check/Play Integrity, Android S20 FE CPU-bound 20–22 FPS, and full release security QA. None of these can be accepted from screenshots of LocalOffline. Do not redeploy existing RTDB/Firestore rules or enable Blaze.
+
+**Delivery:** full new sources at `Assets/Project/Scripts/UI/AtlasBoardTabletHudVisibilityGate.cs` and `Assets/Project/Scripts/UI/AtlasBoardTravelPresentationPolish.cs` plus this complete Phase 17F roadmap. No existing local scripts overwritten and no patch/apply/diff scripts. This package is static-source candidate: **Unity compile, Editor regression and physical Android verification are PENDING**. Owner may first test in Editor, no APK required until multiple mobile-only changes are ready.
+
+## Phase 17F.10 — v5.30.10 canonical local display identity / full-width Travel QA (2026-10-15, candidate)
+
+**Owner observations after v5.30.9:** Steam persona `Vuartex` renders on the menu profile card, but clicking that same card opens a legacy Profile modal with `Guest#####X`. This is a cached MainMenuController.profileName mismatch; independent profile writers have caused repeated Guest / Level flicker. The local Private Table seat can show Guest briefly before Steam persona arrives. These are shared presentation defects, not new Firebase credentials. Travel's v5.30.9 hero rendered in an extremely narrow center strip, making text and buttons unreadable.
+
+**Shared identity contract:** new `AtlasBoardCanonicalPlayerIdentity` resolves ONE **local presentation** display name: verified active Steam persona when Steam is initialized and has a SteamID; while Steam provider is initializing, show the non-authenticating `Steam Player` placeholder, never claim Steam identity verified; otherwise a signed-in Firebase display name, the canonical profile header when available, and finally persistent device-local Guest only when unsigned. Cache once per second in one helper rather than per-UI query, and update cached menu/profile modal only when name changes or the Profile button is clicked. Menu Profile modal must never show a stale Guest when Steam is ready. This does not modify canonical Firebase UIDs, remote player names, matchmaking permissions, BOT names, or trusted login state. Existing StableProfileNameView and shared Steam player presentation consume the common Steam resolver; no new per-frame scene search is introduced.
+
+**Travel layout root-cause and fix:** v5.30.9 created `Phase17F_TravelPolish` underneath `TileResolutionManager.travelPanel`, a narrow legacy layout child, which resulted in ~one-column text/button compression. v5.30.10 parents the shared-layout Travel visual to the **wide** `TabletUIManager.tabletRoot` instead, with normalized anchors, `LayoutElement.ignoreLayout=true`, source Travel button `onClick` delegation and source `interactable` replication preserved. The old v5.30.9 child overlay is removed when detected; previously created wide overlays are reused. Only Travel visual composition changed; no price, dice, bot, offline/online decision or Firebase behavior changed.
+
+**MANDATORY QA before PASS:** The Editor menu `Atlas Board > QA & Diagnostics > QA > Travel > 1 - Preview Modern Travel (Safe)` creates a fully detached visual fixture using the SAME runtime BuildVisual method. It creates no room, dice roll, travel outcome or backend write and disables its fake action buttons. `2 - Close Preview` removes it. The fixture must fill >=75% of the wide tablet width. Then run a real local match, reach Travel naturally or with existing gameplay QA, compare text/buttons against fixture and test original Travel/Stay actions; repeat after leaving a match and after scene reload. Test main Profile click with Steam initialized, including after Career, Shop, Settings and lobby roundtrip; name should match `Vuartex` without Guest flash. Check no HUD flicker with Travel open and no double page overlay.
+
+**CPU discipline:** shared runtime recovery now keeps a cached BoardPath once bound, avoids full Button scans after Shop intercept is installed, and caches local player references across steady-state frames; scans are allowed on scene/match transition or missing references. The old UXOverlayController game-loop rendering and Android frame-time bottleneck remain separate open profiling work. No claim of all scans removed or Android FPS fixed.
+
+**Owner-accepted baselines to preserve:** Shop opens correctly after match exit, Career/Settings stable Account tabs, HUD no `Lv. 1` flicker, Steam name in menu, match top status, Property and Trade, modern Purchase/Trade/City Info on second/third match, Server Status sixth tab and Local Offline diagnostic labels. New v5.30.10 source and QA are **NOT YET UNITY COMPILED OR RUNTIME ACCEPTED**.
+
+**Still OPEN (not affected by this package):** Android Private/Public HTTP 404, RTDB real 2-device multiplayer, private Career RTDB 401, secure XP/achievement authority, guest RTDB lifecycle, S20 FE CPU-bound ~20–22 FPS, and production App Check. Firestore/RTDB rules already deployed; no deployment or Blaze activation is authorized. Do not replace newer owner-local MASTER_ROADMAP.md with a stale GitHub copy.
+
+
+## Phase 17F / v5.30.11 — Shared identity glyph and language consistency
+
+**Owner feedback (Unity Editor):** Steam persona `Vuartex` appeared in the header but its avatar initial remained `G` from the device Guest alias; Server Status UI/toast showed English and Turkish together. The modern wide Travel visual was accepted.
+
+**Implemented in v5.30.11 source (not runtime verified):**
+- Avatar initial comes from the exact resolved local display name on the Main Menu and Lobby profile cards. Unicode text element is used so a multi-code-unit initial is not truncated. The shared presentation header and the canonical Steam resolver receive the same Steam persona to stop the existing presenter from repainting a Guest initial every frame. Firebase UID, SteamID, game authority, and RTDB records are unchanged.
+- Server Status header/tab/rows/service details/toast/last-checked caption are localized through the existing 7-language `AtlasBoardL.R` selection: EN/TR/ES/FR/DE/KO/RU. Service states remain language-neutral keys and are translated on render and on `LanguageChanged`; changing languages does not contact Firebase again.
+- Generic `ATBxxx` error notifications already have a seven-language `AtlasBoardFrontendErrorCodes.PublicMessage` path. Do not put raw technical English exceptions on player-facing screens; keep them redacted in diagnostic logs. Audit independent screens separately.
+
+**DO NOT MARK COMPLETE:** Android online room 404. Source analysis establishes the Android client still calls `https://europe-west1-atlasboard-usa.cloudfunctions.net/lobby...`; deployed RTDB rules cannot make absent Cloud Functions callable. On Spark, a real RTDB room/match transport must replace the Cloud Functions routing, not just suppress 404. Integrate with the live local versions of `AtlasBoardLobbyRuntimeBridge.cs`, `AtlasBoardPublicLobbyPagingClient.cs`, `AtlasBoardMatchRuntimeBridge.cs`, and lobby UI controllers; preserve existing Editor local-offline session and Steam. Authentication/authorization, codes, members, host mutation, expiry, presence, reconnect, snapshots, and gameplay intents all require 2-device tests. Do not mint reward XP from a client-only host. No Blaze or rule deployment was performed.
+
+**Acceptance before APK:** Unity Editor 0 compile errors; Steam nickname initial displays `V` in both Main Menu/Lobby including repeated entry; server status in each configured language has no bilingual header or raw English row text; one scene reload and a second match do not reset initial; Travel continues to use wide UI; shop and server-status navigation remain stable. Android real-room creation/join remains separate FAIL until multi-device verification.
