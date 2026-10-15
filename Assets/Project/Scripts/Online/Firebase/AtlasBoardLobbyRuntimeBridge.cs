@@ -30,9 +30,11 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     private const string EmulatorHostCommandLineSwitch =
         "-atlasEmulatorHost";
 
+#if UNITY_EDITOR
     [Header("Development")]
     [SerializeField]
     private bool useLocalEmulatorsInEditor = true;
+#endif
 
     [SerializeField, Min(0.25f)]
     private float snapshotPollSeconds = 1f;

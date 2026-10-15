@@ -1239,7 +1239,7 @@ public sealed class AtlasBoardLoadingExperience : MonoBehaviour
         text.fontSize = fontSize;
         text.alignment = alignment;
         text.color = Color.white;
-        text.enableWordWrapping = true;
+        text.textWrappingMode = TextWrappingModes.Normal;
         text.raycastTarget = false;
 
         if (TMP_Settings.defaultFontAsset != null)

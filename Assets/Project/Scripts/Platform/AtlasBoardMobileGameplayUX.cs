@@ -64,7 +64,7 @@ public sealed class AtlasBoardMobileGameplayUX : MonoBehaviour
     private Rect lastSafeArea;
     private int lastScreenWidth;
     private int lastScreenHeight;
-    private int observedSceneHandle = int.MinValue;
+    private ulong observedSceneHandle = ulong.MaxValue;
 
     private float perfWindowStartedAt;
     private int perfFrames;
@@ -164,9 +164,9 @@ public sealed class AtlasBoardMobileGameplayUX : MonoBehaviour
     private void DetectSceneChange()
     {
         Scene active = SceneManager.GetActiveScene();
-        int handle = active.IsValid()
+        ulong handle = active.IsValid()
             ? active.handle.GetRawData()
-            : int.MinValue;
+            : ulong.MaxValue;
 
         if (handle == observedSceneHandle)
             return;
