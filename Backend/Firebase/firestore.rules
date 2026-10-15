@@ -126,7 +126,28 @@ service cloud.firestore {
           request.resource.data.profileFrameId,
           128
         ) &&
-        request.resource.data.updatedAt is timestamp;
+        request.resource.data.updatedAt is timestamp &&
+        request.resource.data.updatedAt <= request.time &&
+        request.resource.data.updatedAt >=
+          request.time - duration.value(1, 'm');
+    }
+
+    // A display name is a public identity surface and may be changed at most
+    // once per 24 hours. Existing avatar/frame-only updates remain allowed,
+    // and updatedAt must remain within one minute of request time. Because the current v1 profile
+    // schema has one timestamp, any profile update conservatively restarts the
+    // rename cooldown rather than opening a bypass.
+    function validPublicProfileUpdate() {
+      return validPublicProfile() &&
+        (
+          request.resource.data.displayName ==
+            resource.data.displayName ||
+          (
+            resource.data.updatedAt is timestamp &&
+            request.time - resource.data.updatedAt >=
+              duration.value(24, 'h')
+          )
+        );
     }
 
     // SEC06 v2: isolate device Settings in ONE document per platform.
@@ -291,8 +312,11 @@ service cloud.firestore {
       allow get: if signedIn();
       allow list: if false;
 
-      allow create, update: if owns(uid) &&
+      allow create: if owns(uid) &&
         validPublicProfile();
+
+      allow update: if owns(uid) &&
+        validPublicProfileUpdate();
 
       allow delete: if false;
     }

@@ -142,7 +142,7 @@ async function main() {
     assert(accepted, `${label}: expected ${want}, got ${response.status}, ` +
       JSON.stringify(response.json).slice(0, 280));
     passed++;
-    console.log(`SEC05 [${passed}/20] PASS ${label}`);
+    console.log(`SEC05 [${passed}/21] PASS ${label}`);
     return response;
   }
   try {
@@ -169,6 +169,9 @@ async function main() {
         userFields(alice.uid, created, {uid: str(bob.uid)})));
     await expect('owner creates public profile', 200,
       () => firestore('PATCH', profile, alice.token, profileFields()));
+    await expect('owner cannot rename public profile again inside 24h', 'deny',
+      () => firestore('PATCH', profile, alice.token,
+        profileFields({displayName: str('Second Name Too Soon')})));
     await expect('authenticated peer can GET projected public profile', 200,
       () => firestore('GET', profile, bob.token));
     await expect('anonymous cannot GET public profile', 'deny',
@@ -198,8 +201,8 @@ async function main() {
     await expect('direct server-owned match result receipt minting denied', 'deny',
       () => firestore('PATCH', 'match_result_verifications/forged',
         alice.token, {verified: str('true')}));
-    assert(passed === 20, `Security Core 05 expected 20 checks, got ${passed}`);
-    console.log('ATLASBOARD_SECURITY_CORE_05_PROFILE_PRIVACY_PASS: 20/20 checks (emulator only).');
+    assert(passed === 21, `Security Core 05 expected 21 checks, got ${passed}`);
+    console.log('ATLASBOARD_SECURITY_CORE_05_PROFILE_PRIVACY_PASS: 21/21 checks (emulator only).');
     console.log('POLICY: SEC07 explicitly denies authenticated public_profiles LIST; targeted authenticated GET remains supported.');
     console.log('NOTE: arbitrary nested preferences shape/size is NOT closed by this E2E.');
   } finally {

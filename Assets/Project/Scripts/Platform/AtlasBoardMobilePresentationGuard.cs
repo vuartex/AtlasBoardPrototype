@@ -124,11 +124,11 @@ public sealed class AtlasBoardMobilePresentationGuard : MonoBehaviour
                 : screenHeight;
 
         // v5.25.3 used 1248 on 2400x1080. It was safe but visually left too
-        // much empty space. 1160 keeps a modest handset/tablet margin while
+        // much empty space. 1120 keeps a modest handset/tablet margin while
         // allowing the UI to use more of the available horizontal viewport.
         float referenceHeight = Mathf.Clamp(
-            1160f * screenHeight / safeHeight,
-            1160f,
+            1120f * screenHeight / safeHeight,
+            1120f,
             1300f);
 
         CanvasScaler[] all =

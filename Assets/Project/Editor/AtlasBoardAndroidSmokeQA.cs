@@ -4,6 +4,8 @@ using System.IO;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
+using UnityEditor.Android;
+using Unity.Android.Types;
 using UnityEngine;
 
 /// <summary>
@@ -190,6 +192,7 @@ public static class AtlasBoardAndroidSmokeQA
         UIOrientation previousOrientation = PlayerSettings.defaultInterfaceOrientation;
         bool oldAppBundle = EditorUserBuildSettings.buildAppBundle;
         bool oldExportProject = EditorUserBuildSettings.exportAsGoogleAndroidProject;
+        DebugSymbolLevel oldDebugSymbols = UserBuildSettings.DebugSymbols.level;
         BuildReport report = null;
         try
         {
@@ -203,6 +206,9 @@ public static class AtlasBoardAndroidSmokeQA
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.LandscapeLeft;
             EditorUserBuildSettings.buildAppBundle = false;
             EditorUserBuildSettings.exportAsGoogleAndroidProject = false;
+            // Diagnostics Data needs at least a symbol table for useful crash stack traces.
+            // Restore the owner's previous setting in finally.
+            UserBuildSettings.DebugSymbols.level = DebugSymbolLevel.SymbolTable;
             Debug.Log(Marker + " starting Android Development APK build. " +
                 "CANONICAL_SCENE=" + ScenePath + " OUTPUT=" + apk);
             report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
@@ -224,6 +230,7 @@ public static class AtlasBoardAndroidSmokeQA
             PlayerSettings.defaultInterfaceOrientation = previousOrientation;
             EditorUserBuildSettings.buildAppBundle = oldAppBundle;
             EditorUserBuildSettings.exportAsGoogleAndroidProject = oldExportProject;
+            UserBuildSettings.DebugSymbols.level = oldDebugSymbols;
             Debug.Log(Marker + " RESTORE_PLAYER_SETTINGS completed.");
         }
 

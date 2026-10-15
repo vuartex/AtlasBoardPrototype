@@ -1,5 +1,19 @@
 # ATLAS BOARD
-## Master Architecture & Development Roadmap v5.26.1 — PHASE 17C RTDB RULES / COMPILE FIX / COST BASELINE
+## Master Architecture & Development Roadmap v5.30.0 — PHASE 17E INTEGRATED ANDROID / ACCOUNT / RTDB
+
+**v5.30.0 integrated candidate (2026-10-15):** combines the untested v5.28 account/mobile implementation, the v5.29 compile correction, RTDB private user/device schema and the latest one-build Android acceptance gate. This is a candidate until Unity compile + one physical Android pass succeeds.
+
+
+**v5.28.0 candidate checkpoint (2026-10-14):** owner device testing of v5.27 additionally confirmed Trade action/touch-camera functionality, but reproduced four release blockers: sustained low Android FPS, Trade HUD overlap/small tablet controls, LocalOffline open-seat/legacy Human leakage with no countdown, and second/third-match presentation drift after `Board_Prototype` reload. v5.28 makes LocalOffline Start canonical/open-to-Bot with a 5-second countdown, self-heals Phase14 scene-local presentation, adds the non-persistent Android render ceiling, separates Career color from Shop, and introduces optional guest/account access. Real Unity compile/APK/device acceptance remains pending; do not mark v5.28 PASS from source inspection alone.
+
+
+**v5.27.0 candidate checkpoint (2026-10-14):** GitHub `main` is verified at `f170229ca4e20c255d605a35249939f516a863b3` (`Fix offline-mode compile blocker and prepare secure RTDB transport rules`). Physical Samsung SM-G780G / Android 13 evidence confirms the Local Offline fallback can enter PRIVATE TABLE, start a 4-seat Human+Bot match, roll dice, move pawns, buy/rent properties, resolve auctions, open/cancel/complete trade, resolve travel/event/special tiles and return to Main Menu without the Firebase emulator. The device log also proves PRIVATE TABLE currently falls through to the obsolete legacy Human/Bot dropdown setup; v5.27.0 fixes that routing so Local Offline reuses the current private-lobby seat presentation with `+ -> Local Player / Bot`. Mobile gameplay UX adds large Roll Dice and Trade controls beside the lower player HUDs, mobile-only touch camera gestures (one-finger rotate; two-finger pinch zoom + pan), larger tablet/trade presentation, larger touch-scrollable city information, slightly tighter mobile safe-area scaling (`1920x1120` reference target), and 10-second Android FPS/frame-time/memory telemetry. Desktop/Steam input and layout paths are unchanged.
+
+**Performance evidence and policy (updated by v5.28 device evidence):** v5.27 telemetry now proves a real Android performance problem on samsung SM-G780G at 2400x1080: long gameplay windows measured roughly 16–23 FPS while targetFps=60, and dropping MSAA from 4x to 2x did not materially recover frame rate. v5.28 therefore adds a runtime-only mobile render ceiling (VSync off, <=2x AA, low-cost shadows, HDR/post-processing off, URP renderScale 0.82 when available) and a measured emergency profile (renderScale 0.70, AA/shadows off) after sustained <45 FPS. Gameplay timing, dice outcomes and authoritative rules are still not accelerated to fake smoothness. Windows/Steam saved graphics settings are not rewritten.
+
+**Mobile interaction contract:** phones/tablets must expose primary gameplay actions as touch-sized controls without removing the existing desktop controls. `ROLL DICE` is anchored immediately to the right of the lower-left player HUD and `TRADE` immediately to the left of the lower-right player HUD. Tablet/modal content must remain usable at handset size; touch scrolling belongs to the modal and must block board-camera gestures while the modal is open. Camera gestures are mobile-only and must never alter mouse/keyboard/Steam behavior.
+
+**Acceptance still pending:** Unity compile, Android APK build, physical-device verification of the modern offline seat UI, touch button positions, two-finger pinch/pan, one-finger rotate, city scrolling, larger trade controls and measured `ATB_MOBILE_PERF` telemetry. Firebase RTDB live multiplayer transport remains a separate Phase 17C networking task and is not claimed complete by this UX package.
 
 
 **v5.26.1 checkpoint (2026-10-14):** GitHub `main` is now verified at `5bc6461463862419c50dd985867b2170348d7fd4` (`Introduce offline-first session modes and Android mobile display stabilization`). The owner's first v5.26.0 Android build attempt exposed a compile blocker in `AtlasBoardOfflineModeBootstrap.cs`: the component subscribed/unsubscribed `AtlasBoardFrontendErrorCodes.PublicCodeRaised` using a nonexistent `HandlePublicCode` symbol while the implemented callback was named `HandlePublicCodeRaised`. v5.26.1 fixes those three references without weakening the offline fallback. Firebase Realtime Database has now been created by the owner in Belgium / Europe and MUST start in Locked Mode. This checkpoint adds a deny-by-default `database.rules.json`, wires it into `firebase.json`, defines the planned Private Casual Online RTDB schema, and adds RTDB indexes only where query-based access is planned. RTDB Unity live transport is still PENDING; do not claim remote Private Table is functional until the SDK/transport and two-device test pass.
@@ -11,11 +25,11 @@
 
 **v5.26.0 current checkpoint (2026-10-14):** Android physical-device evidence from Samsung SM-G780G / Android 13 confirms LandscapeLeft startup, native 2400x1080 viewport, safe area x=88 width=2312, Android native Back registration, mobile canvas fitting and on-device log sharing. The same log proves startup falls back because online identity is not ready (ATB110) and proves the v5.25.x resolution repair observed transient 1080x2400 pixels twice after Settings interaction. v5.26.0 therefore removes active mobile SetResolution repair, makes mobile Apply use the active landscape viewport, reduces the mobile reference height from 1248 to 1160, and establishes the Local Offline / Private Casual Online / Online Rewarded networking contract. Local/bot-only play is explicitly zero-cloud and non-rewarded. Private Casual Online is targeted to Firebase Realtime Database + host authority with no persistent progression. Online Rewarded is targeted to RTDB live transport plus narrowly bounded trusted Functions/Firestore operations and independent verification. RTDB transport itself is NOT yet implemented in this candidate.
 
-**GitHub source note:** live GitHub API read on 2026-10-14 still reports `0a5a1b1a03f6067729015b85d8a6779706da157f` as `main` HEAD; the owner's reported `android test` push is not visible through the repository API yet. This package therefore preserves the newer owner-local Android v5.25.3 full-file baseline rather than replacing it with older GitHub copies.
+**GitHub source note (superseded):** the earlier API lag is resolved. `main` is now visible at `f170229ca4e20c255d605a35249939f516a863b3`; v5.27.0 is based on the owner's pushed v5.26.1 checkpoint, not an older repository copy.
 **Canonical current checkpoint (2026-10-13 UTC):** Security Cores 01–07 plus Phase 17A 19/19 compiled-unit and 12/12 Firebase callable E2E have passed owner Windows emulator tests. **Phase 16I Public Lobby v5.23.2: FULL LOCAL QA PASS** received in owner log `Pasted text(20261013-042741).txt`; 8/8 concurrent requests returned exact stable data, but 4/8 exceeded 5 seconds (`PERFORMANCE OPEN`). This v5.24.0 candidate extends the existing full-file Phase 17A E2E with nine dedicated Phase 17A.3 finalization/proof contention cases; **owner emulator retest is PENDING**. Full independent server replay verifier, live Android/Unity, Play Integrity App Check enforcement and production deployment remain OPEN. Earlier historical checkpoints are retained below.  
 **Repository:** `vuartex/AtlasBoardPrototype`  
-**Latest verified pushed GitHub HEAD visible through API (2026-10-14):** `5bc6461463862419c50dd985867b2170348d7fd4`  
-**Last verified pushed HEAD commit visible through API:** `Introduce offline-first session modes and Android mobile display stabilization`  
+**Latest verified pushed GitHub HEAD visible through API (2026-10-14):** `f170229ca4e20c255d605a35249939f516a863b3`  
+**Last verified pushed HEAD commit visible through API:** `Fix offline-mode compile blocker and prepare secure RTDB transport rules`  
 **Previous verified pushed HEAD (v5.17):** `bed153c2071716e1d7216fe0e3e8ecdb36f3f341`  
 **Historical accepted checkpoint (superseded by sections 25.7 and 25.9):** `SECURITY CORE 01/02/03 LOCAL QA ACCEPTED by owner on Windows: SEC01 normal progression 14/14 plus guarded host-result negative checks; SEC02 economy 19/19; SEC03 rewards 15/15; restored inventory 11/11 and promo 13/13; terminal AtlasBoard QA FULL LOCAL PASS. SEC11 interim reward gate protects against observed fabricated-match XP (XP=0, wins=0, first_win=false), but an independent server-side full gameplay/result verifier is still NOT implemented and unverified permanent match rewards remain PENDING. All new source/test changes and this roadmap are OWNER LOCAL until pushed; no production deployment. Execution order: remaining Security/Core Audit -> optional pre-release gameplay/UX features -> real Steamworks Phase17C -> final feature-frozen audit -> owner GO/NO-GO.`  
 **Phase 12 close commit:** `0eca81450be91b30a5dc1cd66d901c46e2cab07c` — `Phase 12: finalize online resilience hardening and crash recovery`  
@@ -1426,3 +1440,178 @@ Report actual four-call durations and `PERFORMANCE OPEN` if any exceed 5000ms. T
 **Warnings not falsely marked fixed:** LoadingExperience TMP word-wrap CS0618 and LobbyRuntimeBridge editor-only field CS0414 are nonfatal; test framework generates `Assets/Resources/PerformanceTestRunInfo.json`/`PerformanceTestRunSettings.json`; Android Debug Symbols warning remains guidance. Do not escalate them as CS0619. Future deliberate full-source review can remove these warnings without reverting user-local changes.
 
 **Hosted backend status:** Firebase connection was suggested again on owner's direct request; installation/authorization must be completed by owner before direct project inspection. Single `atlasboard-usa` managed cloud is the chosen direction, but no deployment, App Check acceptance, cloud data reset, test mutation or public exposure was authorized/performed by this ZIP. Android ATB110/ATB202 remains pending cloud Auth and endpoint validation. No new-platform feature acceptance until real-device QA and authenticated online two-device match PASS.
+
+## v5.28.0 — Phase 17E runtime integrity / account access / Android performance
+
+**Device evidence:** the v5.27 Samsung SM-G780G Android Development build measured sustained ~16–23 FPS at 2400x1080 even after MSAA fell from 4x to 2x. Repeated leave -> scene reload -> new match also exposed legacy tablet/city presentation drift and stale legacy player-control state. Therefore v5.28 treats these as release blockers, not cosmetic polish.
+
+### Canonical LocalOffline start contract
+
+- PRIVATE TABLE remains zero-backend when no authenticated identity exists.
+- Modern seat actions are the only user-facing seat source: Host LocalHuman, explicit LocalHuman, explicit Bot, or still-open selected seat.
+- At Start, every selected still-open seat becomes a **local Bot**. No open seat may silently become Human.
+- A visible **5-second** local countdown runs before gameplay.
+- Only after seat finalization does the compatibility bridge mirror canonical seat state into legacy MatchSetup controls.
+- Local Offline remains non-rewarded/non-ranked and creates no protected cloud history.
+
+### Re-entry / navigation integrity
+
+- Android/iOS persistent helpers must treat every `Board_Prototype` scene instance as new. Destroyed Unity wrappers are never retained as valid scene references.
+- On scene-handle change, modern Purchase/Auction/Trade/Development/Match Result/City Info presentation components and world-input guards are verified and recreated only if missing.
+- Acceptance requires: first match, leave to menu, second match, third match, settings round-trip, Career round-trip, Shop round-trip and app restart all expose the same current presentation generation. No navigation route is allowed to reveal an obsolete tablet or disable city tapping.
+
+### Android performance contract
+
+- Mobile runtime ceiling is separate from saved desktop/Steam graphics intent: VSync=0, target<=60, AA<=2x, low-cost hard shadows, shadow distance<=18, HDR/post-processing off, URP renderScale 0.82 when supported.
+- If two 10-second windows remain below 45 FPS, mobile emergency mode uses renderScale 0.70, AA off and real-time shadows off.
+- These overrides are runtime-only: do not write them back to PlayerPrefs/cloud and do not change Windows/Steam quality settings.
+- Do not use `Screen.SetResolution` as an Android performance repair.
+- Development-build FPS is diagnostic, not release acceptance. Final gate requires physical-device **Release** measurement as well.
+
+### Guest + account identity contract
+
+- Authentication is optional for Local Offline. Unsigned users receive one persistent language-neutral device-local name `Guest#####X` (five digits + one uppercase letter).
+- Guest identity is probabilistically unique, not server-certified global uniqueness, and grants no protected progression.
+- Career is account-backed. Unsigned Career entry opens Sign In / Create Account instead of indefinitely loading a cloud profile.
+- This does not fabricate career progression: signed-in XP/wins/history still require the trusted progression backend; if no trusted backend is deployed, the account UX may work while protected Career data remains pending.
+- Settings exposes the same account entry surface.
+- Email/password sign-in, registration, password confirmation, loading lock, password reset email, sign-out and profile rename are supported through Firebase Auth + the existing AtlasBoard Account Service.
+- Firebase Auth persistence is the session source; AtlasBoard never caches passwords to keep players signed in.
+- The registration math question is convenience/UX friction only, **not** security-grade CAPTCHA.
+- Passwords and password confirmation are **never** stored in RTDB, Firestore, PlayerPrefs or diagnostics. RTDB remains transient transport/catalog display only.
+- Signed-in `public_profiles.displayName` is canonical across menu/lobby/local P1 presentation.
+- Display-name mutation is client-throttled and Firestore Rules enforce a conservative 24-hour gate using the v1 profile `updatedAt` timestamp. Owner must deploy the updated Firestore Rules before claiming the server throttle live.
+
+### Mobile UI acceptance additions
+
+- Shop remains orange; Career is indigo on mobile for immediate visual separation.
+- Roll position remains accepted. Trade moves farther left of P2 HUD.
+- Tablet mobile scale is 1.25 and Trade controls/text have larger minimum touch/readability targets.
+- City information uses a 600x720 mobile reference panel and vertical touch scroll.
+
+### Open gates after v5.28
+
+- Real Unity compile/APK + first/second/third match Android smoke.
+- Android Development and Release FPS evidence; tune further if sustained gameplay remains below release target.
+- Firebase App Check production provider integration.
+- Phase17C RTDB Unity transport + two-device Private Casual Online and measured bytes/match.
+- Online Rewarded server-authoritative proof/replay before XP/wins/valuable rewards are enabled.
+- Google Play release and later Steam production validation.
+
+## Phase 17E.2 — v5.30.0 Integrated Android / Account / RTDB checkpoint
+
+**Status: IMPLEMENTED CANDIDATE — one Android acceptance build requested; runtime acceptance pending.**
+
+This checkpoint intentionally combines the already-prepared account/guest/mobile work with the v5.29 compile correction so the owner does not need to spend ~30 minutes on multiple Android builds.
+
+### Implemented in this candidate
+- Mobile Career card accent is indigo/violet while Shop remains orange.
+- Mobile Trade UI receives larger text/touch controls; gameplay Trade action is moved farther left from the lower-right HUD.
+- Mobile-only camera/touch and tablet/city sizing remain isolated from Windows/Steam.
+- Local Offline PRIVATE TABLE prefers the direct v5.29+ modern-seat entry point. Older project copies retain a reflection fallback.
+- Canonical local seats: explicit Local Player stays Local Player, explicit Bot stays Bot, unresolved selected seats become Bots at Start.
+- Local Start remains a visible 5 -> 1 countdown.
+- Scene reload self-healing remains enabled so second/third matches recreate modern Purchase/Auction/Trade/Development/Result/City presentation components instead of exposing legacy UI.
+- Android performance owner is consolidated under `AtlasBoardMobileGameplayUX`; the old v5.29 runtime file is retained only as a compatibility marker so fixes are not applied twice.
+- Mobile base performance profile is more aggressive but non-persistent: VSync off, target <=60 FPS, renderScale target 0.75, real-time shadows off, <=2x MSAA, <=1 pixel light, HDR/post-processing/reflection probes/soft particles off. Sustained low FPS may reduce renderScale to 0.62 and disable MSAA. Desktop/Steam saved settings are not rewritten.
+- Background scene/object scans are reduced in frequency to lower mobile CPU overhead.
+- Persistent unsigned identity remains `Guest#####X` (five digits + one uppercase ASCII letter), stored locally and intentionally not localized.
+- Career and Settings expose account access while Local Offline remains playable without sign-in.
+- Account UI supports email/password login, registration, password confirmation, easy + / - math check, one-submit-at-a-time loading lock, password-reset email, sign-out and display-name change.
+- Firebase Authentication remains the only password store. Password/password-confirmation are never written to RTDB, Firestore, PlayerPrefs or logs.
+- Firebase Auth session persistence is used so a signed-in player is not asked for the password every launch.
+- Signed-in canonical display name is reapplied to menu/lobby/local P1 presentations from one account identity.
+- Firestore profile rules retain the 24-hour server-side display-name cooldown during the migration period.
+- New low-frequency RTDB private user mirror is added for authenticated users. It writes general account/device metadata only after sign-in/registration/profile load; it does not run as match polling.
+
+### Canonical account / RTDB target shape
+
+`/users/{uid}` is PRIVATE to that authenticated UID and contains:
+- `userId` — Firebase UID; immutable;
+- `playerId` — deterministic Atlas player identifier (`ATB-...`); immutable;
+- `email` — private mirror and must match Firebase Auth token email;
+- `displayName` — canonical signed-in presentation name;
+- `createdAt`, `updatedAt`, `lastDisplayNameChangeAt`;
+- `/general` — schemaVersion, accountType, language, countryCode, lastSeenAt;
+- `/platforms/{platform}/devices/{deviceId}` — per-device model/OS/app version/firstSeen/lastSeen metadata, allowing one account to use multiple Android/Windows/iOS/macOS/Linux devices without overwriting another device record.
+
+Passwords never enter this tree. Email remains private and must never be copied into public room/profile projections.
+
+### Storage end-state required by owner
+- **Firebase Auth:** credentials/session/duplicate-email/password-reset.
+- **RTDB:** general low-value account presentation, device/platform metadata, Private Casual live membership/presence/intents/acks/state revisions, safe display metadata/catalog mirrors.
+- **Firestore + trusted backend:** valuable/security-sensitive authority: wallet/ledger, purchases/refunds, entitlements, XP/wins/rating/achievements, moderation/audit, rewarded promo redemption, independent match verification and other anti-cheat authority.
+- Current Firestore account/profile/settings reads remain temporarily during migration. Do not remove them until RTDB account/device behavior and cross-device migration are tested; the end-state is to avoid duplicate general-data reads from Firestore.
+
+### Guest identity boundary
+- Guest play must work without internet.
+- A completely offline guest cannot be globally server-certified unique; `Guest#####X` is a stable probabilistic device-local presentation identity.
+- Once the player registers/signs in, Firebase UID becomes globally authoritative and RTDB `/users/{uid}` is created/synchronized.
+- Guest/local/private-unrewarded matches mint no protected XP/wallet/competitive history.
+
+### v5.30 acceptance gate
+1. Unity Editor has **zero red compiler errors before Android Build**.
+2. Build one Development APK only after step 1 passes.
+3. Main Menu: Shop orange, Career violet/indigo; no HUD/card overlap.
+4. Unsigned player shows stable `Guest#####X`; restart app and verify the same guest name.
+5. Career unsigned -> account login modal. Settings -> account Sign In button/modal.
+6. Registration checks password mismatch, incorrect math answer, duplicate-email response and one-submit loading lock; valid registration signs in successfully.
+7. After valid registration/sign-in, RTDB `/users/{uid}` contains userId/playerId/private email/general/platform/device metadata; no password fields exist anywhere.
+8. Close/reopen app: Firebase Auth session remains signed in and the same canonical display name appears in menu/lobby/match.
+9. Password-reset request sends through Firebase Auth.
+10. Rename once succeeds; immediate second rename is rejected/cooldown feedback. Server rule deployment is required before calling the 24h gate live.
+11. PRIVATE TABLE player count 4: choose one extra Local Player and one explicit Bot, leave one seat unresolved. Start must fill only the unresolved seat with Bot; it must never become Human.
+12. Start shows visible 5,4,3,2,1 before gameplay.
+13. Mobile gameplay: Roll position accepted; Trade is left of P2 HUD and readable; tablet/trade text is touch-legible; pinch/pan/rotate and city vertical scrolling work.
+14. Exit match -> Main Menu -> start second match -> start third match. Modern tablet presentations and City Info must work on every match; no legacy tablet path may appear.
+15. Keep FPS counter/logging active for >=60 seconds. Record average FPS after the v5.30 mobile profile and whether emergency tier activates.
+16. Desktop/Steam Editor smoke after Android acceptance: no mobile action buttons, no mobile UI repositioning and no mobile graphics override.
+
+### Still pending after this checkpoint
+- Full RTDB Private Casual two-device transport implementation/acceptance.
+- Migration of remaining non-sensitive general/preferences reads from Firestore to RTDB after cross-device tests.
+- Production App Check enforcement and rewarded online anti-cheat authority.
+- Release AAB performance/size optimization and APK/AAB size reduction.
+
+---
+
+## Phase 17E.3 — v5.30.1 handoff / Unity 6 Android compile blocker
+**Status: SOURCE FIX PREPARED — UNITY COMPILE AND DEVICE ACCEPTANCE PENDING.**
+
+Observed blocker after v5.30.0 integration:
+- `AtlasBoardMobileGameplayUX.cs(168,15)` used deprecated implicit `SceneHandle -> int` conversion under Unity 6000.5.6f1.
+- v5.30.1 uses `SceneHandle.GetRawData()` instead; no gameplay semantics are changed.
+- the additional red Console entries (`Error building Player`, `APK_FAIL result`, `APK_FAIL`) are downstream build-failure reports, not three additional source defects.
+- Android Development smoke build temporarily requests `DebugSymbolLevel.SymbolTable` and restores the owner's previous symbol setting after the build so Diagnostics Data can resolve stack traces.
+
+Known non-blocking warnings still OPEN and must be cleaned from their canonical full source files in the next chat, not hidden with global `nowarn`:
+- `AtlasBoardLoadingExperience.cs`: obsolete `TMP_Text.enableWordWrapping` -> migrate to `textWrappingMode`.
+- `AtlasBoardLobbyRuntimeBridge.cs`: Editor-only `useLocalEmulatorsInEditor` produces Android player `CS0414`; isolate the serialized field to Editor compilation without weakening emulator/release separation.
+
+### Canonical account / data architecture carried forward
+- Firebase project: `atlasboard-usa`; Spark/free-first. No paid Blaze activation without owner approval.
+- Firestore rules and RTDB rules have already been deployed by the owner. Do not redeploy merely as part of this handoff.
+- RTDB is the preferred low-cost home for general/cached/live/ephemeral data and future private-casual transport.
+- valuable authoritative outcomes remain protected: XP, wallet/currency, purchase entitlements, permanent progression, verification and rewarded/ranked finalization must not become arbitrary client RTDB writes.
+- requested canonical RTDB user shape: `/users/{uid}` contains stable `userId`, `playerId`, canonical email/display name/general data, with nested general and `/platforms/{platform}/devices/{deviceId}` data for multi-device/multi-platform support. Passwords are never stored in RTDB, Firestore, PlayerPrefs or logs; Firebase Auth owns credentials.
+- authenticated display name is canonical across menu/lobby/match/career/store; rename target is max once per 24 hours with server-side enforcement, not client UI alone.
+- unsigned players may play as persistent `Guest#####X`; guest/local-only play earns no permanent XP/win/achievement/wallet/rewarded history.
+
+### v5.30.0 integrated features awaiting one consolidated Android acceptance build
+- mobile Shop/Career visual differentiation;
+- larger mobile trade/tablet interaction and Trade button moved away from lower-right HUD;
+- Private Table modern `+ -> Local Player / Bot` seat flow; unresolved local-offline seats must become Bots, never surprise Local Humans;
+- visible 5 -> 1 start countdown;
+- modern tablet / City Info / mobile presentation must survive leave-to-menu then second/third match scene cycles;
+- Android-only FPS/render profile must not alter Windows/Steam settings; previous S20 FE evidence was about 16–23 FPS and remains a P0 performance issue until retested;
+- persistent guest identity and optional Firebase Auth account UX: login/register/password reset/session persistence, duplicate-email handling, submit lock/loading, simple addition/subtraction human-check UX, canonical profile naming;
+- Career unsigned state should offer sign-in instead of hanging on `Loading career data...`; Settings should also expose account access;
+- user/profile RTDB mirror architecture for general/platform/device metadata.
+
+### Explicitly NOT IMPLEMENTED / still pending
+- **RTDB Private Casual two-real-device multiplayer transport is NOT implemented yet.** No claim of remote RTDB multiplayer acceptance.
+- migration from legacy polling (`0.25 s` host-intent / `0.5 s` per-player snapshots) to event-driven RTDB transport is pending.
+- Online Rewarded production transport / server-authoritative reward verification remains pending.
+- production Play Integrity/App Check enforcement proof remains pending; registration alone is not enforcement proof.
+- Firebase Cloud Functions are not deployed in `atlasboard-usa`; paid Blaze is not authorized.
+- full physical multi-device multiplayer, Google Play release AAB, final performance/device matrix and Steam production trust remain pending.

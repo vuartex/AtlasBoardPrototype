@@ -1,0 +1,79 @@
+using System;
+using UnityEngine;
+
+/// <summary>
+/// Device-local identity for unsigned/offline AtlasBoard play.
+///
+/// Format is deliberately language-neutral and stable across restarts:
+/// Guest + five digits + one uppercase ASCII letter, for example Guest48273K.
+/// This is probabilistically unique for local presentation; it is NOT a
+/// server-certified globally unique account name and grants no online rewards.
+/// </summary>
+public static class AtlasBoardGuestIdentity
+{
+    private const string PlayerPrefsKey =
+        "atlasboard.identity.guestDisplayName.v1";
+
+    private static string cached;
+
+    public static string DisplayName
+    {
+        get
+        {
+            EnsureCreated();
+            return cached;
+        }
+    }
+
+    public static void EnsureCreated()
+    {
+        if (IsValid(cached))
+            return;
+
+        string stored =
+            PlayerPrefs.GetString(
+                PlayerPrefsKey,
+                string.Empty);
+
+        if (IsValid(stored))
+        {
+            cached = stored;
+            return;
+        }
+
+        byte[] bytes = Guid.NewGuid().ToByteArray();
+        uint raw = BitConverter.ToUInt32(bytes, 0);
+        int number = (int)(raw % 100000u);
+        char suffix = (char)('A' + (bytes[4] % 26));
+
+        cached = $"Guest{number:D5}{suffix}";
+
+        PlayerPrefs.SetString(
+            PlayerPrefsKey,
+            cached);
+        PlayerPrefs.Save();
+
+        Debug.Log(
+            "ATB_GUEST_IDENTITY created=true name=" + cached +
+            " scope=device_local persistent=true");
+    }
+
+    private static bool IsValid(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value) ||
+            value.Length != 11 ||
+            !value.StartsWith("Guest", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        for (int i = 5; i < 10; i++)
+        {
+            if (!char.IsDigit(value[i]))
+                return false;
+        }
+
+        return value[10] >= 'A' &&
+               value[10] <= 'Z';
+    }
+}
