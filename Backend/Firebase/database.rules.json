@@ -219,7 +219,8 @@
             ".validate": "newData.isString() && newData.val().length === 64"
           }
         },
-        ".read": "auth != null && root.child('roomMeta').child($roomId).child('hostUid').val() === auth.uid"
+        ".read": "auth != null && root.child('roomMeta').child($roomId).child('hostUid').val() === auth.uid",
+        ".write": "auth != null && root.child('roomMeta').child($roomId).child('hostUid').val() === auth.uid && !newData.exists()"
       }
     },
     "roomMembers": {
@@ -295,9 +296,14 @@
             },
             "$other": {
               ".validate": false
+            },
+            "seatId": {
+              ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 64"
             }
           }
-        }
+        },
+        ".read": "auth != null && root.child('roomMeta').child($roomId).child('hostUid').val() === auth.uid",
+        ".write": "auth != null && root.child('roomMeta').child($roomId).child('hostUid').val() === auth.uid && !newData.exists()"
       }
     },
     "intentAcks": {
@@ -323,7 +329,9 @@
               ".validate": false
             }
           }
-        }
+        },
+        ".write": "auth != null && root.child('roomMeta').child($roomId).child('hostUid').val() === auth.uid && !newData.exists()",
+        ".read": "auth != null && root.child('roomMeta').child($roomId).child('hostUid').val() === auth.uid"
       }
     },
     "roomState": {
@@ -459,7 +467,82 @@
             ".validate": false
           }
         },
-        ".read": "auth != null && root.child('roomMeta').child($roomId).child('hostUid').val() === auth.uid"
+        ".read": "auth != null && root.child('roomMeta').child($roomId).child('hostUid').val() === auth.uid",
+        ".write": "auth != null && root.child('roomMeta').child($roomId).child('hostUid').val() === auth.uid && !newData.exists()"
+      }
+    },
+    "matchState": {
+      "$matchId": {
+        ".read": "auth != null && (!data.exists() || root.child('roomMembers').child(data.child('lobbyId').val()).child(auth.uid).child('active').val() === true)",
+        ".write": "auth != null && ((!data.exists() && newData.exists() && newData.child('hostUid').val() === auth.uid && root.child('roomMeta').child(newData.child('lobbyId').val()).child('hostUid').val() === auth.uid && root.child('roomMeta').child(newData.child('lobbyId').val()).child('closed').val() === false) || (data.exists() && data.child('hostUid').val() === auth.uid && (!newData.exists() || (newData.child('hostUid').val() === auth.uid && newData.child('matchId').val() === data.child('matchId').val() && newData.child('lobbyId').val() === data.child('lobbyId').val()))))",
+        ".validate": "!newData.exists() || (newData.hasChildren(['matchId','lobbyId','hostUid','status','phase','revision','eventSequence','snapshotJson','seatsJson','createdAt','updatedAt','hostHeartbeatAt','authorityEpoch','networkSchemaVersion']) && newData.child('matchId').val() === $matchId && newData.child('hostUid').val() === root.child('roomMeta').child(newData.child('lobbyId').val()).child('hostUid').val() && (!data.exists() || newData.child('revision').val() >= data.child('revision').val()) && (!data.exists() || newData.child('eventSequence').val() >= data.child('eventSequence').val()))",
+        "matchId": {
+          ".validate": "newData.isString() && newData.val() === $matchId && newData.val().length >= 12 && newData.val().length <= 64"
+        },
+        "lobbyId": {
+          ".validate": "newData.isString() && newData.val().length >= 20 && newData.val().length <= 64"
+        },
+        "hostUid": {
+          ".validate": "newData.isString() && newData.val() === auth.uid"
+        },
+        "status": {
+          ".validate": "newData.isString() && (newData.val() === 'active' || newData.val() === 'complete' || newData.val() === 'closed')"
+        },
+        "phase": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 64"
+        },
+        "turnSeatId": {
+          ".validate": "newData.isString() && newData.val().length <= 64"
+        },
+        "snapshotJson": {
+          ".validate": "newData.isString() && newData.val().length <= 65536"
+        },
+        "seatsJson": {
+          ".validate": "newData.isString() && newData.val().length <= 16384"
+        },
+        "revision": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "eventSequence": {
+          ".validate": "newData.isNumber() && newData.val() >= 0"
+        },
+        "authorityEpoch": {
+          ".validate": "newData.isNumber() && newData.val() >= 1"
+        },
+        "networkSchemaVersion": {
+          ".validate": "newData.isNumber() && newData.val() === 1"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber() && newData.val() <= now + 60000 && (!data.exists() || newData.val() === data.val())"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber() && newData.val() <= now + 60000"
+        },
+        "hostHeartbeatAt": {
+          ".validate": "newData.isNumber() && newData.val() <= now + 60000"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "matchPresence": {
+      "$matchId": {
+        ".read": "auth != null && root.child('roomMembers').child(root.child('matchState').child($matchId).child('lobbyId').val()).child(auth.uid).child('active').val() === true",
+        ".write": "auth != null && root.child('matchState').child($matchId).child('hostUid').val() === auth.uid && !newData.exists()",
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid && root.child('roomMembers').child(root.child('matchState').child($matchId).child('lobbyId').val()).child($uid).child('active').val() === true",
+          ".validate": "!newData.exists() || newData.hasChildren(['online','lastSeenAt'])",
+          "online": {
+            ".validate": "newData.isBoolean()"
+          },
+          "lastSeenAt": {
+            ".validate": "newData.isNumber() && newData.val() <= now + 60000"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
       }
     }
   }

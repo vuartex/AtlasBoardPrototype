@@ -210,7 +210,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 {
                     currentRoomCode = result.RoomCode;
                 }
-                AcceptSnapshot(result.Snapshot);
+                // GetSnapshotAsync already accepts and de-duplicates the
+                // authoritative snapshot. Do not emit the same event twice.
             }
             else if (string.Equals(
                          result.ErrorLocalizationKey,
@@ -933,12 +934,16 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 "No active lobby snapshot is available.");
         }
 
+        // The RTDB rematch transition is asynchronous. The room may be
+        // Waiting on the server while this bridge still holds the previous
+        // round's SettingsRevision. Never start with an unverified revision.
+        AtlasLobbySnapshot originalSnapshot = currentSnapshot;
         LobbyStartRequest request =
             new LobbyStartRequest
             {
                 lobbyId = currentLobbyId,
                 expectedSettingsRevision =
-                    currentSnapshot.SettingsRevision
+                    originalSnapshot.SettingsRevision
             };
 
         AtlasLobbyOperationResult result =
@@ -946,13 +951,109 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 "lobbyStartMatch",
                 request);
 
-        if (result.Success &&
-            result.Snapshot != null)
+        if (!result.Success &&
+            string.Equals(result.ErrorLocalizationKey,
+                "lobby.error.stale_settings", StringComparison.Ordinal) &&
+            HasLobby)
+        {
+            // Exactly one bounded resync/retry. A genuine host settings
+            // change or change in occupied remote seats is NOT silently
+            // accepted. Ready status is checked again by the RTDB host.
+            AtlasLobbyOperationResult refreshed =
+                await GetSnapshotAsync();
+            AtlasLobbySnapshot latest = refreshed.Snapshot;
+            bool sameConfiguration =
+                refreshed.Success &&
+                latest != null &&
+                latest.LifecycleState == AtlasRoomLifecycleState.Waiting &&
+                string.Equals(latest.LobbyId,
+                    originalSnapshot.LobbyId, StringComparison.Ordinal) &&
+                string.Equals(latest.HostAccountId,
+                    originalSnapshot.HostAccountId, StringComparison.Ordinal) &&
+                AreMatchSettingsEquivalent(
+                    originalSnapshot.Settings, latest.Settings) &&
+                AreOccupiedHumanSeatsEquivalent(
+                    originalSnapshot.Members, latest.Members);
+
+            if (sameConfiguration &&
+                latest.SettingsRevision !=
+                    originalSnapshot.SettingsRevision)
+            {
+                Debug.Log(
+                    "ATB_RTDB_MATCH_REVISION_RESYNC expected=" +
+                    originalSnapshot.SettingsRevision +
+                    " actual=" + latest.SettingsRevision +
+                    " retry=once");
+                request.expectedSettingsRevision =
+                    latest.SettingsRevision;
+                result = await CallLobbyFunctionAsync(
+                    "lobbyStartMatch", request);
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "ATB_RTDB_MATCH_REVISION_RESYNC skipped=" +
+                    (sameConfiguration
+                        ? "revision_not_advanced"
+                        : "configuration_or_lifecycle_changed"));
+            }
+        }
+
+        if (result.Success && result.Snapshot != null)
         {
             AcceptSnapshot(result.Snapshot);
         }
-
         return result;
+    }
+
+    // Compare player-selected game rules, not derived counts such as BotCount
+    // (which legitimately changes when open slots become Bots at Start).
+    private static bool AreMatchSettingsEquivalent(
+        AtlasLobbySettings before, AtlasLobbySettings after)
+    {
+        return before != null && after != null &&
+            string.Equals(before.MapId, after.MapId, StringComparison.Ordinal) &&
+            string.Equals(before.ThemeId, after.ThemeId, StringComparison.Ordinal) &&
+            before.RoundLimit == after.RoundLimit &&
+            before.MaxPlayers == after.MaxPlayers &&
+            before.BalancedDevelopment == after.BalancedDevelopment &&
+            before.DoublesEnabled == after.DoublesEnabled &&
+            before.TripleDoublePenaltyEnabled ==
+                after.TripleDoublePenaltyEnabled;
+    }
+
+    // Remote/local human ownership is never silently altered by auto-retry.
+    // Bot/OpenOnline differences after finishing a match are intentional.
+    private static bool AreOccupiedHumanSeatsEquivalent(
+        List<AtlasLobbyMemberSnapshot> before,
+        List<AtlasLobbyMemberSnapshot> after)
+    {
+        if (before == null || after == null ||
+            before.Count != after.Count)
+        {
+            return false;
+        }
+        for (int i = 0; i < before.Count; ++i)
+        {
+            AtlasLobbyMemberSnapshot a = before[i];
+            AtlasLobbyMemberSnapshot b = after[i];
+            if (a == null || b == null)
+            {
+                if (a != b) return false;
+                continue;
+            }
+            if (a.SlotIndex != b.SlotIndex) return false;
+            bool humanA = a.Active && a.IsHumanSeat;
+            bool humanB = b.Active && b.IsHumanSeat;
+            if (humanA != humanB) return false;
+            if (humanA &&
+                !string.Equals(a.AccountId, b.AccountId,
+                    StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     public async Task<AtlasLobbyOperationResult> GetSnapshotAsync()
@@ -970,9 +1071,21 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 lobbyId = currentLobbyId
             };
 
-        return await CallLobbyFunctionAsync(
-            "lobbyGetSnapshot",
-            request);
+        AtlasLobbyOperationResult result =
+            await CallLobbyFunctionAsync(
+                "lobbyGetSnapshot",
+                request);
+
+        // A read must also advance the bridge's authoritative local cache.
+        // Otherwise rematch returns Waiting in RTDB while Start keeps using
+        // the previous match's SettingsRevision until a separate poll fires.
+        if (result.Success && result.Snapshot != null &&
+            string.Equals(result.Snapshot.LobbyId,
+                currentLobbyId, StringComparison.Ordinal))
+        {
+            AcceptSnapshot(result.Snapshot);
+        }
+        return result;
     }
 
     public void ClearLocalLobbyState()
@@ -1495,41 +1608,88 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
         if (currentSnapshot != null &&
-            string.Equals(
-                currentSnapshot.LobbyId,
-                snapshot.LobbyId,
+            string.Equals(currentSnapshot.LobbyId, snapshot.LobbyId,
+                StringComparison.Ordinal) &&
+            string.Equals(JsonUtility.ToJson(currentSnapshot),
+                JsonUtility.ToJson(snapshot), StringComparison.Ordinal))
+        {
+            // Network polling may continue, but unchanged data must NEVER
+            // rebuild the lobby, player HUD or match presentation.
+            return;
+        }
+
+        if (currentSnapshot != null &&
+            string.Equals(currentSnapshot.LobbyId, snapshot.LobbyId,
                 StringComparison.Ordinal))
         {
-            // A polling request can begin before a host mutation and finish
-            // after the mutation response. Never let that older response move
-            // the bridge back to a lower settings revision.
-            if (snapshot.SettingsRevision <
-                currentSnapshot.SettingsRevision)
+            bool hasTransportRevisions =
+                currentSnapshot.TransportRevision > 0 &&
+                snapshot.TransportRevision > 0;
+
+            if (hasTransportRevisions)
             {
-                return;
+                // RTDB roomState.revision is the lifecycle clock. A rematch
+                // can be Starting -> Waiting at the SAME SettingsRevision.
+                // Never use lifecycle rank to reject a newer authoritative
+                // state, or accept a delayed pre-start Waiting poll.
+                if (snapshot.TransportRevision <
+                    currentSnapshot.TransportRevision)
+                {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                    Debug.Log(
+                        "ATB_RTDB_LOBBY_STALE_RESPONSE ignored=true " +
+                        "incoming=" + snapshot.TransportRevision +
+                        " cached=" + currentSnapshot.TransportRevision,
+                        this);
+#endif
+                    return;
+                }
+                if (snapshot.TransportRevision ==
+                        currentSnapshot.TransportRevision &&
+                    snapshot.LifecycleState !=
+                        currentSnapshot.LifecycleState)
+                {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                    Debug.LogWarning(
+                        "ATB_RTDB_LOBBY_INCONSISTENT_SAME_REV " +
+                        "incoming=" + snapshot.LifecycleState +
+                        " cached=" + currentSnapshot.LifecycleState +
+                        " revision=" + snapshot.TransportRevision,
+                        this);
+#endif
+                    return;
+                }
             }
-
-            // Starting/Started style lifecycle progression must also never be
-            // repainted by an older Waiting response at the same revision.
-            // The one intentional reverse transition is a synchronized Rematch:
-            // Host clears MatchId and moves the existing room back to Waiting.
-            bool synchronizedRematchReturn =
-                (currentSnapshot.LifecycleState ==
-                     AtlasRoomLifecycleState.Starting ||
-                 currentSnapshot.LifecycleState ==
-                     AtlasRoomLifecycleState.InMatch) &&
-                snapshot.LifecycleState ==
-                    AtlasRoomLifecycleState.Waiting &&
-                !string.IsNullOrWhiteSpace(currentSnapshot.MatchId) &&
-                string.IsNullOrWhiteSpace(snapshot.MatchId);
-
-            if (!synchronizedRematchReturn &&
-                snapshot.SettingsRevision ==
-                    currentSnapshot.SettingsRevision &&
-                LifecycleRank(snapshot.LifecycleState) <
-                    LifecycleRank(currentSnapshot.LifecycleState))
+            else
             {
-                return;
+                // Backwards compatibility for older serialized rooms.
+                // SettingsRevision alone was never a reliable lifecycle
+                // clock; a real start/rematch still needs to be identified
+                // by MatchId and state transition.
+                if (snapshot.SettingsRevision <
+                    currentSnapshot.SettingsRevision)
+                {
+                    return;
+                }
+
+                bool explicitRematchReturn =
+                    (currentSnapshot.LifecycleState ==
+                         AtlasRoomLifecycleState.Starting ||
+                     currentSnapshot.LifecycleState ==
+                         AtlasRoomLifecycleState.InMatch) &&
+                    snapshot.LifecycleState ==
+                        AtlasRoomLifecycleState.Waiting &&
+                    !string.IsNullOrWhiteSpace(currentSnapshot.MatchId) &&
+                    string.IsNullOrWhiteSpace(snapshot.MatchId);
+
+                if (!explicitRematchReturn &&
+                    snapshot.SettingsRevision ==
+                        currentSnapshot.SettingsRevision &&
+                    LifecycleRank(snapshot.LifecycleState) <
+                        LifecycleRank(currentSnapshot.LifecycleState))
+                {
+                    return;
+                }
             }
         }
 

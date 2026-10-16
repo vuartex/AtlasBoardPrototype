@@ -1,10 +1,55 @@
 # ATLAS BOARD — MASTER ROADMAP (CANONICAL)
 
-**Güncel konsolidasyon:** 15 Ekim 2026 · **Çalışma noktası:** Phase 18I / v5.31.9 (kaynak adayı; kullanıcı runtime PASS değil) · Unity 6000.5.6f1 · `vuartex/AtlasBoardPrototype` · `atlasboard-usa` · Android önce, Windows/Steam korunur.
+**Güncel konsolidasyon:** 16 Ekim 2026 · **Çalışma noktası:** Phase 18O / v5.32.6 (owner RTDB host+3 Bot gameplay PASS; 2 gerçek cihaz ve regresyon kapıları hâlâ OPEN) · Unity 6000.5.6f1 · `vuartex/AtlasBoardPrototype` · `atlasboard-usa` · Android önce, Windows/Steam korunur.
 
 > **ÖNCELİK KURALI:** Bu belgenin 1–10 bölümleri geçerli ürün kararı ve test durumudur. Daha alttaki v5.30.0 ve öncesinin tarihsel kaydı geriye dönük denetim içindir. Tarihsel “current/PASS/next” yazıları güncel durumun üzerine çıkamaz. **Kod hazır ≠ Unity compile PASS ≠ gerçek cihaz PASS ≠ iki cihaz online PASS.**
 >
 > **TEK DOSYA KURALI:** Bundan sonra yalnız `Assets/Project/Documentation/MASTER_ROADMAP.md` kanoniktir. Her yama/sürümde yeni QA/phase/roadmap/next-chat dokümanı açma. Anlamlı mimari değişikliği, kullanıcı test sonucu veya phase milestone olduğunda bu dosyayı güncelle; küçük düzenlemelerde ayrıca doküman yazma. Eski dosyalar şu an otomatik silinmez; bu roadmap kaynaklarını konsolide eder.
+
+## 0. 16 Ekim 2026 — GERÇEK TEST, KÖK NEDEN VE KOD SAHİPLİĞİ (GÜNCEL OTORİTE)
+
+> **OWNER RESULT / KORUNACAK DAVRANIŞ:** v5.32.5 Bot wire düzeltmesi + v5.32.6 Editor erişim/CS0122 düzeltmesinden sonra, kullanıcı **Private Online RTDB odasında 1 Human host + 3 Bot ile oyuna girip hızlı zar atma / oynanabilir oyun akışını** doğruladı. Loglar `ATB_SPARK_MATCH_START ... bots=3`, botların roll, purchase, auction, turn ilerlemesi ve gerçek RTDB snapshot okuma sonuçlarını içerir. Bu gerçek ve değerli bir geçiştir; **2 gerçek istemci, ödüller, host migration ve tüm re-entry senaryoları henüz PASS değildir.** Bu owner PASS hiçbir sonraki değişiklikle geriye götürülemez.
+
+### 0.1 Kullanıcının açık talimatları — yeniden keşfetme / yeniden bozma YASAK
+
+1. **10 saniyelik zorunlu otomatik zar atma / AFK fail-safe KULLANICININ TASARLADIĞI OYUN KURALIDIR.** Ağın/botun doğal bekleme süresi değildir, 'yeni bulunmuş hata' diye sunulamaz ve hız uğruna kaldırılmaz/kısaltılmaz. Sağlıklı Bot kendi normal karar gecikmesinden sonra oynar; 10 saniyelik fallback yalnız gecikme/aksaklık durumunda çalışır. İnsanın karar hakkı ve AFK streak semantiği korunur.
+2. **Bug çözüldüyse regresyona izin yok.** Üç gün önceki davranışları tekrar bozan sonraki sürüm kabul edilemez. Kod değiştirmeden önce en güncel GitHub/local **tam dosyaları** oku, üst üste binen yazıcıları bul, otoriteyi tekilleştir, önce/sonra kabul senaryosunu çalıştır. Kaynağı okumadan tahmini yeni helper, platforma göre kopya logic, başka scripti ezme ve günlükleri susturarak sorunu gizleme YASAK.
+3. **Bir görevin tek sahibi, tek state sözleşmesi, açıklayıcı kod yorumu.** Önemli state geçişinin *nedenini*, kimin authoritative olduğunu, 'cleanup' ile 'rol değişimini' ayıran kısa yorumu kanonik ilgili kaynak koduna ekle; aynı davranışın kopyalarını yazma. Yorum davranışı açıklamalı; gereksiz her satıra yorum veya eski gerçeğe aykırı yorum yok. C# `internal` kodu ayrı Unity `Editor` assembly'sinden çağıran QA eklemeden önce erişim/asmdef/compile doğrulanır (`CS0122` tekrarlanmaz).
+4. **Önce derleme ve çalışan host+3 Bot, ardından 2 cihaz network.** Kabul: 0 kırmızı derleme, 10s fallback tetiklenmeden Bot roll/purchase/auction/trade/turn, tablet/HUD stabil; Menu→Private→match→Leave→new Private/Public→match, üst üste en az **3 oturum**. Sadece Editor smoke PASS oyunun PASS'i değildir; runtime manual PASS smoke testinin başka dalda FAIL olmasından da otomatik iptal edilmez.
+5. **Her kaydın test seviyesi yazılır:** `SOURCE CHANGED`, `STATIC CHECK`, `UNITY COMPILE`, `EMULATOR PASS`, `EDITOR GAMEPLAY OWNER PASS`, `TWO-DEVICE PASS`. Bilinmeyeni PASS diye işaretleme. Tek kanonik `MASTER_ROADMAP.md` güncellenir; ek phase/QA markdown biriktirilmez; kullanıcı istemedikçe her küçük promptta roadmap yazma.
+
+### 0.2 `control mode changed to HUMAN` — logun gerçek anlamı (çözümle / saklama)
+
+**LOG İSPATI (16 Ekim):** Kullanıcının gösterdiği `PlayerPawn_01` ... `PlayerPawn_04 control mode changed to HUMAN` satırları `AtlasBoardLeaveFlowController.ConfirmLeaveMatch → AtlasBoardTurnDiceNetworkCoordinator.TryHandleLeaveMatch → HostMigrateAtSafeCheckpointAsync → DetachLocalClientFromActiveMatch → AtlasBoardMainMenuController.ShowMainMenuAfterActiveMatchExit → ResetReusableGameplaySession → MatchSetupManager.ResetForNewMatchSession → BotPlayerController.SetBotEnabled(false)` zincirinde **maçtan ayrılırken** üretilmiştir. Aynı oyunun geri kalan loglarında P2–P4 `BOT`, hızlı roll ve satın alma/açık artırma çalışmaktadır.
+
+**NET AYRIM:** `SetBotEnabled(false)` yalnız **bu istemcide Bot karar Coroutine'ini/simülasyonunu kapatır**; RTDB'deki `seat.ControllerKind` değerini gerçek anlamda `Human` yapmaz. Buna karşın mevcut `BotPlayerController.SetBotEnabled` hiçbir durum değişimi kontrolü yapmadan her çağrıda `control mode changed to HUMAN/BOT` logladığı için kullanıcıyı yanıltır ve Console'u şişirir. Bu logu gerçek koltuk değişimi gibi yorumlamak **yanlıştır**. Cleanup'ın bu kapatma davranışını silip eski Bot'u bir sonraki maça sızdırma.
+
+**AÇIK TEKNİK BORÇ / DÜZELTME KABULÜ (P0):** `BotPlayerController.SetBotEnabled` **idempotent** olmalı, aynı değer tekrar verilince gereksiz log/AI restart/işlem olmamalı; sadece gerçekten değişen `bot simulation enabled/disabled` olayını açık bir nedenle bildirmeli, gerçek `ControllerKind` ayrı izlenmeli. Kapatırken aktif Coroutine durdurma garantisi korunmalı. Host/follower yetkisi ve Bot/Human kararı RTDB canonical snapshot + `PlayerGameState` üzerinden yürümeli. Değişen seat yoksa `ApplyOnlineSeatMetadata` dört slotta sürekli SetBotEnabled ve `TurnManager.RefreshTurnPresentationForControlChange()` çağırmamalı; HUD yalnız **role/connection/identity/turn gerçekten değiştiğinde** yeniden çizilmeli. Sahne çıkışı reset, ilk başlangıç setup ve ağ snapshot updater farklı 'rol sahibi' olamaz.
+
+### 0.3 Kod sahipliği — hangi script hangi alanı yönetir?
+
+| Kaynak | Tek sorumluluk | Yazmaması / ezmemesi gereken | Kapsam / kabul |
+|---|---|---|---|
+| `AtlasBoardRtdbCasualLobbyTransport` + `AtlasBoardSparkRtdbMatchTransport` | RTDB oda + authoritative maç snapshot/intent/revision, seat controller wire contract (`human`, `permanent_bot`, `temporary_bot`) | UI `GameObject`ları, sahte Career/Gold, yerel GameObject Bot toggle | `permanentbot` legacy okuma uyumu; wire ile enum dönüşümü bir kanonik contract üzerinden test |
+| `AtlasBoardLobbyRuntimeBridge` / `AtlasBoardMatchRuntimeBridge` | Client/host için alınan güncel room/match snapshot'ını taşıma, stale revision reddi | Her eventte sahne bot/GUI reset'i, settings-revision/transport-revision karışıklığı | Yanıt sırası ve rematch üç oturum kabulü |
+| `AtlasBoardTurnDiceNetworkCoordinator` | Ağ authority host/follower, lokal sahiplik ve match seat/controller **uygulama geçidi**; `ApplyOnlineSeatMetadata` | Aynı snapshot'ı değişiklik yokken 4 kez render; follower'da Bot AI çalıştırma; Leave sonrası eski callback ile role overwrite | Snapshot delta idempotency, botlar kesintisiz ve HUD titremesiz |
+| `PlayerGameState` | Uygulanmış `OnlineControllerKind`, identity, connection bilgisi ve değişim event'i | Bağımsız ek global kimlik/avatar üretme; her kare `IdentityChanged` | Tek kanonik role/identity kaynağı |
+| `BotPlayerController` | **Yerel Bot AI yürütme flag'i ve Coroutine yaşam döngüsü** | `HUMAN` olarak authoritative seat sınıflandırma, gereksiz log veya state yazma | `SetBotEnabled(false)` cleanup = simülasyon OFF; gerçek seat rolü UNCHANGED |
+| `MatchSetupManager` | İlk start/reuse için başlangıç setup ve gereğinde Bot AI stop | Ağ seat role'ünü kalıcı olarak yeniden belirleme; game start sonrası snapshot'ı ezme | Reset'te eski Bot kararları yok, Start sonrası host botları doğru |
+| `AtlasBoardMainMenuController` / `AtlasBoardLeaveFlowController` | Menu/Leave/session sıfırlama ve UI aç-kapa | Maç ortasında scene owner/role rewrite, çift reset zinciri | Menu→Game→Leave→Menu→Game üç kez |
+| `TurnManager` / `AtlasBoardHumanRollTimeoutController` | Kurallara uygun tur/roll/AFK; **10s fail-safe korunur** | Bot controller yanlışsa otomatik 10s tetiklemeyi 'normal bot hızı' gibi sunma | Host bot doğal hız, AFK fallback sadece gerçekten gerekli olduğunda |
+| `PlayerHudPanel` / tablet manager | State değişince bir kez redraw, tek tablet sahibi | Her RTDB GET'te zorunlu `RefreshTurnPresentationForControlChange`/SetActive, üst üste panel | 30s tablet görünürlüğü stabil, giriş/çıkışta duplicate yok |
+
+### 0.4 Son somut doğrulamalar ve hâlâ açık olanlar
+
+- **OWNER PASS (Editor gameplay):** RTDB Private match create/start, host+3 Bot, hızlı Bot zar atma, satın alma, açık artırma ve turn progression. Bu aşamada eski 10s bottleneck tekrarlanmıyor. Public create/start önceki testte gösterilmişti; Public bütün oyun akışı, reconnect ve iki gerçek insan hâlâ kabul bekliyor.
+- **EMULATOR PASS:** `ATB_RULES_QA PASS stages=auth_room_match_atomic_create_cas_publish_heartbeat_outsider_denied`. **RULES DEPLOY OWNER PASS:** `atlasboard-usa-default-rtdb` deploy; aynı rules tekrar tekrar deploy edilmez.
+- **EDITOR QA COMPILE FIX:** v5.32.6, `CS0122` class/method visibility kaynak hatasını düzeltmek için tam dosya adayı; kullanıcı Editor gameplay çalıştırdığı için kırmızı compile engelinin aşıldığı anlaşılıyor; ayrıca bağımsız bütün-proje compiler run burada yok.
+- **RTDB LATENCY:** Kullanıcı bir gerçek maçta `median_ms=248`, `p95_ms=3060`, daha sonraki logda `median_ms≈160`, `p95_ms≈180` gördü (8 örnek, sadece snapshot roundtrip, karar gecikmesi değil). Firestore'a geçmeyi tek başına haklı çıkarmaz; iki gerçek cihaz intent→ack→turn/render süreleri ayrıca ölçülecek.
+- **OPEN/P0:** `ApplyOnlineSeatMetadata` / `BotPlayerController.SetBotEnabled` gereksiz role/log/render tekrarları, 3 maç re-entry regresyonu, tablet-HUD tek sahiplik, `Vuartex`/`V` avatar kararlılığı, real 2-device RTDB sync, reconnect/host migration, missing Firestore profile (`ATB120`), account persistence, Android FPS. `PawnMotionAnimator` inactive Animator uyarıları ayrı gerçek UI/animation bug olarak incelenecek; backend PASS ile kapatılmaz.
+- **KORUMA BARİYERİ:** Yeni sürüm host+3 Bot normal hızla gameplay, canonical name/avatar, açılan tek UI, 10 saniyelik fallback kuralı, Steam/Windows/Android ayrımı ve ücretsiz Spark'ı regresyona uğratırsa teslim edilmez. Kod değiştiği her gerçek P0 senaryosu en az 3 ardışık oturumda kontrol edilir; sonuç yoksa `OPEN` kalır.
+
+---
 
 ## 1. Değişmez çalışma sözleşmesi
 
@@ -27,23 +72,23 @@
 
 ## 3. Doğrulanmış sonuçlar ve açık P0 defteri
 
-**OWNER PASS:** Firebase Auth ve RTDB kullanıcı erişimi, RTDB Public room list sorgusu (boş olması hata değil), RTDB Private Room Create→Read→Close smoke (`ATB_RTDB_SMOKE PASS stages=create_read_close`), gerçek altı haneli kod/Show/Copy. Ana menüde Vuartex adının V avatara dönüşmesi daha önce onaylandı; Server Status tek dil/ikon hizası onaylandı; Shop ikinci girişte doğru açıldı ve geniş Travel tasarımı beğenildi. Bunlar **iki gerçek cihaz senkronize multiplayer PASS anlamına gelmez**.
+**OWNER PASS:** v5.32.6 Private Online RTDB host + 3 Bot hızlı roll/purchase/auction/turn gameplay (gerçek iki insan değil); Firebase Auth ve RTDB kullanıcı erişimi, RTDB Public room list sorgusu (boş olması hata değil), RTDB Private Room Create→Read→Close smoke (`ATB_RTDB_SMOKE PASS stages=create_read_close`), gerçek altı haneli kod/Show/Copy. Ana menüde Vuartex adının V avatara dönüşmesi daha önce onaylandı; Server Status tek dil/ikon hizası onaylandı; Shop ikinci girişte doğru açıldı ve geniş Travel tasarımı beğenildi. Bunlar **iki gerçek cihaz senkronize multiplayer PASS anlamına gelmez**.
 
 | ID / önem | Kullanıcının tekrar gördüğü bug | Kök alan / kalıcı kabul kapısı | Şimdi |
 |---|---|---|---|
 | **P0-01 Identity/avatar** | Bir ekranda `Vuartex` yanında **G**, başka sahnede V; bir an Guest→Vuartex; kimlik HUD değişimleri | Tek canonical `DisplayName` + `AvatarInitial` aynı snapshot'tan; ilk karede Main Menu / Profile / Private / Public / Career / Shop / tur bar / tablet / HUD; ayrı prefab fallback yok; per-frame `IdentityChanged` yok | **OPEN**. v5.31.9 kaynak düzeltmesi kabul edilmedi |
 | **P0-02 HUD flicker** | Tablet açıkken P1–P4 player HUD görünür/gizli, tekrar tekrar boyanıyor | Tek HUD görünürlük sahibi; tablet açıkken tüm player HUD kapalı 30s hiç titreme yok; kapalıyken doğru geri gelir; değişmeyene SetActive/Canvas yazma yok | **OPEN**, v5.31.9 adayı |
 | **P0-03 Tablet birikmesi** | Property üzerinde eski Travel çiziliyor; kararsız karar ekranları birikiyor, City Info ikinci maçta kaybolabiliyor | `TabletUIManager` tek aktif canonical panel; Travel/Property/Trade/Event/Auction/Development/City Info eski ve modernleri aynı anda çizemez; her kapatmada cleanup; 3 maç | **OPEN**, v5.31.9 kısmi adayı |
-| **P0-04 Seat auto Bot** | Seçilmemiş P2–P4 yanlışlıkla Local Human | LocalOffline P1 host, explicit P2 Local/P3 Bot korunur; seçili ama boş P4 → Bot. Online explicit Remote Human seçimi asla sessizce bozulmaz. 5→1 countdown ve doğru snapshot | **FAIL/OPEN** |
+| **P0-04 Seat auto Bot** | Seçilmemiş P2–P4 yanlışlıkla Local Human | LocalOffline P1 host, explicit P2 Local/P3 Bot korunur; seçili ama boş P4 → Bot. Online explicit Remote Human seçimi asla sessizce bozulmaz. 5→1 countdown ve doğru snapshot | **KISMİ OWNER PASS:** v5.32.6 RTDB host+3 Bot oynandı; LocalOffline/RemoteHuman/3 oturum OPEN |
 | **P0-05 re-entry** | Maç #1 açılıyor, menü→aynı/başka lobi→maç #2 Start çalışmıyor veya eski UI geliyor | Tek session lifecycle reset, stale callbacks/Unity destroyed refs/listener duplicate yok; maç #1/#2/#3 ve Shop/Career/Settings dönüşü PASS | **FAIL/OPEN** |
-| **P0-06 online match** | RTDB room kodu var ama ESC `NO NETWORK SESSION`, Public Start pasif, private gameplay local gibi | Match transport Functions→RTDB host snapshot/intent/ack/revision, remote join & ready, reconnect/rematch, gerçek network RTT; LocalOffline N/A | **OPEN** |
+| **P0-06 online match** | RTDB room kodu var ama ESC `NO NETWORK SESSION`, Public Start pasif, private gameplay local gibi | Match transport Functions→RTDB host snapshot/intent/ack/revision, remote join & ready, reconnect/rematch, gerçek network RTT; LocalOffline N/A | **KISMİ OWNER PASS:** host+3 Bot RTDB oyun başarılı; 2 gerçek oyuncu, live sync/reconnect OPEN |
 | **P0-07 Cancel klonu** | İki Cancel, Cancel oda oluşturuyor, Local Offline hizası hatalı | Canlı Cancel klonlamak yasak; tek bağımsız Local Offline ve tek Cancel, tıklama işlevleri ayrık, 10 kez menüye dön/aç, güzel eşit aralık | **OPEN**; v5.31.8 kod adayı |
 | **P0-08 profil para/gold** | Public Lobby'de `Vuartex` yanında G, `$ 0 / G 0` önceki profille tutarsız | Profil ve wallet tek veri kaynağı, Guest/verified hesap ayrımı, yokken loading/missing doğru; sahte currency yok | **OPEN** |
 | **P0-09 Android FPS** | Samsung S20 FE 16–23 FPS, CPU ~40–65ms, GPU birkaç ms | Unity Profiler CPU/Canvas/GC/Update/physics ayrımı, Android-only değişiklik; Steam/Windows değişmez; fiziksel cihaz kabul | **OPEN** |
 | **P1-10 account/profile** | `ATB120`, eski Firestore documents missing; Career bazen loading | `AtlasBoardAccountService` eski belge zorunluluğu kaldır, RTDB hesap + Career eşleşmesi; guest preview koru | **OPEN** |
 | **P1-11 room cleanup** | RTDB dump'ta closed veya boş inviteCode olan yetim rooms | Host owned atomic close; roomMeta/roomMembers/joinCodes/roomState temizliği; hata/retry idempotent, doğrulanmış live room silinmez | **OPEN** |
 
-**Kesin statü disiplini:** v5.31.8 kaynakları Cancel cleanup için, v5.31.9 kaynakları tablet/HUD/avatar için hazırlanmış. Kullanıcı bunları son testten sonra kabul ettiğini söylemedi. *Source prepared ≠ PASS*. Network oyununu oda oluşturabildiğimiz için bitmiş sayma.
+**Kesin statü disiplini:** 16 Ekim yeni v5.32.6 owner PASS yalnızca host+3 Bot oyun akışına uygulanır. v5.31.8 kaynakları Cancel cleanup için, v5.31.9 kaynakları tablet/HUD/avatar için hazırlanmış. Kullanıcı bunları son testten sonra kabul ettiğini söylemedi. *Source prepared ≠ PASS*. Network oyununu oda oluşturabildiğimiz için bitmiş sayma.
 
 ## 4. Tek kimlik ve tek session mimarisi
 

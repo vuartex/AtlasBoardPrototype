@@ -64,7 +64,12 @@ public class AtlasLobbySnapshot
     public AtlasRoomLifecycleState LifecycleState;
     public AtlasRoomVisibility Visibility;
     public string HostAccountId;
+    // Player-selected map/seat/rule configuration revision. This is NOT
+    // the room's state-transition revision and must not be used as such.
     public int SettingsRevision;
+    // Monotonic RTDB roomState.revision for Start/Rematch/Waiting and
+    // settings changes. Zero means legacy snapshot without this field.
+    public long TransportRevision;
     public AtlasLobbySettings Settings =
         new AtlasLobbySettings();
 
@@ -133,7 +138,6 @@ public class AtlasLobbyOperationResult
         };
     }
 }
-
 
 [Serializable]
 public class AtlasPublicLobbyCard

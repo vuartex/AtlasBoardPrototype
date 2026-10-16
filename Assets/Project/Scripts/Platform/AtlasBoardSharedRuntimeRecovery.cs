@@ -168,6 +168,9 @@ public sealed class AtlasBoardSharedRuntimeRecovery : MonoBehaviour
             board = currentBoard;
             turn = null;
             wasInMatch = false;
+            trackedPlayers = Array.Empty<PlayerGameState>();
+            trackedCoordinator = null;
+            trackedMatchBridge = null;
             EnsureModernComponents();
         }
         if (turn == null) turn = FindScene<TurnManager>();
@@ -330,10 +333,22 @@ public sealed class AtlasBoardSharedRuntimeRecovery : MonoBehaviour
     {
         string persona = AtlasBoardStableProfileNameView.ResolvedSteamPersona();
         if (string.IsNullOrWhiteSpace(persona)) return;
-        trackedCoordinator = FindScene<AtlasBoardTurnDiceNetworkCoordinator>();
-        trackedMatchBridge = FindScene<AtlasBoardMatchRuntimeBridge>();
-        trackedPlayers = UnityEngine.Object.FindObjectsByType<PlayerGameState>(
-            FindObjectsInactive.Include);
+        if (trackedCoordinator == null)
+            trackedCoordinator = FindScene<AtlasBoardTurnDiceNetworkCoordinator>();
+        if (trackedMatchBridge == null)
+            trackedMatchBridge = FindScene<AtlasBoardMatchRuntimeBridge>();
+        bool needsPlayers = trackedPlayers == null || trackedPlayers.Length == 0;
+        if (!needsPlayers)
+        {
+            for (int i = 0; i < trackedPlayers.Length; i++)
+            {
+                if (trackedPlayers[i] == null) { needsPlayers = true; break; }
+            }
+        }
+        // Resolve once per scene/session, not once on every 0.35s name tick.
+        if (needsPlayers)
+            trackedPlayers = UnityEngine.Object.FindObjectsByType<PlayerGameState>(
+                FindObjectsInactive.Include);
         ApplyNameToTrackedPlayers(persona);
     }
 

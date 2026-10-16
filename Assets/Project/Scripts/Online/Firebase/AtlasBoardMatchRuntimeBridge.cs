@@ -1,1542 +1,337 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.Networking;
 
+/// <summary>
+/// Spark RTDB Casual match bridge; preserves the Phase 12-16 public API used
+/// by AtlasBoardTurnDiceNetworkCoordinator and the existing gameplay drivers.
+/// Local Offline does not enter this network bridge. No Cloud Functions calls.
+/// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(AtlasBoardLobbyRuntimeBridge))]
-public sealed class AtlasBoardMatchRuntimeBridge :
-    MonoBehaviour
+public sealed class AtlasBoardMatchRuntimeBridge : MonoBehaviour
 {
-    private const string ProjectId =
-        "atlasboard-usa";
+    [SerializeField, Min(0.5f)] private float snapshotPollSeconds = 0.75f;
+    [SerializeField] private bool autoPollAfterMatchBootstrap = true;
 
-    private const string Region =
-        "europe-west1";
-
-    private const string EmulatorHost =
-        "127.0.0.1";
-
-    private const int FunctionsEmulatorPort =
-        5001;
-
-    // Phase 16H.4: gameplay decisions must finish before the existing
-    // 10-second safe-AFK fallback can make a decision on the player's behalf.
-    // Two 4-second transport attempts plus a short gap stay inside that window.
-    // The exact same clientCommandId is reused on retry so the backend's
-    // existing idempotent replay contract prevents duplicate commands.
-    private const int CriticalIntentTimeoutSeconds = 4;
-    private const int CriticalIntentTransportRetryCount = 1;
-    private const int CriticalIntentRetryDelayMs = 125;
-
-    [SerializeField, Min(0.25f)]
-    private float snapshotPollSeconds =
-        0.5f;
-
-    [SerializeField]
-    private bool autoPollAfterMatchBootstrap =
-        true;
-
-    private AtlasBoardLobbyRuntimeBridge
-        lobbyBridge;
-
-    private AtlasMatchNetworkSnapshot
-        currentSnapshot;
-
+    private AtlasBoardLobbyRuntimeBridge lobbyBridge;
+    private AtlasMatchNetworkSnapshot currentSnapshot;
+    private bool locallyDetachedFromMatch = true;
+    private string expectedMatchId = string.Empty;
     private bool pollInFlight;
     private float nextPollAt;
-    private string expectedMatchId = string.Empty;
-    // Only true after an explicit local detach; normal reconnect polling stays active.
-    private bool locallyDetachedFromMatch;
-
-    // Phase 16H: every client/match gets one authoritative snapshot request
-    // flight at a time. Normal polling, reconnect catch-up and explicit refresh
-    // callers join the same request instead of multiplying HTTP calls.
-    private sealed class SnapshotRequestFlight
-    {
-        public string MatchId = string.Empty;
-        public bool FollowUpRequested;
-        public int CoalescedJoinCount;
-        public int RequestCount;
-        public Task<AtlasMatchNetworkResult> Task;
-    }
-
-    private SnapshotRequestFlight snapshotFlight;
+    private int sessionGeneration;
     private int criticalIntentInFlightCount;
+    private float nextTokenRefreshAt;
+    private string pendingCachedMatchId = string.Empty;
+    private float emptyIntentCacheUntil;
+    private AtlasMatchNetworkResult cachedEmptyIntents;
+    private Task<AtlasMatchNetworkResult> activeRead;
+    private string activeReadMatchId = string.Empty;
 
-    public bool HasCriticalIntentInFlight =>
-        criticalIntentInFlightCount > 0;
-
-    public event Action<AtlasMatchNetworkSnapshot>
-        SnapshotChanged;
-
-    public AtlasMatchNetworkSnapshot
-        CurrentSnapshot =>
-            currentSnapshot;
-
-    public string CurrentMatchId =>
-        lobbyBridge != null &&
+    public event Action<AtlasMatchNetworkSnapshot> SnapshotChanged;
+    public AtlasMatchNetworkSnapshot CurrentSnapshot => currentSnapshot;
+    public bool HasCriticalIntentInFlight => criticalIntentInFlightCount > 0;
+    public string CurrentMatchId => lobbyBridge != null &&
         lobbyBridge.CurrentSnapshot != null
-            ? lobbyBridge.CurrentSnapshot.MatchId
-            : string.Empty;
+        ? lobbyBridge.CurrentSnapshot.MatchId ?? string.Empty : string.Empty;
 
-    private void Awake()
-    {
-        ResolveReferences();
-    }
-
-    private async void Update()
-    {
-        if (!autoPollAfterMatchBootstrap ||
-            HasCriticalIntentInFlight ||
-            pollInFlight ||
-            Time.unscaledTime < nextPollAt)
-        {
-            return;
-        }
-
-        string matchId =
-            CurrentMatchId;
-
-        if (locallyDetachedFromMatch || string.IsNullOrWhiteSpace(matchId))
-        {
-            return;
-        }
-
-        nextPollAt =
-            Time.unscaledTime +
-            Mathf.Max(
-                0.25f,
-                snapshotPollSeconds);
-
-        pollInFlight = true;
-
-        try
-        {
-            AtlasMatchNetworkResult result =
-                await GetSnapshotAsync(
-                    matchId);
-
-            if (result.Success &&
-                result.Snapshot != null)
-            {
-                AcceptSnapshot(
-                    result.Snapshot);
-            }
-        }
-        finally
-        {
-            pollInFlight = false;
-        }
-    }
-
-    public async Task<AtlasMatchNetworkResult>
-        GetSnapshotAsync(
-            string matchId = "")
-    {
-        string resolvedMatchId =
-            ResolveMatchId(matchId);
-
-        if (string.IsNullOrWhiteSpace(
-                resolvedMatchId))
-        {
-            return AtlasMatchNetworkResult.Fail(
-                "match.error.not_found",
-                "No active matchId is available.");
-        }
-
-        return await GetOrStartSnapshotRequestAsync(
-            resolvedMatchId,
-            false);
-    }
-
-    public void ResetForMatchSession(
-        string matchId)
-    {
-        currentSnapshot = null;
-        pollInFlight = false;
-        nextPollAt = 0f;
-        expectedMatchId =
-            matchId ?? string.Empty;
-        locallyDetachedFromMatch =
-            string.IsNullOrWhiteSpace(expectedMatchId);
-
-        Debug.Log(
-            "AtlasBoard match snapshot cache reset for session " +
-            (matchId ?? string.Empty) + ".",
-            this);
-    }
-
-    public async Task<AtlasMatchNetworkResult>
-        RefreshSnapshotNowAsync(
-            string matchId = "")
-    {
-        string resolvedMatchId =
-            ResolveMatchId(matchId);
-
-        if (string.IsNullOrWhiteSpace(
-                resolvedMatchId))
-        {
-            return AtlasMatchNetworkResult.Fail(
-                "match.error.not_found",
-                "No active matchId is available.");
-        }
-
-        // If a poll for this match is already in flight, join it and request
-        // exactly one follow-up read. This preserves explicit reconnect/catch-up
-        // freshness without creating parallel snapshot requests.
-        return await GetOrStartSnapshotRequestAsync(
-            resolvedMatchId,
-            true);
-    }
-
-    private async Task<AtlasMatchNetworkResult>
-        GetOrStartSnapshotRequestAsync(
-            string matchId,
-            bool requireFollowUpIfJoined)
-    {
-        SnapshotRequestFlight active =
-            snapshotFlight;
-
-        if (active != null &&
-            active.Task != null &&
-            !active.Task.IsCompleted &&
-            string.Equals(
-                active.MatchId,
-                matchId,
-                StringComparison.Ordinal))
-        {
-            active.CoalescedJoinCount++;
-
-            if (requireFollowUpIfJoined)
-            {
-                active.FollowUpRequested = true;
-            }
-
-            return await active.Task;
-        }
-
-        SnapshotRequestFlight flight =
-            new SnapshotRequestFlight
-            {
-                MatchId =
-                    matchId ?? string.Empty
-            };
-
-        snapshotFlight =
-            flight;
-
-        flight.Task =
-            RunSnapshotRequestFlightAsync(
-                flight);
-
-        return await flight.Task;
-    }
-
-    private async Task<AtlasMatchNetworkResult>
-        RunSnapshotRequestFlightAsync(
-            SnapshotRequestFlight flight)
-    {
-        AtlasMatchNetworkResult latest =
-            null;
-
-        try
-        {
-            while (true)
-            {
-                flight.RequestCount++;
-
-                latest =
-                    await CallAsync(
-                        "matchGetSnapshot",
-                        new MatchIdRequest
-                        {
-                            matchId =
-                                flight.MatchId
-                        },
-                        ParseSnapshotEnvelope);
-
-                bool runFollowUp =
-                    flight.FollowUpRequested;
-
-                flight.FollowUpRequested =
-                    false;
-
-                if (!runFollowUp ||
-                    !IsSnapshotSessionCurrent(
-                        flight.MatchId))
-                {
-                    break;
-                }
-            }
-
-            return latest ??
-                AtlasMatchNetworkResult.Fail(
-                    "match.error.invalid_response",
-                    "Snapshot request completed without a result.");
-        }
-        finally
-        {
-            if (ReferenceEquals(
-                    snapshotFlight,
-                    flight))
-            {
-                snapshotFlight =
-                    null;
-            }
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (flight.CoalescedJoinCount > 0 ||
-                flight.RequestCount > 1)
-            {
-                Debug.Log(
-                    "AtlasBoard Phase 16H snapshot single-flight: " +
-                    "MatchId=" + flight.MatchId +
-                    ", NetworkRequests=" + flight.RequestCount +
-                    ", CoalescedCallers=" + flight.CoalescedJoinCount + ".",
-                    this);
-            }
-#endif
-        }
-    }
-
-    private bool IsSnapshotSessionCurrent(
-        string matchId)
-    {
-        if (locallyDetachedFromMatch ||
-            string.IsNullOrWhiteSpace(
-                matchId))
-        {
-            return false;
-        }
-
-        if (!string.IsNullOrWhiteSpace(
-                expectedMatchId))
-        {
-            return string.Equals(
-                expectedMatchId,
-                matchId,
-                StringComparison.Ordinal);
-        }
-
-        return string.Equals(
-            CurrentMatchId,
-            matchId,
-            StringComparison.Ordinal);
-    }
-
-    public async Task<AtlasMatchNetworkResult>
-        SubmitIntentAsync(
-            string intentType,
-            string payloadJson,
-            string clientCommandId,
-            string matchId = "")
-    {
-        string resolvedMatchId =
-            ResolveMatchId(matchId);
-
-        AtlasMatchNetworkSnapshot observed =
-            currentSnapshot;
-
-        if (observed == null ||
-            !string.Equals(
-                observed.MatchId,
-                resolvedMatchId,
-                StringComparison.Ordinal))
-        {
-            return AtlasMatchNetworkResult.Fail(
-                "match.error.stale_client_state",
-                "No current authoritative match snapshot is available for this command.");
-        }
-
-        return await CallAsync(
-            "matchSubmitIntent",
-            new SubmitIntentRequest
-            {
-                matchId =
-                    resolvedMatchId,
-                intentType =
-                    intentType ?? string.Empty,
-                payloadJson =
-                    string.IsNullOrWhiteSpace(
-                        payloadJson)
-                        ? "{}"
-                        : payloadJson,
-                clientCommandId =
-                    clientCommandId ?? string.Empty,
-                observedRevision =
-                    observed.Revision,
-                observedEventSequence =
-                    observed.EventSequence,
-                observedAuthorityEpoch =
-                    observed.AuthorityEpoch,
-                observedPhase =
-                    observed.Phase ?? string.Empty
-            },
-            ParseIntentResultEnvelope);
-    }
-
-    public async Task<AtlasMatchNetworkResult>
-        SubmitCriticalIntentAsync(
-            string intentType,
-            string payloadJson,
-            string clientCommandId,
-            string matchId = "")
-    {
-        string resolvedMatchId =
-            ResolveMatchId(matchId);
-
-        AtlasMatchNetworkSnapshot observed =
-            currentSnapshot;
-
-        if (observed == null ||
-            !string.Equals(
-                observed.MatchId,
-                resolvedMatchId,
-                StringComparison.Ordinal))
-        {
-            return AtlasMatchNetworkResult.Fail(
-                "match.error.stale_client_state",
-                "No current authoritative match snapshot is available for this command.");
-        }
-
-        // Preserve this exact request envelope and command id across a
-        // transport retry. If the first response is lost after the server
-        // committed the intent, the backend returns an idempotent replay
-        // instead of creating a second command.
-        SubmitIntentRequest request =
-            new SubmitIntentRequest
-            {
-                matchId =
-                    resolvedMatchId,
-                intentType =
-                    intentType ?? string.Empty,
-                payloadJson =
-                    string.IsNullOrWhiteSpace(
-                        payloadJson)
-                        ? "{}"
-                        : payloadJson,
-                clientCommandId =
-                    clientCommandId ?? string.Empty,
-                observedRevision =
-                    observed.Revision,
-                observedEventSequence =
-                    observed.EventSequence,
-                observedAuthorityEpoch =
-                    observed.AuthorityEpoch,
-                observedPhase =
-                    observed.Phase ?? string.Empty
-            };
-
-        criticalIntentInFlightCount++;
-
-        try
-        {
-            return await CallAsync(
-                "matchSubmitIntent",
-                request,
-                ParseIntentResultEnvelope,
-                CriticalIntentTimeoutSeconds,
-                CriticalIntentTransportRetryCount,
-                CriticalIntentRetryDelayMs,
-                "critical_intent");
-        }
-        finally
-        {
-            criticalIntentInFlightCount =
-                Mathf.Max(
-                    0,
-                    criticalIntentInFlightCount - 1);
-        }
-    }
-
-    public async Task<AtlasMatchNetworkResult>
-        LeaveActiveMatchAsync(
-            string matchId = "")
-    {
-        string resolvedMatchId =
-            ResolveMatchId(matchId);
-
-        return await CallAsync(
-            "matchLeaveActive",
-            new MatchIdRequest
-            {
-                matchId = resolvedMatchId
-            },
-            ParseSnapshotEnvelope);
-    }
-
-    public async Task<AtlasMatchNetworkResult>
-        TouchPresenceAsync(
-            string matchId = "")
-    {
-        string resolvedMatchId =
-            ResolveMatchId(matchId);
-
-        return await CallAsync(
-            "matchTouchPresence",
-            new MatchIdRequest
-            {
-                matchId = resolvedMatchId
-            },
-            ParseSnapshotEnvelope);
-    }
-
-    public async Task<AtlasMatchNetworkResult>
-        HostSweepDisconnectedAsync(
-            string matchId = "")
-    {
-        string resolvedMatchId =
-            ResolveMatchId(matchId);
-
-        return await CallAsync(
-            "matchHostSweepDisconnected",
-            new MatchIdRequest
-            {
-                matchId = resolvedMatchId
-            },
-            ParseSnapshotEnvelope);
-    }
-
-    public async Task<AtlasMatchNetworkResult>
-        TryRecoverCrashedHostAsync(
-            string matchId = "")
-    {
-        string resolvedMatchId =
-            ResolveMatchId(matchId);
-
-        return await CallAsync(
-            "matchTryRecoverCrashedHost",
-            new MatchIdRequest
-            {
-                matchId = resolvedMatchId
-            },
-            ParseSnapshotEnvelope);
-    }
-
-    public async Task<AtlasMatchNetworkResult>
-        HostMarkAfkRemovedAsync(
-            int slotIndex,
-            string matchId = "")
-    {
-        string resolvedMatchId =
-            ResolveMatchId(matchId);
-
-        return await CallAsync(
-            "matchHostMarkAfkRemoved",
-            new MatchSeatSlotRequest
-            {
-                matchId = resolvedMatchId,
-                slotIndex = slotIndex
-            },
-            ParseSnapshotEnvelope);
-    }
-
-    public async Task<AtlasMatchNetworkResult>
-        HostExpireReconnectsAsync(
-            string matchId = "")
-    {
-        string resolvedMatchId =
-            ResolveMatchId(matchId);
-
-        return await CallAsync(
-            "matchHostExpireReconnects",
-            new MatchIdRequest
-            {
-                matchId = resolvedMatchId
-            },
-            ParseSnapshotEnvelope);
-    }
-
-    public async Task<AtlasMatchNetworkResult>
-        HostPrepareRematchAsync(
-            string matchId = "")
-    {
-        string resolvedMatchId =
-            ResolveMatchId(matchId);
-
-        return await CallAsync(
-            "matchHostPrepareRematch",
-            new MatchIdRequest
-            {
-                matchId = resolvedMatchId
-            },
-            ParseSnapshotEnvelope);
-    }
-
-    public async Task<AtlasMatchNetworkResult>
-        HostListPendingIntentsAsync(
-            string matchId = "")
-    {
-        string resolvedMatchId =
-            ResolveMatchId(matchId);
-
-        return await CallAsync(
-            "matchHostListPendingIntents",
-            new MatchIdRequest
-            {
-                matchId =
-                    resolvedMatchId
-            },
-            ParseIntentListEnvelope);
-    }
-
-    public async Task<AtlasMatchNetworkResult>
-        HostPublishStateAsync(
-            int expectedRevision,
-            string phase,
-            string turnSeatId,
-            int eventSequence,
-            string snapshotJson,
-            string matchId = "")
-    {
-        string resolvedMatchId =
-            ResolveMatchId(matchId);
-
-        return await CallAsync(
-            "matchHostPublishState",
-            new PublishStateRequest
-            {
-                matchId =
-                    resolvedMatchId,
-                expectedRevision =
-                    expectedRevision,
-                phase =
-                    phase ?? string.Empty,
-                turnSeatId =
-                    turnSeatId ?? string.Empty,
-                eventSequence =
-                    eventSequence,
-                snapshotJson =
-                    string.IsNullOrWhiteSpace(
-                        snapshotJson)
-                        ? "{}"
-                        : snapshotJson
-            },
-            ParsePublishEnvelope);
-    }
-
-    public async Task<AtlasMatchNetworkResult>
-        HostAcknowledgeIntentsAsync(
-            IEnumerable<string> intentIds,
-            string matchId = "")
-    {
-        string resolvedMatchId =
-            ResolveMatchId(matchId);
-
-        List<string> ids =
-            intentIds != null
-                ? new List<string>(intentIds)
-                : new List<string>();
-
-        return await CallAsync(
-            "matchHostAcknowledgeIntents",
-            new AcknowledgeIntentRequest
-            {
-                matchId =
-                    resolvedMatchId,
-                intentIds =
-                    ids.ToArray()
-            },
-            ParseAcknowledgeEnvelope);
-    }
-
+    private void Awake() { ResolveReferences(); }
     private void ResolveReferences()
     {
         if (lobbyBridge == null)
-        {
-            lobbyBridge =
-                GetComponent<
-                    AtlasBoardLobbyRuntimeBridge>();
-        }
+            lobbyBridge = GetComponent<AtlasBoardLobbyRuntimeBridge>();
     }
-
-    private string ResolveMatchId(
-        string explicitMatchId)
+    private string ResolveMatchId(string explicitId)
     {
-        if (!string.IsNullOrWhiteSpace(
-                explicitMatchId))
-        {
-            return explicitMatchId.Trim();
-        }
-
-        return CurrentMatchId;
+        return string.IsNullOrWhiteSpace(explicitId) ? CurrentMatchId : explicitId.Trim();
     }
-
-    private void AcceptSnapshot(
-        AtlasMatchNetworkSnapshot snapshot)
+    private async Task<bool> IdentityAsync()
     {
-        if (locallyDetachedFromMatch || snapshot == null)
+        ResolveReferences();
+        return lobbyBridge != null && !lobbyBridge.UsingLocalEmulators &&
+            await lobbyBridge.EnsureOnlineIdentityAsync() &&
+            !string.IsNullOrWhiteSpace(lobbyBridge.CurrentAccountId) &&
+            !string.IsNullOrWhiteSpace(lobbyBridge.AuthTokenForOnlineSubsystems);
+    }
+    private async Task<AtlasMatchNetworkResult> WithIdentity(
+        Func<string,string,Task<AtlasMatchNetworkResult>> operation)
+    {
+        if (!await IdentityAsync())
+            return AtlasMatchNetworkResult.Fail("match.error.service_unavailable",
+                "Firebase identity is not ready for Spark RTDB Casual gameplay.");
+        // Firebase ID tokens expire; refresh the cached RTDB REST token on a
+        // bounded cadence, never on each 0.75-second snapshot poll.
+        if (Time.unscaledTime >= nextTokenRefreshAt)
         {
-            return;
+            await lobbyBridge.RebindIdentityFromFirebaseAuthAsync();
+            nextTokenRefreshAt = Time.unscaledTime + 2400f;
         }
-
-        if (!string.IsNullOrWhiteSpace(expectedMatchId))
+        float requestStartedAt = Time.realtimeSinceStartup;
+        AtlasMatchNetworkResult result = await operation(lobbyBridge.CurrentAccountId,
+            lobbyBridge.AuthTokenForOnlineSubsystems);
+        if (!result.Success && result.TechnicalMessage != null &&
+            (result.TechnicalMessage.IndexOf("permission_denied", StringComparison.OrdinalIgnoreCase) >= 0 ||
+             result.TechnicalMessage.IndexOf("http_401", StringComparison.OrdinalIgnoreCase) >= 0))
         {
-            if (!string.Equals(
-                    expectedMatchId,
-                    snapshot.MatchId,
-                    StringComparison.Ordinal))
+            if (await lobbyBridge.RebindIdentityFromFirebaseAuthAsync())
             {
-                return;
+                nextTokenRefreshAt = Time.unscaledTime + 2400f;
+                result = await operation(lobbyBridge.CurrentAccountId,
+                    lobbyBridge.AuthTokenForOnlineSubsystems);
             }
         }
-        else
-        {
-            // ResetForMatchSession("") intentionally means there is no
-            // active match. An HTTP poll started before that reset may finish
-            // later; never let its old snapshot resurrect dice/HUD/result or
-            // controller state in the lobby or the next match.
-            string lobbyMatchId = CurrentMatchId;
-
-            if (string.IsNullOrWhiteSpace(lobbyMatchId) ||
-                !string.Equals(
-                    lobbyMatchId,
-                    snapshot.MatchId,
-                    StringComparison.Ordinal))
-            {
-                return;
-            }
-        }
-
-        if (currentSnapshot != null &&
-            string.Equals(
-                currentSnapshot.MatchId,
-                snapshot.MatchId,
-                StringComparison.Ordinal) &&
-            string.Equals(
-                currentSnapshot.LobbyId,
-                snapshot.LobbyId,
-                StringComparison.Ordinal) &&
-            currentSnapshot.Revision ==
-                snapshot.Revision &&
-            string.Equals(
-                currentSnapshot.Phase,
-                snapshot.Phase,
-                StringComparison.Ordinal) &&
-            currentSnapshot.EventSequence ==
-                snapshot.EventSequence &&
-            string.Equals(
-                currentSnapshot.TurnSeatId,
-                snapshot.TurnSeatId,
-                StringComparison.Ordinal) &&
-            string.Equals(
-                currentSnapshot.SnapshotJson,
-                snapshot.SnapshotJson,
-                StringComparison.Ordinal) &&
-            currentSnapshot.AuthorityEpoch ==
-                snapshot.AuthorityEpoch &&
-            string.Equals(
-                currentSnapshot.AuthorityHandoffReason,
-                snapshot.AuthorityHandoffReason,
-                StringComparison.Ordinal) &&
-            SeatSnapshotsEquivalent(
-                currentSnapshot.Seats,
-                snapshot.Seats))
-        {
-            currentSnapshot.HostHeartbeatAtEpochMs =
-                snapshot.HostHeartbeatAtEpochMs;
-            currentSnapshot.UpdatedAtEpochMs =
-                snapshot.UpdatedAtEpochMs;
+        AtlasBoardNetworkTelemetry.Report(
+            "matchRTDB", result.Success,
+            Mathf.Max(0f, (Time.realtimeSinceStartup - requestStartedAt) * 1000f));
+        return result;
+    }
+    private async void Update()
+    {
+        if (!autoPollAfterMatchBootstrap || HasCriticalIntentInFlight ||
+            pollInFlight || Time.unscaledTime < nextPollAt || locallyDetachedFromMatch)
             return;
+        string match = CurrentMatchId;
+        if (string.IsNullOrWhiteSpace(match)) return;
+        // The host already owns the authoritative turn state. A solo
+        // Host+Bots session has no remote intents, so repeatedly downloading
+        // the same full RTDB frame adds latency, bandwidth and HUD churn.
+        // Explicit snapshot reads (bootstrap/reconnect/QA) still work.
+        if (IsSoloHostMatch(match)) return;
+        nextPollAt = Time.unscaledTime + Mathf.Max(0.5f, snapshotPollSeconds);
+        int generation = sessionGeneration;
+        pollInFlight = true;
+        try
+        {
+            AtlasMatchNetworkResult result = await GetSnapshotAsync(match);
+            if (generation == sessionGeneration && result.Success)
+                AcceptSnapshot(result.Snapshot);
         }
-
-        currentSnapshot =
-            snapshot;
-
-        SnapshotChanged?.Invoke(
-            currentSnapshot);
+        catch (Exception ex)
+        {
+            Debug.LogWarning("ATB_RTDB_MATCH_POLL failure=" + ex.GetType().Name);
+        }
+        finally { pollInFlight = false; }
     }
 
-    private static bool SeatSnapshotsEquivalent(
-        List<AtlasMatchNetworkSeat> left,
-        List<AtlasMatchNetworkSeat> right)
+    public void ResetForMatchSession(string matchId)
     {
-        int leftCount = left != null ? left.Count : 0;
-        int rightCount = right != null ? right.Count : 0;
+        sessionGeneration++;
+        expectedMatchId = matchId ?? string.Empty;
+        locallyDetachedFromMatch = string.IsNullOrWhiteSpace(expectedMatchId);
+        currentSnapshot = null;
+        nextPollAt = 0f;
+        activeRead = null;
+        activeReadMatchId = string.Empty;
+        pendingCachedMatchId = string.Empty;
+        cachedEmptyIntents = null;
+        emptyIntentCacheUntil = 0f;
+        // Never restore stale previous-match UI after a scene or lobby return.
+    }
 
-        if (leftCount != rightCount)
+    public async Task<AtlasMatchNetworkResult> GetSnapshotAsync(string matchId = "")
+    {
+        string match = ResolveMatchId(matchId);
+        if (string.IsNullOrEmpty(match))
+            return AtlasMatchNetworkResult.Fail("match.error.not_found", "No active match.");
+        if (activeRead != null && !activeRead.IsCompleted &&
+            string.Equals(activeReadMatchId, match, StringComparison.Ordinal))
+            return await activeRead;
+        int generation = sessionGeneration;
+        activeReadMatchId = match;
+        Task<AtlasMatchNetworkResult> task = WithIdentity((uid, token) =>
+            AtlasBoardSparkRtdbMatchTransport.SnapshotAsync(match, uid, token));
+        activeRead = task;
+        AtlasMatchNetworkResult result = await task;
+        if (generation == sessionGeneration && result.Success)
+            AcceptSnapshot(result.Snapshot);
+        if (ReferenceEquals(activeRead, task))
         {
+            activeRead = null;
+            activeReadMatchId = string.Empty;
+        }
+        return result;
+    }
+
+    public async Task<AtlasMatchNetworkResult> RefreshSnapshotNowAsync(string matchId = "")
+    {
+        string match = ResolveMatchId(matchId);
+        // Join the in-flight request before scheduling a single fresh read.
+        Task<AtlasMatchNetworkResult> previous = activeRead;
+        if (previous != null && !previous.IsCompleted) await previous;
+        return await GetSnapshotAsync(match);
+    }
+
+    public Task<AtlasMatchNetworkResult> SubmitIntentAsync(
+        string intentType, string payloadJson, string clientCommandId, string matchId = "")
+    {
+        return SubmitCoreAsync(intentType, payloadJson, clientCommandId,
+            ResolveMatchId(matchId));
+    }
+    private async Task<AtlasMatchNetworkResult> SubmitCoreAsync(
+        string type, string payload, string commandId, string match)
+    {
+        if (currentSnapshot == null || currentSnapshot.MatchId != match)
+        {
+            AtlasMatchNetworkResult fresh = await GetSnapshotAsync(match);
+            if (!fresh.Success || fresh.Snapshot == null) return fresh;
+        }
+        int revision = currentSnapshot != null ? currentSnapshot.Revision : 0;
+        return await WithIdentity((uid, token) =>
+            AtlasBoardSparkRtdbMatchTransport.SubmitAsync(
+                match, uid, token, commandId, type, payload, revision));
+    }
+
+    public async Task<AtlasMatchNetworkResult> SubmitCriticalIntentAsync(
+        string intentType, string payloadJson, string clientCommandId, string matchId = "")
+    {
+        criticalIntentInFlightCount++;
+        try
+        {
+            string match = ResolveMatchId(matchId);
+            AtlasMatchNetworkResult result = await SubmitCoreAsync(
+                intentType, payloadJson, clientCommandId, match);
+            // Preserve idempotent command identity if a transport response is lost.
+            if (!result.Success && result.TechnicalMessage != null &&
+                result.TechnicalMessage.IndexOf("connection_failed", StringComparison.OrdinalIgnoreCase) >= 0)
+                result = await SubmitCoreAsync(intentType, payloadJson, clientCommandId, match);
+            return result;
+        }
+        finally { criticalIntentInFlightCount = Mathf.Max(0, criticalIntentInFlightCount - 1); }
+    }
+
+    public Task<AtlasMatchNetworkResult> LeaveActiveMatchAsync(string matchId = "")
+    {
+        string match = ResolveMatchId(matchId);
+        ResetForMatchSession("");
+        return WithIdentity((uid, token) =>
+            AtlasBoardSparkRtdbMatchTransport.LeaveAsync(match, uid, token));
+    }
+    public Task<AtlasMatchNetworkResult> TouchPresenceAsync(string matchId = "")
+    {
+        string match = ResolveMatchId(matchId);
+        return WithIdentity((uid, token) =>
+            AtlasBoardSparkRtdbMatchTransport.TouchAsync(match, uid, token));
+    }
+    public Task<AtlasMatchNetworkResult> HostSweepDisconnectedAsync(string matchId = "")
+    {
+        string match = ResolveMatchId(matchId);
+        return WithIdentity((uid, token) =>
+            AtlasBoardSparkRtdbMatchTransport.HostMaintenanceAsync(match, uid, token));
+    }
+    public Task<AtlasMatchNetworkResult> TryRecoverCrashedHostAsync(string matchId = "")
+    {
+        // Host migration cannot be asserted without a trusted epoch transaction.
+        return Task.FromResult(AtlasMatchNetworkResult.Fail(
+            "match.error.service_unavailable", "Spark Casual host failover is not validated."));
+    }
+    public Task<AtlasMatchNetworkResult> HostMarkAfkRemovedAsync(
+        int slotIndex, string matchId = "")
+    {
+        string match = ResolveMatchId(matchId);
+        return WithIdentity((uid, token) =>
+            AtlasBoardSparkRtdbMatchTransport.HostRemoveAfkAsync(
+                match, uid, token, slotIndex));
+    }
+    public Task<AtlasMatchNetworkResult> HostExpireReconnectsAsync(string matchId = "")
+    {
+        string match = ResolveMatchId(matchId);
+        return WithIdentity((uid, token) =>
+            AtlasBoardSparkRtdbMatchTransport.HostMaintenanceAsync(match, uid, token));
+    }
+    public Task<AtlasMatchNetworkResult> HostPrepareRematchAsync(string matchId = "")
+    {
+        string match = ResolveMatchId(matchId);
+        return WithIdentity((uid, token) =>
+            AtlasBoardSparkRtdbMatchTransport.HostRematchAsync(match, uid, token));
+    }
+    private bool IsSoloHostMatch(string match)
+    {
+        AtlasMatchNetworkSnapshot snapshot = currentSnapshot;
+        if (snapshot == null || !snapshot.LocalIsHost ||
+            !string.Equals(snapshot.MatchId, match, StringComparison.Ordinal) ||
+            snapshot.Seats == null || snapshot.Seats.Count == 0)
             return false;
-        }
-
-        for (int index = 0; index < leftCount; index++)
+        foreach (AtlasMatchNetworkSeat seat in snapshot.Seats)
         {
-            AtlasMatchNetworkSeat a = left[index];
-            AtlasMatchNetworkSeat b = right[index];
-
-            if (a == null || b == null)
-            {
-                if (a != b)
-                {
-                    return false;
-                }
-
-                continue;
-            }
-
-            if (a.SlotIndex != b.SlotIndex ||
-                a.IsHost != b.IsHost ||
-                a.ReconnectExpiresAtEpochMs != b.ReconnectExpiresAtEpochMs ||
-                a.AfkLockedOut != b.AfkLockedOut ||
-                !string.Equals(a.SeatId, b.SeatId, StringComparison.Ordinal) ||
-                !string.Equals(a.DisplayName, b.DisplayName, StringComparison.Ordinal) ||
-                !string.Equals(a.ControllerKind, b.ControllerKind, StringComparison.Ordinal) ||
-                !string.Equals(a.ConnectionState, b.ConnectionState, StringComparison.Ordinal) ||
-                !string.Equals(a.RemovalReason, b.RemovalReason, StringComparison.Ordinal))
-            {
+            if (seat == null) continue;
+            // Only a human controlled by another account can issue a remote
+            // intent. Local human seats and every bot are host-owned gameplay.
+            // Even a disconnected remote Human can rejoin. Only rooms with
+            // NO assigned remote-human seat are eligible for solo shortcuts.
+            if (string.Equals(seat.SeatMode, "remotehuman",
+                    StringComparison.OrdinalIgnoreCase))
                 return false;
-            }
         }
-
         return true;
     }
 
-    private async Task<AtlasMatchNetworkResult>
-        CallAsync<TRequest>(
-            string functionName,
-            TRequest requestData,
-            Func<string, AtlasMatchNetworkResult>
-                parser,
-            int timeoutSeconds = 20,
-            int transportRetryCount = 0,
-            int retryDelayMs = 0,
-            string retryDiagnosticLabel = "")
+    public async Task<AtlasMatchNetworkResult> HostListPendingIntentsAsync(string matchId = "")
     {
-        ResolveReferences();
-
-        if (lobbyBridge == null)
+        string match = ResolveMatchId(matchId);
+        if (IsSoloHostMatch(match))
+            return new AtlasMatchNetworkResult { Success = true,
+                Intents = Array.Empty<AtlasMatchIntent>() };
+        if (match == pendingCachedMatchId && cachedEmptyIntents != null &&
+            Time.unscaledTime < emptyIntentCacheUntil)
+            return cachedEmptyIntents;
+        string verifiedRoom = currentSnapshot != null &&
+            currentSnapshot.LocalIsHost && currentSnapshot.MatchId == match
+            ? currentSnapshot.LobbyId : string.Empty;
+        AtlasMatchNetworkResult result = await WithIdentity((uid, token) =>
+            AtlasBoardSparkRtdbMatchTransport.PendingAsync(match, uid, token, verifiedRoom));
+        pendingCachedMatchId = match;
+        if (result.Success && result.Intents != null && result.Intents.Length == 0)
         {
-            AtlasBoardNetworkTelemetry
-                .ReportUnavailable(
-                    functionName);
-
-            return AtlasMatchNetworkResult.Fail(
-                "match.error.service_unavailable",
-                "Lobby runtime bridge is missing.");
+            // Legacy coordinator polls very frequently. One empty RTDB read
+            // covers a 450ms window; a real new intent is delayed at most 0.45s.
+            cachedEmptyIntents = result;
+            emptyIntentCacheUntil = Time.unscaledTime + 0.45f;
         }
-
-        bool identityReady =
-            await lobbyBridge
-                .EnsureOnlineIdentityAsync();
-
-        if (!identityReady ||
-            string.IsNullOrWhiteSpace(
-                lobbyBridge
-                    .AuthTokenForOnlineSubsystems))
+        else
         {
-            AtlasBoardNetworkTelemetry
-                .ReportUnavailable(
-                    functionName);
-
-            return AtlasMatchNetworkResult.Fail(
-                "account.error.authentication_required",
-                "Online identity is unavailable.");
+            cachedEmptyIntents = null;
+            emptyIntentCacheUntil = 0f;
         }
+        return result;
+    }
+    public Task<AtlasMatchNetworkResult> HostPublishStateAsync(
+        int expectedRevision, string phase, string turnSeatId,
+        int eventSequence, string snapshotJson, string matchId = "")
+    {
+        string match = ResolveMatchId(matchId);
+        return WithIdentity((uid, token) =>
+            AtlasBoardSparkRtdbMatchTransport.PublishAsync(
+                match, uid, token, expectedRevision, phase,
+                turnSeatId, eventSequence, snapshotJson));
+    }
+    public Task<AtlasMatchNetworkResult> HostAcknowledgeIntentsAsync(
+        IEnumerable<string> intentIds, string matchId = "")
+    {
+        string match = ResolveMatchId(matchId);
+        return WithIdentity((uid, token) =>
+            AtlasBoardSparkRtdbMatchTransport.AcknowledgeAsync(
+                match, uid, token, intentIds));
+    }
 
-        string url =
-            lobbyBridge.UsingLocalEmulators
-                ? $"http://{EmulatorHost}:" +
-                  $"{FunctionsEmulatorPort}/" +
-                  $"{ProjectId}/{Region}/" +
-                  functionName
-                : $"https://{Region}-" +
-                  $"{ProjectId}.cloudfunctions.net/" +
-                  functionName;
-
-        string dataJson =
-            JsonUtility.ToJson(
-                requestData);
-
-        string callableJson =
-            "{\"data\":" +
-            dataJson +
-            "}";
-
-        int boundedTimeoutSeconds =
-            Mathf.Max(
-                1,
-                timeoutSeconds);
-
-        int boundedRetryCount =
-            Mathf.Max(
-                0,
-                transportRetryCount);
-
-        for (int attempt = 0;
-             attempt <= boundedRetryCount;
-             attempt++)
+    private void AcceptSnapshot(AtlasMatchNetworkSnapshot next)
+    {
+        if (next == null || locallyDetachedFromMatch) return;
+        string required = string.IsNullOrEmpty(expectedMatchId)
+            ? CurrentMatchId : expectedMatchId;
+        if (string.IsNullOrEmpty(required) || next.MatchId != required) return;
+        AtlasMatchNetworkSnapshot old = currentSnapshot;
+        if (old != null && old.MatchId == next.MatchId &&
+            old.Revision == next.Revision && old.EventSequence == next.EventSequence &&
+            old.Phase == next.Phase && old.SnapshotJson == next.SnapshotJson &&
+            old.AuthorityEpoch == next.AuthorityEpoch)
         {
-            using UnityWebRequest request =
-                new UnityWebRequest(
-                    url,
-                    UnityWebRequest.kHttpVerbPOST);
-
-            request.uploadHandler =
-                new UploadHandlerRaw(
-                    Encoding.UTF8.GetBytes(
-                        callableJson));
-
-            request.downloadHandler =
-                new DownloadHandlerBuffer();
-
-            request.SetRequestHeader(
-                "Content-Type",
-                "application/json");
-
-            request.SetRequestHeader(
-                "Authorization",
-                "Bearer " +
-                lobbyBridge
-                    .AuthTokenForOnlineSubsystems);
-
-            request.timeout =
-                boundedTimeoutSeconds;
-
-            await AtlasBoardAppCheckRequestSecurity.ApplyAsync(
-                request);
-
-            double requestStartedAt =
-                Time.realtimeSinceStartupAsDouble;
-
-            UnityWebRequestAsyncOperation operation =
-                request.SendWebRequest();
-
-            TaskCompletionSource<bool> completion =
-                new TaskCompletionSource<bool>();
-
-            operation.completed +=
-                _ => completion.TrySetResult(true);
-
-            await completion.Task;
-
-            float requestElapsedMs =
-                (float)(
-                    (Time.realtimeSinceStartupAsDouble -
-                     requestStartedAt) *
-                    1000.0);
-
-            string body =
-                request.downloadHandler != null
-                    ? request.downloadHandler.text
-                    : string.Empty;
-
-            if (request.result !=
-                UnityWebRequest.Result.Success)
-            {
-                CallableErrorEnvelope error =
-                    SafeFromJson<
-                        CallableErrorEnvelope>(
-                            body);
-
-                string key =
-                    error != null &&
-                    error.error != null &&
-                    error.error.details != null &&
-                    !string.IsNullOrWhiteSpace(
-                        error.error.details.errorKey)
-                        ? error.error.details.errorKey
-                        : "match.error.unknown";
-
-                string technical =
-                    error != null &&
-                    error.error != null &&
-                    !string.IsNullOrWhiteSpace(
-                        error.error.message)
-                        ? error.error.message
-                        : $"HTTP {request.responseCode}: " +
-                          request.error;
-
-                AtlasBoardNetworkTelemetry.Report(
-                    functionName,
-                    false,
-                    requestElapsedMs);
-
-                bool retryableTransportFailure =
-                    request.responseCode == 0 &&
-                    IsRetryableTransportFailure(
-                        request);
-
-                if (retryableTransportFailure &&
-                    attempt < boundedRetryCount)
-                {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-                    string label =
-                        string.IsNullOrWhiteSpace(
-                            retryDiagnosticLabel)
-                            ? functionName
-                            : retryDiagnosticLabel;
-
-                    Debug.LogWarning(
-                        "AtlasBoard Phase 16H.4 transport retry: " +
-                        "Operation=" + label +
-                        ", Attempt=" + (attempt + 1) +
-                        "/" + (boundedRetryCount + 1) +
-                        ", ElapsedMs=" +
-                        Mathf.RoundToInt(requestElapsedMs) +
-                        ", CommandIdentity=preserved.",
-                        this);
-#endif
-
-                    if (retryDelayMs > 0)
-                    {
-                        await Task.Delay(
-                            retryDelayMs);
-                    }
-
-                    continue;
-                }
-
-                return AtlasMatchNetworkResult.Fail(
-                    key,
-                    technical);
-            }
-
-            AtlasMatchNetworkResult result =
-                parser(body);
-
-            AtlasBoardNetworkTelemetry.Report(
-                functionName,
-                result.Success,
-                requestElapsedMs);
-
-            if (result.Success &&
-                result.Snapshot != null)
-            {
-                AcceptSnapshot(
-                    result.Snapshot);
-            }
-
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (attempt > 0 &&
-                result.Success)
-            {
-                string label =
-                    string.IsNullOrWhiteSpace(
-                        retryDiagnosticLabel)
-                        ? functionName
-                        : retryDiagnosticLabel;
-
-                Debug.Log(
-                    "AtlasBoard Phase 16H.4 transport retry recovered: " +
-                    "Operation=" + label +
-                    ", Attempt=" + (attempt + 1) +
-                    "/" + (boundedRetryCount + 1) +
-                    ", CommandIdentity=preserved.",
-                    this);
-            }
-#endif
-
-            return result;
+            old.HostHeartbeatAtEpochMs = next.HostHeartbeatAtEpochMs;
+            old.UpdatedAtEpochMs = next.UpdatedAtEpochMs;
+            return;
         }
-
-        return AtlasMatchNetworkResult.Fail(
-            "match.error.unknown",
-            "The match request did not complete.");
-    }
-
-    private static bool
-        IsRetryableTransportFailure(
-            UnityWebRequest request)
-    {
-        if (request == null ||
-            request.responseCode != 0)
-        {
-            return false;
-        }
-
-        if (request.result ==
-            UnityWebRequest.Result.ConnectionError)
-        {
-            return true;
-        }
-
-        string error =
-            request.error ?? string.Empty;
-
-        return error.IndexOf(
-                   "timeout",
-                   StringComparison.OrdinalIgnoreCase) >= 0 ||
-               error.IndexOf(
-                   "timed out",
-                   StringComparison.OrdinalIgnoreCase) >= 0 ||
-               error.IndexOf(
-                   "connection",
-                   StringComparison.OrdinalIgnoreCase) >= 0;
-    }
-
-    private static AtlasMatchNetworkResult
-        ParseSnapshotEnvelope(
-            string body)
-    {
-        SnapshotEnvelope envelope =
-            SafeFromJson<
-                SnapshotEnvelope>(
-                    body);
-
-        if (envelope == null ||
-            envelope.result == null ||
-            !envelope.result.ok ||
-            envelope.result.snapshot == null)
-        {
-            return AtlasMatchNetworkResult.Fail(
-                "match.error.invalid_response",
-                "Invalid match snapshot response.");
-        }
-
-        return new AtlasMatchNetworkResult
-        {
-            Success = true,
-            Snapshot =
-                ConvertSnapshot(
-                    envelope.result.snapshot)
-        };
-    }
-
-    private static AtlasMatchNetworkResult
-        ParseIntentResultEnvelope(
-            string body)
-    {
-        IntentResultEnvelope envelope =
-            SafeFromJson<
-                IntentResultEnvelope>(
-                    body);
-
-        if (envelope == null ||
-            envelope.result == null ||
-            !envelope.result.ok)
-        {
-            return AtlasMatchNetworkResult.Fail(
-                "match.error.invalid_response",
-                "Invalid match intent response.");
-        }
-
-        return new AtlasMatchNetworkResult
-        {
-            Success = true,
-            IntentId =
-                envelope.result.intentId ??
-                string.Empty,
-            IdempotentReplay =
-                envelope.result
-                    .idempotentReplay
-        };
-    }
-
-    private static AtlasMatchNetworkResult
-        ParseIntentListEnvelope(
-            string body)
-    {
-        IntentListEnvelope envelope =
-            SafeFromJson<
-                IntentListEnvelope>(
-                    body);
-
-        if (envelope == null ||
-            envelope.result == null ||
-            !envelope.result.ok)
-        {
-            return AtlasMatchNetworkResult.Fail(
-                "match.error.invalid_response",
-                "Invalid pending-intent response.");
-        }
-
-        WireIntent[] wires =
-            envelope.result.intents ??
-            Array.Empty<WireIntent>();
-
-        AtlasMatchIntent[] intents =
-            new AtlasMatchIntent[
-                wires.Length];
-
-        for (int i = 0;
-             i < wires.Length;
-             i++)
-        {
-            WireIntent wire =
-                wires[i];
-
-            intents[i] =
-                new AtlasMatchIntent
-                {
-                    IntentId =
-                        wire.intentId ??
-                        string.Empty,
-                    ClientCommandId =
-                        wire.clientCommandId ??
-                        string.Empty,
-                    AccountId =
-                        wire.accountId ??
-                        string.Empty,
-                    SeatId =
-                        wire.seatId ??
-                        string.Empty,
-                    IntentType =
-                        wire.intentType ??
-                        string.Empty,
-                    PayloadJson =
-                        wire.payloadJson ??
-                        "{}",
-                    CreatedAtEpochMs =
-                        wire.createdAtEpochMs
-                };
-        }
-
-        return new AtlasMatchNetworkResult
-        {
-            Success = true,
-            Intents = intents
-        };
-    }
-
-    private static AtlasMatchNetworkResult
-        ParsePublishEnvelope(
-            string body)
-    {
-        PublishEnvelope envelope =
-            SafeFromJson<
-                PublishEnvelope>(
-                    body);
-
-        if (envelope == null ||
-            envelope.result == null ||
-            !envelope.result.ok ||
-            envelope.result.state == null)
-        {
-            return AtlasMatchNetworkResult.Fail(
-                "match.error.invalid_response",
-                "Invalid match publish response.");
-        }
-
-        return new AtlasMatchNetworkResult
-        {
-            Success = true,
-            Revision =
-                envelope.result.state.revision
-        };
-    }
-
-    private static AtlasMatchNetworkResult
-        ParseAcknowledgeEnvelope(
-            string body)
-    {
-        AcknowledgeEnvelope envelope =
-            SafeFromJson<
-                AcknowledgeEnvelope>(
-                    body);
-
-        if (envelope == null ||
-            envelope.result == null ||
-            !envelope.result.ok)
-        {
-            return AtlasMatchNetworkResult.Fail(
-                "match.error.invalid_response",
-                "Invalid match ACK response.");
-        }
-
-        return new AtlasMatchNetworkResult
-        {
-            Success = true,
-            Acknowledged =
-                envelope.result.acknowledged
-        };
-    }
-
-    private static AtlasMatchNetworkSnapshot
-        ConvertSnapshot(
-            WireSnapshot wire)
-    {
-        AtlasMatchNetworkSnapshot snapshot =
-            new AtlasMatchNetworkSnapshot
-            {
-                MatchId =
-                    wire.matchId ??
-                    string.Empty,
-                LobbyId =
-                    wire.lobbyId ??
-                    string.Empty,
-                Status =
-                    wire.status ??
-                    string.Empty,
-                LocalSeatId =
-                    wire.localSeatId ??
-                    string.Empty,
-                LocalIsHost =
-                    wire.localIsHost,
-                Revision =
-                    wire.revision,
-                Phase =
-                    wire.phase ??
-                    string.Empty,
-                TurnSeatId =
-                    wire.turnSeatId ??
-                    string.Empty,
-                EventSequence =
-                    wire.eventSequence,
-                SnapshotJson =
-                    wire.snapshotJson ??
-                    "{}",
-                UpdatedAtEpochMs =
-                    wire.updatedAtEpochMs,
-                HostHeartbeatAtEpochMs =
-                    wire.hostHeartbeatAtEpochMs,
-                AuthorityEpoch =
-                    wire.authorityEpoch,
-                AuthorityHandoffReason =
-                    wire.authorityHandoffReason ??
-                    string.Empty,
-                NetworkSchemaVersion =
-                    wire.networkSchemaVersion
-            };
-
-        if (wire.seats != null)
-        {
-            foreach (WireSeat seat
-                     in wire.seats)
-            {
-                if (seat == null)
-                {
-                    continue;
-                }
-
-                snapshot.Seats.Add(
-                    new AtlasMatchNetworkSeat
-                    {
-                        SeatId =
-                            seat.seatId ??
-                            string.Empty,
-                        SlotIndex =
-                            seat.slotIndex,
-                        SeatMode =
-                            seat.seatMode ??
-                            string.Empty,
-                        DisplayName =
-                            seat.displayName ??
-                            string.Empty,
-                        IsHost =
-                            seat.isHost,
-                        ControllerKind =
-                            seat.controllerKind ??
-                            string.Empty,
-                        ConnectionState =
-                            seat.connectionState ??
-                            string.Empty,
-                        ReconnectExpiresAtEpochMs =
-                            seat.reconnectExpiresAtEpochMs,
-                        AfkLockedOut =
-                            seat.afkLockedOut,
-                        RemovalReason =
-                            seat.removalReason ??
-                            string.Empty
-                    });
-            }
-        }
-
-        return snapshot;
-    }
-
-    private static T SafeFromJson<T>(
-        string json)
-        where T : class
-    {
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            return null;
-        }
-
-        try
-        {
-            return JsonUtility.FromJson<T>(
-                json);
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    [Serializable]
-    private sealed class MatchIdRequest
-    {
-        public string matchId;
-    }
-
-    [Serializable]
-    private sealed class MatchSeatSlotRequest
-    {
-        public string matchId;
-        public int slotIndex;
-    }
-
-    [Serializable]
-    private sealed class SubmitIntentRequest
-    {
-        public string matchId;
-        public string clientCommandId;
-        public string intentType;
-        public string payloadJson;
-        public int observedRevision;
-        public int observedEventSequence;
-        public int observedAuthorityEpoch;
-        public string observedPhase;
-    }
-
-    [Serializable]
-    private sealed class PublishStateRequest
-    {
-        public string matchId;
-        public int expectedRevision;
-        public string phase;
-        public string turnSeatId;
-        public int eventSequence;
-        public string snapshotJson;
-    }
-
-    [Serializable]
-    private sealed class AcknowledgeIntentRequest
-    {
-        public string matchId;
-        public string[] intentIds;
-    }
-
-    [Serializable]
-    private sealed class CallableErrorDetails
-    {
-        public string errorKey;
-    }
-
-    [Serializable]
-    private sealed class CallableError
-    {
-        public string message;
-        public CallableErrorDetails details;
-    }
-
-    [Serializable]
-    private sealed class CallableErrorEnvelope
-    {
-        public CallableError error;
-    }
-
-    [Serializable]
-    private sealed class WireSeat
-    {
-        public string seatId;
-        public int slotIndex;
-        public string seatMode;
-        public string displayName;
-        public bool isHost;
-        public string controllerKind;
-        public string connectionState;
-        public long reconnectExpiresAtEpochMs;
-        public bool afkLockedOut;
-        public string removalReason;
-    }
-
-    [Serializable]
-    private sealed class WireSnapshot
-    {
-        public string matchId;
-        public string lobbyId;
-        public string status;
-        public string localSeatId;
-        public bool localIsHost;
-        public int revision;
-        public string phase;
-        public string turnSeatId;
-        public int eventSequence;
-        public string snapshotJson;
-        public long updatedAtEpochMs;
-        public long hostHeartbeatAtEpochMs;
-        public int authorityEpoch;
-        public string authorityHandoffReason;
-        public int networkSchemaVersion;
-        public WireSeat[] seats;
-    }
-
-    [Serializable]
-    private sealed class SnapshotResult
-    {
-        public bool ok;
-        public WireSnapshot snapshot;
-    }
-
-    [Serializable]
-    private sealed class SnapshotEnvelope
-    {
-        public SnapshotResult result;
-    }
-
-    [Serializable]
-    private sealed class IntentResult
-    {
-        public bool ok;
-        public string intentId;
-        public bool idempotentReplay;
-    }
-
-    [Serializable]
-    private sealed class IntentResultEnvelope
-    {
-        public IntentResult result;
-    }
-
-    [Serializable]
-    private sealed class WireIntent
-    {
-        public string intentId;
-        public string clientCommandId;
-        public string accountId;
-        public string seatId;
-        public string intentType;
-        public string payloadJson;
-        public long createdAtEpochMs;
-    }
-
-    [Serializable]
-    private sealed class IntentListResult
-    {
-        public bool ok;
-        public WireIntent[] intents;
-    }
-
-    [Serializable]
-    private sealed class IntentListEnvelope
-    {
-        public IntentListResult result;
-    }
-
-    [Serializable]
-    private sealed class WirePublishedState
-    {
-        public int revision;
-    }
-
-    [Serializable]
-    private sealed class PublishResult
-    {
-        public bool ok;
-        public WirePublishedState state;
-    }
-
-    [Serializable]
-    private sealed class PublishEnvelope
-    {
-        public PublishResult result;
-    }
-
-    [Serializable]
-    private sealed class AcknowledgeResult
-    {
-        public bool ok;
-        public int acknowledged;
-    }
-
-    [Serializable]
-    private sealed class AcknowledgeEnvelope
-    {
-        public AcknowledgeResult result;
+        currentSnapshot = next;
+        SnapshotChanged?.Invoke(next);
     }
 }
