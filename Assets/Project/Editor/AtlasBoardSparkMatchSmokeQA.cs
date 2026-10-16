@@ -20,6 +20,16 @@ public static class AtlasBoardSparkMatchSmokeQA
             Debug.LogError("ATB_SPARK_BOT_WIRE_QA FAIL reason=bot_seat_controller_contract");
     }
 
+    [MenuItem("Atlas Board/QA & Diagnostics/RTDB/Verify RTDB Seat Lifecycle (No Network)")]
+    private static void VerifySeatLifecycle()
+    {
+        bool result = AtlasBoardSparkRtdbMatchTransport.ValidatePresenceTransitionContract();
+        if (result)
+            Debug.Log("ATB_RTDB_PRESENCE_QA PASS stages=human_temp_reconnect_expire_no_reclaim");
+        else
+            Debug.LogError("ATB_RTDB_PRESENCE_QA FAIL stage=seat_transition_contract");
+    }
+
     [MenuItem("Atlas Board/QA & Diagnostics/RTDB/Measure Live Match Read Latency (Play Mode)")]
     private static async void MeasureLiveReadLatency()
     {
@@ -169,6 +179,18 @@ public static class AtlasBoardSparkMatchSmokeQA
                     verified.Snapshot.Revision != published.Revision ||
                     verified.Snapshot.Phase != "awaiting_roll")
                     throw new InvalidOperationException("published frame not readable");
+                stage = "premature_rematch_denied_" + round;
+                AtlasMatchNetworkResult early = await match.HostPrepareRematchAsync(id);
+                if (early.Success ||
+                    !string.Equals(early.ErrorLocalizationKey,"match.error.not_complete",
+                        StringComparison.Ordinal))
+                    throw new InvalidOperationException("Active match accepted early rematch");
+                stage = "publish_completion_" + round;
+                AtlasMatchNetworkResult completed = await match.HostPublishStateAsync(
+                    verified.Snapshot.Revision, "match_complete", "seat_0", 2,
+                    "{\"schemaVersion\":1,\"qaOnly\":true,\"completed\":true}", id);
+                if (!completed.Success)
+                    throw new InvalidOperationException("completion publish failed: " + completed.TechnicalMessage);
                 stage = "rematch_" + round;
                 AtlasMatchNetworkResult rematch = await match.HostPrepareRematchAsync(id);
                 if (!rematch.Success)

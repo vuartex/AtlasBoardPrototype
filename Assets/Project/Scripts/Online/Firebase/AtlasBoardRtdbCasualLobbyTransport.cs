@@ -77,6 +77,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
     {
         public long Code;
         public string Body;
+        public string ETag;
         public bool Ok => Code >= 200 && Code < 300;
     }
 
@@ -795,19 +796,23 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             return Failure("lobby.error.service_unavailable",
                 "Could not mark RTDB room closed (HTTP " + closed.Code + ").");
 
+        bool codeDeleted = true;
         string code = await GetPersistedRoomCode(room, token);
         if (!string.IsNullOrEmpty(code))
         {
-            Response codeDeleted = await Send("DELETE", "joinCodes/" + Safe(code), token);
-            if (!codeDeleted.Ok)
-                Debug.LogWarning("ATB_RTDB_ROOM_CLEANUP stage=invite_code http=" + codeDeleted.Code);
+            Response removedCode = await Send("DELETE", "joinCodes/" + Safe(code), token);
+            codeDeleted = removedCode.Ok;
+            if (!removedCode.Ok)
+                Debug.LogWarning("ATB_RTDB_ROOM_CLEANUP stage=invite_code http=" + removedCode.Code);
         }
         // A Public Directory record must disappear before metadata is removed;
         // its write permission is derived from roomMeta.hostUid/mode.
+        bool directoryDeletedOk = true;
         if (state.Snapshot.Visibility == AtlasRoomVisibility.Public)
         {
             Response directoryDeleted = await Send(
                 "DELETE", "publicRoomDirectory/" + Safe(room), token);
+            directoryDeletedOk = directoryDeleted.Ok;
             if (!directoryDeleted.Ok)
                 Debug.LogWarning("ATB_RTDB_ROOM_CLEANUP stage=public_directory http=" +
                                  directoryDeleted.Code);
@@ -834,6 +839,17 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         if (!ephemeralDeleted)
             Debug.LogWarning("ATB_RTDB_ROOM_CLEANUP stage=ephemeral http=" +
                 intents.Code + "/" + acks.Code + "/" + joins.Code + "/" + ready.Code);
+
+        // Preserve the host's ability to retry partial cleanup: do NOT remove
+        // the last readable roomState/membership when any dependent cleanup
+        // failed. roomMeta.closed=true already prevents new admissions.
+        if (!matchDeleted || !ephemeralDeleted || !codeDeleted || !directoryDeletedOk)
+        {
+            Debug.LogWarning("ATB_RTDB_ROOM_CLEANUP retryable=true " +
+                "dependents_failed=true host_membership_preserved=true");
+            return Failure("lobby.error.service_unavailable",
+                "Room closed to new joins; dependent cleanup failed and is retryable.");
+        }
 
         // roomState and individual roomMembers are protected by RTDB rules
         // referencing roomMeta. Delete these BEFORE roomMeta. This prevents
@@ -864,9 +880,12 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         // If any dependent write failed, retain closed metadata so a host can
         // still repair its own abandoned records (rather than orphaning them
         // behind a deleted access-control root).
-        if (stateDeleted.Ok && membersDeleted && matchDeleted && ephemeralDeleted)
+        bool metadataDeleted = false;
+        if (stateDeleted.Ok && membersDeleted && matchDeleted && ephemeralDeleted &&
+            codeDeleted && directoryDeletedOk)
         {
             Response metaDeleted = await Send("DELETE", "roomMeta/" + Safe(room), token);
+            metadataDeleted = metaDeleted.Ok;
             if (!metaDeleted.Ok)
                 Debug.LogWarning("ATB_RTDB_ROOM_CLEANUP stage=metadata http=" + metaDeleted.Code);
         }
@@ -878,8 +897,15 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         ActiveCode.Remove(room);
         RoomCreatedAt.Remove(room);
         CodeRenewAfter.Remove(room);
+        bool completed = stateDeleted.Ok && membersDeleted &&
+            matchDeleted && ephemeralDeleted && metadataDeleted &&
+            codeDeleted && directoryDeletedOk;
         Debug.Log("ATB_RTDB_ROOM_CLOSED data_cleanup_attempted=true " +
-                  "no_other_rooms_touched=true");
+                  "complete=" + completed + " no_other_rooms_touched=true");
+        if (!completed)
+            return Failure("lobby.error.service_unavailable",
+                "Room marked closed, but owned-record cleanup is incomplete; " +
+                "verify remaining RTDB records before treating it as removed.");
         return AtlasLobbyOperationResult.Ok(null);
     }
 
@@ -904,17 +930,43 @@ public static class AtlasBoardRtdbCasualLobbyTransport
 
     private static async Task<bool> StoreSnapshot(string room,AtlasLobbySnapshot snap,string token,long revision)
     {
-        // Ensure a strictly newer transport revision even when two writes
-        // happen within the same millisecond. Never confuse this with
-        // SettingsRevision (which only tracks host configuration changes).
-        long nextRevision = Math.Max(revision, snap.TransportRevision + 1L);
+        if (snap == null || snap.Settings == null) return false;
+        string path = "roomState/" + Safe(room);
+        // Revision increments alone do not prevent lost updates: a late PUT
+        // previously overwrote a newer room snapshot. Read the ETag and
+        // compare the revision the caller actually observed before CAS PUT.
+        Response current = await Send("GET", path, token, null, null, null, true);
+        if (!current.Ok) return false;
+        State existing = Parse<State>(current.Body);
+        long actual = existing != null ? existing.revision : 0L;
+        long expected = snap.TransportRevision;
+        if (actual != expected)
+        {
+            Debug.LogWarning("ATB_RTDB_LOBBY_CAS stale=true expected=" +
+                expected + " actual=" + actual);
+            return false;
+        }
+        string etag = !string.IsNullOrEmpty(current.ETag) ? current.ETag :
+            existing == null ? "null_etag" : string.Empty;
+        if (string.IsNullOrEmpty(etag)) return false;
+        long nextRevision = Math.Max(Math.Max(revision, actual + 1L), Now());
+        // Do not modify caller's snapshot if this commit loses the race.
         snap.TransportRevision = nextRevision;
-        State state=new State{
-            revision=nextRevision,eventSequence=nextRevision,updatedAt=Now(),
-            phase=snap.LifecycleState==AtlasRoomLifecycleState.Waiting?"waiting":"starting",
-            snapshotJson=JsonUtility.ToJson(snap)
+        string phase = snap.LifecycleState == AtlasRoomLifecycleState.Waiting
+            ? "waiting" : snap.LifecycleState == AtlasRoomLifecycleState.Starting
+                ? "starting" : "in_match";
+        State state = new State {
+            revision = nextRevision, eventSequence = nextRevision,
+            updatedAt = Now(), phase = phase,
+            snapshotJson = JsonUtility.ToJson(snap)
         };
-        return await Write("PUT","roomState/"+Safe(room),token,JsonUtility.ToJson(state));
+        Response saved = await Send("PUT", path, token,
+            JsonUtility.ToJson(state), etag);
+        if (saved.Ok) return true;
+        snap.TransportRevision = expected;
+        if (saved.Code == 412)
+            Debug.LogWarning("ATB_RTDB_LOBBY_CAS collision=true room_unchanged=true");
+        return false;
     }
 
     private static async Task StoreIndex(string room,AtlasLobbySnapshot s,string token,long now)
@@ -989,7 +1041,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         (await Send(verb,path,token,json)).Ok;
 
     private static async Task<Response> Send(string verb,string path,string token,
-        string json=null,string ifMatch=null,string query=null)
+        string json=null,string ifMatch=null,string query=null,bool wantEtag=false)
     {
         string url=Database+"/"+path+".json?auth="+UnityWebRequest.EscapeURL(token);
         if (!string.IsNullOrEmpty(query)) url += "&" + query;
@@ -999,13 +1051,16 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             if(json!=null){req.uploadHandler=new UploadHandlerRaw(Encoding.UTF8.GetBytes(json));
                 req.SetRequestHeader("Content-Type","application/json");}
             if(ifMatch!=null)req.SetRequestHeader("if-match",ifMatch);
+            if(wantEtag)req.SetRequestHeader("X-Firebase-ETag","true");
             req.timeout=15;
             var operation=req.SendWebRequest();
             var done=new TaskCompletionSource<bool>();
             operation.completed+=_=>done.TrySetResult(true);
+            if(operation.isDone)done.TrySetResult(true);
             await done.Task;
             return new Response{Code=req.responseCode,
-                Body=req.downloadHandler!=null?req.downloadHandler.text:""};
+                Body=req.downloadHandler!=null?req.downloadHandler.text:"",
+                ETag=req.GetResponseHeader("ETag")};
         }
     }
 

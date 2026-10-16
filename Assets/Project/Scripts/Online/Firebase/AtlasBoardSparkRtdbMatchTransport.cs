@@ -46,12 +46,20 @@ public static class AtlasBoardSparkRtdbMatchTransport
         public int slotIndex;
         public bool host, afkLockedOut;
         public long reconnectExpiresAt;
+        // Set when a Human first loses the presence lease. A reconnecting
+        // client must issue a strictly NEW heartbeat to reclaim this seat.
+        public long disconnectedAt;
         public string removalReason;
     }
     [Serializable]
     private sealed class SeatsWire
     {
         public SeatWire[] seats;
+    }
+    [Serializable] private sealed class PresenceWire
+    {
+        public bool online;
+        public long lastSeenAt;
     }
     [Serializable]
     private sealed class RoomWire
@@ -309,6 +317,15 @@ public static class AtlasBoardSparkRtdbMatchTransport
         if (string.IsNullOrEmpty(seat))
             return AtlasMatchNetworkResult.Fail("match.error.access_denied",
                 "No local seat in this match.");
+        // A former remote Human may retain a reclaimable UID after expiry.
+        // Membership is not authority to issue Human decisions.
+        AtlasMatchNetworkSeat local = frame.Seats != null
+            ? frame.Seats.Find(s => s != null && s.SeatId == seat) : null;
+        if (local == null || local.AfkLockedOut ||
+            !string.Equals(local.ControllerKind,"human",StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(local.ConnectionState,"connected",StringComparison.OrdinalIgnoreCase))
+            return AtlasMatchNetworkResult.Fail("match.error.access_denied",
+                "This seat is not currently controlled by a connected Human.");
         string id = Digest(uid + ":" + matchId + ":" + commandId).Substring(0, 32);
         string room = frame.LobbyId;
         string ackPath = AckRoot(room) + "/" + PathKey(uid) + "/" + PathKey(id);
@@ -400,6 +417,8 @@ public static class AtlasBoardSparkRtdbMatchTransport
                     if (seat != null && seat.uid == intent.AccountId &&
                         seat.seatId == intent.SeatId &&
                         seat.mode == "remotehuman" &&
+                        seat.controller == "human" &&
+                        seat.connection == "connected" &&
                         !seat.afkLockedOut)
                         return false;
                 return true;
@@ -477,43 +496,168 @@ public static class AtlasBoardSparkRtdbMatchTransport
         return result.Ok ? state : Failure("RTDB departure: " + FailReason(result));
     }
 
+    private const long RemotePresenceTimeoutMs = 20000L;
+    private const long ReconnectWindowMs = 5L * 60L * 1000L;
+
+    // A single canonical transition helper is used by live host maintenance
+    // AND Editor regression QA. No GameObject or second bot controller here.
+    private static bool AdvanceRemoteSeat(SeatWire seat, PresenceWire presence,
+        long now, long matchCreatedAt)
+    {
+        if (seat == null || seat.host || seat.mode != "remotehuman" ||
+            seat.afkLockedOut || string.IsNullOrEmpty(seat.uid)) return false;
+        bool recent = presence != null && presence.online &&
+            presence.lastSeenAt > 0 &&
+            now - Math.Min(presence.lastSeenAt, now) <= RemotePresenceTimeoutMs;
+        if (seat.controller == "human" && seat.connection == "connected")
+        {
+            // Give newly admitted Humans a grace period to send their first
+            // heartbeat after the host starts the match.
+            if (recent || now - matchCreatedAt < RemotePresenceTimeoutMs)
+                return false;
+            seat.controller = "temporary_bot";
+            seat.connection = "reconnecting";
+            seat.disconnectedAt = now;
+            seat.reconnectExpiresAt = now + ReconnectWindowMs;
+            seat.removalReason = "connection_lost";
+            return true;
+        }
+        if (seat.controller != "temporary_bot" ||
+            seat.connection != "reconnecting") return false;
+        // Expiry wins even if a reconnect arrives too late.
+        if (seat.reconnectExpiresAt > 0 && now >= seat.reconnectExpiresAt)
+        {
+            seat.controller = "permanent_bot";
+            seat.connection = "reconnect_expired";
+            seat.reconnectExpiresAt = 0;
+            seat.removalReason = "reconnect_expired";
+            return true;
+        }
+        // A stale 'online:true' recorded before the disconnection MUST NOT
+        // reclaim the Human seat. The old owner must send a new presence.
+        if (recent && seat.disconnectedAt > 0 &&
+            presence.lastSeenAt > seat.disconnectedAt)
+        {
+            seat.controller = "human";
+            seat.connection = "connected";
+            seat.disconnectedAt = 0;
+            seat.reconnectExpiresAt = 0;
+            seat.removalReason = "";
+            return true;
+        }
+        return false;
+    }
+
+    public static bool ValidatePresenceTransitionContract()
+    {
+        const long now = 1000000L;
+        SeatWire test = new SeatWire {
+            uid="remote",mode="remotehuman",controller="human",
+            connection="connected",slotIndex=1
+        };
+        if (AdvanceRemoteSeat(test,new PresenceWire {online=true,
+                lastSeenAt=now-1000L},now,now-60000L)) return false;
+        if (!AdvanceRemoteSeat(test,new PresenceWire {online=false,
+                lastSeenAt=now},now,now-60000L) ||
+            test.controller!="temporary_bot" ||
+            test.reconnectExpiresAt!=now+ReconnectWindowMs) return false;
+        if (AdvanceRemoteSeat(test,new PresenceWire {online=true,
+                lastSeenAt=now},now+2000L,now-60000L)) return false;
+        if (!AdvanceRemoteSeat(test,new PresenceWire {online=true,
+                lastSeenAt=now+3000L},now+4000L,now-60000L) ||
+            test.controller!="human") return false;
+        if (!AdvanceRemoteSeat(test,new PresenceWire {online=false,
+                lastSeenAt=now+5000L},now+6000L,now-60000L)) return false;
+        if (!AdvanceRemoteSeat(test,null,now+6000L+ReconnectWindowMs,
+                now-60000L) || test.controller!="permanent_bot") return false;
+        if (AdvanceRemoteSeat(test,new PresenceWire {online=true,
+                lastSeenAt=now+6000L+ReconnectWindowMs+1},
+                now+6000L+ReconnectWindowMs+10,now-60000L)) return false;
+        return true;
+    }
+
     internal static async Task<AtlasMatchNetworkResult> HostMaintenanceAsync(
         string matchId, string uid, string token)
     {
         string key = matchId + ":" + uid;
         long now = Now;
-        // Coordinator invokes both sweep and expiry checks independently.
-        // They share the same bounded maintenance result, not two simultaneous
-        // full match downloads. Always refresh before the heartbeat threshold.
+        // Both legacy sweep entrypoints converge here, with a bounded cache.
         if (LastMaintenanceCheck.TryGetValue(key, out long checkedAt) &&
-            now - checkedAt < 4000L &&
+            now-checkedAt < 4000L &&
             LastMaintenanceResult.TryGetValue(key, out AtlasMatchNetworkResult cached) &&
-            cached != null && cached.Success)
-            return cached;
-        AtlasMatchNetworkResult state = await SnapshotAsync(matchId, uid, token);
-        if (!state.Success || state.Snapshot == null) return state;
-        if (!state.Snapshot.LocalIsHost)
-            return AtlasMatchNetworkResult.Fail("match.error.access_denied", "Host required.");
-        // Throttle routine maintenance; old coordinator invokes several
-        // maintenance methods independently, but only one presence write is needed.
-        if (!LastHostPresenceWrite.TryGetValue(key, out long previous) ||
-            now - previous >= 10000L)
+            cached != null && cached.Success) return cached;
+
+        string path = StatePath(matchId);
+        Response read = await Send("GET",path,token,null,null,true);
+        MatchState state = Decode<MatchState>(read.Body);
+        if (!read.Ok || state == null || string.IsNullOrEmpty(read.ETag))
+            return Failure("RTDB maintenance read: " + FailReason(read));
+        if (state.hostUid != uid)
+            return AtlasMatchNetworkResult.Fail("match.error.access_denied","Host required.");
+        SeatsWire roster = Decode<SeatsWire>(state.seatsJson);
+        if (roster == null || roster.seats == null)
+            return Failure("RTDB maintenance seats are missing.");
+        bool hasRemote = false;
+        foreach (SeatWire seat in roster.seats)
+            hasRemote |= seat != null && seat.mode == "remotehuman" &&
+                !seat.afkLockedOut && seat.controller != "permanent_bot";
+
+        Dictionary<string,PresenceWire> presenceByUid =
+            new Dictionary<string,PresenceWire>(StringComparer.Ordinal);
+        if (hasRemote)
         {
-            Response r = await Send("PUT", "matchPresence/" + PathKey(matchId) +
-                "/" + PathKey(uid), token,
-                "{\"online\":true,\"lastSeenAt\":" + now + "}");
-            if (!r.Ok) return Failure("RTDB host presence: " + FailReason(r));
-            // Keep watchdog heartbeat fresh even during a long idle turn.
-            // Patch only tiny metadata, never rewrite the full game frame.
-            Response heartbeat = await Send("PATCH", StatePath(matchId), token,
-                "{\"hostHeartbeatAt\":" + now + ",\"updatedAt\":" + now + "}");
-            if (!heartbeat.Ok)
-                return Failure("RTDB heartbeat: " + FailReason(heartbeat));
+            Response presence = await Send("GET","matchPresence/"+PathKey(matchId),token);
+            if (!presence.Ok) return Failure("RTDB remote presence read: " + FailReason(presence));
+            foreach (KeyValuePair<string,string> item in ObjectMembers(presence.Body))
+            {
+                PresenceWire value = Decode<PresenceWire>(item.Value);
+                if (value != null) presenceByUid[item.Key] = value;
+            }
+        }
+        bool changed = false;
+        foreach (SeatWire seat in roster.seats)
+        {
+            if (seat == null || !hasRemote) continue;
+            presenceByUid.TryGetValue(seat.uid ?? "",out PresenceWire presence);
+            changed |= AdvanceRemoteSeat(seat,presence,now,state.createdAt);
+        }
+        if (changed)
+        {
+            state.seatsJson = JsonUtility.ToJson(roster);
+            state.revision++;
+            state.updatedAt = now;
+            state.hostHeartbeatAt = now;
+            Response commit = await Send("PUT",path,token,
+                JsonUtility.ToJson(state),read.ETag);
+            if (!commit.Ok)
+                return AtlasMatchNetworkResult.Fail("match.error.stale_client_state",
+                    "RTDB seat transition CAS lost; retry next maintenance pass: " +
+                    FailReason(commit));
+        }
+        // A single host heartbeat for two maintenance callers. Never rewrite
+        // the full match frame when only the lease must be extended.
+        if (!LastHostPresenceWrite.TryGetValue(key,out long previous) ||
+            now-previous >= 10000L)
+        {
+            Response own = await Send("PUT","matchPresence/"+PathKey(matchId)+
+                "/"+PathKey(uid),token,
+                "{\"online\":true,\"lastSeenAt\":"+now+"}");
+            if (!own.Ok) return Failure("RTDB host presence write: " + FailReason(own));
+            if (!changed)
+            {
+                Response heartbeat = await Send("PATCH",path,token,
+                    "{\"hostHeartbeatAt\":"+now+",\"updatedAt\":"+now+"}");
+                if (!heartbeat.Ok)
+                    return Failure("RTDB host heartbeat write: " + FailReason(heartbeat));
+            }
             LastHostPresenceWrite[key] = now;
         }
-        LastMaintenanceCheck[key] = now;
-        LastMaintenanceResult[key] = state;
-        return state;
+        AtlasMatchNetworkResult result = new AtlasMatchNetworkResult {
+            Success=true, Snapshot=ToSnapshot(state,uid)
+        };
+        LastMaintenanceCheck[key]=now;
+        LastMaintenanceResult[key]=result;
+        return result;
     }
 
     internal static async Task<AtlasMatchNetworkResult> HostRemoveAfkAsync(
@@ -531,14 +675,18 @@ public static class AtlasBoardSparkRtdbMatchTransport
         bool changed = false;
         foreach (SeatWire seat in seats.seats)
         {
-            if (seat == null || seat.slotIndex != slotIndex || seat.host) continue;
-            if (!seat.afkLockedOut)
-            {
-                seat.afkLockedOut = true;
-                seat.removalReason = "afk";
-                seat.connection = "removed";
-                changed = true;
-            }
+            if (seat == null || seat.slotIndex != slotIndex || seat.host ||
+                (seat.mode != "remotehuman" && seat.mode != "localhuman") ||
+                seat.afkLockedOut) continue;
+            // Closing the Human input path alone leaves a seat that cannot
+            // roll. Atomically switch both the wire controller and lock-out.
+            seat.afkLockedOut = true;
+            seat.controller = "permanent_bot";
+            seat.removalReason = "afk";
+            seat.connection = "afk_removed";
+            seat.reconnectExpiresAt = 0;
+            seat.disconnectedAt = Now;
+            changed = true;
         }
         if (!changed)
             return new AtlasMatchNetworkResult { Success = true, Snapshot = ToSnapshot(state, uid) };
@@ -559,6 +707,10 @@ public static class AtlasBoardSparkRtdbMatchTransport
         if (!current.Success || current.Snapshot == null) return current;
         if (!current.Snapshot.LocalIsHost)
             return AtlasMatchNetworkResult.Fail("match.error.access_denied", "Host required.");
+        if (!string.Equals(current.Snapshot.Phase,"match_complete",StringComparison.Ordinal) ||
+            !string.Equals(current.Snapshot.Status,"complete",StringComparison.Ordinal))
+            return AtlasMatchNetworkResult.Fail("match.error.not_complete",
+                "Cannot reset an active match to Waiting before match completion.");
         // Read the room ETag for an atomic rematch transition. A delayed
         // concurrent host update must not overwrite a newer room state.
         Response read = await Send("GET", "roomState/" + PathKey(current.Snapshot.LobbyId), token,
@@ -567,39 +719,58 @@ public static class AtlasBoardSparkRtdbMatchTransport
         if (!read.Ok || state == null)
             return Failure("RTDB lobby was not available for rematch.");
         AtlasLobbySnapshot lobby = Decode<AtlasLobbySnapshot>(state.snapshotJson);
-        if (lobby == null || lobby.MatchId != matchId)
+        bool retryCleanup = lobby != null &&
+            lobby.LifecycleState == AtlasRoomLifecycleState.Waiting &&
+            string.IsNullOrEmpty(lobby.MatchId);
+        if (lobby == null || (!retryCleanup && lobby.MatchId != matchId))
             return Failure("The room has already moved to a different match.");
-        lobby.LifecycleState = AtlasRoomLifecycleState.Waiting;
-        lobby.MatchId = string.Empty;
-        lobby.StartEventId = string.Empty;
-        lobby.StartCountdownEndsAtEpochMs = 0;
-        foreach (AtlasLobbyMemberSnapshot member in lobby.Members)
+        if (!retryCleanup)
         {
-            if (member == null || member.SeatMode != AtlasLobbySeatMode.RemoteHuman) continue;
-            member.ReadyForRevision = 0;
+            lobby.LifecycleState = AtlasRoomLifecycleState.Waiting;
+            lobby.MatchId = string.Empty;
+            lobby.StartEventId = string.Empty;
+            lobby.StartCountdownEndsAtEpochMs = 0;
+            foreach (AtlasLobbyMemberSnapshot member in lobby.Members)
+            {
+                if (member == null || member.SeatMode != AtlasLobbySeatMode.RemoteHuman)
+                    continue;
+                member.ReadyForRevision = 0;
+            }
+            state.revision = Math.Max(state.revision + 1, Now);
+            state.eventSequence = Math.Max(state.eventSequence, state.revision);
+            state.updatedAt = Now;
+            state.phase = "waiting";
+            // Waiting must carry the SAME higher transport revision as RTDB.
+            lobby.TransportRevision = state.revision;
+            state.snapshotJson = JsonUtility.ToJson(lobby);
+            Response saved = await Send("PUT", "roomState/" + PathKey(lobby.LobbyId), token,
+                JsonUtility.ToJson(state), read.ETag);
+            if (!saved.Ok) return Failure("RTDB rematch lobby reset: " + FailReason(saved));
         }
-        state.revision = Math.Max(state.revision + 1, Now);
-        state.eventSequence = Math.Max(state.eventSequence, state.revision);
-        state.updatedAt = Now;
-        state.phase = "waiting";
-        // Store the same authoritative revision inside the snapshot so
-        // the Unity lobby cache can distinguish a NEW Waiting state from
-        // an old pre-start Waiting response arriving late from the network.
-        lobby.TransportRevision = state.revision;
-        state.snapshotJson = JsonUtility.ToJson(lobby);
-        Response saved = await Send("PUT", "roomState/" + PathKey(lobby.LobbyId), token,
-            JsonUtility.ToJson(state), read.ETag);
-        if (!saved.Ok) return Failure("RTDB rematch lobby reset: " + FailReason(saved));
+        // On a partial cleanup failure the old completed match remains.
+        // A retry can finish deleting its records without mutating the new
+        // Waiting lobby revision a second time.
         // Once the canonical lobby has returned to Waiting, clean ONLY its
         // previous ephemeral match session. This room's invite code survives.
-        await Send("DELETE", "matchPresence/" + PathKey(matchId), token);
-        await Send("DELETE", "matchState/" + PathKey(matchId), token);
-        await Send("DELETE", IntentRoot(lobby.LobbyId), token);
-        await Send("DELETE", AckRoot(lobby.LobbyId), token);
+        Response presenceDeleted = await Send("DELETE", "matchPresence/" + PathKey(matchId), token);
+        Response intentsDeleted = await Send("DELETE", IntentRoot(lobby.LobbyId), token);
+        Response acksDeleted = await Send("DELETE", AckRoot(lobby.LobbyId), token);
+        // Delete the parent match last: presence cleanup rules depend on it.
+        Response matchDeleted = presenceDeleted.Ok && intentsDeleted.Ok && acksDeleted.Ok
+            ? await Send("DELETE", "matchState/" + PathKey(matchId), token)
+            : new Response { Status = 0 };
+        bool clean = presenceDeleted.Ok && intentsDeleted.Ok && acksDeleted.Ok && matchDeleted.Ok;
+        if (!clean)
+            Debug.LogWarning("ATB_RTDB_REMATCH_CLEANUP pending=true presence=" +
+                presenceDeleted.Status + " intents=" + intentsDeleted.Status +
+                " acks=" + acksDeleted.Status + " match=" + matchDeleted.Status);
         string maintenanceKey = matchId + ":" + uid;
         LastMaintenanceCheck.Remove(maintenanceKey);
         LastMaintenanceResult.Remove(maintenanceKey);
         LastHostPresenceWrite.Remove(maintenanceKey);
+        if (!clean)
+            return Failure("Rematch lobby is Waiting, but cleanup of its old match " +
+                "failed. Do not start another match until cleanup succeeds.");
         return current;
     }
 

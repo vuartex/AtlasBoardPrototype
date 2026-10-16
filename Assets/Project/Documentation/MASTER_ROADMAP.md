@@ -6,6 +6,30 @@
 >
 > **TEK DOSYA KURALI:** Bundan sonra yalnız `Assets/Project/Documentation/MASTER_ROADMAP.md` kanoniktir. Her yama/sürümde yeni QA/phase/roadmap/next-chat dokümanı açma. Anlamlı mimari değişikliği, kullanıcı test sonucu veya phase milestone olduğunda bu dosyayı güncelle; küçük düzenlemelerde ayrıca doküman yazma. Eski dosyalar şu an otomatik silinmez; bu roadmap kaynaklarını konsolide eder.
 
+## 0A. 16 Ekim 2026 — v5.33.0 RTDB lifecycle / CAS / rematch SOURCE CANDIDATE
+
+**KABUL DURUMU:** SOURCE CHANGED + STATIC CHECK hedefi; Unity compile / RTDB Emulator / Owner gameplay / iki gerçek cihaz PASS henüz yok. GitHub blob SHA ile aynı olduğu doğrulanan 5 tam kaynak dosyasından güncellendi. Bot v5.32.7 ve HUD v5.32.9 kaynakları değiştirilmedi.
+
+**Bu paketteki birlikte ele alınan değişiklikler:**
+- `AtlasBoardSparkRtdbMatchTransport`: remote Human presence timeout (20sn) -> TemporaryBot (5dk) -> yeni presence ile Human restoration veya `reconnect_expired` PermanentBot; eski `online=true` ile sahte rejoin engeli, ETag CAS, host-only. AFK removal `controller=permanent_bot` ile birlikte yazılır, yalnız `afkLockedOut` atama hatası giderilir. Human intent submit ve host pending kontrolü controller/connection/lockout durumunu doğrular.
+- `AtlasBoardRtdbCasualLobbyTransport`: eski `Waiting` state'in yeni `Starting` state'i ezmesini önlemek için `TransportRevision` + ETag CAS; GET ETag header; Unity asenkron request tamamlanma yarışı koruması. Cleanup success yalnız gerçekten tüm kod, public index, roomState, match, members, ephemeral ve roomMeta silinince true. Yabancı room'a dokunulmaz.
+- `AtlasBoardSparkRtdbMatchTransport.HostRematchAsync`: oyun `match_complete` değilse reddet; eski maçın presence/intent/ack/state cleanup sırası düzeltildi, başarısız cleanup bildirilir ve completed match ile idempotent retry mümkündür.
+- `AtlasBoardMatchRuntimeBridge`: `GetSnapshotAsync` zaten snapshot kabul ettiğinden Update içindeki ikinci AcceptSnapshot kaldırıldı; eski revision yeni match state'i geri alamaz; host bakım sonucu seat snapshot'a uygulanır, kalıcı bot dışındaki remote player için intent polling korunur.
+- `Assets/Project/Editor/AtlasBoardSparkMatchSmokeQA`: güncel GitHub testinden türetildi; ağsız Human -> Temp -> Human -> Expire sözleşmesi menüsü ve tamamlanmamış maçtan rematch'in reddedildiği negatif kontrol, sonra completed frame ve 3x rematch.
+- **Rules değişmedi**; `database.rules.json` tekrar deploy edilmez. Firebase Spark/free kalır, Cloud Functions/Blaze kullanılmaz. Verified XP/Gold Casual ödül verilmez.
+
+**AÇIK / ASLA PASS DEME:**
+1. Gerçek güvenli host migration ve crashed-host takeover: `TryRecoverCrashedHostAsync` hâlâ fail döner; RTDB hostUid, roomMeta owner, authorityEpoch için atomik takeover ve saldırı testleri gerekir.
+2. Uygulama tamamen kapanıp yeniden açıldıktan sonra 5dk içinde aynı match/seat'e UI üzerinden attach olmak test edilmedi (oturum içi lease restore mantığı eklendi). İki gerçek cihaz Human karar senkronizasyonu ve bağlantı kaybı doğrulanmadı.
+3. `AtlasBoardTurnDiceNetworkCoordinator` her snapshot'ta HUD refresh eder; `ApplyLobbyIdentitySnapshot` önce tüm koltukları Clear/SetBotEnabled(false) yapar. Player HUD instance `FindAnyObjectByType` + tekrar layout, tablet flicker, birden çok match reentry, 3 session OPEN.
+4. Bot setup başlangıcı enable -> reset/disable -> enable döngüsü OPEN (doğal hızlı roll owner PASS korunur).
+5. `AtlasBoardAccountService` Firestore users/public_profiles/preferences zorunlu bağımlılığı `ATB120`; RTDB account/career migration OPEN.
+6. `PawnMotionAnimator` disabled Animator warnings OPEN.
+7. RTDB self-authoritative Casual host ekonomik hileyi independent verifier olmadan engelleyemez; rewarded stat/Gold doğrulamasız OFF.
+8. Gerçek Android FPS, Steam/Windows regression, 2-device room join/ready + game and match #1/#2/#3 PASS değil.
+
+**KABUL SIRASI:** Unity compile 0 errors -> `Verify RTDB Seat Lifecycle (No Network)` -> boş Live Spark Editor'da `Smoke Test Casual Match Roundtrip` (3x, early rematch reddi) -> owner Host+3 Bot natural dice/buy/auction -> 2 gerçek insan + network disconnect 20sn/within 5min/expiry -> Full app relaunch and host migration ayrı gate. Her değişikliğin testi ayrı ispatlanmalı.
+
 ## 0. 16 Ekim 2026 — GERÇEK TEST, KÖK NEDEN VE KOD SAHİPLİĞİ (GÜNCEL OTORİTE)
 
 > **OWNER RESULT / KORUNACAK DAVRANIŞ:** v5.32.5 Bot wire düzeltmesi + v5.32.6 Editor erişim/CS0122 düzeltmesinden sonra, kullanıcı **Private Online RTDB odasında 1 Human host + 3 Bot ile oyuna girip hızlı zar atma / oynanabilir oyun akışını** doğruladı. Loglar `ATB_SPARK_MATCH_START ... bots=3`, botların roll, purchase, auction, turn ilerlemesi ve gerçek RTDB snapshot okuma sonuçlarını içerir. Bu gerçek ve değerli bir geçiştir; **2 gerçek istemci, ödüller, host migration ve tüm re-entry senaryoları henüz PASS değildir.** Bu owner PASS hiçbir sonraki değişiklikle geriye götürülemez.

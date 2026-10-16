@@ -100,13 +100,12 @@ public sealed class AtlasBoardMatchRuntimeBridge : MonoBehaviour
         // Explicit snapshot reads (bootstrap/reconnect/QA) still work.
         if (IsSoloHostMatch(match)) return;
         nextPollAt = Time.unscaledTime + Mathf.Max(0.5f, snapshotPollSeconds);
-        int generation = sessionGeneration;
         pollInFlight = true;
         try
         {
-            AtlasMatchNetworkResult result = await GetSnapshotAsync(match);
-            if (generation == sessionGeneration && result.Success)
-                AcceptSnapshot(result.Snapshot);
+            // GetSnapshotAsync already accepts the response for this session.
+            // Do not dispatch the same snapshot twice on each REST poll.
+            await GetSnapshotAsync(match);
         }
         catch (Exception ex)
         {
@@ -214,11 +213,15 @@ public sealed class AtlasBoardMatchRuntimeBridge : MonoBehaviour
         return WithIdentity((uid, token) =>
             AtlasBoardSparkRtdbMatchTransport.TouchAsync(match, uid, token));
     }
-    public Task<AtlasMatchNetworkResult> HostSweepDisconnectedAsync(string matchId = "")
+    public async Task<AtlasMatchNetworkResult> HostSweepDisconnectedAsync(string matchId = "")
     {
         string match = ResolveMatchId(matchId);
-        return WithIdentity((uid, token) =>
+        int generation = sessionGeneration;
+        AtlasMatchNetworkResult result = await WithIdentity((uid, token) =>
             AtlasBoardSparkRtdbMatchTransport.HostMaintenanceAsync(match, uid, token));
+        if (generation == sessionGeneration && result.Success)
+            AcceptSnapshot(result.Snapshot);
+        return result;
     }
     public Task<AtlasMatchNetworkResult> TryRecoverCrashedHostAsync(string matchId = "")
     {
@@ -234,11 +237,15 @@ public sealed class AtlasBoardMatchRuntimeBridge : MonoBehaviour
             AtlasBoardSparkRtdbMatchTransport.HostRemoveAfkAsync(
                 match, uid, token, slotIndex));
     }
-    public Task<AtlasMatchNetworkResult> HostExpireReconnectsAsync(string matchId = "")
+    public async Task<AtlasMatchNetworkResult> HostExpireReconnectsAsync(string matchId = "")
     {
         string match = ResolveMatchId(matchId);
-        return WithIdentity((uid, token) =>
+        int generation = sessionGeneration;
+        AtlasMatchNetworkResult result = await WithIdentity((uid, token) =>
             AtlasBoardSparkRtdbMatchTransport.HostMaintenanceAsync(match, uid, token));
+        if (generation == sessionGeneration && result.Success)
+            AcceptSnapshot(result.Snapshot);
+        return result;
     }
     public Task<AtlasMatchNetworkResult> HostPrepareRematchAsync(string matchId = "")
     {
@@ -258,9 +265,13 @@ public sealed class AtlasBoardMatchRuntimeBridge : MonoBehaviour
             if (seat == null) continue;
             // Only a human controlled by another account can issue a remote
             // intent. Local human seats and every bot are host-owned gameplay.
-            // Even a disconnected remote Human can rejoin. Only rooms with
-            // NO assigned remote-human seat are eligible for solo shortcuts.
+            // Temporary bots can still become Human within the five-minute
+            // reconnect window; keep their remote intent polling active.
+            // An expired/AFK-removed permanent bot cannot send Human intents.
             if (string.Equals(seat.SeatMode, "remotehuman",
+                    StringComparison.OrdinalIgnoreCase) &&
+                !seat.AfkLockedOut &&
+                !string.Equals(seat.ControllerKind,"permanent_bot",
                     StringComparison.OrdinalIgnoreCase))
                 return false;
         }
@@ -322,6 +333,13 @@ public sealed class AtlasBoardMatchRuntimeBridge : MonoBehaviour
             ? CurrentMatchId : expectedMatchId;
         if (string.IsNullOrEmpty(required) || next.MatchId != required) return;
         AtlasMatchNetworkSnapshot old = currentSnapshot;
+        // Remote responses may arrive out of order. An older frame must not
+        // roll back a restored Human seat, the turn, or a newer HUD state.
+        if (old != null && old.MatchId == next.MatchId &&
+            (next.Revision < old.Revision ||
+             (next.Revision == old.Revision &&
+              next.EventSequence < old.EventSequence)))
+            return;
         if (old != null && old.MatchId == next.MatchId &&
             old.Revision == next.Revision && old.EventSequence == next.EventSequence &&
             old.Phase == next.Phase && old.SnapshotJson == next.SnapshotJson &&
