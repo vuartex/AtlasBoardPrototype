@@ -161,11 +161,30 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
 
     private static void EnsureStableProfileNames()
     {
+        // A second, separately constructed ProfileCard is used in Public
+        // Lobby. Binding only the first card left its initial as the static
+        // prefab "G" while its name correctly showed the Steam persona.
+        // Reuse the identity scan that already runs at a bounded interval;
+        // never add a second per-frame hierarchy search.
+        string display = AtlasBoardCanonicalPlayerIdentity.CurrentDisplayName;
+        string initial = string.IsNullOrWhiteSpace(display)
+            ? string.Empty : display.Substring(0, 1).ToUpperInvariant();
         TMP_Text[] names = Resources.FindObjectsOfTypeAll<TMP_Text>();
         foreach (TMP_Text name in names)
         {
-            if (name == null || !name.gameObject.scene.IsValid() ||
-                !string.Equals(name.gameObject.name, "ProfileName", StringComparison.Ordinal))
+            if (name == null || !name.gameObject.scene.IsValid())
+                continue;
+            if (string.Equals(name.gameObject.name, "AvatarInitial", StringComparison.Ordinal))
+            {
+                // Only a local ProfileCard, not avatars belonging to remote
+                // room members or bots, may use the local Steam/Auth initial.
+                Transform parent = name.transform.parent;
+                if (parent != null && parent.name == "ProfileCard" &&
+                    !string.IsNullOrEmpty(initial) && name.text != initial)
+                    name.text = initial;
+                continue;
+            }
+            if (!string.Equals(name.gameObject.name, "ProfileName", StringComparison.Ordinal))
                 continue;
             if (name.GetComponent<AtlasBoardStableProfileNameView>() == null)
                 name.gameObject.AddComponent<AtlasBoardStableProfileNameView>();
@@ -390,7 +409,7 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         {
             steamHostHud = null;
             steamHostMatchLabel = null;
-            PlayerHudPanel[] panels = UnityEngine.Object.FindObjectsByType<PlayerHudPanel>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            PlayerHudPanel[] panels = UnityEngine.Object.FindObjectsByType<PlayerHudPanel>(FindObjectsInactive.Include);
             foreach (PlayerHudPanel panel in panels)
             {
                 PlayerGameState player = panel != null ? panel.Player : null;

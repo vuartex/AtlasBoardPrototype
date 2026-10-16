@@ -1,3 +1,178 @@
+# ATLAS BOARD — MASTER ROADMAP (CANONICAL)
+
+**Güncel konsolidasyon:** 15 Ekim 2026 · **Çalışma noktası:** Phase 18I / v5.31.9 (kaynak adayı; kullanıcı runtime PASS değil) · Unity 6000.5.6f1 · `vuartex/AtlasBoardPrototype` · `atlasboard-usa` · Android önce, Windows/Steam korunur.
+
+> **ÖNCELİK KURALI:** Bu belgenin 1–10 bölümleri geçerli ürün kararı ve test durumudur. Daha alttaki v5.30.0 ve öncesinin tarihsel kaydı geriye dönük denetim içindir. Tarihsel “current/PASS/next” yazıları güncel durumun üzerine çıkamaz. **Kod hazır ≠ Unity compile PASS ≠ gerçek cihaz PASS ≠ iki cihaz online PASS.**
+>
+> **TEK DOSYA KURALI:** Bundan sonra yalnız `Assets/Project/Documentation/MASTER_ROADMAP.md` kanoniktir. Her yama/sürümde yeni QA/phase/roadmap/next-chat dokümanı açma. Anlamlı mimari değişikliği, kullanıcı test sonucu veya phase milestone olduğunda bu dosyayı güncelle; küçük düzenlemelerde ayrıca doküman yazma. Eski dosyalar şu an otomatik silinmez; bu roadmap kaynaklarını konsolide eder.
+
+## 1. Değişmez çalışma sözleşmesi
+
+- **Lokal kaynak öncelikli:** GitHub ancak kullanıcının gerçekten push ettiği kod için geçerlidir. GitHub eskiyse hiçbir yeni yerel tam dosyayı ezme. Teslimat sadece değişen **TAM DOSYALAR**, kanonik `Assets/...` yollarında ZIP. Patch/diff/`apply` script, gereksiz Tools klasörü veya tek kullanım belgesi yok. Github commit/push ve Firebase deploy kullanıcının işi; istemedikçe otomatik yapma.
+- **Önce Editor compile 0 kırmızı + gerçek source warning temizliği.** APK yaklaşık 30 dakika sürüyor; gerçek Android davranışı gerekmeyen her değişiklik için APK isteme. Bir APK'da çok sayıda Android testi birleşsin. Windows/Steam mouse, input, UI, grafik ayarları Android yüzünden bozulmaz.
+- **TEKRAR EDEN HATALARA SIFIR TOLERANS:** Aynı bug tekrar görülürse yeni özellikten önce kök nedeni ve tek sorumluyu düzelt, regression testini kalıcı ekle. İlk maç tek başına geçerliyse PASS değildir; oyun→lobi→maç→menü→ikinci maç→üçüncü maç, Shop/Career/Settings dönüşleri ve scene reload zorunludur.
+- **ASLA CANLI UI NESNESİNİ KOPYALAYIP BUTON/PANEL YAPMA:** Özellikle Cancel `GameObject`'ini `Instantiate` ile çoğaltma; böylelikle listener/localization/serialized davranışı taşınıyor. İhtiyaç duyulan yeni öğeyi **ayrı, bağımsız ve tek handler sahibi** olarak oluştur. Tasarım uyumunu merkezi stil/tasarım tokenlarıyla sağla; başka panelin kopyasını üretme. Her öğe aynı header, grid, padding, spacing, color, font, icon, disabled/hover/active state, safe-area sözleşmesinde olsun. Tek bir estetik düzen; eski ve yeni stil iç içe geçmez.
+- **TEK KANONİK SAHİPLİK:** Player identity/avatar, HUD visibility, active tablet, match session, seat policy ve Account navigation için her şeyi yöneten bir state/owner. Çoklu `Update/LateUpdate` helper'larının birbirinin `SetActive`, `IdentityChanged` ve text değerini değiştirmesi YASAK. Değişmeyen veriye her kare UI yazma, tekrarlanan `FindObjects`, reflection ve Scene search ekleme. State değişiminde bir kez idempotent render, sahne yeniden girişinde tek güvenli rebind.
+- **Dil:** EN/TR/ES/FR/DE/KO/RU. Ekran/hata/toast/Server Status tam **tek seçili dilde**; “SERVER STATUS / SUNUCU DURUMU” gibi çift dil görünmez. Form/klavye/safe-area korunur, metinler hizalı ve taşmasızdır.
+- **Güvenlik ve dürüst durum:** Gizli anahtar, Firebase token, şifre, Steam ticket, App Check debug token loglama. Onaysız prod rules/silme/deploy/ücretli servis yok. Derleme veya test yapılmadıysa PASS demek yasak.
+
+## 2. Genel karar / platform özel karar
+
+| Tüm platformlarda aynı ürün kararı | Platforma özel adaptör |
+|---|---|
+| Career mor, Shop farklı accent; Settings Audio/Gameplay/Graphics/Controls/Account/Server Status aynı tab bar; Career Overview/Match History/Achievements/Account aynı bar | Android/iOS touch/keyboard/pinch/pan/rotate/safe-area, Android-only FPS; Windows/Steam klavye/mouse sabit |
+| Tek ad/avatar/wallet görünümü: menü/Shop/Career/Profile/Private/Public Room/Property/Trade/HUD/tur başlığı | Steamworks persona/SteamID sadece Steam; Firebase UID RTDB erişim kimliği; Google Play önce |
+| Six-digit Private/Public Room, RTDB session, koltuk kuralları, Bot/Local/Remote, Show/Copy ve aynı ESC kodu | OS-specific graphics/settings RTDB `/platforms/{platform}`; Steam-only provider auth |
+| Oyun kararı, Travel, City Info, tüm tabletlerin tekliği, ikinci/üçüncü maç, 7 dil, Shop tasarımı | Android CPU/FPS profiler, safe-area, AAB, cihaz günlükleri; Windows Steam branch ve overlay |
+
+## 3. Doğrulanmış sonuçlar ve açık P0 defteri
+
+**OWNER PASS:** Firebase Auth ve RTDB kullanıcı erişimi, RTDB Public room list sorgusu (boş olması hata değil), RTDB Private Room Create→Read→Close smoke (`ATB_RTDB_SMOKE PASS stages=create_read_close`), gerçek altı haneli kod/Show/Copy. Ana menüde Vuartex adının V avatara dönüşmesi daha önce onaylandı; Server Status tek dil/ikon hizası onaylandı; Shop ikinci girişte doğru açıldı ve geniş Travel tasarımı beğenildi. Bunlar **iki gerçek cihaz senkronize multiplayer PASS anlamına gelmez**.
+
+| ID / önem | Kullanıcının tekrar gördüğü bug | Kök alan / kalıcı kabul kapısı | Şimdi |
+|---|---|---|---|
+| **P0-01 Identity/avatar** | Bir ekranda `Vuartex` yanında **G**, başka sahnede V; bir an Guest→Vuartex; kimlik HUD değişimleri | Tek canonical `DisplayName` + `AvatarInitial` aynı snapshot'tan; ilk karede Main Menu / Profile / Private / Public / Career / Shop / tur bar / tablet / HUD; ayrı prefab fallback yok; per-frame `IdentityChanged` yok | **OPEN**. v5.31.9 kaynak düzeltmesi kabul edilmedi |
+| **P0-02 HUD flicker** | Tablet açıkken P1–P4 player HUD görünür/gizli, tekrar tekrar boyanıyor | Tek HUD görünürlük sahibi; tablet açıkken tüm player HUD kapalı 30s hiç titreme yok; kapalıyken doğru geri gelir; değişmeyene SetActive/Canvas yazma yok | **OPEN**, v5.31.9 adayı |
+| **P0-03 Tablet birikmesi** | Property üzerinde eski Travel çiziliyor; kararsız karar ekranları birikiyor, City Info ikinci maçta kaybolabiliyor | `TabletUIManager` tek aktif canonical panel; Travel/Property/Trade/Event/Auction/Development/City Info eski ve modernleri aynı anda çizemez; her kapatmada cleanup; 3 maç | **OPEN**, v5.31.9 kısmi adayı |
+| **P0-04 Seat auto Bot** | Seçilmemiş P2–P4 yanlışlıkla Local Human | LocalOffline P1 host, explicit P2 Local/P3 Bot korunur; seçili ama boş P4 → Bot. Online explicit Remote Human seçimi asla sessizce bozulmaz. 5→1 countdown ve doğru snapshot | **FAIL/OPEN** |
+| **P0-05 re-entry** | Maç #1 açılıyor, menü→aynı/başka lobi→maç #2 Start çalışmıyor veya eski UI geliyor | Tek session lifecycle reset, stale callbacks/Unity destroyed refs/listener duplicate yok; maç #1/#2/#3 ve Shop/Career/Settings dönüşü PASS | **FAIL/OPEN** |
+| **P0-06 online match** | RTDB room kodu var ama ESC `NO NETWORK SESSION`, Public Start pasif, private gameplay local gibi | Match transport Functions→RTDB host snapshot/intent/ack/revision, remote join & ready, reconnect/rematch, gerçek network RTT; LocalOffline N/A | **OPEN** |
+| **P0-07 Cancel klonu** | İki Cancel, Cancel oda oluşturuyor, Local Offline hizası hatalı | Canlı Cancel klonlamak yasak; tek bağımsız Local Offline ve tek Cancel, tıklama işlevleri ayrık, 10 kez menüye dön/aç, güzel eşit aralık | **OPEN**; v5.31.8 kod adayı |
+| **P0-08 profil para/gold** | Public Lobby'de `Vuartex` yanında G, `$ 0 / G 0` önceki profille tutarsız | Profil ve wallet tek veri kaynağı, Guest/verified hesap ayrımı, yokken loading/missing doğru; sahte currency yok | **OPEN** |
+| **P0-09 Android FPS** | Samsung S20 FE 16–23 FPS, CPU ~40–65ms, GPU birkaç ms | Unity Profiler CPU/Canvas/GC/Update/physics ayrımı, Android-only değişiklik; Steam/Windows değişmez; fiziksel cihaz kabul | **OPEN** |
+| **P1-10 account/profile** | `ATB120`, eski Firestore documents missing; Career bazen loading | `AtlasBoardAccountService` eski belge zorunluluğu kaldır, RTDB hesap + Career eşleşmesi; guest preview koru | **OPEN** |
+| **P1-11 room cleanup** | RTDB dump'ta closed veya boş inviteCode olan yetim rooms | Host owned atomic close; roomMeta/roomMembers/joinCodes/roomState temizliği; hata/retry idempotent, doğrulanmış live room silinmez | **OPEN** |
+
+**Kesin statü disiplini:** v5.31.8 kaynakları Cancel cleanup için, v5.31.9 kaynakları tablet/HUD/avatar için hazırlanmış. Kullanıcı bunları son testten sonra kabul ettiğini söylemedi. *Source prepared ≠ PASS*. Network oyununu oda oluşturabildiğimiz için bitmiş sayma.
+
+## 4. Tek kimlik ve tek session mimarisi
+
+- **Identity State:** `SteamInitialized` ve gerçek Steam persona varsa Steam görsel adı; Firebase hesabı ile kayıtlı kullanıcıda canonical profile displayName; aksi halde cihazda kalıcı `Guest#####X`. Steam persona **Firebase auth izni değildir**. Firebase UID RTDB'de yetki kimliği, Guest ismi offline ve global benzersizlik iddiası yok. Tüm renderers aynı `IdentitySnapshot(DisplayName, AvatarInitial, UID, Provider, IsGuest, Version)` kaynağından bir kez güncellenmeli. Bir isim `Vuartex` ise avatar **V** olmalıdır; hiçbir Public Lobby/Profile gibi ikinci prefab ayrı `G` fallback üretmez. `IdentityChanged` yalnız kimlik gerçekten değiştiğinde tetiklenir, hiçbir `LateUpdate` döngüsünde değil.
+- **Session State:** `Menu → Online/Offline mode choice → RTDB Waiting | Local Offline → 5..1 Start countdown → In Match → Leave/Result → Lobby/Menu → next session`. Her session immutable `sessionId`, `roomId`, `matchId`, `stateRevision`; eski callback yeni maç UI'sını güncelleyemez. `DontDestroyOnLoad` bileşenlerinde scene object refs geçersizse bir kez temiz rebind; sıradan Update ile sürekli Scene taraması yok.
+- **UI Owner:** Bir tek TabletUIManager aktif paneli yönetir. Modal açıkken P1–P4 PlayerHud alpha/raycast tek owner tarafından kapatılır. Arka planda bekleyen karar nedeniyle birikmiş eski Travel/Property UI kapatılmadan başka panel açılmaz. Kaynakta kopyalanan legacy modal yeniden aktive edilemez.
+- **Seats:** Açıkça `Local Player`, `Bot`, `Remote Human` seçimi korunur. Local Offline start'ında seçili/aktif boş seat **Bot** yapılır, asla Local Human yapılmaz. Online waiting seat gerçek remote oyuncu içinse Start ancak doğrulanmış hazır/seat kuralına göre yapılır; bot dönüşümü yalnız önceden belirlenmiş explicit host policy ile olur.
+- **Account UX:** Login/Register/Forgot Password/Change Password (old/new/confirm), eye mask, boş input placeholder, mobile keyboard above current input, busy/disable duplicate submit, 24 saatlik display name rename kuralı. Career Guest sign-in/continue-as-guest, guest preview açılabilmeli. Android/Steam giriş davranışını karıştırma.
+- **Tablet/General style:** Property, Trade, Travel, Auction, Event, Development, City Info, pause, Settings ve Career aynı responsive grid, aktif/pasif başlık, renk, dokunma alanı, font ölçeğinde. Shop turuncu, Career mor. Scene reload ve 3 maç boyunca modern biçim değişmez.
+
+## 5. Spark RTDB tek veri mimarisi ve göç
+
+Tek Firebase projesi **`atlasboard-usa`**, Belgium `europe-west1`. **Spark'tan çıkılmayacak, Blaze/ücretli Cloud Functions önerilmeyecek ve açılmayacak.** Ücretsiz RTDB kapasite tasarım tavanı yaklaşık **100 eşzamanlı bağlantı, 1 GB saklama, 10 GB/ay indirme**; gerçekleşen kotayı ve güncel Firebase plan sınırlarını yayın öncesi doğrula. Dar sorgu, delta/small snapshot, on-demand listener, bounded 50 room page, deduped writes, idempotency, TTL/close cleanup. Local Offline sıfır gameplay network ve sıfır kalıcı ödül.
+
+```text
+RTDB atlasboard-usa
+├── users/{uid}/
+│   ├── userId, playerId, displayName, createdAt, updatedAt
+│   ├── general/{countryCode,language,accountType,membership,accountStatus,...}
+│   ├── settings/{schemaVersion,language,audioJson,gameplayJson}
+│   │   └── platforms/{android|ios|windows|macos|linux}/{graphicsJson,gameplayJson}
+│   └── platforms/{platform}/devices/{deviceId}/...
+├── guestProfiles/{guestId}/...                     [MIGRATION OPEN]
+├── roomMeta/{roomId}/...                          [ROOM CREATE PASS]
+├── roomMembers/{roomId}/{uid}/...                 [HOST PASS]
+├── joinCodes/{sixDigitCode}/...                   [CODE PASS]
+├── joinRequests/{roomId}/{uid}/...                [REMOTE JOIN OPEN]
+├── roomReady/{roomId}/{uid}/...                   [REMOTE READY OPEN]
+├── publicRoomDirectory/{roomId}/...              [BOUNDED LIST PASS]
+├── presence/{roomId}/{uid}/...                   [NETWORK OPEN]
+├── roomState/{roomId}/...                        [LOBBY SNAPSHOT PASS; MATCH OPEN]
+├── intents/{matchId}/{intentId}/...              [NETWORK OPEN]
+├── intentAcks/{matchId}/{intentId}/...           [NETWORK OPEN]
+├── casualStats/{uid}/...                         [CAREER OPEN]
+├── careerProfiles/{uid}/...                      [CAREER OPEN]
+└── catalogs/{catalogId}/...                      [STORE TARGET OPEN]
+```
+
+**Dallar “hedef şema”dır:** `guestProfiles`, `intents`, `casualStats`, `careerProfiles` ve `catalogs` yolu listelendi diye üretimde çalıştığı iddia edilmez. Kullanıcının RTDB export'unda gerçek `roomMeta`, `joinCodes`, `roomMembers`, `roomState`, `users` kayıtları ile bazı başarısız testlerden kalan yetim room metadata görüldü. Bu kayıtları otomatik silme; owner/expiry/closed kontrolüyle temizleme kabulü açık. Kişisel UID, gerçek e-posta, token ve oda kodlarını herkese açık roadmap'ye yazma.
+
+**Migrasyon sırası:**
+
+1. **Preferences:** Mevcut `AtlasBoardCloudPreferencesSync.cs` normal yazımda yalnız `/users/{uid}/settings` RTDB'ye PATCH etsin; 1.2s debounce, sadece değişen platform dalı; local PlayerPrefs çevrimdışı devam. Firestore `preferences/{uid}` ve `platforms/{platform}` eski kayıtları sadece RTDB yoksa salt-okunur geçiş kaynağı, yeni Firestore preference yazısı YOK. Runtime E2E ve deployed rules kanıtı hâlâ açık.
+2. **User/Profile:** `AtlasBoardAccountService` içindeki eski Firestore `users`, `public_profiles`, `preferences` required belgeleri ve buna bağlı `ATB120` fallback kaldırılacak; Auth UID ve hesap güvenliği korunacak. Public profile targeted GET mümkün, koleksiyon LIST/enumeration yok. Schema parity/cross-device ve doğru missing profile UX.
+3. **Guest lifecycle:** Guest kalıcı yerel kimlik; RTDB guest yazılacaksa owner/auth/rules sınırı. Gerçek hesap login başarılı olduğunda eski guest kaydını üç saniye içinde kaldırma isteği gönder; **RTDB ack alınmadan silindi/PASS deme**. İsim global olarak benzersiz denmez.
+4. **Room/Match:** Lobby RTDB Create/Read/Close PASS; remote join/ready ve gerçek oyun host-authoritative Casual intent/ack/snapshot/reconnect/rematch OPEN. Local offline ile online fallback karışmayacak.
+5. **Career/Achievements:** signed-in/guest overview, XP/Level/history/wins/roll/map/economy stats ve başarımlar RTDB okuyacak; client-hosted Casual unverified ayrı gösterilecek. Gerçek para/gold, verified XP veya rekabetçi başarım istemcinin kendine sınırsız yazacağı alan olamaz; trusted verifier yokken award OFF. Cloud Functions zorunlu hale getirme.
+6. **Shop:** Katalog RTDB read-only; eski Store v2 ve Shop callback korunacak; ödeme/Gold/ownership doğrulanmamışsa sahte satın alma PASS yok. Açık/kapalı shop ekranı ile ödeme hizmeti ayrı status.
+7. **Güvenli tamamlanma:** Yeni branch RTDB sahibi, kural validasyonları, real read/write, negatif auth testi, offline, iki cihaz parity, rollback; ardından eski Firestore normal yazıları durdur. Kullanıcı izni olmadan Firestore koleksiyonu silme veya yeni rules deploy etme.
+
+## 6. RTDB network'ü gerçekten bitirme planı — P0
+
+| Gate | Yapılacak tek gerçek iş | Kapanma şartı |
+|---|---|---|
+| N1 Room join/ready | ikinci gerçek kullanıcı code ile join, host admit, member snapshot, ready, leave/kick, room close orphan-free; 6 haneli kod Lobby + ESC | Aynı `roomId` ve üyeler iki cihazda; 10+ create/join/close; kodu kapatınca geçersiz; `Cancel` hiçbir create tetiklemez |
+| N2 Match start + seat | `StartMatchAsync` atomik `MatchId`+seat/config/revision yayınlar, bütün istemciler aynı 5→1 countdown'u görür; boş seat politikası korunur; local fallback yok | 2–4 client Host+Bot+Remote, Start geçer; ilk/ikinci/üçüncü maç |
+| N3 Gameplay transport | `AtlasBoardMatchRuntimeBridge` eski callable/Functions yerine RTDB `roomState`, `intents`, `intentAcks` kullanır; monoton revision, commandId dedupe, host validates/moves; stale state red | İki cihazın zar/move/buy/trade/travel/rent/round sync aynı; tekrar intent para/işlem üretmez |
+| N4 Recovery | Presence, bounded heartbeat, reconnect, 2nd/3rd match, AFK/kick, rematch, host ayrılırsa açık politika, cleanup | Ağ kes/kapat/aç; exact-once state, old sessions UI döndürmez; testte yetim sınırsız büyümez |
+| N5 Real network metrics | RTT/jitter/loss yalnız gerçek active `MatchId` ve karşı taraftan veri varsa; otherwise N/A | Kod + Show/Copy tüm gerçek online maçlarda; offline N/A; hiçbir yerde sahte bağlantı durumu yok |
+| N6 Android combined QA | Editor compile ve host+remote network gate önce; tek Android APK ile 2 cihaz test + FPS + UI + Auth | Android 404 yok, network synched, pass/fail log kanıtı, Firebase Spark içinde bütçe |
+
+**Bilinçli olarak eksik:** Son kullanıcı loglarında bazı Private Start işlemleri bir şekilde yerel gameplay açıyor ama ESC “NO NETWORK SESSION” gösteriyor. Bu **online multiplayer** değildir. RTDB Create smoke tamamlandığı için N2/N3'ü PASS göstermeyin.
+
+## 7. Regresyon testi — kısayol yok
+
+**Unity Editor, APK'den önce:** compile 0 kırmızı; API source warnings düzelt; aynı sahne ve modlar 10 kez arka arkaya.
+
+- Main Menu → Profile → Shop → Career → Settings/Server Status → Private Room Cancel/Offline/Online + Public Room → Match #1 → Exit/Return → Lobby #2 → Match #2 → Third match → scene reload.
+- Başından itibaren avatar `V` ve `Vuartex`; misafir olunca `Guest#####X` ve `G`; Guest→Steam/Firebase geçişi flash yok. Her modal/Store/Career/tablet/HUD/round aynı canonical snapshot; profil kartı $/Gold tutarlı.
+- 4 oyuncu: P1 Local, P2 kullanıcı Local, P3 kullanıcı Bot, P4 boş → **Bot**; başka durumda açık Remote Human korunur; 5→1 countdown.
+- Property → Travel → Trade → Property → City Info → Auction → Development/Event; yalnız **tek** aktif tablet; 30 saniye açık, hiçbir Player HUD flicker yok; aç/kapa ve game #2/#3 aynı görünüm.
+- UI layout: yeni buton tamamen bağımsız, Create/Local Offline/Cancel aynı sol hiza, aralarında yeterli eşit boşluk; Confirm/Cancel doğru callback; sekmeler anlık kaymaz; Shop old foundation yok. Runtime test menüsü gerçek paneli açsın, sahte mock istemiyoruz.
+- Live RTDB Editor: `ATB_RTDB_SMOKE PASS stages=create_read_close`, ardından **ikinci gerçek user** join/ready. Oda kodu gerçek, show/copy/ESC tutarlı. No auth token/password logging. Offline smoke internetsiz ve kalıcı cloud ödül yok.
+- Android S20 FE landscape safe-area, roll konumu, Trade HUD overlap yok, touch rotate/pinch/pan, City Info scroll, CPU/GPU FPS/memory log. Android-only kalite profili Steam ve Windows UI/graphics settings değiştiremez.
+- Server Status sekmesi 60 saniyede bir dar servis probe; ikon/metin aynı dikey center, check timestamp saniyeye kadar, tek oyun dili, online ancak gerçek match synched iken yeşil. Error codebook ATB100/110/120/communication codes mevcut localization disiplininde.
+
+**Release sınırları:** Eski Security Cores 01–07 yerel emulator testleri (örn. 14/14 economy 19/19 profile 23/23 etc) historical QA olarak korunur; Production App Check, Steam attestation/gerçek Steam AppID, Play Integrity, real result verification, mağaza tahsilatı, RTDB live rules negatives ve Google Play AAB için ayrı kanıt gerekir. Play/Steam production **NO GO** bu kapılar açıkken.
+
+## 8. Çalışma önceliği ve ilerleme
+
+1. Kopyalanmış UI/link/handler çoğalmasını temizle; **güncel yerel Scripts** ile kök sahiplik düzelt; G/V, HUD flicker ve üst üste paneli **3 maç** doğrula.
+2. Koltuk finalization ve ikinci/üçüncü Start reset; bot ataması bozulmayacak.
+3. RTDB N1→N6: iki cihazlı gerçek start, snapshot/intent/ack, reconnect, metrics; ücretsiz Spark sınırını aşma.
+4. Firestore user/Career/Shop göçünü auth/rules ile güvenli sırada tamamla.
+5. Android FPS + release security/profiling; kodun çalışmadığını sırf dokümantasyonla gizleme.
+
+**Kullanıcıdan yeni kanıt gelince yalnız değişen PASS/FAIL veya milestone maddelerini bu tek roadmap'te güncelle. `PHASE##_*.md` gibi ayrı dokümanlar üretme.**
+
+---
+
+## 9. Birleştirilen tarihsel kaynakların izi
+
+Bu kaynakların ürün kararları, güvenlik sınırları, test kapıları ve halen açık işleri yukarıdaki 1–8 bölümüne konsolide edildi. Eski dosyalar bu ZIP ile silinmez; bundan sonra yeni `PHASE_*.md`, `*_QA.md` veya handoff belgesi üretilmez. Bu kaynaklardaki eski PASS/OPEN ifadeleri tarihi kayıt olup güncel durum 3 ve 6. bölümlerdedir.
+
+| Önceki belge | Tarihsel kapsam |
+|---|---|
+| `AtlasBoard_Master_Roadmap_v5_1_2026-09-29.md` | ATLAS BOARD |
+| `BUILD_QA_GUIDE.md` | AtlasBoard — Build and QA Guide |
+| `FRONTEND_ERROR_CODEBOOK.md` | Atlas Board Frontend Error Codebook |
+| `MASTER_ROADMAP.md` | ATLAS BOARD |
+| `NEXT_CHAT_HANDOFF_v5.30.1.md` | AtlasBoard next-chat handoff — v5.30.1 |
+| `PHASE17A_MATCH_RESULT_CONSISTENCY.md` | AtlasBoard Phase 17A — Server-side result consistency (not a replay verifier) |
+| `PHASE17B_ANDROID_DEVICE_QA_v5.25.1.md` | AtlasBoard — Phase 17B.1 / v5.25.1 Android Device QA |
+| `PHASE17B_ANDROID_DEVICE_QA_v5.25.2.md` | AtlasBoard Phase 17B.2 — Android physical-device QA v5.25.3 compile hotfix |
+| `PHASE17B_ANDROID_SMOKE_ACCEPTANCE.md` | AtlasBoard Phase 17B — Android-first Unity build and device smoke acceptance |
+| `PHASE17C_ANDROID_OFFLINE_QA_v5.26.0.md` | AtlasBoard Phase 17C — Android Offline/Cost QA v5.26.0 |
+| `PHASE17C_NETWORK_COST_ARCHITECTURE.md` | AtlasBoard — Phase 17C Network Cost Architecture |
+| `PHASE17C_RTDB_RULES_v5.26.1.md` | AtlasBoard Phase 17C — RTDB Rules / Free-Tier Transport v5.26.1 |
+| `PHASE17D_MOBILE_GAMEPLAY_UX_v5.27.0.md` | AtlasBoard — Phase 17D Mobile Gameplay UX v5.27.0 |
+| `PHASE17E_RUNTIME_INTEGRITY_ACCOUNT_PERFORMANCE_v5.28.0.md` | AtlasBoard Phase 17E — Runtime Integrity / Account Access / Android Performance v5.28.0 |
+| `PHASE17E_V530_TEST_CHECKLIST.md` | AtlasBoard v5.30.0 — One-build acceptance checklist |
+| `PHASE17F_SPARK_MULTIPLATFORM_MIGRATION_ROADMAP.md` | ATLAS BOARD — PHASE 17F: SPARK / SHARED CAREER / RTDB / MOBILE FPS |
+| `PHASE17F_v5.30.10_EDITOR_QA.md` | AtlasBoard v5.30.10 — Unity Editor QA (no APK) |
+| `PHASE18D_RTDB_ONLINE_ENTRY_TESTS.md` | AtlasBoard Phase 18D — Online Private entry and RTDB room smoke |
+| `PHASE18E_SPARK_RTDB_EDITOR_AUTH_QA.md` | AtlasBoard Phase 18E — RTDB Editor auth & Private Room QA |
+| `PHASE18G_RTDB_ROOM_CODE_RESERVATION_QA.md` | AtlasBoard Phase 18G / v5.31.7 — Room code reservation and UI |
+| `PHASE18H_v5.31.8_PRIVATE_BUTTON_ROOM_CLEANUP_QA.md` | AtlasBoard Phase 18H — v5.31.8 |
+| `PHASE18I_v5.31.9_TABLET_HUD_REGRESSION_QA.md` | AtlasBoard Phase 18I — v5.31.9 tablet overlay/HUD repair |
+| `PHASE18_SPARK_RTDB_MASTER_MIGRATION.md` | AtlasBoard — Phase 18 Spark / RTDB Migration Master Plan |
+| `PHASE_15I_MODERATION_DATA_LIFECYCLE.md` | AtlasBoard — Phase 15I Moderation + Data Lifecycle |
+| `PHASE_15J_PRODUCTION_OPERATIONS.md` | AtlasBoard — Phase 15J Production Operations / Environment Hardening |
+| `PHASE_15K_STEAM_BACKEND_SECURITY_CLOSE.md` | AtlasBoard — Phase 15K: Steam / Backend Security Close |
+| `SEC06_PLATFORM_SETTINGS_ARCHITECTURE.md` | AtlasBoard Security Core 06 — platform-isolated preferences v2 |
+| `SEC07_PUBLIC_PROFILE_PRIVACY_POLICY.md` | AtlasBoard Security Core 07 — direct profile access and enumeration privacy |
+
+## 10. Tarihsel ana yol haritası — v5.30.0 ve öncesi (yalnız denetim izi)
+
+Aşağıda ZIP içindeki önceki `MASTER_ROADMAP.md` içeriği eksiksiz korunmuştur. İçindeki "current/next" ifadesi 1–8 bölümleriyle çelişirse **yukarıdaki yeni bölümler geçerlidir**. Eski Firestore/Functions varsayımları otomatik olarak yeniden uygulanmaz.
+
 # ATLAS BOARD
 ## Master Architecture & Development Roadmap v5.30.0 — PHASE 17E INTEGRATED ANDROID / ACCOUNT / RTDB
 

@@ -31,6 +31,10 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         "-atlasEmulatorHost";
 
 #if UNITY_EDITOR
+    // Optional editor-wide QA override: -1 follows the scene's serialized
+    // value; 0 = live Spark; 1 = local emulator. Never compiled in players.
+    internal const string EditorBackendPreferenceKey =
+        "AtlasBoard.RTDB.EditorBackend.v1";
     [Header("Development")]
     [SerializeField]
     private bool useLocalEmulatorsInEditor = true;
@@ -53,6 +57,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     private AtlasLobbySnapshot currentSnapshot;
     private bool initialized;
     private bool initializing;
+    private float nextIdentityRefreshAt;
     private bool pollInFlight;
     private float nextPollAt;
     private bool hostHeartbeatInFlight;
@@ -136,7 +141,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         get
         {
 #if UNITY_EDITOR
-            return useLocalEmulatorsInEditor;
+            // A freshly instantiated lobby bridge must NOT silently revert to
+            // the emulator after QA explicitly selected live Spark. This
+            // EditorPrefs value cannot affect Android/Steam Release builds.
+            int editorChoice = UnityEditor.EditorPrefs.GetInt(
+                EditorBackendPreferenceKey, -1);
+            return editorChoice < 0
+                ? useLocalEmulatorsInEditor
+                : editorChoice == 1;
 #elif DEVELOPMENT_BUILD
             // Standalone development clients may use the emulator suite only
             // when explicitly launched with the dedicated development switch.
@@ -165,7 +177,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         {
             nextHostHeartbeatAt =
                 Time.unscaledTime +
-                Mathf.Max(2f, hostHeartbeatSeconds);
+                Mathf.Max(UsingLocalEmulators ? 2f : 60f, hostHeartbeatSeconds);
 
             _ = SendHostHeartbeatAsync();
         }
@@ -178,7 +190,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
 
         nextPollAt =
             Time.unscaledTime +
-            Mathf.Max(0.25f, snapshotPollSeconds);
+            Mathf.Max(UsingLocalEmulators ? 0.25f : 3f, snapshotPollSeconds);
 
         pollInFlight = true;
 
@@ -190,6 +202,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             if (result.Success &&
                 result.Snapshot != null)
             {
+                // Preserve the six-digit invite code even after a room
+                // snapshot reload. A poll must never erase a known code.
+                if (!string.IsNullOrWhiteSpace(result.RoomCode) &&
+                    string.Equals(result.Snapshot.LobbyId, currentLobbyId,
+                        StringComparison.Ordinal))
+                {
+                    currentRoomCode = result.RoomCode;
+                }
                 AcceptSnapshot(result.Snapshot);
             }
             else if (string.Equals(
@@ -301,6 +321,10 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 init.ErrorLocalizationKey,
                 init.TechnicalMessage);
         }
+
+        if (!UsingLocalEmulators)
+            return await AtlasBoardRtdbCasualLobbyTransport.PublicRoomsAsync(
+                idToken, Mathf.Clamp(limit, 1, 50));
 
         PublicLobbyListRequest request =
             new PublicLobbyListRequest
@@ -964,6 +988,34 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
 
     private async Task<AtlasLobbyOperationResult> EnsureIdentityAsync()
     {
+        // Never keep using an old Firebase UID/token after account switching.
+        // The offline Guest is not a production RTDB authentication principal.
+        if (!UsingLocalEmulators)
+        {
+            AtlasBoardAccountService active = AtlasBoardAccountService.Instance;
+            bool matches = active != null && active.IsSignedIn &&
+                string.Equals(active.CurrentAccountId, currentAccountId,
+                    StringComparison.Ordinal);
+            if (!matches)
+            {
+                initialized = false;
+                idToken = string.Empty;
+                currentAccountId = string.Empty;
+            }
+            else if (initialized && Time.unscaledTime >= nextIdentityRefreshAt)
+            {
+                try
+                {
+                    string refreshed = await active.GetCurrentIdTokenAsync(false);
+                    if (!string.IsNullOrWhiteSpace(refreshed))
+                    {
+                        idToken = refreshed;
+                        nextIdentityRefreshAt = Time.unscaledTime + 1200f;
+                    }
+                }
+                catch { initialized = false; }
+            }
+        }
         if (initialized &&
             !string.IsNullOrWhiteSpace(idToken) &&
             !string.IsNullOrWhiteSpace(currentAccountId))
@@ -1006,11 +1058,65 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
 
             await accountService.EnsureInitializedAsync();
 
+            // Distinguish an absent email/Steam Firebase session from an
+            // Anonymous provider error instead of losing the actual cause.
+            string anonymousAuthFailure = string.Empty;
+            if (!accountService.IsSignedIn)
+            {
+                // Spark-compatible CASUAL room identity for an actual Steam
+                // session when no email account is linked. This is an ordinary
+                // Firebase ANONYMOUS UID, NOT Steam ownership verification.
+                // It is never eligible for competitive XP, wallet or rewards.
+                // Sign-in happens only after a deliberate online room action.
+                AtlasBoardPlatformRuntime steam =
+                    AtlasBoardPlatformRuntime.Instance;
+                bool actualSteamSession = steam != null &&
+                    steam.IsSteamProviderActive &&
+                    steam.SteamInitialized && steam.SteamId != 0;
+                if (actualSteamSession && accountService.IsInitialized)
+                {
+                    try
+                    {
+                        await FirebaseAuth.DefaultInstance.SignInAnonymouslyAsync();
+                        Debug.Log("ATB_RTDB_CASUAL_AUTH provider=firebase_anonymous " +
+                                  "steam_session=true steam_link_verified=false " +
+                                  "rewards=false");
+                    }
+                    catch (Exception error)
+                    {
+                        FirebaseException firebase = error as FirebaseException;
+                        string numeric = firebase != null
+                            ? firebase.ErrorCode.ToString()
+                            : "n/a";
+                        string category = firebase != null
+                            ? ((AuthError)firebase.ErrorCode).ToString()
+                            : error.GetType().Name;
+                        anonymousAuthFailure = "Anonymous Firebase Auth failed: " +
+                            category + " (code " + numeric + ").";
+                        Debug.LogWarning(
+                            "ATB_RTDB_CASUAL_AUTH result=failed category=" +
+                            category + " firebaseCode=" + numeric +
+                            " project=atlasboard-usa " +
+                            "check=Authentication_Sign-in_method_Anonymous " +
+                            "mode=" +
+                            (UsingLocalEmulators ? "emulators" : "live_spark") +
+                            " detail=" + AtlasBoardFrontendErrorCodes.SanitizeForLog(error.Message));
+                    }
+                }
+            }
+
             if (!accountService.IsSignedIn)
             {
                 return AtlasLobbyOperationResult.Fail(
                     "account.error.authentication_required",
-                    "A signed-in Atlas account is required.");
+                    "Online Private Rooms require Firebase Auth. " +
+                    (string.IsNullOrWhiteSpace(anonymousAuthFailure)
+                        ? "Sign in with an existing Firebase account, or enable " +
+                          "Anonymous Auth for Steam Casual rooms."
+                        : anonymousAuthFailure +
+                          " Check Firebase Console > Authentication > " +
+                          "Sign-in method > Anonymous, and verify network access.") +
+                    " Local Offline remains available.");
             }
 
             idToken =
@@ -1022,6 +1128,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             initialized =
                 !string.IsNullOrWhiteSpace(idToken) &&
                 !string.IsNullOrWhiteSpace(currentAccountId);
+            if (initialized) nextIdentityRefreshAt = Time.unscaledTime + 1200f;
 
             return initialized
                 ? AtlasLobbyOperationResult.Ok(null)
@@ -1216,6 +1323,15 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             {
                 return init;
             }
+        }
+
+        // Native Spark/RTDB transport. Emulator callable fixtures stay isolated.
+        if (!UsingLocalEmulators)
+        {
+            return await AtlasBoardRtdbCasualLobbyTransport.ExecuteAsync(
+                functionName, JsonUtility.ToJson(request), currentAccountId,
+                idToken, currentLobbyId, currentSnapshot,
+                AtlasBoardCanonicalPlayerIdentity.CurrentDisplayName);
         }
 
         string url =

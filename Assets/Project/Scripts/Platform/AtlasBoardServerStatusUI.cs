@@ -151,7 +151,7 @@ public sealed class AtlasBoardServerStatusUI : MonoBehaviour
     private static Button FindButton(string name)
     {
         Button[] buttons = UnityEngine.Object.FindObjectsByType<Button>(
-            FindObjectsInactive.Include, FindObjectsSortMode.None);
+            FindObjectsInactive.Include);
         foreach (Button b in buttons)
             if (b != null && b.gameObject.scene.IsValid() && b.name == name)
                 return b;
@@ -327,7 +327,7 @@ public sealed class AtlasBoardServerStatusUI : MonoBehaviour
                 new Vector2(-517f, 0f), new Vector2(22f, 22f), Caution);
             lights[i] = indicator.GetComponent<Image>();
             rows[i] = NewText(background, "ServiceName", T(LabelKeys[i]),
-                new Vector2(-330f, 12f), new Vector2(330f, 30f), 18,
+                new Vector2(-330f, 0f), new Vector2(330f, 30f), 18,
                 TextColor, TextAlignmentOptions.MidlineLeft);
             rows[i].enableAutoSizing = true;
             rows[i].fontSizeMin = 11f;
@@ -434,10 +434,22 @@ public sealed class AtlasBoardServerStatusUI : MonoBehaviour
             string db = "https://atlasboard-usa-default-rtdb.europe-west1.firebasedatabase.app";
             string uid = UnityWebRequest.EscapeURL(user.UserId);
             string query = "?auth=" + UnityWebRequest.EscapeURL(token);
-            long accountCode = await SafeGetStatusAsync(db + "/users/" + uid + ".json" + query);
+            // Probe only the small account metadata leaf, not every user
+            // preference, device and profile record on each status check.
+            long accountCode = await SafeGetStatusAsync(
+                db + "/users/" + uid + "/general.json" + query);
             states[4] = accountCode == 200 ? Health.Online : Health.Offline;
             lastUserReadHttp = accountCode;
             notes[4] = accountCode == 200 ? "rtdb_reachable" : "rtdb_read_error";
+            // Probe the actual Spark room directory instead of displaying
+            // the obsolete Functions/404 state as a hard-coded status.
+            // Existence/permission probe; never download the full public
+            // room directory merely to paint the status indicator.
+            long roomsCode = await SafeGetStatusAsync(
+                db + "/publicRoomDirectory.json" + query +
+                "&orderBy=%22updatedAt%22&limitToLast=1");
+            states[2] = roomsCode == 200 ? Health.Limited : Health.Offline;
+            notes[2] = roomsCode == 200 ? "online_lobby_only" : "online_rtdb_unavailable";
             long careerCode = await SafeGetStatusAsync(db + "/careerProfiles/" + uid + ".json" + query);
             states[5] = careerCode == 200 ? Health.Limited : Health.Offline;
             lastCareerReadHttp = careerCode;
@@ -564,6 +576,22 @@ public sealed class AtlasBoardServerStatusUI : MonoBehaviour
                 "Online-Partien nicht verfügbar (404)",
                 "온라인 경기 사용 불가 (404)",
                 "Онлайн-матчи недоступны (404)");
+            case "online_lobby_only": return AtlasBoardL.R(
+                "RTDB rooms reachable; synchronized matches not yet verified",
+                "RTDB odaları erişilebilir; eşzamanlı maçlar henüz doğrulanmadı",
+                "Salas RTDB accesibles; partidas no verificadas",
+                "Salons RTDB accessibles; matchs non vérifiés",
+                "RTDB-Räume erreichbar; Spiele noch ungeprüft",
+                "RTDB 방 연결됨; 동기화 경기 미검증",
+                "Комнаты RTDB доступны; матчи не проверены");
+            case "online_rtdb_unavailable": return AtlasBoardL.R(
+                "RTDB room directory unavailable",
+                "RTDB oda dizinine ulaşılamıyor",
+                "Directorio de salas RTDB no disponible",
+                "Répertoire des salons RTDB indisponible",
+                "RTDB-Raumverzeichnis nicht verfügbar",
+                "RTDB 방 목록 사용 불가",
+                "Список комнат RTDB недоступен");
             case "shop_unverified": return AtlasBoardL.R(
                 "Shop UI ready; online purchases unverified",
                 "Mağaza arayüzü hazır; çevrimiçi işlemler doğrulanmadı",

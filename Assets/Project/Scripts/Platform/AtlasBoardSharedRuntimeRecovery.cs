@@ -44,7 +44,6 @@ public sealed class AtlasBoardSharedRuntimeRecovery : MonoBehaviour
     private TMP_Text tradeHintText;
     private TMP_Text propertyPlayerText;
     private float nextStatusResolve;
-    private bool steamPlayerBindingsReady;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Bootstrap()
@@ -86,7 +85,6 @@ public sealed class AtlasBoardSharedRuntimeRecovery : MonoBehaviour
         trackedCoordinator = null;
         trackedMatchBridge = null;
         nextStatusResolve = 0f;
-        steamPlayerBindingsReady = false;
     }
 
     private void Update()
@@ -104,20 +102,23 @@ public sealed class AtlasBoardSharedRuntimeRecovery : MonoBehaviour
         }
         if (now >= nextNameAt)
         {
-            nextNameAt = now + 0.8f;
+            nextNameAt = now + 0.35f;
             SynchronizeLocallyOwnedSteamName();
         }
     }
 
     private void LateUpdate()
     {
-        string persona = AtlasBoardCanonicalPlayerIdentity.ValidSteamPersona();
+        string persona = AtlasBoardStableProfileNameView.ResolvedSteamPersona();
         if (string.IsNullOrWhiteSpace(persona)) return;
-        // Cached player references only, with no hierarchy search per frame.
-        // The authoritative PlayerGameState is synchronized in Update().
+        // Do not invoke PlayerGameState.IdentityChanged from LateUpdate.
+        // That event can force PlayerHudPanel.Refresh() and reactive HUD
+        // SetActive() while a tablet is open. Local Steam alias updates are
+        // handled by the bounded 0.35s identity check in Update instead.
+        // Only the cached display strings below are eligible for correction.
         if (Time.unscaledTime >= nextStatusResolve)
         {
-            nextStatusResolve = Time.unscaledTime + 5f;
+            nextStatusResolve = Time.unscaledTime + 1.5f;
             UXOverlayController overlay = FindScene<UXOverlayController>();
             AtlasBoardTradePresentationPolish trade = FindScene<AtlasBoardTradePresentationPolish>();
             AtlasBoardPurchasePresentationPolish purchase = FindScene<AtlasBoardPurchasePresentationPolish>();
@@ -154,7 +155,7 @@ public sealed class AtlasBoardSharedRuntimeRecovery : MonoBehaviour
 
     private void AuditGameSession()
     {
-        BoardPath currentBoard = board != null ? board : FindScene<BoardPath>();
+        BoardPath currentBoard = FindScene<BoardPath>();
         if (currentBoard == null)
         {
             board = null;
@@ -171,8 +172,6 @@ public sealed class AtlasBoardSharedRuntimeRecovery : MonoBehaviour
         }
         if (turn == null) turn = FindScene<TurnManager>();
         bool active = turn != null && turn.IsMatchStarted;
-        if (active != wasInMatch)
-            steamPlayerBindingsReady = false;
         if (wasInMatch && !active && !resetting)
         {
             StartCoroutine(RearmAfterExit());
@@ -213,7 +212,7 @@ public sealed class AtlasBoardSharedRuntimeRecovery : MonoBehaviour
     private static T FindScene<T>() where T : Component
     {
         T[] all = UnityEngine.Object.FindObjectsByType<T>(
-            FindObjectsInactive.Include, FindObjectsSortMode.None);
+            FindObjectsInactive.Include);
         foreach (T item in all)
             if (item != null && item.gameObject.scene.IsValid())
                 return item;
@@ -258,13 +257,8 @@ public sealed class AtlasBoardSharedRuntimeRecovery : MonoBehaviour
 
     private void EnsureShopEntry()
     {
-        // A single successfully installed input overlay survives menu->match->
-        // menu. Don't run FindObjectsByType on every 800ms maintenance tick.
-        if (shopButton != null &&
-            shopButton.transform.Find("AtlasBoardStoreV2Input") != null)
-            return;
         Button[] buttons = UnityEngine.Object.FindObjectsByType<Button>(
-            FindObjectsInactive.Include, FindObjectsSortMode.None);
+            FindObjectsInactive.Include);
         Button current = null;
         foreach (Button button in buttons)
         {
@@ -334,20 +328,12 @@ public sealed class AtlasBoardSharedRuntimeRecovery : MonoBehaviour
 
     private void SynchronizeLocallyOwnedSteamName()
     {
-        string persona = AtlasBoardCanonicalPlayerIdentity.ValidSteamPersona();
+        string persona = AtlasBoardStableProfileNameView.ResolvedSteamPersona();
         if (string.IsNullOrWhiteSpace(persona)) return;
-        // Read Steam name from the one shared identity resolver. Scene object
-        // discovery occurs only after a scene or match transition, not while
-        // the tablet is open/closed or while merely looking at a Profile card.
-        if (!steamPlayerBindingsReady || trackedPlayers == null ||
-            trackedPlayers.Length == 0 || Array.Exists(trackedPlayers, p => p == null))
-        {
-            trackedCoordinator = FindScene<AtlasBoardTurnDiceNetworkCoordinator>();
-            trackedMatchBridge = FindScene<AtlasBoardMatchRuntimeBridge>();
-            trackedPlayers = UnityEngine.Object.FindObjectsByType<PlayerGameState>(
-                FindObjectsInactive.Include, FindObjectsSortMode.None);
-            steamPlayerBindingsReady = true;
-        }
+        trackedCoordinator = FindScene<AtlasBoardTurnDiceNetworkCoordinator>();
+        trackedMatchBridge = FindScene<AtlasBoardMatchRuntimeBridge>();
+        trackedPlayers = UnityEngine.Object.FindObjectsByType<PlayerGameState>(
+            FindObjectsInactive.Include);
         ApplyNameToTrackedPlayers(persona);
     }
 

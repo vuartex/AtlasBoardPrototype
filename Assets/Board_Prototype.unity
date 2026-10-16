@@ -54283,7 +54283,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ff0b4f27284e974798f7c2066f39737, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AtlasBoardLobbyRuntimeBridge
-  useLocalEmulatorsInEditor: 1
+  useLocalEmulatorsInEditor: 0
   snapshotPollSeconds: 1
   hostHeartbeatSeconds: 5
   developmentDisplayName: Unity Editor Player

@@ -41,6 +41,8 @@ public sealed class AtlasBoardTravelPresentationPolish : MonoBehaviour
     private RectTransform tabletRoot;
     private static readonly FieldInfo TabletRootField = typeof(TabletUIManager).GetField(
         "tabletRoot", BindingFlags.NonPublic | BindingFlags.Instance);
+    private static readonly FieldInfo TabletCurrentPanelField = typeof(TabletUIManager).GetField(
+        "currentPanel", BindingFlags.NonPublic | BindingFlags.Instance);
     private TMP_Text sourceInfo;
     private Button sourceGo;
     private Button sourceStay;
@@ -78,12 +80,19 @@ public sealed class AtlasBoardTravelPresentationPolish : MonoBehaviour
     private void OnDisable()
     {
         AtlasBoardLocalizationManager.LanguageChanged -= HandleLanguageChanged;
+        HideModernPresentation();
         RestoreLegacyVisuals();
     }
 
     private void OnDestroy()
     {
+        HideModernPresentation();
         RestoreLegacyVisuals();
+        // The generated visual lives under the shared Tablet root, not below
+        // this component. Remove the visual when its presenter is destroyed,
+        // so a new match cannot inherit an orphaned full-screen overlay.
+        if (modernRoot != null)
+            Destroy(modernRoot.gameObject);
     }
 
     private void HandleLanguageChanged()
@@ -103,34 +112,46 @@ public sealed class AtlasBoardTravelPresentationPolish : MonoBehaviour
             ResolveReferences();
         }
 
-        if (travelPanel == null || !travelPanel.activeInHierarchy)
+        // The legacy travelPanel may remain active after the next decision
+        // opens. Its activeSelf state alone is NOT the current tablet mode.
+        // TabletUIManager is the single owner of which panel is presented.
+        GameObject selected = tabletManager != null && TabletCurrentPanelField != null
+            ? TabletCurrentPanelField.GetValue(tabletManager) as GameObject
+            : null;
+        bool travelOwnsTablet = travelPanel != null &&
+            travelPanel.activeSelf && tabletRoot != null &&
+            tabletRoot.gameObject.activeInHierarchy &&
+            selected == travelPanel;
+        if (!travelOwnsTablet)
         {
+            HideModernPresentation();
             return;
         }
 
         if (modernRoot == null)
-        {
             BuildPresentation();
-        }
         if (modernRoot == null)
-        {
             return;
-        }
 
+        // Visibility changes only on a real tablet-mode transition. Never
+        // push the travel UI above a Property/Trade panel every LateUpdate.
         if (!modernRoot.gameObject.activeSelf)
+        {
             modernRoot.gameObject.SetActive(true);
-
-        // Other managers can change ordering when they update the tablet.
-        // No SetAsLastSibling or text/graphics mutation is needed per-frame
-        // after this root has become the final sibling.
-        if (modernRoot.GetSiblingIndex() != modernRoot.parent.childCount - 1)
             modernRoot.SetAsLastSibling();
-
+            nextRefreshAt = 0f;
+        }
         if (Time.unscaledTime >= nextRefreshAt)
         {
             nextRefreshAt = Time.unscaledTime + RefreshInterval;
             RefreshPresentation();
         }
+    }
+
+    private void HideModernPresentation()
+    {
+        if (modernRoot != null && modernRoot.gameObject.activeSelf)
+            modernRoot.gameObject.SetActive(false);
     }
 
     private void ResolveReferences()

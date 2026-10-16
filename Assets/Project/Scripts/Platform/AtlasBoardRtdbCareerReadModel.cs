@@ -35,6 +35,10 @@ public sealed class AtlasBoardRtdbCareerReadModel : MonoBehaviour
     private bool fetching;
     private string lastState = "no_server_record";
 
+    // Expose the latest RTDB read result for diagnostics without persisting
+    // or repeatedly rewriting UI. This field is operational state, not dead data.
+    public string LastReadState => lastState;
+
     [Serializable]
     private sealed class CareerWire
     {

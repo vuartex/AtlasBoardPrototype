@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
@@ -10,10 +11,12 @@ using UnityEngine.UI;
 /// controls the final draw and hit-testing without changing game authority,
 /// player participation, or HUD Refresh bindings.
 /// </summary>
-[DefaultExecutionOrder(25000)]
+[DefaultExecutionOrder(30000)]
 [DisallowMultipleComponent]
 public sealed class AtlasBoardTabletHudVisibilityGate : MonoBehaviour
 {
+    private static AtlasBoardTabletHudVisibilityGate instance;
+
     private static readonly FieldInfo TabletRootField =
         typeof(TabletUIManager).GetField(
             "tabletRoot", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -34,18 +37,54 @@ public sealed class AtlasBoardTabletHudVisibilityGate : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
     {
-        if (UnityEngine.Object.FindAnyObjectByType<BoardPath>(FindObjectsInactive.Include) == null ||
-            UnityEngine.Object.FindAnyObjectByType<AtlasBoardTabletHudVisibilityGate>(FindObjectsInactive.Include) != null)
+        if (instance != null ||
+            UnityEngine.Object.FindAnyObjectByType<BoardPath>(FindObjectsInactive.Include) == null)
+            return;
+
+        GameObject host = new GameObject("AtlasBoard_Tablet_HUD_Visibility_Gate");
+        DontDestroyOnLoad(host);
+        host.AddComponent<AtlasBoardTabletHudVisibilityGate>();
+    }
+
+    private void Awake()
+    {
+        if (instance != null && instance != this)
         {
+            Destroy(gameObject);
             return;
         }
-
-        new GameObject("AtlasBoard_Tablet_HUD_Visibility_Gate")
-            .AddComponent<AtlasBoardTabletHudVisibilityGate>();
+        instance = this;
     }
 
     private void OnEnable()
     {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+        ResetBindings();
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnDestroy()
+    {
+        if (instance == this) instance = null;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        ResetBindings();
+    }
+
+    private void ResetBindings()
+    {
+        tabletManager = null;
+        tabletRoot = null;
+        overlay = null;
+        huds = Array.Empty<PlayerHudPanel>();
+        hudGroups = Array.Empty<CanvasGroup>();
+        statusGroup = null;
         nextResolveAt = 0f;
         lastTabletOpen = null;
     }
@@ -64,11 +103,10 @@ public sealed class AtlasBoardTabletHudVisibilityGate : MonoBehaviour
         }
 
         bool tabletOpen = tabletRoot != null && tabletRoot.activeInHierarchy;
-        if (lastTabletOpen.HasValue && lastTabletOpen.Value == tabletOpen)
-        {
-            return;
-        }
-
+        // IMPORTANT: Another system may call SetActive/CanvasGroup changes
+        // after the previous frame, even without a tablet-mode transition.
+        // Reassert on *cached* groups only. ApplyGroup skips unchanged values:
+        // there are zero scene searches and zero Canvas writes on stable frames.
         ApplyVisibility(tabletOpen);
         lastTabletOpen = tabletOpen;
     }
@@ -114,7 +152,7 @@ public sealed class AtlasBoardTabletHudVisibilityGate : MonoBehaviour
         }
 
         PlayerHudPanel[] found = UnityEngine.Object.FindObjectsByType<PlayerHudPanel>(
-            FindObjectsInactive.Include, FindObjectsSortMode.None);
+            FindObjectsInactive.Include);
         bool changed = found.Length != huds.Length;
         if (!changed)
         {
