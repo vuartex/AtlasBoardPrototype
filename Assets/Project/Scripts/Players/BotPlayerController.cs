@@ -176,19 +176,32 @@ public class BotPlayerController : MonoBehaviour
             enabledValue = false;
         }
 
+        // Local AI activation is not an authoritative seat role change.
+        // A repeated network snapshot or a Leave reset must be a no-op.
+        if (botEnabled == enabledValue)
+        {
+            if (!enabledValue && decisionRoutine != null)
+            {
+                StopCoroutine(decisionRoutine);
+                decisionRoutine = null;
+            }
+            return;
+        }
+
         botEnabled = enabledValue;
 
-        if (!botEnabled &&
-            decisionRoutine != null)
+        if (!botEnabled && decisionRoutine != null)
         {
             StopCoroutine(decisionRoutine);
             decisionRoutine = null;
         }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         Debug.Log(
-            $"{name} control mode changed to " +
-            $"{(botEnabled ? "BOT" : "HUMAN")}." ,
+            $"{name} local Bot AI {(botEnabled ? "enabled" : "disabled")} " +
+            "(seat role unchanged).",
             this);
+#endif
     }
 
     private void Awake()

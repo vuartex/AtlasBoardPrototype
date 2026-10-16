@@ -521,7 +521,20 @@ public class PlayerHudPanel : MonoBehaviour
             return GetTemporaryBotLabel();
         }
 
-        if (player.IsOnlinePermanentBot)
+        // Initial lobby Bot seats also use the permanent_bot wire value.
+        // That describes their non-human controller, not a Human whose
+        // five-minute reconnect window has expired. Preserve the existing
+        // BOT + personality HUD for ordinary Bots.
+        if (player.IsOnlinePermanentBot &&
+            (player.OnlineAfkLockedOut ||
+             string.Equals(
+                 player.OnlineConnectionState,
+                 "reconnect_expired",
+                 System.StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(
+                 player.OnlineConnectionState,
+                 "afk_removed",
+                 System.StringComparison.OrdinalIgnoreCase)))
         {
             return GetPermanentBotLabel();
         }
