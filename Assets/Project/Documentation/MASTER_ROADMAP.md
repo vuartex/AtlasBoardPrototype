@@ -1,10 +1,34 @@
 # ATLAS BOARD — MASTER ROADMAP (CANONICAL)
 
-**Güncel konsolidasyon:** 17 Ekim 2026 · **Aktif checkpoint:** local v5.40.3 **manual match #1/#2/#3 gameplay, zar, lobby/main-menu identity ve auction akışı çalışıyor; v5.40.2 sonrasında kalan HUD name leaf + TURN/SIRA badge text presentation regresyonu için v5.40.3 source fix hazırlandı; authoritative PlayerGameState/turn/economy state doğru; iki gerçek Human / gerçek Host Migration / Android hâlâ OPEN** · Unity 6000.5.6f1 · `vuartex/AtlasBoardPrototype` · `atlasboard-usa` · Android önce, Windows/Steam korunur.
+**Güncel konsolidasyon:** 17 Ekim 2026 · **Aktif checkpoint:** local v5.40.6 **OWNER MANUAL PASS — Player HUD isimleri (Vuartex, BOT 2, BOT 3, BOT 4) ve TURN/SIRA badge maç #1/#2/#3 boyunca görünür. Eski HUD regresyonu kapalı. Normal RTDB account/profile/preferences/Career Editor yolu CLOSED. İki gerçek Human, reconnect/Host Migration, tablet 30sn no-flicker, tüm UI roundtrip ve Android/production acceptance OPEN.** · Unity 6000.5.6f1 · `vuartex/AtlasBoardPrototype` · `atlasboard-usa` · Android önce, Windows/Steam korunur.
 
 > **ÖNCELİK KURALI:** Bu belgenin 1–10 bölümleri geçerli ürün kararı ve test durumudur. Daha alttaki v5.30.0 ve öncesinin tarihsel kaydı geriye dönük denetim içindir. Tarihsel “current/PASS/next” yazıları güncel durumun üzerine çıkamaz. **Kod hazır ≠ Unity compile PASS ≠ gerçek cihaz PASS ≠ iki cihaz online PASS.**
 >
 > **TEK DOSYA KURALI:** Bundan sonra yalnız `Assets/Project/Documentation/MASTER_ROADMAP.md` kanoniktir. Her yama/sürümde yeni QA/phase/roadmap/next-chat dokümanı açma. Anlamlı mimari değişikliği, kullanıcı test sonucu veya phase milestone olduğunda bu dosyayı güncelle; küçük düzenlemelerde ayrıca doküman yazma. Eski dosyalar şu an otomatik silinmez; bu roadmap kaynaklarını konsolide eder.
+
+## 0H. 17 Ekim 2026 — v5.40.6 PLAYER HUD / TURN-SIRA OWNER ACCEPTANCE
+
+**GÜNCEL DURUM: OWNER MANUAL PASS (Unity Editor, Host + 3 Bot, local v5.40.6).** Önceki v5.40.3–v5.40.5 HUD adı/TURN badge için `SOURCE FIX / RETEST OPEN` statüleri bu dar kapsamda kapanmıştır. Çalışan kaynak sürümü v5.40.6'dır; yalnız roadmap güncellendi diye GitHub main kaynak kodunun v5.40.6'ya geçtiği varsayılmamalı.
+
+### Doğrulanmış
+
+- Aynı Play Mode içinde maç #1, #2 ve #3'te `Vuartex`, `BOT 2`, `BOT 3`, `BOT 4` player HUD isimleri görünür. Önceki BOT 3 isim kaybı giderildi.
+- Aktif tur hangi oyuncuya geçtiyse HUD içinde `TURN` / `SIRA` badge yazısı görünür. İlk turdan sonra ve sonraki maçlarda kaybolma sorunu düzeldi.
+- Düzeltme mevcut `PlayerHudPanel.cs` ve `AtlasBoardHudTypographyPolish.cs` ile yapıldı; yeni duplicate HUD manager/script/prefab yok. `AtlasBoardHudAlignmentPolish.cs` korunur.
+- v5.40.4 ve v5.40.5 ara denemeleri tam başarılı değildi; kabul referansı v5.40.6'dır.
+
+### Hâlâ OPEN — bu sonuca dahil DEĞİL
+
+- Tablet 30 saniye açıkken no-flicker; Travel/Property/Trade/Auction/City Info ve Shop/Career/Settings tam üç-maç roundtrip.
+- İki gerçek Human RTDB join/ready/gameplay, 20 saniye Temporary Bot, 5 dakika reconnect/expiry, AFK ve gerçek Host Migration.
+- Android S20 FE FPS/performance, production App Check/Play Integrity ve verified XP/Gold/reward authority.
+- Normal RTDB account/profile/preferences/Career Editor yolu daha önce CLOSED; legacy Firestore fallback/protected authority ayrı güvenlik konusudur.
+
+### Sıradaki adım
+
+v5.40.6 HUD görüntüsünü koru ve roadmap sırasıyla iki gerçek oyunculu RTDB gameplay → reconnect/expiry/AFK → Host Migration → tablet/full UI roundtrip → Android fiziksel performans testlerine devam et. 10sn Human auto-roll, Bot personality, Spark/free ve tek canonical owner kuralları değişmez. Yeni duplicate HUD kodu yazma. Owner onayı olmadan Blaze, Functions, Firebase rules veya production deploy yapma.
+
+---
 
 ## 0G. 17 Ekim 2026 — v5.40.3 RESIDUAL HUD NAME / TURN BADGE LEAF RECOVERY SOURCE FIX
 
