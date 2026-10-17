@@ -1,10 +1,111 @@
 # ATLAS BOARD — MASTER ROADMAP (CANONICAL)
 
-**Güncel konsolidasyon:** 17 Ekim 2026 · **Aktif checkpoint:** local v5.39.0 **OWNER EDITOR + LIVE SPARK SMOKE CHECKPOINT; CAS `start_1` blocker kapandı, normal account/profile/Career RTDB yolu kanıtlandı, manual match #1→#2 re-entry ve Host+Bot-only cleanup geçti; iki gerçek Human / manual #3 / Android / gerçek Host Migration hâlâ OPEN** · Unity 6000.5.6f1 · `vuartex/AtlasBoardPrototype` · `atlasboard-usa` · Android önce, Windows/Steam korunur.
+**Güncel konsolidasyon:** 17 Ekim 2026 · **Aktif checkpoint:** local v5.40.2 **v5.40.1 Unity compile/runtime açıldı; manual match #2/#3 gameplay çalışıyor fakat HUD player/Bot name presentation re-entry regresyonu bulundu ve v5.40.2 source fix hazırlandı; RTDB identity/economy state kaybolmadı; iki gerçek Human / gerçek Host Migration / Android hâlâ OPEN** · Unity 6000.5.6f1 · `vuartex/AtlasBoardPrototype` · `atlasboard-usa` · Android önce, Windows/Steam korunur.
 
 > **ÖNCELİK KURALI:** Bu belgenin 1–10 bölümleri geçerli ürün kararı ve test durumudur. Daha alttaki v5.30.0 ve öncesinin tarihsel kaydı geriye dönük denetim içindir. Tarihsel “current/PASS/next” yazıları güncel durumun üzerine çıkamaz. **Kod hazır ≠ Unity compile PASS ≠ gerçek cihaz PASS ≠ iki cihaz online PASS.**
 >
 > **TEK DOSYA KURALI:** Bundan sonra yalnız `Assets/Project/Documentation/MASTER_ROADMAP.md` kanoniktir. Her yama/sürümde yeni QA/phase/roadmap/next-chat dokümanı açma. Anlamlı mimari değişikliği, kullanıcı test sonucu veya phase milestone olduğunda bu dosyayı güncelle; küçük düzenlemelerde ayrıca doküman yazma. Eski dosyalar şu an otomatik silinmez; bu roadmap kaynaklarını konsolide eder.
+
+## 0F. 17 Ekim 2026 — v5.40.2 RE-ENTRY HUD NAME + TABLET EDGE REARM SOURCE FIX
+
+> **KABUL DURUMU:** v5.40.1 artık Unity'de compile olup owner tarafından üç manual gameplay session'a kadar çalıştırıldı. Zar, ana gameplay, menüler, lobby `V`/`Vuartex` kimliği ve match start akışı çalışıyor. Yeni bulunan regresyon: match #2 ve #3 HUD kartları para/control bilgisini göstermesine rağmen `Vuartex` ve Bot isim satırlarını göstermedi. Bu bölüm source fix'tir; v5.40.2 owner retest olmadan CLOSED sayılmaz.
+
+### 0F.1 Kanıt ve kök neden
+
+- İkinci ve üçüncü match logları authoritative `PlayerGameState` kimliğinin kaybolmadığını gösteriyor: `Vuartex [Slot 0] prepared...`, ardından `BOT 2/3/4 ... prepared...` ve doğru HUMAN/BOT setup kayıtları geliyor. Ana menü/lobby de `V` + `Vuartex` göstermeye devam ediyor. Bu nedenle RTDB/account identity owner değiştirilmedi.
+- Ekran görüntüsünde dört HUD kartı da active; money ve control/personality satırları görünürken yalnız name lane boş. Bu bir HUD presentation/re-entry problemi.
+- v5.40 optimizasyonu per-frame unconditional HUD refresh'i kaldırdı; fakat `PlayerHudPanel`/`UXOverlayController` re-enable olduğunda delta/layout cache'lerini yeniden arm etmiyordu. Yeni session aynı slot/highlight değerleriyle başlarsa ilk repaint bastırılabiliyor ve one-shot name geometry tekrar uygulanmıyordu.
+- `PlayerHudPanel.OnEnable()` artık yalnız lifecycle boundary'de layout/badge cache'lerini resetler ve bound player'ı bir kez repaint eder. `playerNameText` participating HUD'da açık tutulur. Per-frame refresh geri getirilmedi.
+- `UXOverlayController.OnEnable()` delta cache'lerini invalid eder; yeni match'in ilk frame'i force repaint olur. Stabil frame yine delta-only kalır.
+- `TabletUIManager.OnEnable()` canonical panel edge tracking'i `captureCurrentState:false` ile yeniden arm eder. Böylece önceki session'dan kalan presentation edge'i yeni Trade/Auction/Travel panelinin rising edge'ini bastıramaz. Yeni tablet manager/panel sistemi yaratılmadı.
+
+### 0F.2 Trade/Auction gözlemi
+
+- Sağlanan Bot trade logunda teklif `offered cash=330`, `requested property=Ordu`, `requested cash=0`; bu teklif tasarım gereği yalnız bir yönde non-zero cash taşır. `TradeManager` iki yönde aynı anda cash'i zaten yasaklar. Bu yüzden sadece bu logdan economy/trade hesaplama hatası çıkarılmadı.
+- Ayrı auction logunda authoritative bid zinciri 50→100→150→200→250→300→310→360 olarak ilerliyor ve kazanan state doğru sonuçlanıyor. Eğer ekranda tek sayı sabit kaldıysa sorun presentation/re-entry tarafındadır; v5.40.2 tablet edge rearm sonrası yeniden test edilir.
+- Bu turda `TradeManager` veya `AuctionManager` authority/economy kuralları değiştirilmedi; çalışan para/auction mantığını tahmine dayalı bozmak yasaktır.
+
+### 0F.3 Güncel statü
+
+- **v5.40.1 compile blocker:** **OWNER PASS** — oyun çalıştırıldığı için Unity compile kapısı geçildi.
+- **P0-05 reusable session:** gameplay #1/#2/#3 açılabiliyor, ancak match #2/#3 HUD names regresyonu nedeniyle full PASS değil; **SOURCE FIX v5.40.2 / RETEST OPEN**.
+- **P0-01 identity:** account/lobby canonical `Vuartex` state korunuyor; match HUD name render **RETEST OPEN**. RTDB identity migration tekrar açılmadı.
+- **P0-02 HUD flicker / G2-P1-04 redraw:** per-frame refresh optimizasyonu korunur; lifecycle-only repaint eklendi. 30sn tablet testi ve #2/#3 name repaint retesti OPEN.
+- **P0-03 tablet stale panel:** v5.40 canonical owner + v5.40.2 re-enable edge rearm source fix. Trade/Auction visible-value retesti OPEN.
+- **İki gerçek Human / reconnect / Temporary Bot / 5dk expiry / AFK / gerçek Host Migration:** değişmedi, OPEN.
+
+### 0F.4 Owner acceptance
+
+1. Unity compile: 0 red error.
+2. Aynı Play Mode içinde Private Host+3 Bot match #1 → leave → #2 → leave → #3. Her match başlangıcında dört HUD name lane anında görünmeli: `Vuartex`, `BOT 2`, `BOT 3`, `BOT 4`; money/control satırları da kalmalı.
+3. Tablet 30sn açık: HUD görünmez/titremez; kapatınca name dahil dört HUD doğru tek seferde dönmeli.
+4. Trade: görünen From/To isimleri, property ve iki cash alanı authoritative offer ile eşleşmeli. Tek yön cash olan teklifte diğer tarafın `0 ₵` olması normaldir.
+5. Auction: Bot/Human bid geldikçe Current Bid ve bidder/leader presentation ilerlemeli; log 50→100→... ilerlerken UI tek sayıda donmamalı. Trade paneli auction sırasında stale kalmamalı.
+6. Live Spark 3x smoke + Bot Wire + Presence QA tekrar PASS kalmalı.
+
+---
+
+## 0E. 17 Ekim 2026 — v5.40.1 PLAYER HUD COMPILE HOTFIX
+
+> **DURUM:** v5.40.0 owner compile denemesinde `PlayerHudPanel.cs(508,9) CS0120` bulundu. `runtimeLayoutApplied = true` yanlışlıkla static `ConfigureTextCommon(...)` içine yerleşmişti. Bu, v5.40 runtime testlerinin başlamasını engelleyen saf compile blocker'dı; gameplay davranışıyla ilgili yeni bir tasarım değişikliği değildir.
+
+- `runtimeLayoutApplied = true` static helper'dan çıkarıldı.
+- Flag, sahibi olan instance method `EnsureRuntimeLayout()` sonuna taşındı.
+- `ConfigureTextCommon(...)` tekrar yalnız text formatting helper'ı oldu; instance state'e erişmez.
+- v5.40 tablet/HUD owner, delta refresh ve polish-churn değişikliklerinin geri kalanı korunur.
+- **Kabul:** **OWNER UNITY COMPILE PASS** — v5.40.1 ile oyun üç manual session'a kadar çalıştırıldı. Sonraki presentation regresyonu 0F v5.40.2 altında izlenir.
+
+---
+
+## 0D. 17 Ekim 2026 — v5.40.0 TABLET / HUD OWNERSHIP + DELTA REFRESH SOURCE CANDIDATE
+
+**KABUL DURUMU:** SOURCE CHANGED + STATIC CHECK ONLY. Başlangıç GitHub baseline: `47c47e615c60b157cf7f59deae7d30ec85906977`. Unity compile/runtime ve gerçek cihaz PASS henüz yok.
+
+### 0D.1 Bu turda koddan bulunan gerçek kök nedenler
+
+- `UXOverlayController` match görünürken her frame `RefreshAll` çağırıyor, `RefreshAll` da her `PlayerHudPanel` için `Refresh` çağrısını tekrar ediyordu.
+- `PlayerHudPanel.Refresh` her çağrıda yalnız veri değil RectTransform/layout/image ayarlarını da tekrar yazıyordu.
+- Tablet açıldığında `UXOverlayController` HUD GameObject durumunu `SetActive` ile değiştirirken `AtlasBoardTabletHudVisibilityGate` aynı görünürlüğü `CanvasGroup` üzerinden ayrıca yönetiyordu. Player state eventleri HUD GameObject durumunu yeniden açabildiği için iki owner birbirine karşı çalışabiliyordu.
+- `PlayerHudPanel` control label çözümünde her refresh sırasında network coordinator scene search yapılıyordu.
+- `AtlasBoardHudAlignmentPolish` her `LateUpdate`'ta aktif HUD geometrisini yeniden yazıyor ve stabil sahnede bile her 1 saniyede `FindObjectsByType` ile bütün HUD'ları yeniden arıyordu.
+- `AtlasBoardHudTypographyPolish` Phase14D'nin per-frame geometry yazımını telafi etmek için `ApplyAll()` çağrısını her `LateUpdate`'ta çalıştırıyor ve stabil sahnede de periyodik target discovery yapıyordu.
+- `TabletUIManager` aynı anda aktif kalan eski/yeni gameplay panellerini tek canonical owner altında zorlamıyordu.
+- Tablet başlığı stabil durumda bile her frame TMP write alıyordu.
+
+### 0D.2 v5.40 kaynak düzeltmeleri
+
+1. HUD GameObject active-state sahibi `UXOverlayController` içinde match/participation ile sınırlandı; tablet görünürlüğü mevcut `AtlasBoardTabletHudVisibilityGate` cached `CanvasGroup` ownerına bırakıldı.
+2. `UXOverlayController` artık `PlayerHudPanel.Refresh` çağrısını initial/match visibility veya highlighted turn gerçekten değiştiğinde yapıyor. Money, identity, control ve participation değişimleri mevcut `PlayerHudPanel` event subscriptionları üzerinden kalıyor.
+3. `PlayerHudPanel` runtime layout ve turn-badge geometry bind/config başına bir kez uygulanıyor; her data refreshte tekrar yazılmıyor.
+4. `PlayerHudPanel` network coordinator referansını cacheliyor; cache yok/destroyed ise yeniden resolve ediyor.
+5. `AtlasBoardHudAlignmentPolish` mevcut owner olarak korunuyor fakat artık geometry'yi Awake/gerçek rediscovery sırasında uygular; dört HUD çözüldükten sonra stabil frame'de scene discovery veya geometry rewrite yapmaz.
+6. `AtlasBoardHudTypographyPolish` mevcut owner olarak korunuyor; yalnız ilk bind, gerçek target rediscovery, çözünürlük veya dil değişiminde `ApplyAll` yapar. Phase14D ile eski per-frame karşılıklı rewrite kaldırıldı.
+7. Mevcut `TabletUIManager` yeni aktive edilen gameplay panelini canonical panel kabul edip stale diğer gameplay panellerini kapatıyor. Yeni manager/prefab/controller yaratılmadı.
+8. Online seat lifecycle notice gameplay karar panelini kapatmayan geçici overlay olarak korunuyor.
+9. Tablet title yalnız istenen localized text gerçekten farklıysa yazılıyor.
+10. Duplicate gameplay panel gerçekten yakalanırsa `ATB_TABLET_OWNER` diagnostic yalnız o olayda yazılıyor; stabil frame spam beklenmiyor.
+
+### 0D.3 Açık/PASS sınırı
+
+- **P0-02 HUD flicker:** SOURCE CANDIDATE v5.40. Owner 30 saniye tablet testi OPEN.
+- **P0-03 Tablet birikmesi:** SOURCE CANDIDATE v5.40. Property → Travel → Trade → Auction → Development/Event/City Info ve manual match #2/#3 acceptance OPEN.
+- **G2-P1-03 Bot enable-disable-enable:** v5.39 coordinator kaynakta waiting-lobby Bot toggle kaldırılmış ve match metadata yalnız desired state değişince `BotPlayerController` değiştiriyor. SOURCE IMPLEMENTED; manual #3 ve remote Human runtime gate OPEN.
+- **G2-P1-04 unchanged snapshot → HUD redraw/scene search:** v5.39 coordinator delta + v5.40 HUD/UX değişiklikleri SOURCE IMPLEMENTED; owner runtime/profiler kanıtı OPEN.
+- **Android FPS:** UI/layout churn kaynaklarından bazıları azaltıldı; fiziksel S20 FE profiler olmadan P0-09 PASS sayılmaz.
+- İki gerçek Human, reconnect/Temporary Bot/5dk expiry/AFK ve gerçek Host Migration 0C execution order 1–4 olarak OPEN kalır.
+
+### 0D.4 Owner test kapısı
+
+1. Unity compile: **0 red error**.
+2. Private Host+3 Bot maç aç; 30 saniye normal zar/purchase/auction davranışını izle.
+3. Property tabletini aç ve **30 saniye açık bırak**. P1–P4 HUD görünmemeli veya titrememeli. Kapatınca doğru HUD tek seferde dönmeli.
+4. Property → Travel → Trade → Auction → Development/Event/City Info yollarını dene. Aynı anda iki gameplay panel görünmemeli. `ATB_TABLET_OWNER` görülürse bu gerçek stale duplicate yakalandığını gösterir; her frame gelmemeli.
+5. Aynı Play Mode içinde maçtan çık → yeni Private Host+3 Bot match #2 → tablet akışı → çık → **match #3**. Eski Travel/Property/City Info kalmamalı; `Vuartex`/`V` ve Bot label davranışı korunmalı.
+6. Live Spark 3x smoke tekrar PASS olmalı.
+7. Mümkünse Profiler ile tablet açık/kapalı 30 saniye Canvas/Layout rebuild ve GC patternini karşılaştır.
+8. Bu testler iki gerçek Human/Host Migration testinin yerine geçmez.
+
+---
 
 ## 0C. 17 Ekim 2026 — v5.39.0 OWNER TEST CHECKPOINT / ROADMAP REBASE (EN GÜNCEL DURUM)
 

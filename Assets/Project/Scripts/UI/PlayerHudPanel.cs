@@ -43,8 +43,11 @@ public class PlayerHudPanel : MonoBehaviour
 
     private PlayerGameState player;
     private BotPlayerController botController;
+    private AtlasBoardTurnDiceNetworkCoordinator networkCoordinator;
     private bool subscribed;
     private bool lastIsCurrentTurn;
+    private bool runtimeLayoutApplied;
+    private bool turnBadgeLayoutApplied;
 
     public RectTransform PanelRect =>
         panelRect != null
@@ -58,6 +61,18 @@ public class PlayerHudPanel : MonoBehaviour
     {
         AtlasBoardLocalizationManager.LanguageChanged +=
             HandleLanguageChanged;
+
+        // Re-entry can disable the gameplay overlay without changing any
+        // PlayerGameState values. Re-arm the cached geometry and repaint once
+        // when this HUD presentation becomes active again.
+        runtimeLayoutApplied = false;
+        turnBadgeLayoutApplied = false;
+
+        if (player != null)
+        {
+            Refresh(
+                lastIsCurrentTurn);
+        }
     }
 
     private void OnDisable()
@@ -88,6 +103,9 @@ public class PlayerHudPanel : MonoBehaviour
                     BotPlayerController>()
                 : null;
 
+        runtimeLayoutApplied = false;
+        turnBadgeLayoutApplied = false;
+
         Subscribe();
         Refresh(false);
     }
@@ -117,7 +135,7 @@ public class PlayerHudPanel : MonoBehaviour
             return;
         }
 
-        ApplyRuntimeLayout();
+        EnsureRuntimeLayout();
 
         Color playerColor =
             player.UIColor;
@@ -147,6 +165,11 @@ public class PlayerHudPanel : MonoBehaviour
 
         if (playerNameText != null)
         {
+            if (!playerNameText.gameObject.activeSelf)
+            {
+                playerNameText.gameObject.SetActive(true);
+            }
+
             playerNameText.text =
                 GetLocalizedPlayerName(
                     player);
@@ -167,7 +190,7 @@ public class PlayerHudPanel : MonoBehaviour
                 ResolveControlTypeLabel();
         }
 
-        ApplyTurnBadgeLayout();
+        EnsureTurnBadgeLayout();
 
         if (turnBadgeRoot != null)
         {
@@ -236,9 +259,10 @@ public class PlayerHudPanel : MonoBehaviour
         }
     }
 
-    private void ApplyTurnBadgeLayout()
+    private void EnsureTurnBadgeLayout()
     {
-        if (turnBadgeRoot == null)
+        if (turnBadgeLayoutApplied ||
+            turnBadgeRoot == null)
         {
             return;
         }
@@ -258,10 +282,17 @@ public class PlayerHudPanel : MonoBehaviour
             badgeRect.anchoredPosition =
                 new Vector2(-8f, -6f);
         }
+        turnBadgeLayoutApplied = true;
     }
 
-    private void ApplyRuntimeLayout()
+
+    private void EnsureRuntimeLayout()
     {
+        if (runtimeLayoutApplied)
+        {
+            return;
+        }
+
         if (panelRect == null)
         {
             panelRect =
@@ -384,6 +415,8 @@ public class PlayerHudPanel : MonoBehaviour
             turnBadgeText.overflowMode =
                 TextOverflowModes.Truncate;
         }
+
+        runtimeLayoutApplied = true;
     }
 
     private static void ConfigureTopLane(
@@ -493,6 +526,21 @@ public class PlayerHudPanel : MonoBehaviour
         target.raycastTarget = false;
     }
 
+
+    private AtlasBoardTurnDiceNetworkCoordinator ResolveNetworkCoordinator()
+    {
+        if (networkCoordinator != null)
+        {
+            return networkCoordinator;
+        }
+
+        networkCoordinator =
+            FindAnyObjectByType<
+                AtlasBoardTurnDiceNetworkCoordinator>();
+
+        return networkCoordinator;
+    }
+
     private string ResolveControlTypeLabel()
     {
         if (player == null)
@@ -501,8 +549,7 @@ public class PlayerHudPanel : MonoBehaviour
         }
 
         AtlasBoardTurnDiceNetworkCoordinator coordinator =
-            FindAnyObjectByType<
-                AtlasBoardTurnDiceNetworkCoordinator>();
+            ResolveNetworkCoordinator();
 
         // The local authority list is the source of truth for a Human that
         // can actually act on this client. This prevents stale mirrored seat
@@ -765,6 +812,8 @@ public class PlayerHudPanel : MonoBehaviour
         turnBadgeImage = newTurnBadgeImage;
         turnBadgeText = newTurnBadgeText;
         panelOutline = newPanelOutline;
+        runtimeLayoutApplied = false;
+        turnBadgeLayoutApplied = false;
     }
 #endif
 }

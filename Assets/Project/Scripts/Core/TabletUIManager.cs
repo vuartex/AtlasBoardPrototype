@@ -51,14 +51,24 @@ public class TabletUIManager : MonoBehaviour
     private Button onlineSeatNoticeOkButton;
     private Coroutine onlineSeatNoticeRoutine;
     private GameObject currentPanel;
+    private GameObject[] gameplayPanels;
+    private bool[] gameplayPanelWasActive;
 
     private void Awake()
     {
         AtlasBoardLocalizationManager.LanguageChanged +=
             HandleLanguageChanged;
 
+        InitializeGameplayPanelTracking();
         RefreshLegacyStaticTabletLocalization();
         HideTabletShell();
+    }
+
+    private void OnEnable()
+    {
+        currentPanel = null;
+        ResetGameplayPanelTracking(
+            captureCurrentState: false);
     }
 
     private void OnDestroy()
@@ -96,8 +106,8 @@ public class TabletUIManager : MonoBehaviour
             RefreshLegacyStaticTabletLocalization();
         }
 
-        // Several gameplay managers still write to panel/header text.
-        // Re-assert the localized tablet title every frame while a panel is open.
+        // Some legacy managers still touch the shared header. Keep the
+        // canonical title authoritative, but only write when the value differs.
         UpdateTabletTitle(
             currentPanel);
 
@@ -130,6 +140,7 @@ public class TabletUIManager : MonoBehaviour
         }
 
         currentPanel = null;
+        ResetGameplayPanelTracking();
         HideTabletShell();
 
         if (onlineSeatNoticeText != null)
@@ -451,57 +462,167 @@ public class TabletUIManager : MonoBehaviour
 
     private GameObject FindRequestedPanel()
     {
+        GameObject gameplayPanel =
+            ResolveCanonicalGameplayPanel();
+
+        // Seat lifecycle notice is an overlay, not another gameplay decision
+        // owner. It may temporarily cover the canonical gameplay panel without
+        // destroying that decision state.
         if (IsPanelRequested(onlineSeatNoticePanel))
         {
             return onlineSeatNoticePanel;
         }
 
-        if (IsPanelRequested(purchasePanel))
+        return gameplayPanel;
+    }
+
+    private void InitializeGameplayPanelTracking()
+    {
+        gameplayPanels = new[]
         {
-            return purchasePanel;
+            purchasePanel,
+            auctionPanel,
+            tradePanel,
+            eventPanel,
+            specialResultPanel,
+            doublesPenaltyPanel,
+            travelPanel,
+            developmentPanel,
+            matchResultPanel
+        };
+
+        gameplayPanelWasActive =
+            new bool[gameplayPanels.Length];
+
+        ResetGameplayPanelTracking();
+    }
+
+    private void ResetGameplayPanelTracking(
+        bool captureCurrentState = true)
+    {
+        if (gameplayPanels == null ||
+            gameplayPanelWasActive == null ||
+            gameplayPanels.Length != gameplayPanelWasActive.Length)
+        {
+            return;
         }
 
-        if (IsPanelRequested(auctionPanel))
+        for (int index = 0;
+             index < gameplayPanels.Length;
+             index++)
         {
-            return auctionPanel;
+            gameplayPanelWasActive[index] =
+                captureCurrentState &&
+                IsPanelRequested(
+                    gameplayPanels[index]);
+        }
+    }
+
+    private GameObject ResolveCanonicalGameplayPanel()
+    {
+        if (gameplayPanels == null ||
+            gameplayPanelWasActive == null ||
+            gameplayPanels.Length != gameplayPanelWasActive.Length)
+        {
+            InitializeGameplayPanelTracking();
         }
 
-        if (IsPanelRequested(tradePanel))
+        GameObject risingPanel = null;
+        GameObject firstActivePanel = null;
+
+        for (int index = 0;
+             index < gameplayPanels.Length;
+             index++)
         {
-            return tradePanel;
+            GameObject panel =
+                gameplayPanels[index];
+            bool active =
+                IsPanelRequested(panel);
+
+            if (active &&
+                firstActivePanel == null)
+            {
+                firstActivePanel = panel;
+            }
+
+            if (active &&
+                !gameplayPanelWasActive[index] &&
+                risingPanel == null)
+            {
+                risingPanel = panel;
+            }
+
+            gameplayPanelWasActive[index] =
+                active;
         }
 
-        if (IsPanelRequested(eventPanel))
+        GameObject selected =
+            risingPanel != null
+                ? risingPanel
+                : IsGameplayPanel(currentPanel) &&
+                  IsPanelRequested(currentPanel)
+                    ? currentPanel
+                    : firstActivePanel;
+
+        if (selected == null)
         {
-            return eventPanel;
+            return null;
         }
 
-        if (IsPanelRequested(specialResultPanel))
+        int duplicatePanelsClosed = 0;
+
+        for (int index = 0;
+             index < gameplayPanels.Length;
+             index++)
         {
-            return specialResultPanel;
+            GameObject panel =
+                gameplayPanels[index];
+
+            if (panel == null ||
+                panel == selected ||
+                !panel.activeSelf)
+            {
+                continue;
+            }
+
+            panel.SetActive(false);
+            gameplayPanelWasActive[index] = false;
+            duplicatePanelsClosed++;
         }
 
-        if (IsPanelRequested(doublesPenaltyPanel))
+        if (duplicatePanelsClosed > 0)
         {
-            return doublesPenaltyPanel;
+            Debug.Log(
+                "ATB_TABLET_OWNER duplicate_panels_closed=" +
+                duplicatePanelsClosed +
+                " canonical=" +
+                selected.name,
+                this);
         }
 
-        if (IsPanelRequested(travelPanel))
+        return selected;
+    }
+
+    private bool IsGameplayPanel(
+        GameObject panel)
+    {
+        if (panel == null ||
+            gameplayPanels == null)
         {
-            return travelPanel;
+            return false;
         }
 
-        if (IsPanelRequested(developmentPanel))
+        for (int index = 0;
+             index < gameplayPanels.Length;
+             index++)
         {
-            return developmentPanel;
+            if (gameplayPanels[index] == panel)
+            {
+                return true;
+            }
         }
 
-        if (IsPanelRequested(matchResultPanel))
-        {
-            return matchResultPanel;
-        }
-
-        return null;
+        return false;
     }
 
     private bool IsPanelRequested(
@@ -549,74 +670,44 @@ public class TabletUIManager : MonoBehaviour
             return;
         }
 
-        if (panel == purchasePanel)
-        {
-            tabletTitleText.text = AtlasBoardL.T("tablet.property");
-            return;
-        }
+        string desiredTitle =
+            ResolveTabletTitle(panel);
 
-        if (panel == auctionPanel)
+        if (!string.Equals(
+                tabletTitleText.text,
+                desiredTitle,
+                System.StringComparison.Ordinal))
         {
-            tabletTitleText.text = AtlasBoardL.T("tablet.auction");
-            return;
+            tabletTitleText.text =
+                desiredTitle;
         }
+    }
 
-        if (panel == tradePanel)
-        {
-            tabletTitleText.text = AtlasBoardL.T("tablet.trade");
-            return;
-        }
-
-        if (panel == eventPanel)
-        {
-            tabletTitleText.text = AtlasBoardL.T("tablet.event");
-            return;
-        }
-
-        if (panel == specialResultPanel)
-        {
-            tabletTitleText.text = AtlasBoardL.T("tablet.result");
-            return;
-        }
-
-        if (panel == doublesPenaltyPanel)
-        {
-            tabletTitleText.text = AtlasBoardL.T("tablet.penalty");
-            return;
-        }
-
-        if (panel == travelPanel)
-        {
-            tabletTitleText.text = AtlasBoardL.T("tablet.travel");
-            return;
-        }
-
-        if (panel == developmentPanel)
-        {
-            tabletTitleText.text = AtlasBoardL.T("tablet.development");
-            return;
-        }
-
-        if (panel == matchResultPanel)
-        {
-            tabletTitleText.text = AtlasBoardL.T("tablet.match_result");
-            return;
-        }
+    private string ResolveTabletTitle(
+        GameObject panel)
+    {
+        if (panel == purchasePanel) return AtlasBoardL.T("tablet.property");
+        if (panel == auctionPanel) return AtlasBoardL.T("tablet.auction");
+        if (panel == tradePanel) return AtlasBoardL.T("tablet.trade");
+        if (panel == eventPanel) return AtlasBoardL.T("tablet.event");
+        if (panel == specialResultPanel) return AtlasBoardL.T("tablet.result");
+        if (panel == doublesPenaltyPanel) return AtlasBoardL.T("tablet.penalty");
+        if (panel == travelPanel) return AtlasBoardL.T("tablet.travel");
+        if (panel == developmentPanel) return AtlasBoardL.T("tablet.development");
+        if (panel == matchResultPanel) return AtlasBoardL.T("tablet.match_result");
 
         if (panel == onlineSeatNoticePanel)
         {
-            tabletTitleText.text =
-                AtlasBoardL.R(
-                    "PLAYER STATUS",
-                    "OYUNCU DURUMU",
-                    "ESTADO DEL JUGADOR",
-                    "STATUT DU JOUEUR",
-                    "SPIELERSTATUS",
-                    "플레이어 상태",
-                    "СТАТУС ИГРОКА");
-            return;
+            return AtlasBoardL.R(
+                "PLAYER STATUS",
+                "OYUNCU DURUMU",
+                "ESTADO DEL JUGADOR",
+                "STATUT DU JOUEUR",
+                "SPIELERSTATUS",
+                "플레이어 상태",
+                "СТАТУС ИГРОКА");
         }
 
-        tabletTitleText.text = "ATLAS BOARD";
+        return "ATLAS BOARD";
     }
 }

@@ -49,6 +49,7 @@ public sealed class AtlasBoardHudTypographyPolish :
     private void Awake()
     {
         DiscoverTargets();
+        CapturePresentationState();
         ApplyAll();
     }
 
@@ -79,41 +80,70 @@ public sealed class AtlasBoardHudTypographyPolish :
                 languageCode,
                 StringComparison.OrdinalIgnoreCase);
 
-        if (Time.unscaledTime >=
-            nextDiscoveryAt)
+        bool rediscovered = false;
+
+        if (NeedsRediscovery() &&
+            Time.unscaledTime >= nextDiscoveryAt)
         {
             nextDiscoveryAt =
                 Time.unscaledTime +
                 DiscoveryIntervalSeconds;
 
             DiscoverTargets();
+            rediscovered = true;
         }
 
-        if (resolutionChanged ||
-            languageChanged)
+        if (!resolutionChanged &&
+            !languageChanged &&
+            !rediscovered)
         {
-            lastScreenWidth =
-                Screen.width;
-
-            lastScreenHeight =
-                Screen.height;
-
-            lastLanguageCode =
-                languageCode;
+            return;
         }
 
-        // Phase 14D reapplies structural HUD geometry in LateUpdate.
-        // Phase 14E deliberately runs after it (execution order 11000)
-        // and applies typography/responsive presentation only.
+        CapturePresentationState();
         ApplyAll();
+    }
+
+    private bool NeedsRediscovery()
+    {
+        if (cachedPanels == null ||
+            cachedPanels.Length < 4 ||
+            overlayController == null ||
+            statusText == null ||
+            shortcutHintText == null)
+        {
+            return true;
+        }
+
+        for (int index = 0;
+             index < cachedPanels.Length;
+             index++)
+        {
+            if (cachedPanels[index] == null)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void CapturePresentationState()
+    {
+        lastScreenWidth =
+            Screen.width;
+
+        lastScreenHeight =
+            Screen.height;
+
+        lastLanguageCode =
+            GetLanguageCode();
     }
 
     private void HandleLanguageChanged()
     {
-        lastLanguageCode =
-            string.Empty;
-
         DiscoverTargets();
+        CapturePresentationState();
         ApplyAll();
     }
 

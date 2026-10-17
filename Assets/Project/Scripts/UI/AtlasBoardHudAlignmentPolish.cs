@@ -48,18 +48,50 @@ public sealed class AtlasBoardHudAlignmentPolish :
     private void Awake()
     {
         DiscoverPanels();
+        ApplyCachedPanels();
     }
 
     private void LateUpdate()
     {
-        if (Time.unscaledTime >=
-            nextDiscoveryAt)
+        if (!NeedsRediscovery() ||
+            Time.unscaledTime < nextDiscoveryAt)
         {
-            nextDiscoveryAt =
-                Time.unscaledTime +
-                1f;
+            return;
+        }
 
-            DiscoverPanels();
+        nextDiscoveryAt =
+            Time.unscaledTime + 1f;
+
+        DiscoverPanels();
+        ApplyCachedPanels();
+    }
+
+    private bool NeedsRediscovery()
+    {
+        if (cachedPanels == null ||
+            cachedPanels.Length < 4)
+        {
+            return true;
+        }
+
+        for (int index = 0;
+             index < cachedPanels.Length;
+             index++)
+        {
+            if (cachedPanels[index] == null)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void ApplyCachedPanels()
+    {
+        if (cachedPanels == null)
+        {
+            return;
         }
 
         for (int index = 0;
@@ -69,14 +101,10 @@ public sealed class AtlasBoardHudAlignmentPolish :
             PlayerHudPanel panel =
                 cachedPanels[index];
 
-            if (panel == null ||
-                !panel.gameObject.activeInHierarchy)
+            if (panel != null)
             {
-                continue;
+                ApplyToPanel(panel);
             }
-
-            ApplyToPanel(
-                panel);
         }
     }
 

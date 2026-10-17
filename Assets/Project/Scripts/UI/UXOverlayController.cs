@@ -59,6 +59,19 @@ public class UXOverlayController : MonoBehaviour
     private int lastHighlightedSlot = int.MinValue;
     private string lastStatusSource = string.Empty;
     private string lastHint = string.Empty;
+    private bool? lastMatchVisible;
+
+    private void OnEnable()
+    {
+        // The overlay GameObject is disabled while the Main Menu owns the
+        // screen. A later match can begin with identical slot/highlight values,
+        // so stale delta caches must not suppress the first repaint.
+        lastParticipatingCount = -1;
+        lastHighlightedSlot = int.MinValue;
+        lastStatusSource = string.Empty;
+        lastHint = string.Empty;
+        lastMatchVisible = null;
+    }
 
     private void Start()
     {
@@ -79,19 +92,26 @@ public class UXOverlayController : MonoBehaviour
             tabletRoot != null &&
             tabletRoot.activeInHierarchy;
 
-        bool gameplayOverlayVisible =
-            matchVisible &&
-            !tabletVisible;
+        bool matchVisibilityChanged =
+            !lastMatchVisible.HasValue ||
+            lastMatchVisible.Value != matchVisible;
 
+        lastMatchVisible =
+            matchVisible;
+
+        // Match/participation active state stays here. Tablet visibility stays
+        // with AtlasBoardTabletHudVisibilityGate through cached CanvasGroups.
         SetOverlayChildrenVisible(
-            gameplayOverlayVisible);
+            matchVisible);
 
-        if (!gameplayOverlayVisible)
+        if (!matchVisible ||
+            tabletVisible)
         {
             return;
         }
 
-        RefreshAll(force: false);
+        RefreshAll(
+            force: matchVisibilityChanged);
     }
 
     private void BindPlayers()
@@ -175,26 +195,29 @@ public class UXOverlayController : MonoBehaviour
                     .PlayerSlotIndex
                 : -1;
 
-        if (force ||
+        bool highlightedChanged =
+            force ||
             highlightedSlot !=
-                lastHighlightedSlot)
+                lastHighlightedSlot;
+
+        if (highlightedChanged)
         {
             lastHighlightedSlot =
                 highlightedSlot;
-        }
 
-        foreach (PlayerHudPanel panel
-                 in playerHudPanels)
-        {
-            if (panel == null ||
-                panel.Player == null)
+            foreach (PlayerHudPanel panel
+                     in playerHudPanels)
             {
-                continue;
-            }
+                if (panel == null ||
+                    panel.Player == null)
+                {
+                    continue;
+                }
 
-            panel.Refresh(
-                panel.Player.PlayerSlotIndex ==
-                highlightedSlot);
+                panel.Refresh(
+                    panel.Player.PlayerSlotIndex ==
+                    highlightedSlot);
+            }
         }
 
         RefreshStatus(
