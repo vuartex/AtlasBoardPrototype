@@ -11,7 +11,7 @@ public sealed class AtlasBoardHudAlignmentPolish :
     private const float IconSize = 42f;
     private const float IconCenterX = 30f;
     private const float ContentLeft = 62f;
-    private const float NameRight = 80f;
+    private const float NameRight = 50f;
     private const float BodyRight = 14f;
     private const float BadgeWidth = 60f;
     private const float BadgeHeight = 20f;

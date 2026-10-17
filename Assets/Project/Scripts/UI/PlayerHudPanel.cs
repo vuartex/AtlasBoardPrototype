@@ -48,6 +48,7 @@ public class PlayerHudPanel : MonoBehaviour
     private bool lastIsCurrentTurn;
     private bool runtimeLayoutApplied;
     private bool turnBadgeLayoutApplied;
+    private float nextPresentationCheckAt;
 
     public RectTransform PanelRect =>
         panelRect != null
@@ -67,12 +68,103 @@ public class PlayerHudPanel : MonoBehaviour
         // when this HUD presentation becomes active again.
         runtimeLayoutApplied = false;
         turnBadgeLayoutApplied = false;
+        nextPresentationCheckAt = 0f;
 
         if (player != null)
         {
             Refresh(
                 lastIsCurrentTurn);
         }
+    }
+
+    // Reconcile only this panel's existing TMP leaves. Other UI owners can
+    // invalidate a text mesh after a turn switch or a reusable-session reset.
+    // No global scene discovery, additional UI object, or per-frame layout pass.
+    private void LateUpdate()
+    {
+        if (player == null || !player.IsParticipating ||
+            Time.unscaledTime < nextPresentationCheckAt)
+            return;
+
+        nextPresentationCheckAt = Time.unscaledTime + 0.25f;
+        EnsureCriticalPresentationReferences();
+        EnsureRequiredVisualLeafState();
+
+        string expectedName = GetLocalizedPlayerName(player);
+        bool nameMissingMesh = IsExpectedTextMeshMissing(
+            playerNameText, expectedName);
+        bool turnMissingMesh = lastIsCurrentTurn &&
+            IsExpectedTextMeshMissing(
+                turnBadgeText, AtlasBoardL.T("hud.turn").ToUpperInvariant());
+        if (nameMissingMesh || turnMissingMesh)
+        {
+            // Existing owners only. Never clone a TMP leaf or HUD.
+            AtlasBoardHudAlignmentPolish.ApplyToPanel(this);
+            AtlasBoardHudTypographyPolish.ReapplyToPanel(this);
+        }
+        RestoreTextLeaf(playerNameText, expectedName, nameMissingMesh);
+
+        if (turnBadgeRoot != null && lastIsCurrentTurn &&
+            !turnBadgeRoot.activeSelf)
+            turnBadgeRoot.SetActive(true);
+
+        if (lastIsCurrentTurn)
+        {
+            EnsureTurnBadgeLayout();
+            RestoreTextLeaf(turnBadgeText,
+                AtlasBoardL.T("hud.turn").ToUpperInvariant(), turnMissingMesh);
+        }
+    }
+
+    private static bool IsExpectedTextMeshMissing(TMP_Text label, string expected)
+    {
+        if (label == null || !label.gameObject.activeInHierarchy ||
+            string.IsNullOrWhiteSpace(expected))
+            return false;
+
+        // A stale text mesh is not fixed by assigning the same TMP string.
+        // Test for visible characters rather than the mesh buffer capacity:
+        // meshInfo[].vertexCount can remain nonzero after hidden/cleared text.
+        if (label.textInfo.characterCount == 0)
+            return true;
+
+        for (int index = 0; index < label.textInfo.characterCount; index++)
+        {
+            if (label.textInfo.characterInfo[index].isVisible)
+                return false;
+        }
+        return true;
+    }
+
+    private static void RestoreTextLeaf(
+        TMP_Text label, string expected, bool forceMesh = false)
+    {
+        if (label == null || !label.gameObject.activeInHierarchy)
+            return;
+
+        bool changed = !label.enabled ||
+            !string.Equals(label.text, expected,
+                System.StringComparison.Ordinal) ||
+            label.color.a < 0.99f ||
+            label.canvasRenderer.GetAlpha() < 0.99f;
+
+        if (!changed && label.textInfo.characterCount > 0 &&
+            label.textInfo.meshInfo.Length > 0 &&
+            label.textInfo.meshInfo[0].vertexCount == 0)
+            changed = true;
+
+        if (!changed && !forceMesh) return;
+
+        label.enabled = true;
+        if (!string.Equals(label.text, expected,
+                System.StringComparison.Ordinal))
+            label.text = expected;
+        if (label.color != Color.white)
+            label.color = Color.white;
+        if (label.canvasRenderer.GetAlpha() < 0.99f)
+            label.canvasRenderer.SetAlpha(1f);
+        label.SetAllDirty();
+        label.ForceMeshUpdate();
     }
 
     private void OnDisable()
@@ -107,6 +199,7 @@ public class PlayerHudPanel : MonoBehaviour
         turnBadgeLayoutApplied = false;
 
         Subscribe();
+        nextPresentationCheckAt = 0f;
         Refresh(false);
     }
 
@@ -135,7 +228,22 @@ public class PlayerHudPanel : MonoBehaviour
             return;
         }
 
+        // Session re-entry can leave serialized TMP leaf references stale or
+        // disabled even though the HUD card itself is active. Resolve only the
+        // two critical leaves owned by this panel; never search the whole scene.
+        EnsureCriticalPresentationReferences();
+        EnsureRequiredVisualLeafState();
+
+        // On a reusable second/third match, OnEnable/Bind must re-arm the
+        // layout owners too. Previously EnsureRuntimeLayout overwrote their
+        // offsets, while AlignmentPolish only applied once on discovery.
+        bool presentationLayoutNeedsReapply = !runtimeLayoutApplied;
         EnsureRuntimeLayout();
+        if (presentationLayoutNeedsReapply)
+        {
+            AtlasBoardHudAlignmentPolish.ApplyToPanel(this);
+            AtlasBoardHudTypographyPolish.ReapplyToPanel(this);
+        }
 
         Color playerColor =
             player.UIColor;
@@ -165,14 +273,8 @@ public class PlayerHudPanel : MonoBehaviour
 
         if (playerNameText != null)
         {
-            if (!playerNameText.gameObject.activeSelf)
-            {
-                playerNameText.gameObject.SetActive(true);
-            }
-
-            playerNameText.text =
-                GetLocalizedPlayerName(
-                    player);
+            string resolvedName = GetLocalizedPlayerName(player);
+            RestoreTextLeaf(playerNameText, resolvedName);
         }
 
         if (moneyText != null)
@@ -192,10 +294,39 @@ public class PlayerHudPanel : MonoBehaviour
 
         EnsureTurnBadgeLayout();
 
+        // TurnBadgeRoot already owns visibility. The text child must stay
+        // enabled so an active badge cannot render as an empty colored box.
+        if (turnBadgeText != null)
+        {
+            if (!turnBadgeText.gameObject.activeSelf)
+            {
+                turnBadgeText.gameObject.SetActive(true);
+            }
+
+            if (!turnBadgeText.enabled)
+            {
+                turnBadgeText.enabled = true;
+            }
+
+            string turnLabel = AtlasBoardL.T("hud.turn").ToUpperInvariant();
+            if (turnBadgeText.text != turnLabel)
+                turnBadgeText.text = turnLabel;
+            if (turnBadgeText.color.a < 0.99f)
+                turnBadgeText.color = Color.white;
+        }
+
         if (turnBadgeRoot != null)
         {
-            turnBadgeRoot.SetActive(
-                isCurrentTurn);
+            if (turnBadgeRoot.activeSelf != isCurrentTurn)
+                turnBadgeRoot.SetActive(isCurrentTurn);
+
+            if (isCurrentTurn && turnBadgeText != null)
+            {
+                // TMP meshes can have no visible glyphs after SetActive
+                // on later turns although text itself still equals TURN.
+                RestoreTextLeaf(turnBadgeText,
+                    AtlasBoardL.T("hud.turn").ToUpperInvariant(), true);
+            }
         }
 
         if (turnBadgeImage != null)
@@ -207,14 +338,6 @@ public class PlayerHudPanel : MonoBehaviour
 
             turnBadgeImage.color =
                 badgeColor;
-        }
-
-        if (turnBadgeText != null)
-        {
-            turnBadgeText.text =
-                AtlasBoardL.T(
-                    "hud.turn")
-                    .ToUpperInvariant();
         }
 
         if (panelOutline != null)
@@ -259,6 +382,74 @@ public class PlayerHudPanel : MonoBehaviour
         }
     }
 
+    private void EnsureCriticalPresentationReferences()
+    {
+        if (panelRect == null)
+            panelRect = transform as RectTransform;
+        if (panelRect == null) return;
+
+        Transform canonicalName = panelRect.Find("PlayerName");
+        TMP_Text canonicalNameText = canonicalName != null
+            ? canonicalName.GetComponent<TMP_Text>() : null;
+        if (canonicalNameText != null && playerNameText != canonicalNameText)
+        {
+            playerNameText = canonicalNameText;
+            runtimeLayoutApplied = false;
+        }
+
+        Transform canonicalBadge = panelRect.Find("TurnBadge");
+        if (canonicalBadge != null && turnBadgeRoot != canonicalBadge.gameObject)
+        {
+            turnBadgeRoot = canonicalBadge.gameObject;
+            turnBadgeImage = canonicalBadge.GetComponent<Image>();
+            turnBadgeText = null;
+            turnBadgeLayoutApplied = false;
+            runtimeLayoutApplied = false;
+        }
+
+        if (turnBadgeRoot != null)
+        {
+            Transform canonicalBadgeText = turnBadgeRoot.transform.Find("Text");
+            TMP_Text canonicalText = canonicalBadgeText != null
+                ? canonicalBadgeText.GetComponent<TMP_Text>() : null;
+            if (canonicalText != null && turnBadgeText != canonicalText)
+            {
+                turnBadgeText = canonicalText;
+                turnBadgeLayoutApplied = false;
+                runtimeLayoutApplied = false;
+            }
+        }
+    }
+
+    private void EnsureRequiredVisualLeafState()
+    {
+        if (playerNameText != null)
+        {
+            if (!playerNameText.gameObject.activeSelf)
+            {
+                playerNameText.gameObject.SetActive(true);
+            }
+
+            if (!playerNameText.enabled)
+            {
+                playerNameText.enabled = true;
+            }
+        }
+
+        if (turnBadgeText != null)
+        {
+            if (!turnBadgeText.gameObject.activeSelf)
+            {
+                turnBadgeText.gameObject.SetActive(true);
+            }
+
+            if (!turnBadgeText.enabled)
+            {
+                turnBadgeText.enabled = true;
+            }
+        }
+    }
+
     private void EnsureTurnBadgeLayout()
     {
         if (turnBadgeLayoutApplied ||
@@ -281,6 +472,16 @@ public class PlayerHudPanel : MonoBehaviour
                 RectTransform.Axis.Vertical, 18f);
             badgeRect.anchoredPosition =
                 new Vector2(-8f, -6f);
+        }
+        if (turnBadgeText != null)
+        {
+            RectTransform labelRect = turnBadgeText.rectTransform;
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = new Vector2(2f, 2f);
+            labelRect.offsetMax = new Vector2(-2f, -2f);
+            turnBadgeText.alignment = TextAlignmentOptions.Center;
+            turnBadgeText.color = Color.white;
         }
         turnBadgeLayoutApplied = true;
     }
@@ -359,7 +560,7 @@ public class PlayerHudPanel : MonoBehaviour
         ConfigureTopLane(
             playerNameText,
             54f,
-            68f,
+            50f,
             4f,
             18f,
             TextAlignmentOptions.TopLeft,

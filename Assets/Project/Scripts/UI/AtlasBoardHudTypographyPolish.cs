@@ -214,6 +214,14 @@ public sealed class AtlasBoardHudTypographyPolish :
             compactViewport);
     }
 
+    // Invoked by PlayerHudPanel only when a reusable HUD is re-armed or
+    // when its existing glyph mesh disappears. Uses the same font/viewport
+    // policy as this component's normal bootstrap, without a second owner.
+    public static void ReapplyToPanel(PlayerHudPanel panel)
+    {
+        ApplyToPanel(panel, GetLanguageCode(), IsCompactViewport());
+    }
+
     public static void ApplyToPanel(
         PlayerHudPanel panel,
         string languageCode,
