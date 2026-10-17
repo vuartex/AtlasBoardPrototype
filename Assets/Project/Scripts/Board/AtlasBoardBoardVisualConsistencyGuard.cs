@@ -15,7 +15,7 @@ public sealed class AtlasBoardBoardVisualConsistencyGuard :
         "__GroupBand";
 
     private const float ScanIntervalSeconds =
-        0.25f;
+        2f;
 
     private float nextScanAt;
     private int cleanedVisualCount;
@@ -133,31 +133,68 @@ public sealed class AtlasBoardBoardVisualConsistencyGuard :
             }
         }
 
-        int cleaned = 0;
+        int cleanedActive = 0;
 
-        // Runtime map application can rebuild the same tile more than once in
-        // a frame. Unity Destroy() is deferred, so an older implementation
-        // could leave both the previous-map root and the newest-map root alive.
-        // The newest generated root is appended last; keep only that root.
-        for (int index = 0;
-             index < generatedRoots.Count - 1;
-             index++)
+        // Keep the newest active generated root. Inactive roots are normally
+        // already queued for deferred Destroy() by the presenter and should
+        // not inflate the duplicate counter or warning noise.
+        Transform rootToKeep = null;
+
+        for (int index =
+                 generatedRoots.Count - 1;
+             index >= 0;
+             index--)
         {
-            DisableAndDestroy(
-                generatedRoots[index]);
+            Transform candidate =
+                generatedRoots[index];
 
-            cleaned++;
+            if (candidate != null &&
+                candidate.gameObject.activeSelf)
+            {
+                rootToKeep = candidate;
+                break;
+            }
+        }
+
+        if (rootToKeep == null &&
+            generatedRoots.Count > 0)
+        {
+            rootToKeep =
+                generatedRoots[
+                    generatedRoots.Count - 1];
+        }
+
+        foreach (Transform generatedRoot
+                 in generatedRoots)
+        {
+            if (generatedRoot == null ||
+                generatedRoot == rootToKeep)
+            {
+                continue;
+            }
+
+            if (generatedRoot.gameObject.activeSelf)
+            {
+                cleanedActive++;
+            }
+
+            DisableAndDestroy(generatedRoot);
         }
 
         // Current presentation nests label/band under __TileVisualRoot.
         // Any direct label/band is legacy generated state and can be removed.
         foreach (Transform legacy in legacyDirectVisuals)
         {
+            if (legacy != null &&
+                legacy.gameObject.activeSelf)
+            {
+                cleanedActive++;
+            }
+
             DisableAndDestroy(legacy);
-            cleaned++;
         }
 
-        return cleaned;
+        return cleanedActive;
     }
 
     private static void DisableAndDestroy(

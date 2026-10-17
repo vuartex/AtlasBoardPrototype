@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -24,6 +25,9 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         new Dictionary<string, long>(StringComparer.Ordinal);
     private static readonly Dictionary<string, long> CodeRenewAfter =
         new Dictionary<string, long>(StringComparer.Ordinal);
+    private static readonly object RoomWriterGateSync = new object();
+    private static readonly Dictionary<string, SemaphoreSlim> RoomWriterGates =
+        new Dictionary<string, SemaphoreSlim>(StringComparer.Ordinal);
 
     [Serializable] private sealed class Request
     {
@@ -81,6 +85,62 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         public bool Ok => Code >= 200 && Code < 300;
     }
 
+    private enum StoreSnapshotFailureKind
+    {
+        None,
+        StaleRevision,
+        Collision,
+        Transport
+    }
+
+    private sealed class StoreSnapshotResult
+    {
+        public bool Success;
+        public StoreSnapshotFailureKind FailureKind;
+        public long ExpectedRevision;
+        public long ActualRevision;
+        public long HttpCode;
+    }
+
+    private static SemaphoreSlim GetRoomWriterGate(string room)
+    {
+        lock (RoomWriterGateSync)
+        {
+            SemaphoreSlim gate;
+            if (!RoomWriterGates.TryGetValue(room, out gate))
+            {
+                gate = new SemaphoreSlim(1, 1);
+                RoomWriterGates[room] = gate;
+            }
+            return gate;
+        }
+    }
+
+    private static bool RequiresRoomWriterGate(string operation, string room)
+    {
+        if (string.IsNullOrWhiteSpace(room)) return false;
+        switch (operation)
+        {
+            // Snapshot/heartbeat are write-capable for the host while Waiting because they
+            // admit pending joins/readiness. Serialize every operation that can observe or
+            // mutate the same room lifecycle so Start cannot race its own host poll.
+            case "lobbyGetSnapshot":
+            case "lobbyHostHeartbeat":
+            case "lobbyUpdatePassword":
+            case "lobbyUpdateSettings":
+            case "lobbyConfigureSeats":
+            case "lobbySetPawnCosmetic":
+            case "lobbyKickMember":
+            case "lobbyStartMatch":
+            case "lobbySetReady":
+            case "lobbyLeaveRoom":
+            case "lobbyCloseRoom":
+                return true;
+            default:
+                return false;
+        }
+    }
+
     public static async Task<AtlasLobbyOperationResult> ExecuteAsync(
         string operation, string requestJson, string uid, string token,
         string activeRoom, AtlasLobbySnapshot current, string displayName)
@@ -90,6 +150,11 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         Request request = Parse<Request>(requestJson) ?? new Request();
         string room = !string.IsNullOrWhiteSpace(request.lobbyId)
             ? request.lobbyId : activeRoom;
+        SemaphoreSlim roomWriterGate = RequiresRoomWriterGate(operation, room)
+            ? GetRoomWriterGate(room)
+            : null;
+        if (roomWriterGate != null)
+            await roomWriterGate.WaitAsync();
         try
         {
             switch (operation)
@@ -151,6 +216,11 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             Debug.LogWarning("ATB_RTDB_LOBBY operation=" + operation +
                 " result=failed category=" + error.GetType().Name);
             return Failure("lobby.error.service_unavailable", "RTDB operation failed.");
+        }
+        finally
+        {
+            if (roomWriterGate != null)
+                roomWriterGate.Release();
         }
     }
 
@@ -667,13 +737,55 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         return AtlasLobbyOperationResult.Ok(snap,persistentCode,true);
     }
 
+    private static async Task<AtlasLobbySnapshot> ReadRoomSnapshotOnlyAsync(
+        string room, string token, int maxAttempts)
+    {
+        int attempts = Math.Max(1, Math.Min(maxAttempts, 3));
+        for (int attempt = 0; attempt < attempts; attempt++)
+        {
+            Response response = await Send("GET", "roomState/" + Safe(room), token);
+            State state = response.Ok ? Parse<State>(response.Body) : null;
+            AtlasLobbySnapshot snapshot = state != null
+                ? Parse<AtlasLobbySnapshot>(state.snapshotJson)
+                : null;
+            if (snapshot != null)
+            {
+                snapshot.TransportRevision = Math.Max(snapshot.TransportRevision, state.revision);
+                return snapshot;
+            }
+
+            if (attempt + 1 < attempts)
+                await Task.Delay(75);
+        }
+        return null;
+    }
+
+    private static async Task<bool> RollbackCreatedMatchAsync(string matchId, string token)
+    {
+        // DELETE is idempotent and matchId is generated uniquely by this Start attempt.
+        // A second bounded try repairs a transient response failure without touching any
+        // other room or match.
+        for (int attempt = 0; attempt < 2; attempt++)
+        {
+            if (await AtlasBoardSparkRtdbMatchTransport.DeleteCreatedMatchAsync(matchId, token))
+                return true;
+            if (attempt == 0)
+                await Task.Delay(75);
+        }
+        return false;
+    }
+
     // Called only on the authenticated room host. All unselected OPEN seats
     // become bots at Start, never implicit additional local humans. Explicit
     // LocalHuman/Bot seats and occupied remote humans remain untouched.
     private static async Task<AtlasLobbyOperationResult> StartCasualMatchAsync(
         string room, AtlasLobbySnapshot snap, string uid, string token,
-        int expectedSettingsRevision)
+        int expectedSettingsRevision, bool allowTransportRebase = true)
     {
+        int stableSettingsRevision = expectedSettingsRevision > 0
+            ? expectedSettingsRevision
+            : snap != null ? snap.SettingsRevision : 0;
+
         if (snap != null && expectedSettingsRevision > 0 &&
             expectedSettingsRevision != snap.SettingsRevision)
         {
@@ -688,6 +800,9 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             return Failure("lobby.error.not_joinable", "Invalid lobby seat configuration.");
         if (snap.LifecycleState != AtlasRoomLifecycleState.Waiting)
             return Failure("lobby.error.not_joinable", "Lobby is not waiting for a new match.");
+        if (!string.Equals(snap.HostAccountId, uid, StringComparison.Ordinal))
+            return Failure("lobby.error.access_denied", "Only the current room host can start this match.");
+
         for (int i = 1; i < snap.Members.Count; i++)
         {
             AtlasLobbyMemberSnapshot seat = snap.Members[i];
@@ -712,8 +827,9 @@ public static class AtlasBoardRtdbCasualLobbyTransport
                 seat.ReadyForRevision = snap.SettingsRevision;
                 continue;
             }
-            // A selected Bot or any unoccupied OpenOnline/RemoteHuman seat
-            // becomes a BOT. Never rewrite an occupied remote seat.
+
+            // A selected Bot or any unoccupied OpenOnline/RemoteHuman seat becomes a
+            // normal BOT. Do not infer temporary/permanent lifecycle history here.
             seat.Active = true;
             seat.IsHumanSeat = false;
             seat.SeatMode = AtlasLobbySeatMode.Bot;
@@ -727,24 +843,106 @@ public static class AtlasBoardRtdbCasualLobbyTransport
                 seat.DisplayName.StartsWith("Local Player", StringComparison.OrdinalIgnoreCase))
                 seat.DisplayName = "BOT " + (i + 1);
         }
+
         Recount(snap);
         string newMatch = Guid.NewGuid().ToString("N");
         snap.MatchId = newMatch;
         snap.StartEventId = Guid.NewGuid().ToString("N");
         snap.LifecycleState = AtlasRoomLifecycleState.Starting;
         snap.StartCountdownEndsAtEpochMs = Now() + 5000L;
-        // Create match state first. If the second write fails, delete only
-        // this new state; the previous lobby remains waiting.
+
+        // Create match state first. CAS on roomState is still the second line of defense
+        // against duplicate host processes. SettingsRevision is gameplay configuration;
+        // TransportRevision is only the authoritative room-state write sequence.
         bool created = await AtlasBoardSparkRtdbMatchTransport.CreateFromLobbyAsync(snap, token);
         if (!created)
             return Failure("lobby.error.service_unavailable",
                 "RTDB match state creation failed. Check matchState rules.");
-        bool saved = await StoreSnapshot(room, snap, token, Now());
-        if (!saved)
+
+        long attemptedTransportRevision = snap.TransportRevision;
+        StoreSnapshotResult saved = await StoreSnapshotDetailed(room, snap, token, Now());
+        if (!saved.Success)
         {
-            await AtlasBoardSparkRtdbMatchTransport.DeleteCreatedMatchAsync(newMatch, token);
-            return Failure("lobby.error.service_unavailable", "RTDB match start could not commit the lobby event.");
+            bool definitelyNotCommitted =
+                saved.FailureKind == StoreSnapshotFailureKind.StaleRevision ||
+                saved.FailureKind == StoreSnapshotFailureKind.Collision;
+
+            if (definitelyNotCommitted)
+            {
+                bool rolledBack = await RollbackCreatedMatchAsync(newMatch, token);
+                if (!rolledBack)
+                {
+                    Debug.LogWarning("ATB_RTDB_MATCH_START_ROLLBACK success=false match=" +
+                        newMatch + " reason=created_match_delete_failed");
+                    return Failure("lobby.error.service_unavailable",
+                        "RTDB match start did not commit and rollback could not be verified.");
+                }
+
+                AtlasLobbySnapshot latest = await ReadRoomSnapshotOnlyAsync(room, token, 3);
+                if (latest == null)
+                    return Failure("lobby.error.service_unavailable",
+                        "RTDB lobby changed during match start and could not be refreshed.");
+
+                if (latest.SettingsRevision != stableSettingsRevision)
+                {
+                    Debug.LogWarning("ATB_RTDB_MATCH_REVISION_STALE expected=" +
+                        stableSettingsRevision + " actual=" + latest.SettingsRevision +
+                        " stage=cas_rebase");
+                    return Failure("lobby.error.stale_settings",
+                        "Room settings changed; refresh before starting.");
+                }
+
+                if (allowTransportRebase &&
+                    latest.LifecycleState == AtlasRoomLifecycleState.Waiting &&
+                    string.Equals(latest.HostAccountId, uid, StringComparison.Ordinal))
+                {
+                    Debug.Log("ATB_RTDB_LOBBY_CAS_REBASE retry=true transport_old=" +
+                        attemptedTransportRevision + " transport_new=" +
+                        latest.TransportRevision + " settings_revision=" +
+                        stableSettingsRevision);
+                    return await StartCasualMatchAsync(
+                        room, latest, uid, token, stableSettingsRevision, false);
+                }
+
+                return Failure("lobby.error.service_unavailable",
+                    "RTDB match start lost the room-state CAS and was rolled back safely.");
+            }
+
+            // A timeout/non-CAS HTTP failure can be ambiguous: the Firebase PUT may have
+            // committed even if its response was lost. Verify roomState before deciding
+            // whether deleting the freshly-created match is safe.
+            AtlasLobbySnapshot verified = await ReadRoomSnapshotOnlyAsync(room, token, 3);
+            if (verified != null &&
+                string.Equals(verified.HostAccountId, uid, StringComparison.Ordinal) &&
+                string.Equals(verified.MatchId, newMatch, StringComparison.Ordinal) &&
+                verified.LifecycleState != AtlasRoomLifecycleState.Waiting)
+            {
+                snap = verified;
+                Debug.Log("ATB_RTDB_MATCH_START_OUTCOME verified=true committed=true match=" +
+                    newMatch);
+            }
+            else if (verified != null)
+            {
+                bool rolledBack = await RollbackCreatedMatchAsync(newMatch, token);
+                if (!rolledBack)
+                    Debug.LogWarning("ATB_RTDB_MATCH_START_ROLLBACK success=false match=" +
+                        newMatch + " reason=verified_uncommitted_delete_failed");
+                return Failure("lobby.error.service_unavailable",
+                    rolledBack
+                        ? "RTDB match start did not commit; the created match was rolled back."
+                        : "RTDB match start did not commit and rollback could not be verified.");
+            }
+            else
+            {
+                // Do not delete on an unknowable outcome: doing so could leave canonical
+                // roomState pointing at a match that this client just destroyed.
+                Debug.LogWarning("ATB_RTDB_MATCH_START_OUTCOME verified=false " +
+                    "rollback_deferred=true match=" + newMatch);
+                return Failure("lobby.error.service_unavailable",
+                    "RTDB match start outcome could not be verified; reconnect before retrying.");
+            }
         }
+
         if (snap.Visibility == AtlasRoomVisibility.Public)
             await StoreIndex(room, snap, token, Now());
         string code = await GetPersistedRoomCode(room, token);
@@ -928,45 +1126,82 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         s.Settings.RequiredHumanPlayers=remote+local;
     }
 
-    private static async Task<bool> StoreSnapshot(string room,AtlasLobbySnapshot snap,string token,long revision)
+    private static async Task<bool> StoreSnapshot(
+        string room, AtlasLobbySnapshot snap, string token, long revision)
     {
-        if (snap == null || snap.Settings == null) return false;
+        StoreSnapshotResult result =
+            await StoreSnapshotDetailed(room, snap, token, revision);
+        return result.Success;
+    }
+
+    private static async Task<StoreSnapshotResult> StoreSnapshotDetailed(
+        string room, AtlasLobbySnapshot snap, string token, long revision)
+    {
+        StoreSnapshotResult result = new StoreSnapshotResult
+        {
+            Success = false,
+            FailureKind = StoreSnapshotFailureKind.Transport,
+            ExpectedRevision = snap != null ? snap.TransportRevision : 0L
+        };
+        if (snap == null || snap.Settings == null) return result;
+
         string path = "roomState/" + Safe(room);
-        // Revision increments alone do not prevent lost updates: a late PUT
-        // previously overwrote a newer room snapshot. Read the ETag and
-        // compare the revision the caller actually observed before CAS PUT.
+        // SettingsRevision tracks gameplay configuration/readiness compatibility.
+        // TransportRevision + Firebase ETag guard the serialized room-state write stream.
         Response current = await Send("GET", path, token, null, null, null, true);
-        if (!current.Ok) return false;
+        result.HttpCode = current.Code;
+        if (!current.Ok) return result;
+
         State existing = Parse<State>(current.Body);
         long actual = existing != null ? existing.revision : 0L;
         long expected = snap.TransportRevision;
+        result.ExpectedRevision = expected;
+        result.ActualRevision = actual;
         if (actual != expected)
         {
+            result.FailureKind = StoreSnapshotFailureKind.StaleRevision;
             Debug.LogWarning("ATB_RTDB_LOBBY_CAS stale=true expected=" +
                 expected + " actual=" + actual);
-            return false;
+            return result;
         }
+
         string etag = !string.IsNullOrEmpty(current.ETag) ? current.ETag :
             existing == null ? "null_etag" : string.Empty;
-        if (string.IsNullOrEmpty(etag)) return false;
+        if (string.IsNullOrEmpty(etag)) return result;
+
         long nextRevision = Math.Max(Math.Max(revision, actual + 1L), Now());
-        // Do not modify caller's snapshot if this commit loses the race.
+        // Do not leave the caller advanced when the conditional PUT loses the race.
         snap.TransportRevision = nextRevision;
         string phase = snap.LifecycleState == AtlasRoomLifecycleState.Waiting
             ? "waiting" : snap.LifecycleState == AtlasRoomLifecycleState.Starting
                 ? "starting" : "in_match";
-        State state = new State {
-            revision = nextRevision, eventSequence = nextRevision,
-            updatedAt = Now(), phase = phase,
+        State state = new State
+        {
+            revision = nextRevision,
+            eventSequence = nextRevision,
+            updatedAt = Now(),
+            phase = phase,
             snapshotJson = JsonUtility.ToJson(snap)
         };
+
         Response saved = await Send("PUT", path, token,
             JsonUtility.ToJson(state), etag);
-        if (saved.Ok) return true;
+        result.HttpCode = saved.Code;
+        if (saved.Ok)
+        {
+            result.Success = true;
+            result.FailureKind = StoreSnapshotFailureKind.None;
+            result.ActualRevision = nextRevision;
+            return result;
+        }
+
         snap.TransportRevision = expected;
         if (saved.Code == 412)
+        {
+            result.FailureKind = StoreSnapshotFailureKind.Collision;
             Debug.LogWarning("ATB_RTDB_LOBBY_CAS collision=true room_unchanged=true");
-        return false;
+        }
+        return result;
     }
 
     private static async Task StoreIndex(string room,AtlasLobbySnapshot s,string token,long now)

@@ -15,6 +15,7 @@ MonoBehaviour:
   motionSetId: default_kenney_female_d
   displayName: Mini Character Female D Default Motion
   animatorController: {fileID: 9100000, guid: 07d5b99d4423c4f44a15c1737eea0beb, type: 2}
+  avatar: {fileID: 9000000, guid: 203b87cad80a3b94bb15b77b7689edc2, type: 3}
   hasIdle: 1
   hasWalk: 1
   hasSprint: 1

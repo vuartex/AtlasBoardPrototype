@@ -24,27 +24,11 @@
     "rules": "database.rules.json"
   },
   "emulators": {
-    "auth": {
-      "host": "127.0.0.1",
-      "port": 9099
-    },
-    "functions": {
-      "host": "127.0.0.1",
-      "port": 5001
-    },
-    "ui": {
-      "enabled": true,
-      "host": "127.0.0.1",
-      "port": 4000
-    },
+    "auth": {"host":"127.0.0.1","port":9099},
+    "functions": {"host":"127.0.0.1","port":5001},
+    "ui": {"enabled":true,"host":"127.0.0.1","port":4000},
     "singleProjectMode": true,
-    "firestore": {
-      "host": "127.0.0.1",
-      "port": 8080
-    },
-    "database": {
-      "host": "127.0.0.1",
-      "port": 9000
-    }
+    "firestore": {"host":"127.0.0.1","port":8080},
+    "database": {"host":"127.0.0.1","port":9000}
   }
 }

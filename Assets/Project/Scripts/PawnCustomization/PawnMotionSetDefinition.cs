@@ -17,6 +17,9 @@ public class PawnMotionSetDefinition :
     [SerializeField]
     private RuntimeAnimatorController animatorController;
 
+    [SerializeField]
+    private Avatar avatar;
+
     [Header("Available Motions")]
     [SerializeField]
     private bool hasIdle;
@@ -63,6 +66,9 @@ public class PawnMotionSetDefinition :
     public RuntimeAnimatorController
         AnimatorController =>
             animatorController;
+
+    public Avatar Avatar =>
+        avatar;
 
     public bool HasIdle =>
         hasIdle;

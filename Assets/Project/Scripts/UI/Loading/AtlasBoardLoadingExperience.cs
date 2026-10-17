@@ -504,16 +504,20 @@ public sealed class AtlasBoardLoadingExperience : MonoBehaviour
             return;
 
         AtlasLobbySnapshot lobby = lobbyBridge.CurrentSnapshot;
-
-        if (lobby == null || string.IsNullOrWhiteSpace(lobby.MatchId))
-            return;
-
         bool transition =
-            lobby.LifecycleState == AtlasRoomLifecycleState.Starting ||
-            lobby.LifecycleState == AtlasRoomLifecycleState.InMatch;
+            lobby != null &&
+            !string.IsNullOrWhiteSpace(lobby.MatchId) &&
+            (lobby.LifecycleState == AtlasRoomLifecycleState.Starting ||
+             lobby.LifecycleState == AtlasRoomLifecycleState.InMatch);
 
+        // A rematch/close can clear the match bridge before the lobby callback catches up.
+        // Once the canonical lobby is no longer Starting/InMatch, any old loading cycle is stale.
         if (!transition)
+        {
+            CancelStaleMatchLoading(
+                lobby == null ? "lobby_snapshot_cleared" : "lobby_transition_ended");
             return;
+        }
 
         AtlasMatchNetworkSnapshot match =
             matchBridge != null ? matchBridge.CurrentSnapshot : null;
@@ -539,11 +543,32 @@ public sealed class AtlasBoardLoadingExperience : MonoBehaviour
         }
     }
 
-    private void HandleLobbySnapshotChanged(AtlasLobbySnapshot snapshot)
+    private void CancelStaleMatchLoading(string reason)
     {
-        if (!startupComplete || snapshot == null)
+        if (mode != LoadingMode.Match)
             return;
 
+        bool hadTrackedMatch = !string.IsNullOrWhiteSpace(trackedMatchId);
+
+        // Invalidate any delayed CompleteMatchLoading continuation from the retired match.
+        // A later Starting/InMatch snapshot will start a fresh generation normally.
+        matchGeneration++;
+        trackedMatchId = string.Empty;
+        matchCompletionSignaled = false;
+        HideBlockingOverlay();
+
+        Debug.Log(
+            "ATB_MATCH_LOAD event=cancelled reason=" + reason +
+            " had_tracked_match=" + hadTrackedMatch.ToString().ToLowerInvariant());
+    }
+
+    private void HandleLobbySnapshotChanged(AtlasLobbySnapshot snapshot)
+    {
+        if (!startupComplete)
+            return;
+
+        // Re-evaluate even when the bridge reports a cleared snapshot so an old
+        // match-loading overlay cannot survive Leave/Close/session reset.
         ObserveMatchTransition();
     }
 

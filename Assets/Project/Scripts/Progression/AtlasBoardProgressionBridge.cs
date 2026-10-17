@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using Firebase.Auth;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -41,50 +42,58 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
             return FailedSnapshot();
         }
 
-        ProfileEnvelope envelope =
-            await CallFunctionAsync<EmptyRequest, ProfileEnvelope>(
-                "progressionGetProfile",
-                new EmptyRequest());
+        string uid = lobbyBridge.CurrentAccountId;
+        string token = lobbyBridge.AuthTokenForOnlineSubsystems;
 
-        if (envelope == null ||
-            envelope.result == null ||
-            !envelope.result.ok)
+        string fallbackDisplayName = string.Empty;
+        try
         {
+            FirebaseUser user = FirebaseAuth.DefaultInstance.CurrentUser;
+            if (user != null)
+                fallbackDisplayName = user.DisplayName ?? string.Empty;
+        }
+        catch
+        {
+            fallbackDisplayName = string.Empty;
+        }
+
+        if (string.IsNullOrWhiteSpace(fallbackDisplayName))
+        {
+            AtlasBoardPlatformRuntime platform = AtlasBoardPlatformRuntime.Instance;
+            if (platform != null &&
+                platform.IsSteamProviderActive &&
+                platform.SteamInitialized)
+            {
+                fallbackDisplayName =
+                    platform.SteamPersonaName ?? string.Empty;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(fallbackDisplayName))
+            fallbackDisplayName = "Atlas Player";
+
+        AtlasBoardProgressionSnapshot snapshot =
+            await AtlasBoardRtdbCareerReadModel.ReadProfileAsync(
+                uid,
+                token,
+                fallbackDisplayName);
+
+        if (snapshot == null || !snapshot.Success)
+        {
+            lastErrorKey =
+                snapshot != null &&
+                !string.IsNullOrWhiteSpace(snapshot.ErrorKey)
+                    ? snapshot.ErrorKey
+                    : "progression.error.service_unavailable";
+            lastTechnicalMessage =
+                snapshot != null
+                    ? snapshot.TechnicalMessage ?? string.Empty
+                    : "RTDB career profile returned no snapshot.";
             return FailedSnapshot();
         }
 
-        ProfileWire wire = envelope.result;
-        AtlasBoardProgressionSnapshot snapshot =
-            new AtlasBoardProgressionSnapshot
-            {
-                Success = true,
-                AccountId = wire.accountId ?? string.Empty,
-                DisplayName = wire.displayName ?? string.Empty,
-                AvatarId = wire.avatarId ?? string.Empty,
-                TotalXp = Mathf.Max(0, wire.totalXp),
-                Level = Mathf.Max(1, wire.level),
-                LevelStartXp = Mathf.Max(0, wire.levelStartXp),
-                NextLevelXp = Mathf.Max(0, wire.nextLevelXp),
-                MaxLevel = Mathf.Max(1, wire.maxLevel),
-                HistoryRetentionHours = Mathf.Max(1, wire.historyRetentionHours),
-                HistoryLimit = Mathf.Max(1, wire.historyLimit),
-                Stats = wire.stats ?? new AtlasBoardCareerStats()
-            };
-
-        if (wire.mapStats != null)
-        {
-            snapshot.MapStats.AddRange(wire.mapStats);
-        }
-
-        if (wire.achievements != null)
-        {
-            snapshot.Achievements.AddRange(wire.achievements);
-        }
-
-        if (wire.recentMatches != null)
-        {
-            snapshot.RecentMatches.AddRange(wire.recentMatches);
-        }
+        lastErrorKey = string.Empty;
+        lastTechnicalMessage = string.Empty;
 
         ProfileChanged?.Invoke(snapshot);
         return snapshot;
@@ -304,10 +313,6 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
         }
     }
 
-    [Serializable]
-    private sealed class EmptyRequest
-    {
-    }
 
     [Serializable]
     private sealed class RecordRequest
@@ -317,31 +322,6 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
         public AtlasBoardProgressionSlotTelemetry[] telemetry;
     }
 
-    [Serializable]
-    private sealed class ProfileEnvelope
-    {
-        public ProfileWire result;
-    }
-
-    [Serializable]
-    private sealed class ProfileWire
-    {
-        public bool ok;
-        public string accountId;
-        public string displayName;
-        public string avatarId;
-        public int totalXp;
-        public int level;
-        public int levelStartXp;
-        public int nextLevelXp;
-        public int maxLevel;
-        public AtlasBoardCareerStats stats;
-        public AtlasBoardMapCareerStats[] mapStats;
-        public AtlasBoardProgressionAchievement[] achievements;
-        public AtlasBoardProgressionMatchSummary[] recentMatches;
-        public int historyRetentionHours;
-        public int historyLimit;
-    }
 
     [Serializable]
     private sealed class RecordEnvelope

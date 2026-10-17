@@ -67,6 +67,15 @@ public static class AtlasBoardSparkRtdbMatchTransport
         public long revision, eventSequence, updatedAt;
         public string phase, snapshotJson;
     }
+    [Serializable]
+    private sealed class RoomMetaWire
+    {
+        public string hostUid, mode, mapId, themeId, passwordHash, inviteCode;
+        public string activeMatchId;
+        public long createdAt, updatedAt;
+        public int maxPlayers, roundLimit, authorityEpoch;
+        public bool closed;
+    }
     private struct Response
     {
         public long Status;
@@ -75,6 +84,8 @@ public static class AtlasBoardSparkRtdbMatchTransport
         public bool Ok => Status >= 200 && Status < 300;
     }
 
+    private const long HostCrashLeaseMs = 12000L;
+    private const long AuthorityCandidatePresenceMs = 10000L;
     private static long Now => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     private static readonly Dictionary<string,long> LastHostPresenceWrite =
         new Dictionary<string,long>(StringComparer.Ordinal);
@@ -82,7 +93,11 @@ public static class AtlasBoardSparkRtdbMatchTransport
         new Dictionary<string,long>(StringComparer.Ordinal);
     private static readonly Dictionary<string,AtlasMatchNetworkResult> LastMaintenanceResult =
         new Dictionary<string,AtlasMatchNetworkResult>(StringComparer.Ordinal);
+    private static readonly HashSet<string> AuthorityRepairCompleted =
+        new HashSet<string>(StringComparer.Ordinal);
     private static string PathKey(string value) => UnityWebRequest.EscapeURL(value ?? "");
+    private static string EscapeJson(string raw) => (raw ?? string.Empty)
+        .Replace("\\", "\\\\").Replace("\"", "\\\"");
     private static string StatePath(string match) => "matchState/" + PathKey(match);
     private static string IntentRoot(string lobby) => "intents/" + PathKey(lobby);
     private static string AckRoot(string lobby) => "intentAcks/" + PathKey(lobby);
@@ -197,6 +212,13 @@ public static class AtlasBoardSparkRtdbMatchTransport
             }
         }
         long now = Now;
+        int initialAuthorityEpoch = 1;
+        Response metaRead = await Send("GET",
+            "roomMeta/" + PathKey(lobby.LobbyId), token);
+        RoomMetaWire existingMeta = Decode<RoomMetaWire>(metaRead.Body);
+        if (metaRead.Ok && existingMeta != null)
+            initialAuthorityEpoch = Math.Max(1, existingMeta.authorityEpoch + 1);
+
         MatchState initial = new MatchState {
             matchId = lobby.MatchId,
             lobbyId = lobby.LobbyId,
@@ -208,7 +230,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
             seatsJson = JsonUtility.ToJson(new SeatsWire { seats = seats.ToArray() }),
             revision = 0,
             eventSequence = 0,
-            authorityEpoch = 1,
+            authorityEpoch = initialAuthorityEpoch,
             networkSchemaVersion = 1,
             createdAt = now,
             updatedAt = now,
@@ -246,6 +268,23 @@ public static class AtlasBoardSparkRtdbMatchTransport
                     " host_member_active=" + memberActive +
                     " check=deployed_rules_if_both_true");
             }
+        }
+        if (result.Ok)
+        {
+            // roomMeta is the single authority lock for both gameplay and lobby.
+            // Older deployed rules may reject these optional fields; gameplay
+            // still starts, but crash takeover stays disabled until rules update.
+            Response authorityAnchor = await Send("PATCH",
+                "roomMeta/" + PathKey(lobby.LobbyId), token,
+                "{\"activeMatchId\":\"" + EscapeJson(lobby.MatchId) +
+                "\",\"authorityEpoch\":" + initialAuthorityEpoch +
+                ",\"updatedAt\":" + now + "}");
+            if (!authorityAnchor.Ok)
+                Debug.LogWarning("ATB_RTDB_AUTHORITY_ANCHOR ready=false http=" +
+                    authorityAnchor.Status + " migration_disabled_for_match=true");
+            else
+                Debug.Log("ATB_RTDB_AUTHORITY_ANCHOR ready=true epoch=" +
+                    initialAuthorityEpoch);
         }
         return result.Ok;
     }
@@ -491,9 +530,433 @@ public static class AtlasBoardSparkRtdbMatchTransport
     {
         AtlasMatchNetworkResult state = await SnapshotAsync(matchId, uid, token);
         if (!state.Success || state.Snapshot == null) return state;
+
+        if (state.Snapshot.LocalIsHost)
+        {
+            // The old Host must never move roomMeta authority and then attempt
+            // the matchState transfer with its now-stale token. Instead it
+            // publishes one final safe checkpoint with an expired host lease.
+            // The connected successor wins the existing authorityEpoch CAS
+            // using its own identity, so rules reject every stale Host writer.
+            return await PrepareGracefulHostDepartureAsync(
+                matchId, uid, token);
+        }
+
         Response result = await Send("PUT", "matchPresence/" + PathKey(matchId) +
-            "/" + PathKey(uid), token, "{\"online\":false,\"lastSeenAt\":"+Now+"}");
+            "/" + PathKey(uid), token,
+            "{\"online\":false,\"lastSeenAt\":" + Now + "}");
         return result.Ok ? state : Failure("RTDB departure: " + FailReason(result));
+    }
+
+    private static async Task<AtlasMatchNetworkResult>
+        PrepareGracefulHostDepartureAsync(
+            string matchId, string uid, string token)
+    {
+        long now = Now;
+        string matchPath = StatePath(matchId);
+
+        Response matchRead = await Send(
+            "GET", matchPath, token, null, null, true);
+
+        MatchState state = Decode<MatchState>(matchRead.Body);
+        if (!matchRead.Ok ||
+            state == null ||
+            string.IsNullOrEmpty(matchRead.ETag))
+        {
+            return Failure(
+                "RTDB graceful handoff match read: " +
+                FailReason(matchRead));
+        }
+
+        if (!string.Equals(
+                state.hostUid,
+                uid,
+                StringComparison.Ordinal))
+        {
+            return AtlasMatchNetworkResult.Fail(
+                "match.error.access_denied",
+                "Only the current Host can arm graceful handoff.");
+        }
+
+        SeatsWire roster = Decode<SeatsWire>(state.seatsJson);
+        Dictionary<string, PresenceWire> presence =
+            await ReadPresenceAsync(matchId, token);
+
+        SeatWire successor =
+            FindEligibleAuthoritySeat(
+                roster,
+                null,
+                presence,
+                now);
+
+        if (successor == null)
+        {
+            return AtlasMatchNetworkResult.Fail(
+                "match.error.host_migration_not_safe",
+                "No connected Remote Human is eligible to become Host.");
+        }
+
+        // This write is still performed while the old Host owns roomMeta.
+        // Only the lease is retired here; authority itself is NOT transferred.
+        // The selected follower must claim roomMeta + authorityEpoch through
+        // RecoverCrashedHostAsync with its own authenticated token.
+        state.revision++;
+        state.updatedAt = now;
+        state.hostHeartbeatAt =
+            now - HostCrashLeaseMs - 1000L;
+
+        Response armed = await Send(
+            "PUT",
+            matchPath,
+            token,
+            JsonUtility.ToJson(state),
+            matchRead.ETag);
+
+        if (!armed.Ok)
+        {
+            if (armed.Status == 412)
+            {
+                return AtlasMatchNetworkResult.Fail(
+                    "match.error.host_migration_not_safe",
+                    "The safe checkpoint changed while graceful handoff was arming.");
+            }
+
+            return Failure(
+                "RTDB graceful handoff checkpoint: " +
+                FailReason(armed));
+        }
+
+        Response presenceWrite = await Send(
+            "PUT",
+            "matchPresence/" + PathKey(matchId) +
+                "/" + PathKey(uid),
+            token,
+            "{\"online\":false,\"lastSeenAt\":" + now + "}");
+
+        if (!presenceWrite.Ok)
+        {
+            Debug.LogWarning(
+                "ATB_RTDB_AUTHORITY_HANDOFF armed=true " +
+                "host_presence_offline=false cause=" +
+                FailReason(presenceWrite));
+        }
+
+        string maintenanceKey = matchId + ":" + uid;
+        LastMaintenanceCheck.Remove(maintenanceKey);
+        LastMaintenanceResult.Remove(maintenanceKey);
+        LastHostPresenceWrite.Remove(maintenanceKey);
+
+        Debug.Log(
+            "ATB_RTDB_AUTHORITY_HANDOFF armed=true " +
+            "successor_slot=" + successor.slotIndex +
+            " epoch=" + state.authorityEpoch +
+            " takeover=pending_successor_cas");
+
+        return new AtlasMatchNetworkResult
+        {
+            Success = true,
+            Snapshot = ToSnapshot(state, uid),
+            Revision = state.revision
+        };
+    }
+
+    internal static async Task<AtlasMatchNetworkResult> RecoverCrashedHostAsync(
+        string matchId, string uid, string token)
+    {
+        return await TransferAuthorityAsync(matchId, uid, token);
+    }
+
+    private static SeatWire FindEligibleAuthoritySeat(
+        SeatsWire roster, string uid, Dictionary<string, PresenceWire> presence, long now)
+    {
+        if (roster == null || roster.seats == null) return null;
+        SeatWire best = null;
+        foreach (SeatWire seat in roster.seats)
+        {
+            if (seat == null || seat.host || seat.afkLockedOut ||
+                seat.mode != "remotehuman" || string.IsNullOrEmpty(seat.uid))
+                continue;
+            PresenceWire p;
+            presence.TryGetValue(seat.uid, out p);
+            bool recent = p != null && p.online &&
+                now - p.lastSeenAt >= 0 &&
+                now - p.lastSeenAt <= AuthorityCandidatePresenceMs;
+            if (!recent) continue;
+            if (uid != null && seat.uid != uid) continue;
+            if (best == null || seat.slotIndex < best.slotIndex)
+                best = seat;
+        }
+        return best;
+    }
+
+    private static async Task<Dictionary<string, PresenceWire>> ReadPresenceAsync(
+        string matchId, string token)
+    {
+        Dictionary<string, PresenceWire> result =
+            new Dictionary<string, PresenceWire>(StringComparer.Ordinal);
+        Response read = await Send("GET",
+            "matchPresence/" + PathKey(matchId), token);
+        if (!read.Ok) return result;
+        foreach (KeyValuePair<string,string> item in ObjectMembers(read.Body))
+        {
+            PresenceWire p = Decode<PresenceWire>(item.Value);
+            if (p != null) result[item.Key] = p;
+        }
+        return result;
+    }
+
+    private static void ApplyAuthoritySeatTransfer(
+        SeatsWire roster, string oldHostUid, string newHostUid, long now)
+    {
+        if (roster == null || roster.seats == null) return;
+        foreach (SeatWire seat in roster.seats)
+        {
+            if (seat == null) continue;
+            bool wasHost = seat.host || seat.uid == oldHostUid;
+            bool becomesHost = seat.uid == newHostUid;
+            if (wasHost && !becomesHost)
+            {
+                // The old human keeps the exact seat/economy/property state.
+                // Only input ownership changes to a temporary bot for 5 minutes.
+                seat.host = false;
+                seat.mode = "remotehuman";
+                seat.controller = "temporary_bot";
+                seat.connection = "reconnecting";
+                seat.disconnectedAt = now;
+                seat.reconnectExpiresAt = now + ReconnectWindowMs;
+                seat.removalReason = "host_disconnected";
+            }
+            if (becomesHost)
+            {
+                seat.host = true;
+                seat.mode = "hostlocal";
+                seat.controller = "human";
+                seat.connection = "connected";
+                seat.afkLockedOut = false;
+                seat.disconnectedAt = 0;
+                seat.reconnectExpiresAt = 0;
+                seat.removalReason = "";
+            }
+        }
+    }
+
+    private static async Task<bool> RepairLobbyAuthorityAsync(
+        MatchState state, string oldHostUid, string newHostUid, string token)
+    {
+        if (state == null || string.IsNullOrEmpty(state.lobbyId)) return false;
+
+        // Roles are presentation/lobby metadata. The room authority lock has
+        // already changed, so only the new host is allowed to repair them.
+        if (string.IsNullOrEmpty(oldHostUid))
+        {
+            SeatsWire migrated = Decode<SeatsWire>(state.seatsJson);
+            if (migrated != null && migrated.seats != null)
+                foreach (SeatWire seat in migrated.seats)
+                    if (seat != null && seat.uid != newHostUid &&
+                        seat.removalReason == "host_disconnected")
+                    {
+                        oldHostUid = seat.uid;
+                        break;
+                    }
+        }
+        if (!string.IsNullOrEmpty(oldHostUid) && oldHostUid != newHostUid)
+            await Send("PATCH", "roomMembers/" + PathKey(state.lobbyId) +
+                "/" + PathKey(oldHostUid), token, "{\"role\":\"remoteHuman\"}");
+        await Send("PATCH", "roomMembers/" + PathKey(state.lobbyId) +
+            "/" + PathKey(newHostUid), token, "{\"role\":\"host\"}");
+
+        Response roomRead = await Send("GET",
+            "roomState/" + PathKey(state.lobbyId), token, null, null, true);
+        RoomWire wire = Decode<RoomWire>(roomRead.Body);
+        if (!roomRead.Ok || wire == null || string.IsNullOrEmpty(roomRead.ETag))
+            return false;
+        AtlasLobbySnapshot lobby = Decode<AtlasLobbySnapshot>(wire.snapshotJson);
+        if (lobby == null) return false;
+        bool lobbyChanged = !string.Equals(
+            lobby.HostAccountId, newHostUid, StringComparison.Ordinal);
+        lobby.HostAccountId = newHostUid;
+        if (lobby.Members != null)
+        {
+            foreach (AtlasLobbyMemberSnapshot member in lobby.Members)
+            {
+                if (member == null) continue;
+                bool isNewHost = string.Equals(
+                    member.AccountId, newHostUid, StringComparison.Ordinal);
+                bool isOldHost = string.Equals(
+                    member.AccountId, oldHostUid, StringComparison.Ordinal);
+                if (member.IsHost != isNewHost)
+                    lobbyChanged = true;
+                member.IsHost = isNewHost;
+                if (isNewHost)
+                {
+                    if (member.SeatMode != AtlasLobbySeatMode.HostLocal ||
+                        member.ControllerKind != AtlasSeatControllerKind.Human ||
+                        member.ConnectionState != AtlasSeatConnectionState.Connected)
+                        lobbyChanged = true;
+                    member.SeatMode = AtlasLobbySeatMode.HostLocal;
+                    member.LocalOwnerAccountId = newHostUid;
+                    member.ControllerKind = AtlasSeatControllerKind.Human;
+                    member.ConnectionState = AtlasSeatConnectionState.Connected;
+                }
+                else if (isOldHost)
+                {
+                    if (member.SeatMode != AtlasLobbySeatMode.RemoteHuman ||
+                        member.ControllerKind != AtlasSeatControllerKind.TemporaryBot ||
+                        member.ConnectionState != AtlasSeatConnectionState.Reconnecting)
+                        lobbyChanged = true;
+                    member.SeatMode = AtlasLobbySeatMode.RemoteHuman;
+                    member.ControllerKind = AtlasSeatControllerKind.TemporaryBot;
+                    member.ConnectionState = AtlasSeatConnectionState.Reconnecting;
+                }
+            }
+        }
+        if (!lobbyChanged)
+            return true;
+        wire.revision = Math.Max(wire.revision + 1, Now);
+        wire.eventSequence = Math.Max(wire.eventSequence, wire.revision);
+        wire.updatedAt = Now;
+        lobby.TransportRevision = wire.revision;
+        wire.snapshotJson = JsonUtility.ToJson(lobby);
+        Response saved = await Send("PUT",
+            "roomState/" + PathKey(state.lobbyId), token,
+            JsonUtility.ToJson(wire), roomRead.ETag);
+        return saved.Ok;
+    }
+
+    private static async Task<AtlasMatchNetworkResult> TransferAuthorityAsync(
+        string matchId, string requesterUid, string token)
+    {
+        long now = Now;
+        string matchPath = StatePath(matchId);
+        Response matchRead = await Send("GET", matchPath, token, null, null, true);
+        MatchState state = Decode<MatchState>(matchRead.Body);
+        if (!matchRead.Ok || state == null || string.IsNullOrEmpty(matchRead.ETag))
+            return Failure("RTDB authority match read: " + FailReason(matchRead));
+
+        string oldHostUid = state.hostUid ?? "";
+        if (oldHostUid == requesterUid)
+        {
+            await RepairLobbyAuthorityAsync(state, "", requesterUid, token);
+            return new AtlasMatchNetworkResult {
+                Success = true, Snapshot = ToSnapshot(state, requesterUid),
+                Revision = state.revision
+            };
+        }
+        SeatsWire roster = Decode<SeatsWire>(state.seatsJson);
+        Dictionary<string, PresenceWire> presence =
+            await ReadPresenceAsync(matchId, token);
+
+        SeatWire successor =
+            FindEligibleAuthoritySeat(
+                roster,
+                requesterUid,
+                presence,
+                now);
+        if (successor == null)
+            return AtlasMatchNetworkResult.Fail(
+                "match.error.host_migration_not_safe",
+                "No connected Remote Human is eligible to become host.");
+
+        string newHostUid = successor.uid;
+        Response metaRead = await Send("GET",
+            "roomMeta/" + PathKey(state.lobbyId), token, null, null, true);
+        RoomMetaWire meta = Decode<RoomMetaWire>(metaRead.Body);
+        if (!metaRead.Ok || meta == null || string.IsNullOrEmpty(metaRead.ETag))
+            return Failure("RTDB authority room read: " + FailReason(metaRead));
+        if (meta.closed ||
+            !string.Equals(meta.activeMatchId, matchId, StringComparison.Ordinal))
+            return AtlasMatchNetworkResult.Fail(
+                "match.error.host_migration_not_safe",
+                "Room authority anchor no longer matches this match.");
+
+        bool resumePendingSync =
+            meta.hostUid == requesterUid &&
+            state.hostUid != requesterUid &&
+            meta.authorityEpoch == state.authorityEpoch + 1;
+
+        int nextEpoch;
+        if (resumePendingSync)
+        {
+            nextEpoch = meta.authorityEpoch;
+        }
+        else
+        {
+            if (meta.hostUid != oldHostUid ||
+                meta.authorityEpoch != state.authorityEpoch)
+                return AtlasMatchNetworkResult.Fail(
+                    "match.error.host_migration_not_safe",
+                    "Another client already changed room authority.");
+
+            if (now - state.hostHeartbeatAt < HostCrashLeaseMs)
+                return AtlasMatchNetworkResult.Fail(
+                    "match.error.host_migration_not_safe",
+                    "Host heartbeat lease is still valid.");
+
+            nextEpoch = Math.Max(1, state.authorityEpoch + 1);
+            meta.hostUid = newHostUid;
+            meta.authorityEpoch = nextEpoch;
+            meta.updatedAt = now;
+            Response metaWrite = await Send("PUT",
+                "roomMeta/" + PathKey(state.lobbyId), token,
+                JsonUtility.ToJson(meta), metaRead.ETag);
+            if (!metaWrite.Ok)
+            {
+                if (metaWrite.Status == 412 || metaWrite.Status == 401 ||
+                    metaWrite.Status == 403)
+                    return AtlasMatchNetworkResult.Fail(
+                        "match.error.host_migration_not_safe",
+                        "Another client won the authority CAS.");
+                return Failure("RTDB authority lock write: " + FailReason(metaWrite));
+            }
+        }
+
+        // roomMeta is the authority lock. Once it moves, rules immediately
+        // reject stale old-host publishes, intents cleanup and lobby writes.
+        ApplyAuthoritySeatTransfer(roster, oldHostUid, newHostUid, now);
+        state.hostUid = newHostUid;
+        state.authorityEpoch = nextEpoch;
+        state.seatsJson = JsonUtility.ToJson(roster);
+        state.revision++;
+        state.updatedAt = now;
+        state.hostHeartbeatAt = now;
+        Response matchWrite = await Send("PUT", matchPath, token,
+            JsonUtility.ToJson(state), matchRead.ETag);
+        if (!matchWrite.Ok)
+        {
+            // Never roll the lock back to the stale host. The elected client
+            // retries this exact synchronization using the same room epoch.
+            Debug.LogWarning("ATB_RTDB_AUTHORITY_SYNC pending=true epoch=" +
+                nextEpoch + " cause=" + FailReason(matchWrite));
+            return AtlasMatchNetworkResult.Fail(
+                "match.error.host_migration_not_safe",
+                "Authority lock moved, but match synchronization must retry.");
+        }
+
+        await Send("PUT", "matchPresence/" + PathKey(matchId) +
+            "/" + PathKey(newHostUid), token,
+            "{\"online\":true,\"lastSeenAt\":" + now + "}");
+
+        if (requesterUid == newHostUid &&
+            await RepairLobbyAuthorityAsync(state, oldHostUid, newHostUid, token))
+            AuthorityRepairCompleted.Add(matchId + ":" + nextEpoch);
+
+        string oldKey = matchId + ":" + oldHostUid;
+        string newKey = matchId + ":" + newHostUid;
+        LastMaintenanceCheck.Remove(oldKey);
+        LastMaintenanceResult.Remove(oldKey);
+        LastHostPresenceWrite.Remove(oldKey);
+        LastMaintenanceCheck.Remove(newKey);
+        LastMaintenanceResult.Remove(newKey);
+        LastHostPresenceWrite.Remove(newKey);
+
+        Debug.Log(
+            "ATB_RTDB_AUTHORITY_TRANSFER committed=true mode=takeover " +
+            "epoch=" + nextEpoch);
+        return new AtlasMatchNetworkResult {
+            Success = true,
+            Snapshot = ToSnapshot(state, requesterUid),
+            Revision = state.revision
+        };
     }
 
     private const long RemotePresenceTimeoutMs = 20000L;
@@ -594,6 +1057,35 @@ public static class AtlasBoardSparkRtdbMatchTransport
             return Failure("RTDB maintenance read: " + FailReason(read));
         if (state.hostUid != uid)
             return AtlasMatchNetworkResult.Fail("match.error.access_denied","Host required.");
+
+        // Backfill/repair the room authority anchor. This makes matches that
+        // started before the migration-capable client safe after rules update.
+        Response metaRead = await Send("GET",
+            "roomMeta/" + PathKey(state.lobbyId), token);
+        RoomMetaWire meta = Decode<RoomMetaWire>(metaRead.Body);
+        if (metaRead.Ok && meta != null &&
+            (meta.hostUid != uid ||
+             meta.authorityEpoch != state.authorityEpoch ||
+             !string.Equals(meta.activeMatchId, matchId, StringComparison.Ordinal)))
+        {
+            if (meta.hostUid == uid)
+            {
+                Response anchored = await Send("PATCH",
+                    "roomMeta/" + PathKey(state.lobbyId), token,
+                    "{\"activeMatchId\":\"" + EscapeJson(matchId) +
+                    "\",\"authorityEpoch\":" + state.authorityEpoch +
+                    ",\"updatedAt\":" + now + "}");
+                if (anchored.Ok)
+                    meta.activeMatchId = matchId;
+            }
+        }
+        string repairKey = matchId + ":" + state.authorityEpoch;
+        if (!AuthorityRepairCompleted.Contains(repairKey))
+        {
+            if (await RepairLobbyAuthorityAsync(state, "", uid, token))
+                AuthorityRepairCompleted.Add(repairKey);
+        }
+
         SeatsWire roster = Decode<SeatsWire>(state.seatsJson);
         if (roster == null || roster.seats == null)
             return Failure("RTDB maintenance seats are missing.");
@@ -764,10 +1256,18 @@ public static class AtlasBoardSparkRtdbMatchTransport
             Debug.LogWarning("ATB_RTDB_REMATCH_CLEANUP pending=true presence=" +
                 presenceDeleted.Status + " intents=" + intentsDeleted.Status +
                 " acks=" + acksDeleted.Status + " match=" + matchDeleted.Status);
+        Response authorityCleared = await Send("PATCH",
+            "roomMeta/" + PathKey(lobby.LobbyId), token,
+            "{\"activeMatchId\":\"\",\"updatedAt\":" + Now + "}");
+        if (!authorityCleared.Ok)
+            Debug.LogWarning("ATB_RTDB_REMATCH_CLEANUP stage=authority_anchor http=" +
+                authorityCleared.Status);
+        clean = clean && authorityCleared.Ok;
         string maintenanceKey = matchId + ":" + uid;
         LastMaintenanceCheck.Remove(maintenanceKey);
         LastMaintenanceResult.Remove(maintenanceKey);
         LastHostPresenceWrite.Remove(maintenanceKey);
+        AuthorityRepairCompleted.Remove(matchId + ":" + current.Snapshot.AuthorityEpoch);
         if (!clean)
             return Failure("Rematch lobby is Waiting, but cleanup of its old match " +
                 "failed. Do not start another match until cleanup succeeds.");

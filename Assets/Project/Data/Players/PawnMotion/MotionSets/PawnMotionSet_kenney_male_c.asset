@@ -15,6 +15,7 @@ MonoBehaviour:
   motionSetId: default_kenney_male_c
   displayName: Mini Character Male C Default Motion
   animatorController: {fileID: 9100000, guid: 56c723e144cf36144a2b901a3ce7c83b, type: 2}
+  avatar: {fileID: 9000000, guid: 8226cafbe48fd4a45bbc4e2968bb2815, type: 3}
   hasIdle: 1
   hasWalk: 1
   hasSprint: 1

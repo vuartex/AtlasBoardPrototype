@@ -69,6 +69,8 @@ public class BoardTileVisualPresenter : MonoBehaviour
     private BoardTile tile;
     private Renderer tileRenderer;
     private Transform visualRoot;
+    private int lastVisualSignature;
+    private bool hasVisualSignature;
 
     private void OnEnable()
     {
@@ -102,18 +104,19 @@ public class BoardTileVisualPresenter : MonoBehaviour
             return;
         }
 
-        // Clean both the current generated root AND legacy
-        // direct children left by earlier readability versions.
-        // Those old objects can otherwise render a second, blurry
-        // label on top of the current one.
-        RemoveGeneratedVisual(
-            VisualRootObjectName);
+        int visualSignature =
+            BuildVisualSignature();
 
-        RemoveGeneratedVisual(
-            LabelObjectName);
+        if (hasVisualSignature &&
+            lastVisualSignature == visualSignature &&
+            HasSingleActiveGeneratedRoot())
+        {
+            return;
+        }
 
-        RemoveGeneratedVisual(
-            BandObjectName);
+        // Destroy() is deferred in Play Mode. Remove every matching direct
+        // child and hide it immediately before creating the replacement.
+        RemoveAllGeneratedVisuals();
 
         CreateNeutralVisualRoot();
 
@@ -124,19 +127,17 @@ public class BoardTileVisualPresenter : MonoBehaviour
         {
             CreateGroupBand();
         }
+
+        lastVisualSignature = visualSignature;
+        hasVisualSignature = true;
     }
 
     [ContextMenu("Clean Legacy Tile Visuals")]
     private void CleanLegacyTileVisuals()
     {
-        RemoveGeneratedVisual(
-            VisualRootObjectName);
-
-        RemoveGeneratedVisual(
-            LabelObjectName);
-
-        RemoveGeneratedVisual(
-            BandObjectName);
+        RemoveAllGeneratedVisuals();
+        hasVisualSignature = false;
+        lastVisualSignature = 0;
 
         Debug.Log(
             $"Cleaned generated tile visuals on {name}.",
@@ -725,26 +726,109 @@ public class BoardTileVisualPresenter : MonoBehaviour
             : 1f;
     }
 
-    private void RemoveGeneratedVisual(
-        string childName)
+    private int BuildVisualSignature()
     {
-        Transform child =
-            transform.Find(
-                childName);
-
-        if (child == null)
+        unchecked
         {
-            return;
+            int hash = 17;
+            hash = hash * 31 + tile.TileIndex;
+            hash = hash * 31 + (int)tile.TileType;
+            hash = hash * 31 +
+                (tile.BoardDisplayName ?? string.Empty).GetHashCode();
+            hash = hash * 31 + tile.PurchasePrice;
+            hash = hash * 31 +
+                (tile.GroupId ?? string.Empty).GetHashCode();
+            hash = hash * 31 + (showPropertyPrice ? 1 : 0);
+
+            string language =
+                AtlasBoardLocalizationManager.Instance != null
+                    ? AtlasBoardLocalizationManager.Instance
+                        .CurrentLanguageCode ?? "en"
+                    : "en";
+
+            hash = hash * 31 + language.GetHashCode();
+
+            Vector3 scale = transform.lossyScale;
+            hash = hash * 31 + Mathf.RoundToInt(scale.x * 10000f);
+            hash = hash * 31 + Mathf.RoundToInt(scale.y * 10000f);
+            hash = hash * 31 + Mathf.RoundToInt(scale.z * 10000f);
+            return hash;
+        }
+    }
+
+    private bool HasSingleActiveGeneratedRoot()
+    {
+        int activeRootCount = 0;
+
+        for (int index = 0;
+             index < transform.childCount;
+             index++)
+        {
+            Transform child = transform.GetChild(index);
+            if (child == null)
+            {
+                continue;
+            }
+
+            bool active =
+                child.gameObject.activeSelf;
+
+            if (child.name == VisualRootObjectName)
+            {
+                if (active)
+                {
+                    activeRootCount++;
+                    visualRoot = child;
+                }
+
+                continue;
+            }
+
+            if (active &&
+                (child.name == LabelObjectName ||
+                 child.name == BandObjectName))
+            {
+                return false;
+            }
         }
 
-        if (childName ==
-            VisualRootObjectName)
-        {
-            visualRoot = null;
-        }
+        return activeRootCount == 1;
+    }
 
-        DestroyGeneratedObject(
-            child.gameObject);
+    private void RemoveAllGeneratedVisuals()
+    {
+        visualRoot = null;
+
+        for (int index =
+                 transform.childCount - 1;
+             index >= 0;
+             index--)
+        {
+            Transform child =
+                transform.GetChild(index);
+
+            if (child == null)
+            {
+                continue;
+            }
+
+            if (child.name != VisualRootObjectName &&
+                child.name != LabelObjectName &&
+                child.name != BandObjectName)
+            {
+                continue;
+            }
+
+            GameObject childObject =
+                child.gameObject;
+
+            if (childObject.activeSelf)
+            {
+                childObject.SetActive(false);
+            }
+
+            DestroyGeneratedObject(childObject);
+        }
     }
 
     private static void DestroyGeneratedObject(

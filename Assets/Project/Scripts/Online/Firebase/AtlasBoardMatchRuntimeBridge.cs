@@ -223,11 +223,17 @@ public sealed class AtlasBoardMatchRuntimeBridge : MonoBehaviour
             AcceptSnapshot(result.Snapshot);
         return result;
     }
-    public Task<AtlasMatchNetworkResult> TryRecoverCrashedHostAsync(string matchId = "")
+    public async Task<AtlasMatchNetworkResult> TryRecoverCrashedHostAsync(string matchId = "")
     {
-        // Host migration cannot be asserted without a trusted epoch transaction.
-        return Task.FromResult(AtlasMatchNetworkResult.Fail(
-            "match.error.service_unavailable", "Spark Casual host failover is not validated."));
+        string match = ResolveMatchId(matchId);
+        int generation = sessionGeneration;
+        AtlasMatchNetworkResult result = await WithIdentity((uid, token) =>
+            AtlasBoardSparkRtdbMatchTransport.RecoverCrashedHostAsync(
+                match, uid, token));
+        if (generation == sessionGeneration && result.Success &&
+            result.Snapshot != null)
+            AcceptSnapshot(result.Snapshot);
+        return result;
     }
     public Task<AtlasMatchNetworkResult> HostMarkAfkRemovedAsync(
         int slotIndex, string matchId = "")

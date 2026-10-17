@@ -31,7 +31,8 @@ public static class AtlasBoardRtdbUserProfileMirror
     private const string DeviceIdPrefsKey =
         "atlasboard.identity.deviceId.v1";
 
-    private static bool syncInFlight;
+    private static readonly object SyncGate = new object();
+    private static Task<bool> syncTask;
     private static string lastSyncedUid = string.Empty;
     private static long lastSyncAtMs;
 
@@ -45,6 +46,7 @@ public static class AtlasBoardRtdbUserProfileMirror
         public long createdAt;
         public long updatedAt;
         public long lastDisplayNameChangeAt;
+        public GeneralDto general;
     }
 
     [Serializable]
@@ -82,13 +84,38 @@ public static class AtlasBoardRtdbUserProfileMirror
         public long lastSeenAt;
     }
 
-    public static async Task<bool> SyncCurrentUserAsync(
+    public static Task<bool> SyncCurrentUserAsync(
         string canonicalDisplayName,
-        bool force = false)
+        bool force = false,
+        string countryCodeOverride = null,
+        string languageCodeOverride = null)
     {
-        if (syncInFlight)
-            return false;
+        lock (SyncGate)
+        {
+            // Account bootstrap and the background mirror can arrive in the
+            // same frame. They must await one authoritative sync instead of
+            // racing and letting AccountService read /users/{uid} too early.
+            if (syncTask != null && !syncTask.IsCompleted)
+            {
+                return syncTask;
+            }
 
+            syncTask = SyncCurrentUserCoreAsync(
+                canonicalDisplayName,
+                force,
+                countryCodeOverride,
+                languageCodeOverride);
+
+            return syncTask;
+        }
+    }
+
+    private static async Task<bool> SyncCurrentUserCoreAsync(
+        string canonicalDisplayName,
+        bool force,
+        string countryCodeOverride,
+        string languageCodeOverride)
+    {
         FirebaseAuth auth;
         FirebaseUser user;
 
@@ -114,22 +141,20 @@ public static class AtlasBoardRtdbUserProfileMirror
             return true;
         }
 
-        syncInFlight = true;
-
         try
         {
-            string token = await user.TokenAsync(false);
-            if (string.IsNullOrWhiteSpace(token))
-                return false;
-
             string baseUrl = ResolveDatabaseUrl();
             string uid = user.UserId;
             string encodedUid = UnityWebRequest.EscapeURL(uid);
-            string authQuery = "?auth=" + UnityWebRequest.EscapeURL(token);
-            string userUrl = baseUrl + "/users/" + encodedUid + ".json" + authQuery;
+            string userPath = "/users/" + encodedUid + ".json";
 
             ExistingUser existing = null;
-            string currentJson = await SendAsync("GET", userUrl, null);
+            string currentJson = await SendAuthenticatedAsync(
+                user,
+                "GET",
+                baseUrl,
+                userPath,
+                null);
 
             if (!string.IsNullOrWhiteSpace(currentJson) &&
                 !string.Equals(currentJson.Trim(), "null", StringComparison.OrdinalIgnoreCase))
@@ -144,12 +169,48 @@ public static class AtlasBoardRtdbUserProfileMirror
                 }
             }
 
-            string displayName = string.IsNullOrWhiteSpace(canonicalDisplayName)
-                ? (user.DisplayName ?? string.Empty).Trim()
-                : canonicalDisplayName.Trim();
+            string displayName = !string.IsNullOrWhiteSpace(canonicalDisplayName)
+                ? canonicalDisplayName.Trim()
+                : existing != null && !string.IsNullOrWhiteSpace(existing.displayName)
+                    ? existing.displayName.Trim()
+                    : (user.DisplayName ?? string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(displayName))
+            {
+                AtlasBoardPlatformRuntime platformRuntime =
+                    AtlasBoardPlatformRuntime.Instance;
+
+                if (platformRuntime != null &&
+                    platformRuntime.IsSteamProviderActive &&
+                    platformRuntime.SteamInitialized &&
+                    !string.IsNullOrWhiteSpace(platformRuntime.SteamPersonaName))
+                {
+                    displayName = platformRuntime.SteamPersonaName.Trim();
+                }
+            }
 
             if (string.IsNullOrWhiteSpace(displayName))
                 displayName = AtlasBoardGuestIdentity.DisplayName;
+
+            string languageCode = NormalizeLanguageCode(languageCodeOverride);
+            if (string.IsNullOrEmpty(languageCode) &&
+                existing != null &&
+                existing.general != null)
+            {
+                languageCode = NormalizeLanguageCode(existing.general.language);
+            }
+            if (string.IsNullOrEmpty(languageCode))
+                languageCode = ResolveLanguageCode();
+
+            string countryCode = NormalizeCountryCode(countryCodeOverride);
+            if (string.IsNullOrEmpty(countryCode) &&
+                existing != null &&
+                existing.general != null)
+            {
+                countryCode = NormalizeCountryCode(existing.general.countryCode);
+            }
+            if (string.IsNullOrEmpty(countryCode))
+                countryCode = "ZZ";
 
             string email = (user.Email ?? string.Empty).Trim();
             long createdAt = existing != null && existing.createdAt > 0
@@ -184,25 +245,26 @@ public static class AtlasBoardRtdbUserProfileMirror
                 {
                     schemaVersion = 1,
                     accountType = "registered",
-                    language = ResolveLanguageCode(),
-                    countryCode = "ZZ",
+                    language = languageCode,
+                    countryCode = countryCode,
                     lastSeenAt = now
                 }
             };
 
-            await SendAsync(
+            await SendAuthenticatedAsync(
+                user,
                 "PATCH",
-                userUrl,
+                baseUrl,
+                userPath,
                 JsonUtility.ToJson(payload));
 
             string platform = ResolvePlatformKey();
             string deviceId = GetOrCreateDeviceId();
-            string deviceUrl =
-                baseUrl +
+            string devicePath =
                 "/users/" + encodedUid +
                 "/platforms/" + UnityWebRequest.EscapeURL(platform) +
                 "/devices/" + UnityWebRequest.EscapeURL(deviceId) +
-                ".json" + authQuery;
+                ".json";
 
             long existingFirstSeen = ReadLocalFirstSeen(uid, platform, deviceId);
             if (existingFirstSeen <= 0)
@@ -222,9 +284,11 @@ public static class AtlasBoardRtdbUserProfileMirror
                 lastSeenAt = now
             };
 
-            await SendAsync(
+            await SendAuthenticatedAsync(
+                user,
                 "PUT",
-                deviceUrl,
+                baseUrl,
+                devicePath,
                 JsonUtility.ToJson(device));
 
             lastSyncedUid = uid;
@@ -244,20 +308,89 @@ public static class AtlasBoardRtdbUserProfileMirror
             Debug.LogWarning(
                 "ATB_RTDB_USER_SYNC success=false type=" +
                 error.GetType().Name +
+                " emailPresent=" +
+                (!string.IsNullOrWhiteSpace(user != null ? user.Email : null)
+                    ? "true"
+                    : "false") +
                 " message=" + Sanitize(error.Message));
 
             return false;
         }
-        finally
+    }
+
+    private static async Task<string> SendAuthenticatedAsync(
+        FirebaseUser user,
+        string method,
+        string baseUrl,
+        string relativePath,
+        string json)
+    {
+        if (user == null)
+            throw new InvalidOperationException("Firebase user is unavailable.");
+
+        string token = await user.TokenAsync(false);
+        if (string.IsNullOrWhiteSpace(token))
+            throw new InvalidOperationException("Firebase ID token is unavailable.");
+
+        try
         {
-            syncInFlight = false;
+            return await SendAsync(
+                method,
+                BuildAuthenticatedUrl(baseUrl, relativePath, token),
+                json,
+                false);
+        }
+        catch (RtdbHttpException error) when (error.ResponseCode == 401)
+        {
+            // Firebase ID/App Check tokens may cross an expiry boundary while
+            // the Editor is already signed in. Refresh both once; never loop.
+            string refreshedToken = await user.TokenAsync(true);
+            if (string.IsNullOrWhiteSpace(refreshedToken))
+                throw;
+
+            Debug.Log(
+                "ATB_RTDB_USER_SYNC auth_retry=true reason=http_401 once=true " +
+                "appcheck_force_refresh=false");
+
+            // RTDB 401 can be a Security Rules denial. Refreshing App Check
+            // on every permission denial previously caused a debug-token
+            // exchange storm without changing the rule outcome.
+            return await SendAsync(
+                method,
+                BuildAuthenticatedUrl(baseUrl, relativePath, refreshedToken),
+                json,
+                false);
+        }
+    }
+
+    private static string BuildAuthenticatedUrl(
+        string baseUrl,
+        string relativePath,
+        string token)
+    {
+        return baseUrl.TrimEnd('/') +
+               relativePath +
+               "?auth=" + UnityWebRequest.EscapeURL(token);
+    }
+
+    private sealed class RtdbHttpException : InvalidOperationException
+    {
+        public long ResponseCode { get; }
+
+        public RtdbHttpException(
+            long responseCode,
+            string message)
+            : base(message)
+        {
+            ResponseCode = responseCode;
         }
     }
 
     private static async Task<string> SendAsync(
         string method,
         string url,
-        string json)
+        string json,
+        bool forceAppCheckRefresh)
     {
         using (UnityWebRequest request = new UnityWebRequest(url, method))
         {
@@ -270,6 +403,11 @@ public static class AtlasBoardRtdbUserProfileMirror
                 request.SetRequestHeader("Content-Type", "application/json");
             }
 
+            request.timeout = 15;
+            await AtlasBoardAppCheckRequestSecurity.ApplyAsync(
+                request,
+                forceAppCheckRefresh);
+
             UnityWebRequestAsyncOperation operation = request.SendWebRequest();
             TaskCompletionSource<bool> completion = new TaskCompletionSource<bool>();
             operation.completed += _ => completion.TrySetResult(true);
@@ -277,9 +415,18 @@ public static class AtlasBoardRtdbUserProfileMirror
 
             if (request.result != UnityWebRequest.Result.Success)
             {
-                throw new InvalidOperationException(
-                    "HTTP " + request.responseCode + " " +
-                    (request.error ?? "request failed"));
+                string responseBody = request.downloadHandler != null
+                    ? request.downloadHandler.text
+                    : string.Empty;
+
+                throw new RtdbHttpException(
+                    request.responseCode,
+                    "method=" + method +
+                    " HTTP " + request.responseCode + " " +
+                    (request.error ?? "request failed") +
+                    (string.IsNullOrWhiteSpace(responseBody)
+                        ? string.Empty
+                        : " body=" + Truncate(Sanitize(responseBody), 180)));
             }
 
             return request.downloadHandler != null
@@ -348,6 +495,30 @@ public static class AtlasBoardRtdbUserProfileMirror
             default:
                 return "other";
         }
+    }
+
+    private static string NormalizeLanguageCode(string raw)
+    {
+        string normalized = (raw ?? string.Empty).Trim().ToLowerInvariant();
+        return AtlasBoardAccountConstants.SupportedLanguageCodes.Contains(normalized)
+            ? normalized
+            : string.Empty;
+    }
+
+    private static string NormalizeCountryCode(string raw)
+    {
+        string normalized = (raw ?? string.Empty).Trim().ToUpperInvariant();
+        if (normalized.Length != 2)
+            return string.Empty;
+
+        for (int i = 0; i < normalized.Length; i++)
+        {
+            char c = normalized[i];
+            if (c < 'A' || c > 'Z')
+                return string.Empty;
+        }
+
+        return normalized;
     }
 
     private static string ResolveLanguageCode()

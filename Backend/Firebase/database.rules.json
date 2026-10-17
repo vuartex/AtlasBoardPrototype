@@ -14,7 +14,7 @@
           ".validate": "newData.isString() && newData.val().length >= 12 && newData.val().length <= 40"
         },
         "email": {
-          ".validate": "newData.isString() && newData.val().length >= 3 && newData.val().length <= 254 && auth.token.email != null && newData.val() === auth.token.email"
+          ".validate": "newData.isString() && newData.val().length <= 254 && ((auth.token.email != null && newData.val().length >= 3 && newData.val() === auth.token.email) || (auth.token.email == null && newData.val() === ''))"
         },
         "displayName": {
           ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 32"
@@ -157,10 +157,10 @@
     "roomMeta": {
       "$roomId": {
         ".read": "auth != null && (data.child('hostUid').val() === auth.uid || root.child('roomMembers').child($roomId).child(auth.uid).child('active').val() === true)",
-        ".write": "auth != null && ((!data.exists() && newData.child('hostUid').val() === auth.uid) || (data.exists() && data.child('hostUid').val() === auth.uid && (!newData.exists() || newData.child('hostUid').val() === auth.uid)))",
+        ".write": "auth != null && ((!data.exists() && newData.exists() && newData.child('hostUid').val() === auth.uid) || (data.exists() && data.child('hostUid').val() === auth.uid && (!newData.exists() || newData.child('hostUid').val() === data.child('hostUid').val())) || (data.exists() && newData.exists() && data.child('closed').val() === false && newData.child('hostUid').val() !== data.child('hostUid').val() && newData.child('authorityEpoch').val() === data.child('authorityEpoch').val() + 1 && newData.child('activeMatchId').val() === data.child('activeMatchId').val() && root.child('roomMembers').child($roomId).child(newData.child('hostUid').val()).child('active').val() === true && root.child('roomMembers').child($roomId).child(newData.child('hostUid').val()).child('role').val() === 'remoteHuman' && root.child('matchState').child(data.child('activeMatchId').val()).child('hostUid').val() === data.child('hostUid').val() && root.child('matchState').child(data.child('activeMatchId').val()).child('authorityEpoch').val() === data.child('authorityEpoch').val() && ((data.child('hostUid').val() === auth.uid) || (newData.child('hostUid').val() === auth.uid && root.child('matchState').child(data.child('activeMatchId').val()).child('hostHeartbeatAt').val() <= now - 12000))))",
         ".validate": "!newData.exists() || newData.hasChildren(['hostUid','mode','createdAt','updatedAt','closed','maxPlayers'])",
         "hostUid": {
-          ".validate": "newData.isString() && newData.val() === auth.uid && (!data.exists() || newData.val() === data.val())"
+          ".validate": "newData.isString() && newData.val().length > 0"
         },
         "mode": {
           ".validate": "newData.isString() && (newData.val() === 'privateCasualOnline' || newData.val() === 'publicCasualOnline') && (!data.exists() || newData.val() === data.val())"
@@ -194,6 +194,12 @@
         },
         "inviteCode": {
           ".validate": "newData.isString() && (newData.val().length === 0 || newData.val().matches(/^[0-9]{6}$/))"
+        },
+        "authorityEpoch": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && (!data.exists() || newData.val() >= data.val())"
+        },
+        "activeMatchId": {
+          ".validate": "newData.isString() && newData.val().length <= 64"
         }
       }
     },
@@ -474,8 +480,8 @@
     "matchState": {
       "$matchId": {
         ".read": "auth != null && (!data.exists() || root.child('roomMembers').child(data.child('lobbyId').val()).child(auth.uid).child('active').val() === true)",
-        ".write": "auth != null && ((!data.exists() && newData.exists() && newData.child('hostUid').val() === auth.uid && root.child('roomMeta').child(newData.child('lobbyId').val()).child('hostUid').val() === auth.uid && root.child('roomMeta').child(newData.child('lobbyId').val()).child('closed').val() === false) || (data.exists() && data.child('hostUid').val() === auth.uid && (!newData.exists() || (newData.child('hostUid').val() === auth.uid && newData.child('matchId').val() === data.child('matchId').val() && newData.child('lobbyId').val() === data.child('lobbyId').val()))))",
-        ".validate": "!newData.exists() || (newData.hasChildren(['matchId','lobbyId','hostUid','status','phase','revision','eventSequence','snapshotJson','seatsJson','createdAt','updatedAt','hostHeartbeatAt','authorityEpoch','networkSchemaVersion']) && newData.child('matchId').val() === $matchId && newData.child('hostUid').val() === root.child('roomMeta').child(newData.child('lobbyId').val()).child('hostUid').val() && (!data.exists() || newData.child('revision').val() >= data.child('revision').val()) && (!data.exists() || newData.child('eventSequence').val() >= data.child('eventSequence').val()))",
+        ".write": "auth != null && ((!data.exists() && newData.exists() && newData.child('hostUid').val() === auth.uid && root.child('roomMeta').child(newData.child('lobbyId').val()).child('hostUid').val() === auth.uid && root.child('roomMeta').child(newData.child('lobbyId').val()).child('closed').val() === false) || (data.exists() && data.child('hostUid').val() === auth.uid && root.child('roomMeta').child(data.child('lobbyId').val()).child('hostUid').val() === auth.uid && (!newData.exists() || (newData.child('hostUid').val() === auth.uid && newData.child('matchId').val() === data.child('matchId').val() && newData.child('lobbyId').val() === data.child('lobbyId').val()))) || (data.exists() && newData.exists() && data.child('hostUid').val() !== auth.uid && root.child('roomMeta').child(data.child('lobbyId').val()).child('hostUid').val() === auth.uid && root.child('roomMeta').child(data.child('lobbyId').val()).child('activeMatchId').val() === $matchId && newData.child('hostUid').val() === auth.uid && newData.child('authorityEpoch').val() === data.child('authorityEpoch').val() + 1 && newData.child('revision').val() === data.child('revision').val() + 1 && newData.child('matchId').val() === data.child('matchId').val() && newData.child('lobbyId').val() === data.child('lobbyId').val()))",
+        ".validate": "!newData.exists() || (newData.hasChildren(['matchId','lobbyId','hostUid','status','phase','revision','eventSequence','snapshotJson','seatsJson','createdAt','updatedAt','hostHeartbeatAt','authorityEpoch','networkSchemaVersion']) && newData.child('matchId').val() === $matchId && newData.child('hostUid').val() === root.child('roomMeta').child(newData.child('lobbyId').val()).child('hostUid').val() && (!data.exists() || newData.child('revision').val() >= data.child('revision').val()) && (!data.exists() || newData.child('eventSequence').val() >= data.child('eventSequence').val()) && (!data.exists() || ((newData.child('hostUid').val() === data.child('hostUid').val() && newData.child('authorityEpoch').val() === data.child('authorityEpoch').val()) || (newData.child('hostUid').val() !== data.child('hostUid').val() && newData.child('authorityEpoch').val() === data.child('authorityEpoch').val() + 1))))",
         "matchId": {
           ".validate": "newData.isString() && newData.val() === $matchId && newData.val().length >= 12 && newData.val().length <= 64"
         },
@@ -483,7 +489,7 @@
           ".validate": "newData.isString() && newData.val().length >= 20 && newData.val().length <= 64"
         },
         "hostUid": {
-          ".validate": "newData.isString() && newData.val() === auth.uid"
+          ".validate": "newData.isString() && newData.val().length > 0"
         },
         "status": {
           ".validate": "newData.isString() && (newData.val() === 'active' || newData.val() === 'complete' || newData.val() === 'closed')"
@@ -529,7 +535,7 @@
     "matchPresence": {
       "$matchId": {
         ".read": "auth != null && root.child('roomMembers').child(root.child('matchState').child($matchId).child('lobbyId').val()).child(auth.uid).child('active').val() === true",
-        ".write": "auth != null && root.child('matchState').child($matchId).child('hostUid').val() === auth.uid && !newData.exists()",
+        ".write": "auth != null && root.child('roomMeta').child(root.child('matchState').child($matchId).child('lobbyId').val()).child('hostUid').val() === auth.uid && !newData.exists()",
         "$uid": {
           ".write": "auth != null && auth.uid === $uid && root.child('roomMembers').child(root.child('matchState').child($matchId).child('lobbyId').val()).child($uid).child('active').val() === true",
           ".validate": "!newData.exists() || newData.hasChildren(['online','lastSeenAt'])",
@@ -542,6 +548,30 @@
           "$other": {
             ".validate": false
           }
+        }
+      }
+    },
+    "publicProfiles": {
+      ".read": false,
+      ".write": false,
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.exists() && newData.hasChildren(['displayName','avatarId','profileFrameId','updatedAt'])",
+        "displayName": {
+          ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 32"
+        },
+        "avatarId": {
+          ".validate": "newData.isString() && newData.val().length <= 64"
+        },
+        "profileFrameId": {
+          ".validate": "newData.isString() && newData.val().length <= 64"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber() && newData.val() >= now - 300000 && newData.val() <= now + 300000"
+        },
+        "$other": {
+          ".validate": false
         }
       }
     }

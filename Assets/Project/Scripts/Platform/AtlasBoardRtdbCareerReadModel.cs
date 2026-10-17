@@ -54,6 +54,145 @@ public sealed class AtlasBoardRtdbCareerReadModel : MonoBehaviour
         public AtlasBoardMapCareerStats[] mapStats;
         public AtlasBoardProgressionAchievement[] achievements;
         public AtlasBoardProgressionMatchSummary[] recentMatches;
+        public int historyRetentionHours = 72;
+        public int historyLimit = 10;
+    }
+
+    public static async Task<AtlasBoardProgressionSnapshot> ReadProfileAsync(
+        string uid,
+        string idToken,
+        string fallbackDisplayName)
+    {
+        if (string.IsNullOrWhiteSpace(uid) ||
+            string.IsNullOrWhiteSpace(idToken))
+        {
+            return FailedProfile(
+                "progression.error.identity_unavailable",
+                "Authenticated RTDB career identity is unavailable.");
+        }
+
+        string endpoint = DatabaseUrl + "/careerProfiles/" +
+            UnityWebRequest.EscapeURL(uid) + ".json?auth=" +
+            UnityWebRequest.EscapeURL(idToken);
+
+        using (UnityWebRequest request = UnityWebRequest.Get(endpoint))
+        {
+            request.timeout = 12;
+            await AtlasBoardAppCheckRequestSecurity.ApplyAsync(request);
+
+            UnityWebRequestAsyncOperation operation = request.SendWebRequest();
+            TaskCompletionSource<bool> completion =
+                new TaskCompletionSource<bool>();
+
+            operation.completed += _ => completion.TrySetResult(true);
+            if (operation.isDone)
+                completion.TrySetResult(true);
+
+            await completion.Task;
+
+            if (request.result != UnityWebRequest.Result.Success)
+            {
+                return FailedProfile(
+                    "progression.error.service_unavailable",
+                    "RTDB_HTTP_" + request.responseCode);
+            }
+
+            string json = request.downloadHandler != null
+                ? request.downloadHandler.text
+                : string.Empty;
+
+            if (string.IsNullOrWhiteSpace(json) ||
+                json.Trim() == "null")
+            {
+                // A new/legacy account may have no server-owned projection yet.
+                // Zero-value Career is valid and must not block startup (ATB120).
+                return new AtlasBoardProgressionSnapshot
+                {
+                    Success = true,
+                    AccountId = uid,
+                    DisplayName = fallbackDisplayName ?? string.Empty,
+                    TotalXp = 0,
+                    Level = 1,
+                    MaxLevel = 100,
+                    HistoryRetentionHours = 72,
+                    HistoryLimit = 10,
+                    Stats = new AtlasBoardCareerStats(),
+                    TechnicalMessage = "empty_authoritative_profile"
+                };
+            }
+
+            CareerWire wire = null;
+            try
+            {
+                wire = JsonUtility.FromJson<CareerWire>(json);
+            }
+            catch
+            {
+                wire = null;
+            }
+
+            if (wire == null ||
+                !string.Equals(
+                    wire.accountId,
+                    uid,
+                    StringComparison.Ordinal))
+            {
+                return FailedProfile(
+                    "progression.error.service_unavailable",
+                    "invalid_rtdb_career_projection");
+            }
+
+            AtlasBoardProgressionSnapshot snapshot =
+                new AtlasBoardProgressionSnapshot
+                {
+                    Success = true,
+                    AccountId = uid,
+                    DisplayName = string.IsNullOrWhiteSpace(wire.displayName)
+                        ? fallbackDisplayName ?? string.Empty
+                        : wire.displayName,
+                    AvatarId = wire.avatarId ?? string.Empty,
+                    TotalXp = Mathf.Max(0, wire.totalXp),
+                    Level = Mathf.Max(1, wire.level),
+                    LevelStartXp = Mathf.Max(0, wire.levelStartXp),
+                    NextLevelXp = Mathf.Max(0, wire.nextLevelXp),
+                    MaxLevel = Mathf.Max(1, wire.maxLevel),
+                    HistoryRetentionHours =
+                        wire.historyRetentionHours > 0
+                            ? wire.historyRetentionHours
+                            : 72,
+                    HistoryLimit =
+                        wire.historyLimit > 0
+                            ? wire.historyLimit
+                            : 10,
+                    Stats = wire.stats ?? new AtlasBoardCareerStats()
+                };
+
+            if (wire.mapStats != null)
+                snapshot.MapStats.AddRange(wire.mapStats);
+            if (wire.achievements != null)
+                snapshot.Achievements.AddRange(wire.achievements);
+            if (wire.recentMatches != null)
+                snapshot.RecentMatches.AddRange(wire.recentMatches);
+
+            return snapshot;
+        }
+    }
+
+    private static AtlasBoardProgressionSnapshot FailedProfile(
+        string errorKey,
+        string technicalMessage)
+    {
+        return new AtlasBoardProgressionSnapshot
+        {
+            Success = false,
+            ErrorKey = errorKey,
+            TechnicalMessage = technicalMessage ?? string.Empty,
+            Level = 1,
+            MaxLevel = 100,
+            HistoryRetentionHours = 72,
+            HistoryLimit = 10,
+            Stats = new AtlasBoardCareerStats()
+        };
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -190,77 +329,66 @@ public sealed class AtlasBoardRtdbCareerReadModel : MonoBehaviour
             FirebaseUser user = FirebaseAuth.DefaultInstance.CurrentUser;
             if (user == null || user.IsAnonymous || user.UserId != uid)
                 return;
+
             string idToken = await user.TokenAsync(false);
-            if (string.IsNullOrEmpty(idToken)) return;
-            string endpoint = DatabaseUrl + "/careerProfiles/" +
-                UnityWebRequest.EscapeURL(uid) + ".json?auth=" +
-                UnityWebRequest.EscapeURL(idToken);
-            using (UnityWebRequest request = UnityWebRequest.Get(endpoint))
+            if (string.IsNullOrEmpty(idToken))
+                return;
+
+            AtlasBoardProgressionSnapshot snapshot =
+                await ReadProfileAsync(
+                    uid,
+                    idToken,
+                    DisplayName(identityAtStart));
+
+            if (this == null ||
+                career == null ||
+                lastIdentity != identityAtStart)
             {
-                request.timeout = 12;
-                UnityWebRequestAsyncOperation operation = request.SendWebRequest();
-                TaskCompletionSource<bool> completion = new TaskCompletionSource<bool>();
-                operation.completed += _ => completion.TrySetResult(true);
-                if (operation.isDone) completion.TrySetResult(true);
-                await completion.Task;
-                if (this == null || career == null || lastIdentity != identityAtStart)
-                    return;
-                if (request.result != UnityWebRequest.Result.Success)
-                {
-                    lastState = "unavailable";
-                    Debug.LogWarning("ATB_CAREER_RTDB_READ unavailable status=" +
-                        request.responseCode + " (no reward fallback)");
-                    return;
-                }
-                string json = request.downloadHandler != null
-                    ? request.downloadHandler.text : "";
-                if (string.IsNullOrWhiteSpace(json) || json.Trim() == "null")
-                {
-                    lastState = "empty_authoritative_profile";
-                    return;
-                }
-                CareerWire wire = JsonUtility.FromJson<CareerWire>(json);
-                if (wire == null || wire.accountId != uid)
-                {
-                    lastState = "invalid_projection";
-                    return;
-                }
-                // Values are trusted only because careerProfiles is non-client-
-                // writable in RTDB Rules. No client ever writes to this path.
-                AtlasBoardProgressionSnapshot snapshot =
-                    new AtlasBoardProgressionSnapshot
-                    {
-                        Success = true,
-                        AccountId = uid,
-                        DisplayName = string.IsNullOrEmpty(wire.displayName)
-                            ? DisplayName(identityAtStart) : wire.displayName,
-                        AvatarId = wire.avatarId ?? "",
-                        TotalXp = Mathf.Max(0, wire.totalXp),
-                        Level = Mathf.Max(1, wire.level),
-                        LevelStartXp = Mathf.Max(0, wire.levelStartXp),
-                        NextLevelXp = Mathf.Max(0, wire.nextLevelXp),
-                        MaxLevel = Mathf.Max(1, wire.maxLevel),
-                        Stats = wire.stats ?? new AtlasBoardCareerStats()
-                    };
-                if (wire.mapStats != null) snapshot.MapStats.AddRange(wire.mapStats);
-                if (wire.achievements != null)
-                    snapshot.Achievements.AddRange(wire.achievements);
-                if (wire.recentMatches != null)
-                    snapshot.RecentMatches.AddRange(wire.recentMatches);
-                SnapshotField.SetValue(career, snapshot);
-                RebuildMethod.Invoke(career, null);
-                lastState = "server_projection_loaded";
-                Debug.Log("ATB_CAREER_RTDB_READ projection=true uidPrefix=" +
-                    uid.Substring(0, Mathf.Min(7, uid.Length)));
+                return;
             }
+
+            if (snapshot == null || !snapshot.Success)
+            {
+                lastState = "unavailable";
+                Debug.LogWarning(
+                    "ATB_CAREER_RTDB_READ unavailable=true reason=" +
+                    (snapshot != null
+                        ? snapshot.TechnicalMessage
+                        : "null_snapshot") +
+                    " (no reward fallback)");
+                return;
+            }
+
+            SnapshotField.SetValue(career, snapshot);
+            RebuildMethod.Invoke(career, null);
+
+            lastState =
+                string.Equals(
+                    snapshot.TechnicalMessage,
+                    "empty_authoritative_profile",
+                    StringComparison.Ordinal)
+                    ? "empty_authoritative_profile"
+                    : "server_projection_loaded";
+
+            Debug.Log(
+                "ATB_CAREER_RTDB_READ projection=" +
+                (lastState == "server_projection_loaded"
+                    ? "true"
+                    : "empty") +
+                " uidPrefix=" +
+                uid.Substring(0, Mathf.Min(7, uid.Length)));
         }
         catch (Exception exception)
         {
             lastState = "unavailable";
-            Debug.LogWarning("ATB_CAREER_RTDB_READ failedType=" +
+            Debug.LogWarning(
+                "ATB_CAREER_RTDB_READ failedType=" +
                 exception.GetType().Name);
         }
-        finally { fetching = false; }
+        finally
+        {
+            fetching = false;
+        }
     }
 
     // Status remains in lastState for diagnostics and secure read decisions.

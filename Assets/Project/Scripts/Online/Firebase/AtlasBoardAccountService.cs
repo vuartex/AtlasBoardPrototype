@@ -1,13 +1,16 @@
 using System;
-using System.Collections.Generic;
+using System.Text;
 using System.Threading.Tasks;
 using Firebase;
 using Firebase.Auth;
-using Firebase.Firestore;
 using UnityEngine;
+using UnityEngine.Networking;
 
 public sealed class AtlasBoardAccountService : MonoBehaviour
 {
+    private const string Database =
+        "https://atlasboard-usa-default-rtdb.europe-west1.firebasedatabase.app";
+
     public static AtlasBoardAccountService Instance { get; private set; }
 
     public bool IsInitialized { get; private set; }
@@ -20,8 +23,59 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
         auth != null && auth.CurrentUser != null;
 
     private FirebaseAuth auth;
-    private FirebaseFirestore firestore;
     private Task initializationTask;
+
+    [Serializable]
+    private sealed class GeneralWire
+    {
+        public int schemaVersion = 1;
+        public string accountType = "registered";
+        public string language = "en";
+        public string countryCode = "ZZ";
+        public long lastSeenAt;
+    }
+
+    [Serializable]
+    private sealed class SettingsWire
+    {
+        public int schemaVersion = 1;
+        public string language = "en";
+        public string crossplayPreference =
+            AtlasBoardAccountConstants.DefaultCrossplayPreference;
+    }
+
+    [Serializable]
+    private sealed class UserWire
+    {
+        public string userId;
+        public string playerId;
+        public string email;
+        public string displayName;
+        public long createdAt;
+        public long updatedAt;
+        public long lastDisplayNameChangeAt;
+        public string accountStatus;
+        public string membershipTier;
+        public GeneralWire general;
+        public SettingsWire settings;
+    }
+
+    [Serializable]
+    private sealed class PublicProfileWire
+    {
+        public string displayName;
+        public string avatarId;
+        public string profileFrameId;
+        public long updatedAt;
+    }
+
+    [Serializable]
+    private sealed class SettingsPatchWire
+    {
+        public int schemaVersion = 1;
+        public string language;
+        public string crossplayPreference;
+    }
 
     private void Awake()
     {
@@ -39,17 +93,13 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
     private void OnDestroy()
     {
         if (Instance == this)
-        {
             Instance = null;
-        }
     }
 
     public Task EnsureInitializedAsync()
     {
         if (initializationTask == null)
-        {
             initializationTask = InitializeAsync();
-        }
 
         return initializationTask;
     }
@@ -57,9 +107,7 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
     private async Task InitializeAsync()
     {
         if (IsInitialized)
-        {
             return;
-        }
 
         DependencyStatus dependencyStatus =
             await FirebaseApp.CheckAndFixDependenciesAsync();
@@ -67,15 +115,14 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
         if (dependencyStatus != DependencyStatus.Available)
         {
             Debug.LogError(
-                "AtlasBoard Account Runtime v1 could not initialize Firebase. " +
-                $"Dependency status: {dependencyStatus}.",
+                "AtlasBoard Account Runtime could not initialize Firebase. " +
+                "Dependency status: " + dependencyStatus + ".",
                 this);
             return;
         }
 
         FirebaseApp app = FirebaseApp.DefaultInstance;
         auth = FirebaseAuth.DefaultInstance;
-        firestore = FirebaseFirestore.DefaultInstance;
 
         string projectId =
             app != null && app.Options != null
@@ -85,23 +132,21 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
         if (projectId != "atlasboard-usa")
         {
             Debug.LogError(
-                "AtlasBoard Account Runtime v1 connected to an unexpected " +
-                $"Firebase project. Expected atlasboard-usa, got '{projectId}'.",
+                "AtlasBoard Account Runtime connected to an unexpected " +
+                "Firebase project. Expected atlasboard-usa, got '" +
+                projectId + "'.",
                 this);
             return;
         }
 
-        IsInitialized =
-            auth != null &&
-            firestore != null;
+        IsInitialized = auth != null;
 
         if (IsInitialized)
         {
             Debug.Log(
-                "AtlasBoard Account Runtime v1 ready. Firebase project=" +
-                "atlasboard-usa; Email/Password account, profile and cloud " +
-                "preferences services are available. No login/register UI was " +
-                "created and existing PlayerPrefs settings were not modified.",
+                "AtlasBoard Account Runtime ready. Firebase Auth + Spark RTDB " +
+                "own account/profile/preferences runtime state; Firestore is " +
+                "not required for normal account operation.",
                 this);
         }
     }
@@ -133,9 +178,7 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
                 preferredLanguage);
 
         if (!validation.Success)
-        {
             return validation;
-        }
 
         FirebaseUser createdUser = null;
 
@@ -155,46 +198,52 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
                     "Firebase Auth did not return a valid user.");
             }
 
-            string uid = createdUser.UserId;
-            string normalizedCountry =
-                NormalizeCountryCode(countryCode);
-            string normalizedLanguage =
-                NormalizeLanguageCode(preferredLanguage);
+            string normalizedDisplayName = displayName.Trim();
+            string normalizedCountry = NormalizeCountryCode(countryCode);
+            string normalizedLanguage = NormalizeLanguageCode(preferredLanguage);
 
-            DocumentReference userRef =
-                firestore.Collection("users").Document(uid);
+            await createdUser.UpdateUserProfileAsync(
+                new UserProfile
+                {
+                    DisplayName = normalizedDisplayName
+                });
 
-            DocumentReference publicProfileRef =
-                firestore.Collection("public_profiles").Document(uid);
-
-            DocumentReference preferencesRef =
-                firestore.Collection("preferences").Document(uid);
-
-            Dictionary<string, object> userData =
-                BuildNewUserDocument(
-                    uid,
+            bool mirrored =
+                await AtlasBoardRtdbUserProfileMirror.SyncCurrentUserAsync(
+                    normalizedDisplayName,
+                    true,
                     normalizedCountry,
                     normalizedLanguage);
 
-            Dictionary<string, object> publicProfileData =
-                BuildNewPublicProfileDocument(displayName.Trim());
+            if (!mirrored)
+            {
+                throw new InvalidOperationException(
+                    "RTDB_ACCOUNT_BOOTSTRAP_FAILED");
+            }
 
-            Dictionary<string, object> preferencesData =
-                BuildDefaultPreferencesDocument(normalizedLanguage);
+            string token = await createdUser.TokenAsync(false);
+            if (string.IsNullOrWhiteSpace(token))
+                throw new InvalidOperationException("AUTH_TOKEN_UNAVAILABLE");
 
-            WriteBatch batch = firestore.StartBatch();
-            batch.Set(userRef, userData);
-            batch.Set(publicProfileRef, publicProfileData);
-            batch.Set(preferencesRef, preferencesData);
+            await WritePublicProfileAsync(
+                createdUser.UserId,
+                token,
+                normalizedDisplayName,
+                string.Empty,
+                string.Empty);
 
-            await batch.CommitAsync();
+            await WriteSettingsAsync(
+                createdUser.UserId,
+                token,
+                normalizedLanguage,
+                AtlasBoardAccountConstants.DefaultCrossplayPreference);
 
             Debug.Log(
-                $"AtlasBoard account created. UID={uid}. " +
-                "users/public_profiles/preferences were committed atomically.",
+                "ATB_ACCOUNT_REGISTER success=true storage=RTDB " +
+                "firestore_writes=0 uid=" + Short(createdUser.UserId),
                 this);
 
-            return AtlasAccountOperationResult.Ok(uid);
+            return AtlasAccountOperationResult.Ok(createdUser.UserId);
         }
         catch (Exception exception)
         {
@@ -207,9 +256,9 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
                 catch (Exception cleanupException)
                 {
                     Debug.LogWarning(
-                        "AtlasBoard account registration rollback could not " +
-                        "delete the newly-created Firebase Auth user. " +
-                        cleanupException.Message,
+                        "AtlasBoard registration rollback could not delete " +
+                        "the newly-created Auth user. " +
+                        cleanupException.GetType().Name,
                         this);
                 }
             }
@@ -262,13 +311,20 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
                     : string.Empty;
 
             if (string.IsNullOrWhiteSpace(uid))
-            {
                 throw new InvalidOperationException(
                     "Firebase Auth returned no account after sign-in.");
-            }
+
+            // Account authentication must not be rejected by a transient profile
+            // mirror failure. LoadCurrentAccountAsync will retry the RTDB bootstrap.
+            bool mirrored =
+                await AtlasBoardRtdbUserProfileMirror.SyncCurrentUserAsync(
+                    string.Empty,
+                    true);
 
             Debug.Log(
-                $"AtlasBoard account signed in. UID={uid}.",
+                "ATB_ACCOUNT_SIGN_IN success=true storage=Auth+RTDB " +
+                "profile_sync=" + mirrored.ToString().ToLowerInvariant() +
+                " uid=" + Short(uid),
                 this);
 
             return AtlasAccountOperationResult.Ok(uid);
@@ -282,9 +338,7 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
     public void SignOut()
     {
         if (auth == null)
-        {
             return;
-        }
 
         auth.SignOut();
         Debug.Log("AtlasBoard account signed out.", this);
@@ -302,8 +356,7 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
             return string.Empty;
         }
 
-        return await auth.CurrentUser.TokenAsync(
-            forceRefresh);
+        return await auth.CurrentUser.TokenAsync(forceRefresh);
     }
 
     public async Task<AtlasAccountSnapshot> LoadCurrentAccountAsync()
@@ -311,59 +364,140 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
         await EnsureInitializedAsync();
 
         if (!IsInitialized || !IsSignedIn)
-        {
             return null;
+
+        FirebaseUser user = auth.CurrentUser;
+        string uid = user.UserId;
+
+        // Existing Auth-only/legacy-Firestore accounts are lazily materialized
+        // into the canonical RTDB profile. Existing RTDB displayName wins.
+        bool mirrored =
+            await AtlasBoardRtdbUserProfileMirror.SyncCurrentUserAsync(
+                string.Empty,
+                false);
+
+        if (!mirrored)
+        {
+            mirrored =
+                await AtlasBoardRtdbUserProfileMirror.SyncCurrentUserAsync(
+                    string.Empty,
+                    true);
         }
 
-        string uid = CurrentAccountId;
+        string token = await user.TokenAsync(false);
+        if (string.IsNullOrWhiteSpace(token))
+            return null;
 
-        DocumentSnapshot userSnapshot =
-            await firestore.Collection("users")
-                .Document(uid)
-                .GetSnapshotAsync();
+        UserWire userWire = await ReadJsonAsync<UserWire>(
+            UserUrl(uid, token));
 
-        DocumentSnapshot profileSnapshot =
-            await firestore.Collection("public_profiles")
-                .Document(uid)
-                .GetSnapshotAsync();
+        if (userWire == null)
+        {
+            await AtlasBoardRtdbUserProfileMirror.SyncCurrentUserAsync(
+                string.Empty,
+                true);
 
-        DocumentSnapshot preferencesSnapshot =
-            await firestore.Collection("preferences")
-                .Document(uid)
-                .GetSnapshotAsync();
+            userWire = await ReadJsonAsync<UserWire>(
+                UserUrl(uid, token));
+        }
 
-        if (!userSnapshot.Exists ||
-            !profileSnapshot.Exists ||
-            !preferencesSnapshot.Exists)
+        if (userWire == null)
         {
             Debug.LogWarning(
-                $"AtlasBoard account UID={uid} is authenticated but one or " +
-                "more required Firestore documents are missing.",
+                "ATB_ACCOUNT_RTDB_LOAD success=false reason=user_missing " +
+                "uid=" + Short(uid),
                 this);
             return null;
         }
 
-        Dictionary<string, object> userData =
-            userSnapshot.ToDictionary();
-        Dictionary<string, object> profileData =
-            profileSnapshot.ToDictionary();
-        Dictionary<string, object> preferencesData =
-            preferencesSnapshot.ToDictionary();
+        PublicProfileWire publicProfile =
+            await ReadJsonAsync<PublicProfileWire>(
+                PublicProfileUrl(uid, token));
+
+        string canonicalName =
+            !string.IsNullOrWhiteSpace(publicProfile?.displayName)
+                ? publicProfile.displayName
+                : !string.IsNullOrWhiteSpace(userWire.displayName)
+                    ? userWire.displayName
+                    : ResolveCanonicalDisplayName(user);
+
+        if (publicProfile == null)
+        {
+            try
+            {
+                await WritePublicProfileAsync(
+                    uid,
+                    token,
+                    canonicalName,
+                    string.Empty,
+                    string.Empty);
+
+                publicProfile = new PublicProfileWire
+                {
+                    displayName = canonicalName,
+                    avatarId = string.Empty,
+                    profileFrameId = string.Empty,
+                    updatedAt = Now()
+                };
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    "ATB_PUBLIC_PROFILE_BOOTSTRAP success=false type=" +
+                    exception.GetType().Name);
+            }
+        }
+
+        string language =
+            NormalizeLanguageCode(userWire.settings?.language);
+        if (string.IsNullOrEmpty(language))
+            language = NormalizeLanguageCode(userWire.general?.language);
+        if (string.IsNullOrEmpty(language))
+            language = "en";
+
+        string country =
+            NormalizeCountryCode(userWire.general?.countryCode);
+        if (string.IsNullOrEmpty(country))
+            country = "ZZ";
+
+        string crossplay =
+            userWire.settings != null &&
+            !string.IsNullOrWhiteSpace(userWire.settings.crossplayPreference)
+                ? userWire.settings.crossplayPreference
+                : AtlasBoardAccountConstants.DefaultCrossplayPreference;
 
         AtlasAccountSnapshot snapshot =
             new AtlasAccountSnapshot
             {
                 AccountId = uid,
-                AccountStatus = GetString(userData, "accountStatus"),
-                MembershipTier = GetString(userData, "membershipTier"),
-                CountryCode = GetString(userData, "countryCode"),
-                PreferredLanguage = GetString(userData, "preferredLanguage"),
-                SchemaVersion = GetInt(userData, "schemaVersion", 1),
-                DisplayName = GetString(profileData, "displayName"),
-                AvatarId = GetString(profileData, "avatarId"),
-                ProfileFrameId = GetString(profileData, "profileFrameId"),
-                Preferences = BuildPreferencesFromDictionary(preferencesData)
+                AccountStatus =
+                    string.IsNullOrWhiteSpace(userWire.accountStatus)
+                        ? AtlasBoardAccountConstants.DefaultAccountStatus
+                        : userWire.accountStatus,
+                MembershipTier =
+                    string.IsNullOrWhiteSpace(userWire.membershipTier)
+                        ? AtlasBoardAccountConstants.DefaultMembershipTier
+                        : userWire.membershipTier,
+                CountryCode = country,
+                PreferredLanguage = language,
+                SchemaVersion =
+                    userWire.general != null
+                        ? Mathf.Max(1, userWire.general.schemaVersion)
+                        : AtlasBoardAccountConstants.SchemaVersion,
+                DisplayName = canonicalName,
+                AvatarId = publicProfile?.avatarId ?? string.Empty,
+                ProfileFrameId = publicProfile?.profileFrameId ?? string.Empty,
+                Preferences = new AtlasCloudPreferences
+                {
+                    Language = language,
+                    CrossplayPreference = crossplay
+                }
             };
+
+        Debug.Log(
+            "ATB_ACCOUNT_RTDB_LOAD success=true firestore_reads=0 uid=" +
+            Short(uid),
+            this);
 
         return snapshot;
     }
@@ -383,10 +517,8 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
                 "No authenticated Atlas Board account.");
         }
 
-        string normalizedCountry =
-            NormalizeCountryCode(countryCode);
-        string normalizedLanguage =
-            NormalizeLanguageCode(preferredLanguage);
+        string normalizedCountry = NormalizeCountryCode(countryCode);
+        string normalizedLanguage = NormalizeLanguageCode(preferredLanguage);
 
         if (normalizedCountry.Length != 2)
         {
@@ -396,8 +528,7 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
                 "Country code must be a two-letter code.");
         }
 
-        if (!AtlasBoardAccountConstants.SupportedLanguageCodes.Contains(
-                normalizedLanguage))
+        if (string.IsNullOrEmpty(normalizedLanguage))
         {
             return AtlasAccountOperationResult.Fail(
                 AtlasAccountErrorCode.UnsupportedLanguage,
@@ -407,16 +538,15 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
 
         try
         {
-            Dictionary<string, object> updates =
-                new Dictionary<string, object>
-                {
-                    { "countryCode", normalizedCountry },
-                    { "preferredLanguage", normalizedLanguage }
-                };
+            bool success =
+                await AtlasBoardRtdbUserProfileMirror.SyncCurrentUserAsync(
+                    string.Empty,
+                    true,
+                    normalizedCountry,
+                    normalizedLanguage);
 
-            await firestore.Collection("users")
-                .Document(CurrentAccountId)
-                .UpdateAsync(updates);
+            if (!success)
+                throw new InvalidOperationException("RTDB_LOCALE_WRITE_FAILED");
 
             return AtlasAccountOperationResult.Ok(CurrentAccountId);
         }
@@ -443,7 +573,9 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
         }
 
         string normalizedDisplayName =
-            displayName != null ? displayName.Trim() : string.Empty;
+            displayName != null
+                ? displayName.Trim()
+                : string.Empty;
 
         if (normalizedDisplayName.Length < 2 ||
             normalizedDisplayName.Length > 32)
@@ -456,18 +588,36 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
 
         try
         {
-            Dictionary<string, object> data =
-                new Dictionary<string, object>
-                {
-                    { "displayName", normalizedDisplayName },
-                    { "avatarId", avatarId ?? string.Empty },
-                    { "profileFrameId", profileFrameId ?? string.Empty },
-                    { "updatedAt", FieldValue.ServerTimestamp }
-                };
+            bool privateProfileUpdated =
+                await AtlasBoardRtdbUserProfileMirror.SyncCurrentUserAsync(
+                    normalizedDisplayName,
+                    true);
 
-            await firestore.Collection("public_profiles")
-                .Document(CurrentAccountId)
-                .SetAsync(data);
+            if (!privateProfileUpdated)
+                throw new InvalidOperationException(
+                    "RTDB_PRIVATE_PROFILE_WRITE_FAILED");
+
+            FirebaseUser user = auth.CurrentUser;
+            string token = await user.TokenAsync(false);
+
+            await WritePublicProfileAsync(
+                user.UserId,
+                token,
+                normalizedDisplayName,
+                avatarId ?? string.Empty,
+                profileFrameId ?? string.Empty);
+
+            if (!string.Equals(
+                    user.DisplayName,
+                    normalizedDisplayName,
+                    StringComparison.Ordinal))
+            {
+                await user.UpdateUserProfileAsync(
+                    new UserProfile
+                    {
+                        DisplayName = normalizedDisplayName
+                    });
+            }
 
             return AtlasAccountOperationResult.Ok(CurrentAccountId);
         }
@@ -492,14 +642,10 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
         }
 
         if (preferences == null)
-        {
             preferences = new AtlasCloudPreferences();
-        }
 
         string language = NormalizeLanguageCode(preferences.Language);
-
-        if (!AtlasBoardAccountConstants.SupportedLanguageCodes.Contains(
-                language))
+        if (string.IsNullOrEmpty(language))
         {
             return AtlasAccountOperationResult.Fail(
                 AtlasAccountErrorCode.UnsupportedLanguage,
@@ -507,14 +653,28 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
                 "Unsupported Atlas Board language code.");
         }
 
+        string crossplay =
+            string.Equals(
+                preferences.CrossplayPreference,
+                "disabled",
+                StringComparison.OrdinalIgnoreCase)
+                ? "disabled"
+                : AtlasBoardAccountConstants.DefaultCrossplayPreference;
+
         try
         {
-            Dictionary<string, object> data =
-                BuildPreferencesDocument(preferences, language);
+            FirebaseUser user = auth.CurrentUser;
+            string token = await user.TokenAsync(false);
+            await WriteSettingsAsync(
+                user.UserId,
+                token,
+                language,
+                crossplay);
 
-            await firestore.Collection("preferences")
-                .Document(CurrentAccountId)
-                .SetAsync(data);
+            Debug.Log(
+                "ATB_ACCOUNT_SETTINGS_WRITE success=true storage=RTDB " +
+                "firestore_writes=0",
+                this);
 
             return AtlasAccountOperationResult.Ok(CurrentAccountId);
         }
@@ -522,6 +682,165 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
         {
             return MapException(exception);
         }
+    }
+
+    private static async Task WritePublicProfileAsync(
+        string uid,
+        string token,
+        string displayName,
+        string avatarId,
+        string profileFrameId)
+    {
+        PublicProfileWire payload =
+            new PublicProfileWire
+            {
+                displayName = displayName ?? string.Empty,
+                avatarId = avatarId ?? string.Empty,
+                profileFrameId = profileFrameId ?? string.Empty,
+                updatedAt = Now()
+            };
+
+        await RequestAsync(
+            "PUT",
+            PublicProfileUrl(uid, token),
+            JsonUtility.ToJson(payload));
+    }
+
+    private static async Task WriteSettingsAsync(
+        string uid,
+        string token,
+        string language,
+        string crossplay)
+    {
+        SettingsPatchWire payload =
+            new SettingsPatchWire
+            {
+                schemaVersion = 1,
+                language = language,
+                crossplayPreference = crossplay
+            };
+
+        await RequestAsync(
+            "PATCH",
+            SettingsUrl(uid, token),
+            JsonUtility.ToJson(payload));
+    }
+
+    private static async Task<T> ReadJsonAsync<T>(string url)
+        where T : class
+    {
+        string body = await RequestAsync("GET", url, null);
+        if (string.IsNullOrWhiteSpace(body) ||
+            string.Equals(
+                body.Trim(),
+                "null",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonUtility.FromJson<T>(body);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static async Task<string> RequestAsync(
+        string method,
+        string url,
+        string json)
+    {
+        using (UnityWebRequest request =
+               new UnityWebRequest(url, method))
+        {
+            request.downloadHandler = new DownloadHandlerBuffer();
+            request.timeout = 15;
+
+            if (json != null)
+            {
+                request.uploadHandler =
+                    new UploadHandlerRaw(
+                        Encoding.UTF8.GetBytes(json));
+                request.SetRequestHeader(
+                    "Content-Type",
+                    "application/json");
+            }
+
+            await AtlasBoardAppCheckRequestSecurity.ApplyAsync(request);
+
+            TaskCompletionSource<bool> completion =
+                new TaskCompletionSource<bool>();
+
+            UnityWebRequestAsyncOperation operation =
+                request.SendWebRequest();
+
+            if (operation.isDone)
+                completion.TrySetResult(true);
+            else
+                operation.completed +=
+                    _ => completion.TrySetResult(true);
+
+            await completion.Task;
+
+            if (request.result != UnityWebRequest.Result.Success)
+            {
+                throw new InvalidOperationException(
+                    "RTDB_HTTP_" + request.responseCode);
+            }
+
+            return request.downloadHandler != null
+                ? request.downloadHandler.text
+                : string.Empty;
+        }
+    }
+
+    private static string UserUrl(string uid, string token)
+    {
+        return Database +
+            "/users/" + UnityWebRequest.EscapeURL(uid ?? string.Empty) +
+            ".json?auth=" + UnityWebRequest.EscapeURL(token ?? string.Empty);
+    }
+
+    private static string PublicProfileUrl(string uid, string token)
+    {
+        return Database +
+            "/publicProfiles/" +
+            UnityWebRequest.EscapeURL(uid ?? string.Empty) +
+            ".json?auth=" + UnityWebRequest.EscapeURL(token ?? string.Empty);
+    }
+
+    private static string SettingsUrl(string uid, string token)
+    {
+        return Database +
+            "/users/" + UnityWebRequest.EscapeURL(uid ?? string.Empty) +
+            "/settings.json?auth=" +
+            UnityWebRequest.EscapeURL(token ?? string.Empty);
+    }
+
+    private static string ResolveCanonicalDisplayName(FirebaseUser user)
+    {
+        if (user != null &&
+            !string.IsNullOrWhiteSpace(user.DisplayName))
+        {
+            return user.DisplayName.Trim();
+        }
+
+        AtlasBoardPlatformRuntime platform =
+            AtlasBoardPlatformRuntime.Instance;
+
+        if (platform != null &&
+            platform.IsSteamProviderActive &&
+            platform.SteamInitialized &&
+            !string.IsNullOrWhiteSpace(platform.SteamPersonaName))
+        {
+            return platform.SteamPersonaName.Trim();
+        }
+
+        return AtlasBoardGuestIdentity.DisplayName;
     }
 
     private static AtlasAccountOperationResult ValidateRegistrationInput(
@@ -550,7 +869,9 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
         }
 
         string normalizedDisplayName =
-            displayName != null ? displayName.Trim() : string.Empty;
+            displayName != null
+                ? displayName.Trim()
+                : string.Empty;
 
         if (normalizedDisplayName.Length < 2 ||
             normalizedDisplayName.Length > 32)
@@ -569,10 +890,8 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
                 "Country code must be a two-letter code.");
         }
 
-        string language = NormalizeLanguageCode(preferredLanguage);
-
-        if (!AtlasBoardAccountConstants.SupportedLanguageCodes.Contains(
-                language))
+        if (string.IsNullOrEmpty(
+                NormalizeLanguageCode(preferredLanguage)))
         {
             return AtlasAccountOperationResult.Fail(
                 AtlasAccountErrorCode.UnsupportedLanguage,
@@ -583,157 +902,41 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
         return AtlasAccountOperationResult.Ok(string.Empty);
     }
 
-    private static Dictionary<string, object> BuildNewUserDocument(
-        string uid,
-        string countryCode,
-        string preferredLanguage)
-    {
-        return new Dictionary<string, object>
-        {
-            { "uid", uid },
-            { "schemaVersion", AtlasBoardAccountConstants.SchemaVersion },
-            { "accountStatus", AtlasBoardAccountConstants.DefaultAccountStatus },
-            { "membershipTier", AtlasBoardAccountConstants.DefaultMembershipTier },
-            { "countryCode", countryCode },
-            { "preferredLanguage", preferredLanguage },
-            { "createdAt", FieldValue.ServerTimestamp }
-        };
-    }
-
-    private static Dictionary<string, object>
-        BuildNewPublicProfileDocument(string displayName)
-    {
-        return new Dictionary<string, object>
-        {
-            { "displayName", displayName },
-            { "avatarId", string.Empty },
-            { "profileFrameId", string.Empty },
-            { "updatedAt", FieldValue.ServerTimestamp }
-        };
-    }
-
-    private static Dictionary<string, object>
-        BuildDefaultPreferencesDocument(string language)
-    {
-        return new Dictionary<string, object>
-        {
-            { "language", language },
-            { "audio", new Dictionary<string, object>() },
-            { "graphics", new Dictionary<string, object>() },
-            { "controls", new Dictionary<string, object>() },
-            { "gameplay", new Dictionary<string, object>() },
-            { "crossplayPreference", AtlasBoardAccountConstants.DefaultCrossplayPreference },
-            { "updatedAt", FieldValue.ServerTimestamp }
-        };
-    }
-
-    private static Dictionary<string, object> BuildPreferencesDocument(
-        AtlasCloudPreferences preferences,
-        string language)
-    {
-        return new Dictionary<string, object>
-        {
-            { "language", language },
-            { "audio", preferences.Audio ?? new Dictionary<string, object>() },
-            { "graphics", preferences.Graphics ?? new Dictionary<string, object>() },
-            { "controls", preferences.Controls ?? new Dictionary<string, object>() },
-            { "gameplay", preferences.Gameplay ?? new Dictionary<string, object>() },
-            {
-                "crossplayPreference",
-                string.IsNullOrWhiteSpace(preferences.CrossplayPreference)
-                    ? AtlasBoardAccountConstants.DefaultCrossplayPreference
-                    : preferences.CrossplayPreference
-            },
-            { "updatedAt", FieldValue.ServerTimestamp }
-        };
-    }
-
-    private static AtlasCloudPreferences BuildPreferencesFromDictionary(
-        Dictionary<string, object> data)
-    {
-        AtlasCloudPreferences preferences =
-            new AtlasCloudPreferences
-            {
-                Language = GetString(data, "language", "en"),
-                CrossplayPreference = GetString(
-                    data,
-                    "crossplayPreference",
-                    AtlasBoardAccountConstants.DefaultCrossplayPreference),
-                Audio = GetMap(data, "audio"),
-                Graphics = GetMap(data, "graphics"),
-                Controls = GetMap(data, "controls"),
-                Gameplay = GetMap(data, "gameplay")
-            };
-
-        return preferences;
-    }
-
     private static string NormalizeCountryCode(string countryCode)
     {
-        return string.IsNullOrWhiteSpace(countryCode)
-            ? string.Empty
-            : countryCode.Trim().ToUpperInvariant();
-    }
+        string normalized =
+            countryCode != null
+                ? countryCode.Trim().ToUpperInvariant()
+                : string.Empty;
 
-    private static string NormalizeLanguageCode(string language)
-    {
-        return string.IsNullOrWhiteSpace(language)
-            ? "en"
-            : language.Trim().ToLowerInvariant();
-    }
+        if (normalized.Length != 2)
+            return string.Empty;
 
-    private static string GetString(
-        Dictionary<string, object> data,
-        string key,
-        string fallback = "")
-    {
-        if (data != null &&
-            data.TryGetValue(key, out object value) &&
-            value != null)
+        for (int i = 0; i < normalized.Length; i++)
         {
-            return value.ToString();
+            char c = normalized[i];
+            if (c < 'A' || c > 'Z')
+                return string.Empty;
         }
 
-        return fallback;
+        return normalized;
     }
 
-    private static int GetInt(
-        Dictionary<string, object> data,
-        string key,
-        int fallback)
+    private static string NormalizeLanguageCode(string languageCode)
     {
-        if (data != null &&
-            data.TryGetValue(key, out object value) &&
-            value != null)
-        {
-            try
-            {
-                return Convert.ToInt32(value);
-            }
-            catch
-            {
-                return fallback;
-            }
-        }
+        string normalized =
+            languageCode != null
+                ? languageCode.Trim().ToLowerInvariant()
+                : string.Empty;
 
-        return fallback;
+        return AtlasBoardAccountConstants.SupportedLanguageCodes.Contains(
+                normalized)
+            ? normalized
+            : string.Empty;
     }
 
-    private static Dictionary<string, object> GetMap(
-        Dictionary<string, object> data,
-        string key)
-    {
-        if (data != null &&
-            data.TryGetValue(key, out object value) &&
-            value is Dictionary<string, object> map)
-        {
-            return map;
-        }
-
-        return new Dictionary<string, object>();
-    }
-
-    private static AtlasAccountOperationResult MapException(Exception exception)
+    private static AtlasAccountOperationResult MapException(
+        Exception exception)
     {
         FirebaseException firebaseException =
             exception as FirebaseException;
@@ -791,23 +994,51 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
             }
         }
 
-        string technical = exception != null
-            ? exception.ToString()
-            : "Unknown account service error.";
+        string message = exception != null
+            ? exception.Message ?? string.Empty
+            : string.Empty;
 
-        if (technical.IndexOf(
-                "permission",
-                StringComparison.OrdinalIgnoreCase) >= 0)
+        if (message.StartsWith(
+                "RTDB_HTTP_401",
+                StringComparison.Ordinal) ||
+            message.StartsWith(
+                "RTDB_HTTP_403",
+                StringComparison.Ordinal))
         {
             return AtlasAccountOperationResult.Fail(
                 AtlasAccountErrorCode.PermissionDenied,
                 "account.error.permission_denied",
-                technical);
+                message);
+        }
+
+        if (message.StartsWith(
+                "RTDB_HTTP_",
+                StringComparison.Ordinal))
+        {
+            return AtlasAccountOperationResult.Fail(
+                AtlasAccountErrorCode.Network,
+                "account.error.network",
+                message);
         }
 
         return AtlasAccountOperationResult.Fail(
             AtlasAccountErrorCode.Unknown,
             "account.error.unknown",
-            technical);
+            message);
+    }
+
+    private static long Now()
+    {
+        return DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+    }
+
+    private static string Short(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return "none";
+
+        return value.Length <= 7
+            ? value
+            : value.Substring(0, 7);
     }
 }

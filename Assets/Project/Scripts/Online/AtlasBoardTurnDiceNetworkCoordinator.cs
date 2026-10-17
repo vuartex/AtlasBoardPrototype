@@ -4901,26 +4901,48 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         {
             if (!HasOtherConnectedRemoteHumanSeat())
             {
-                // There is no connected human successor in the current
-                // authoritative snapshot. Start cleanup while all credentials
-                // and match identifiers are intact, then return the UI now.
-                string departingMatchId = preparedMatchId;
-                Task<AtlasMatchNetworkResult> pendingLeave =
-                    matchBridge.LeaveActiveMatchAsync(departingMatchId);
-                bool quitAfterLeave = hostMigrationQuitAfterHandoff;
+                // Nobody can inherit this room. Closing the Host-owned lobby is
+                // the canonical cleanup path; a match-only Leave would strand
+                // roomMeta/joinCode/roomState after the UI detached.
+                Task<AtlasLobbyOperationResult> pendingClose =
+                    lobbyBridge != null
+                        ? lobbyBridge.CloseLobbyAsync()
+                        : null;
+
+                bool quitAfterClose =
+                    hostMigrationQuitAfterHandoff;
+
                 DetachLocalClientFromActiveMatch();
-                if (quitAfterLeave)
+
+                if (pendingClose == null)
                 {
-                    // Give the best-effort notification a bounded chance to
-                    // be delivered before terminating the process.
-                    await Task.WhenAny(pendingLeave, Task.Delay(1000));
+                    Debug.LogWarning(
+                        "AtlasBoard Host-only room cleanup could not start " +
+                        "because the lobby bridge was unavailable.",
+                        this);
+
+                    if (quitAfterClose)
+                        QuitApplicationNow();
+
+                    return;
+                }
+
+                if (quitAfterClose)
+                {
+                    // Give cleanup a bounded chance before process exit.
+                    await Task.WhenAny(
+                        pendingClose,
+                        Task.Delay(1000));
+
                     QuitApplicationNow();
                 }
                 else
                 {
-                    // Do not block the menu while waiting for the backend.
-                    _ = ObserveDetachedLeaveAsync(pendingLeave, "host-bot-only");
+                    _ = ObserveDetachedLobbyCloseAsync(
+                        pendingClose,
+                        "host-bot-only");
                 }
+
                 return;
             }
 
@@ -5011,8 +5033,9 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 DetachLocalClientFromActiveMatch();
 
                 Debug.Log(
-                    "AtlasBoard Phase 11G Host Migration: graceful authority " +
-                    "handoff completed; departing Host detached.",
+                    "AtlasBoard Phase 11G Host Migration: safe handoff " +
+                    "checkpoint armed; departing Host detached. The connected " +
+                    "successor must claim authority through authorityEpoch CAS.",
                     this);
 
                 if (quit)
@@ -5177,6 +5200,44 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         finally
         {
             leaveRequestInFlight = false;
+        }
+    }
+
+    private async Task ObserveDetachedLobbyCloseAsync(
+        Task<AtlasLobbyOperationResult> pendingClose,
+        string context)
+    {
+        try
+        {
+            AtlasLobbyOperationResult result =
+                await pendingClose;
+
+            if (result == null || !result.Success)
+            {
+                Debug.LogWarning(
+                    "AtlasBoard UX: " + context +
+                    " room cleanup was not acknowledged. " +
+                    (result != null
+                        ? result.TechnicalMessage
+                        : "Null result"),
+                    this);
+            }
+            else
+            {
+                Debug.Log(
+                    "ATB_RTDB_HOST_ONLY_CLOSE " +
+                    "cleanup_acknowledged=true context=" +
+                    context,
+                    this);
+            }
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning(
+                "AtlasBoard UX: " + context +
+                " room cleanup background task faulted: " +
+                exception.Message,
+                this);
         }
     }
 
@@ -5375,6 +5436,46 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         localAfkExitScheduled = false;
     }
 
+    private static bool OnlineSeatMirrorNeedsApply(
+        PlayerGameState player,
+        string displayName,
+        string controllerKind,
+        string connectionState,
+        long reconnectExpiresAtEpochMs,
+        bool afkLockedOut)
+    {
+        if (player == null)
+        {
+            return false;
+        }
+
+        string expectedController =
+            controllerKind ?? string.Empty;
+        string expectedConnection =
+            connectionState ?? string.Empty;
+
+        bool identityChanged =
+            !string.IsNullOrWhiteSpace(displayName) &&
+            !string.Equals(
+                player.DisplayName,
+                displayName.Trim(),
+                StringComparison.Ordinal);
+
+        return identityChanged ||
+               !player.OnlineSeatStateActive ||
+               !string.Equals(
+                   player.OnlineControllerKind,
+                   expectedController,
+                   StringComparison.Ordinal) ||
+               !string.Equals(
+                   player.OnlineConnectionState,
+                   expectedConnection,
+                   StringComparison.Ordinal) ||
+               player.OnlineReconnectExpiresAtEpochMs !=
+                   reconnectExpiresAtEpochMs ||
+               player.OnlineAfkLockedOut != afkLockedOut;
+    }
+
     private void ApplyLobbyIdentitySnapshot(
         AtlasLobbySnapshot snapshot)
     {
@@ -5385,56 +5486,89 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             return;
         }
 
-        for (int slotIndex = 0; slotIndex < 4; slotIndex++)
-        {
-            PlayerGameState existing =
-                turnManager.GetPlayerStateBySlotIndex(slotIndex);
-
-            BotPlayerController existingBot =
-                existing != null
-                    ? existing.GetComponent<BotPlayerController>()
-                    : null;
-
-            existingBot?.SetBotEnabled(false);
-            existing?.ClearOnlineSeatState();
-        }
+        // Lobby heartbeat/snapshot reads are presentation deltas, not a reason
+        // to clear and rebuild all four seats. The previous clear->disable->
+        // enable sequence restarted Bot AI and caused HUD churn even when the
+        // authoritative lobby state had not changed.
+        AtlasLobbyMemberSnapshot[] activeMembers =
+            new AtlasLobbyMemberSnapshot[4];
 
         foreach (AtlasLobbyMemberSnapshot member in snapshot.Members)
         {
-            if (member == null || !member.Active)
+            if (member == null ||
+                !member.Active ||
+                member.SlotIndex < 0 ||
+                member.SlotIndex >= activeMembers.Length)
             {
                 continue;
             }
 
+            activeMembers[member.SlotIndex] = member;
+        }
+
+        bool presentationChanged = false;
+
+        for (int slotIndex = 0;
+             slotIndex < activeMembers.Length;
+             slotIndex++)
+        {
             PlayerGameState player =
-                turnManager.GetPlayerStateBySlotIndex(member.SlotIndex);
+                turnManager.GetPlayerStateBySlotIndex(slotIndex);
 
             if (player == null)
             {
                 continue;
             }
 
+            AtlasLobbyMemberSnapshot member =
+                activeMembers[slotIndex];
+
+            if (member == null)
+            {
+                if (player.OnlineSeatStateActive)
+                {
+                    player.ClearOnlineSeatState();
+                    presentationChanged = true;
+                }
+
+                continue;
+            }
+
             string controllerWire =
                 ResolveLobbyControllerWire(member);
+            string connectionWire =
+                ConnectionStateToWire(member.ConnectionState);
+            bool afkLockedOut =
+                member.ConnectionState ==
+                AtlasSeatConnectionState.AfkRemoved;
 
-            player.ApplyOnlineIdentityAndControlState(
-                member.DisplayName,
-                controllerWire,
-                ConnectionStateToWire(member.ConnectionState),
-                0L,
-                member.ConnectionState == AtlasSeatConnectionState.AfkRemoved);
-
-            BotPlayerController bot =
-                player.GetComponent<BotPlayerController>();
-
-            if (bot != null)
+            if (OnlineSeatMirrorNeedsApply(
+                    player,
+                    member.DisplayName,
+                    controllerWire,
+                    connectionWire,
+                    0L,
+                    afkLockedOut))
             {
-                bool hostShouldSimulateBot =
-                    localIsHost &&
-                    IsBotControllerWire(controllerWire);
-
-                bot.SetBotEnabled(hostShouldSimulateBot);
+                player.ApplyOnlineIdentityAndControlState(
+                    member.DisplayName,
+                    controllerWire,
+                    connectionWire,
+                    0L,
+                    afkLockedOut);
+                presentationChanged = true;
             }
+
+            // Waiting-lobby metadata is not gameplay AI authority.
+            // MatchSetup owns first-session Bot activation and matchState owns
+            // all later Human/TemporaryBot/PermanentBot transitions. Keeping
+            // BotPlayerController untouched here prevents the old
+            // enable -> ResetForNewMatchSession disable -> enable startup loop.
+        }
+
+        if (presentationChanged)
+        {
+            turnManager.RefreshTurnPresentationForControlChange();
         }
     }
 
@@ -5449,6 +5583,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
         ResolveTabletUIManager();
+
+        bool presentationChanged = false;
 
         foreach (AtlasMatchNetworkSeat seat in snapshot.Seats)
         {
@@ -5479,12 +5615,22 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     ? priorConnection
                     : string.Empty;
 
-            player.ApplyOnlineIdentityAndControlState(
-                seat.DisplayName,
-                seat.ControllerKind,
-                seat.ConnectionState,
-                seat.ReconnectExpiresAtEpochMs,
-                seat.AfkLockedOut);
+            if (OnlineSeatMirrorNeedsApply(
+                    player,
+                    seat.DisplayName,
+                    seat.ControllerKind,
+                    seat.ConnectionState,
+                    seat.ReconnectExpiresAtEpochMs,
+                    seat.AfkLockedOut))
+            {
+                player.ApplyOnlineIdentityAndControlState(
+                    seat.DisplayName,
+                    seat.ControllerKind,
+                    seat.ConnectionState,
+                    seat.ReconnectExpiresAtEpochMs,
+                    seat.AfkLockedOut);
+                presentationChanged = true;
+            }
 
             BotPlayerController bot =
                 player.GetComponent<BotPlayerController>();
@@ -5497,7 +5643,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 bool botControlled =
                     localIsHost &&
                     IsBotControllerWire(seat.ControllerKind);
-                bot.SetBotEnabled(botControlled);
+
+                if (bot.BotEnabled != botControlled)
+                {
+                    bot.SetBotEnabled(botControlled);
+                    presentationChanged = true;
+                }
             }
 
             bool firstObservation =
@@ -5543,7 +5694,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
         }
 
-        turnManager.RefreshTurnPresentationForControlChange();
+        // Match revisions also advance for gameplay state. A dice/movement/
+        // economy publish must not force HUD/layout/controller refresh when
+        // role, identity and connection metadata are unchanged.
+        if (presentationChanged)
+        {
+            turnManager.RefreshTurnPresentationForControlChange();
+        }
     }
 
     private void ShowSeatLifecycleNotice(

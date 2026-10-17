@@ -75,6 +75,7 @@ public class PawnMotionAnimator :
     private GameObject currentVisual;
     private Animator animator;
     private PawnMotionSetDefinition motionSet;
+    private Avatar runtimeGeneratedAvatar;
 
     private Vector3 baseMotionLocalPosition;
     private Quaternion targetLocalRotation =
@@ -121,6 +122,7 @@ public class PawnMotionAnimator :
         PawnMotionSetDefinition newMotionSet)
     {
         StopIdleLookRoutine();
+        ReleaseRuntimeGeneratedAvatar();
 
         currentVisual =
             visual;
@@ -163,15 +165,52 @@ public class PawnMotionAnimator :
                 .GetComponentInChildren<Animator>(
                     true);
 
+        bool runtimeAnimatorCreated =
+            false;
+
         if (animator == null)
         {
             animator =
                 currentVisual.AddComponent<Animator>();
 
+            runtimeAnimatorCreated =
+                true;
+        }
+
+        Avatar resolvedAvatar =
+            motionSet.Avatar;
+
+        if (resolvedAvatar == null)
+        {
+            resolvedAvatar =
+                TryBuildRuntimeGenericAvatar(
+                    currentVisual);
+        }
+
+        if (resolvedAvatar != null && resolvedAvatar.isValid)
+        {
+            animator.avatar =
+                resolvedAvatar;
+
+            if (runtimeAnimatorCreated ||
+                runtimeGeneratedAvatar != null)
+            {
+                Debug.Log(
+                    "ATB_PAWN_ANIMATOR_BOUND runtime_component=" +
+                    runtimeAnimatorCreated.ToString().ToLowerInvariant() +
+                    " avatar=true runtime_avatar=" +
+                    (runtimeGeneratedAvatar != null)
+                        .ToString()
+                        .ToLowerInvariant() +
+                    " visual=" + currentVisual.name,
+                    currentVisual);
+            }
+        }
+        else
+        {
             Debug.LogWarning(
-                $"{currentVisual.name} did not contain an Animator. " +
-                "A runtime Animator was added. If animation does not deform " +
-                "the model, verify the Kenney FBX Rig/Avatar import settings.",
+                $"{currentVisual.name} has no valid Generic Avatar. " +
+                "Animation deformation remains unavailable for this visual.",
                 currentVisual);
         }
 
@@ -202,6 +241,7 @@ public class PawnMotionAnimator :
         bobPhase = 0f;
 
         ResetMotionRootPosition();
+        ReleaseRuntimeGeneratedAvatar();
 
         currentVisual = null;
         animator = null;
@@ -558,6 +598,7 @@ public class PawnMotionAnimator :
         float fadeSeconds)
     {
         if (animator == null ||
+            !animator.isActiveAndEnabled ||
             animator.runtimeAnimatorController == null)
         {
             return;
@@ -587,6 +628,62 @@ public class PawnMotionAnimator :
     {
         return "Base Layer." +
                stateName;
+    }
+
+    private Avatar TryBuildRuntimeGenericAvatar(
+        GameObject visual)
+    {
+        if (visual == null)
+        {
+            return null;
+        }
+
+        try
+        {
+            Avatar built =
+                AvatarBuilder.BuildGenericAvatar(
+                    visual,
+                    string.Empty);
+
+            if (built == null || !built.isValid)
+            {
+                if (built != null)
+                {
+                    Destroy(built);
+                }
+
+                return null;
+            }
+
+            built.name =
+                visual.name + "_RuntimeGenericAvatar";
+
+            runtimeGeneratedAvatar =
+                built;
+
+            return built;
+        }
+        catch (System.Exception exception)
+        {
+            Debug.LogWarning(
+                "ATB_PAWN_AVATAR_BUILD success=false visual=" +
+                visual.name +
+                " detail=" + exception.GetType().Name,
+                visual);
+
+            return null;
+        }
+    }
+
+    private void ReleaseRuntimeGeneratedAvatar()
+    {
+        if (runtimeGeneratedAvatar == null)
+        {
+            return;
+        }
+
+        Destroy(runtimeGeneratedAvatar);
+        runtimeGeneratedAvatar = null;
     }
 
     private void ResetMotionRootPosition()

@@ -38,6 +38,11 @@ public class BoardGenerator : MonoBehaviour
     private Vector3 tileScale =
         new Vector3(1.8f, 0.2f, 1.8f);
 
+    // Runtime-only presentation stamp. Match setup can assign the same map
+    // through both dropdown synchronization and StartConfiguredMatch().
+    private string lastAppliedMapId = string.Empty;
+    private bool hasAppliedMapData;
+
     public BoardMapDefinition ActiveMapDefinition =>
         activeMapDefinition;
 
@@ -69,6 +74,20 @@ public class BoardGenerator : MonoBehaviour
 
         if (applyImmediately)
         {
+            string requestedMapId =
+                mapDefinition.MapId ?? string.Empty;
+
+            if (Application.isPlaying &&
+                hasAppliedMapData &&
+                lastAppliedMapId == requestedMapId)
+            {
+                Debug.Log(
+                    "ATB_BOARD_MAP_APPLY skipped=true reason=same_map " +
+                    $"map={requestedMapId}.",
+                    this);
+                return;
+            }
+
             ApplyActiveMapDataToExistingTiles();
         }
     }
@@ -145,6 +164,10 @@ public class BoardGenerator : MonoBehaviour
 
         RefreshBoardPath();
 
+        hasAppliedMapData = true;
+        lastAppliedMapId =
+            activeMapDefinition.MapId ?? string.Empty;
+
 #if UNITY_EDITOR
         if (!Application.isPlaying)
         {
@@ -184,6 +207,10 @@ public class BoardGenerator : MonoBehaviour
         }
 
         RefreshBoardPath();
+
+        hasAppliedMapData = true;
+        lastAppliedMapId =
+            activeMapDefinition.MapId ?? string.Empty;
 
         Debug.Log(
             $"32 board tiles generated from map: " +

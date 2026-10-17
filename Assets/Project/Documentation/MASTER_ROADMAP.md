@@ -1,10 +1,127 @@
 # ATLAS BOARD — MASTER ROADMAP (CANONICAL)
 
-**Güncel konsolidasyon:** 16 Ekim 2026 · **Çalışma noktası:** Phase 18O / v5.32.6 (owner RTDB host+3 Bot gameplay PASS; 2 gerçek cihaz ve regresyon kapıları hâlâ OPEN) · Unity 6000.5.6f1 · `vuartex/AtlasBoardPrototype` · `atlasboard-usa` · Android önce, Windows/Steam korunur.
+**Güncel konsolidasyon:** 17 Ekim 2026 · **Aktif checkpoint:** local v5.39.0 **OWNER EDITOR + LIVE SPARK SMOKE CHECKPOINT; CAS `start_1` blocker kapandı, normal account/profile/Career RTDB yolu kanıtlandı, manual match #1→#2 re-entry ve Host+Bot-only cleanup geçti; iki gerçek Human / manual #3 / Android / gerçek Host Migration hâlâ OPEN** · Unity 6000.5.6f1 · `vuartex/AtlasBoardPrototype` · `atlasboard-usa` · Android önce, Windows/Steam korunur.
 
 > **ÖNCELİK KURALI:** Bu belgenin 1–10 bölümleri geçerli ürün kararı ve test durumudur. Daha alttaki v5.30.0 ve öncesinin tarihsel kaydı geriye dönük denetim içindir. Tarihsel “current/PASS/next” yazıları güncel durumun üzerine çıkamaz. **Kod hazır ≠ Unity compile PASS ≠ gerçek cihaz PASS ≠ iki cihaz online PASS.**
 >
 > **TEK DOSYA KURALI:** Bundan sonra yalnız `Assets/Project/Documentation/MASTER_ROADMAP.md` kanoniktir. Her yama/sürümde yeni QA/phase/roadmap/next-chat dokümanı açma. Anlamlı mimari değişikliği, kullanıcı test sonucu veya phase milestone olduğunda bu dosyayı güncelle; küçük düzenlemelerde ayrıca doküman yazma. Eski dosyalar şu an otomatik silinmez; bu roadmap kaynaklarını konsolide eder.
+
+## 0C. 17 Ekim 2026 — v5.39.0 OWNER TEST CHECKPOINT / ROADMAP REBASE (EN GÜNCEL DURUM)
+
+> **GÜNCEL OTORİTE:** Bu bölüm 0B/0A v5.33.0 handoff notlarından daha yenidir. Kullanıcının 17 Ekim Editor/Live Spark logları ve v5.34–v5.39 yerel kaynak zinciri esas alınır. GitHub `main` bu güncelleme hazırlanırken hâlâ `223af7f166337ec48c2d26073e0488883763a7de` v5.33 checkpoint'indeydi; kullanıcı bu roadmap ile yerel tam kaynakları birlikte push ettikten sonra yeni GitHub HEAD yeniden okunacaktır. **Editor PASS ≠ iki gerçek cihaz PASS ≠ Android PASS ≠ production PASS.**
+
+### 0C.1 Kapanan / test seviyesi yükselen maddeler
+
+| Alan | 17 Ekim kanıtı | Güncel statü |
+|---|---|---|
+| **RTDB lobby CAS / `start_1`** | Smoke sırasında stale `TransportRevision` görüldüğünde `ATB_RTDB_MATCH_REVISION_RESYNC ... retry=once`; ardından Start başarılı. Üç Start→Read→Publish→Complete→Rematch çevrimi sonunda `ATB_SPARK_MATCH_QA PASS stages=create_3x_start_read_publish_rematch_close bots=PASS`. | **CLOSED — Live Spark Editor smoke seviyesi.** CAS kaldırılmadı; `SettingsRevision` / `TransportRevision` ayrımı korunuyor. Remote two-device collision hâlâ OPEN. |
+| **Bot wire contract** | `ATB_SPARK_BOT_WIRE_QA PASS mode=local_no_network legacy_permanentbot=normalized bot_mode=permanent_bot host_mode=human`. | **PASS — local/no-network contract.** Normal Bot wire `permanent_bot`; lifecycle history bunun üzerinden çıkarılmaz. |
+| **Seat lifecycle state machine** | `ATB_RTDB_PRESENCE_QA PASS stages=human_temp_reconnect_expire_no_reclaim`. | **PASS — local/no-network QA only.** Gerçek cihaz 20sn Temporary Bot, 5dk Human reclaim/expiry ve late reclaim hâlâ OPEN. |
+| **Board generated-visual churn** | v5.39 manual start akışlarında aynı Turkey map tekrar uygulanmak istendiğinde `ATB_BOARD_MAP_APPLY skipped=true reason=same_map map=map_turkey`; sağlanan yeni loglarda önceki 64/96 stale visual cleanup storm'u görünmedi. | **OWNER EDITOR PASS — sağlanan iki-session kanıtı.** Manual #3 ve Android profiler altında tekrar kontrol edilir. |
+| **Reusable session** | İlk Host+3 Bot maçtan çıkışta `ATB_SHARED_REENTRY presentation_owners_rearmed=true next_match_ready=true`; room cleanup tamamlandı; aynı Play Mode'da yeni Private RTDB room ve ikinci Host+3 Bot match start başarılı. | **KISMİ OWNER PASS: manual #1→#2.** Full kabul için manual #3 + Shop/Career/Settings + tablet/HUD/identity roundtrip hâlâ OPEN. Backend smoke ayrıca 3x rematch PASS. |
+| **Normal account/profile/preferences** | Runtime `Firebase Auth + Spark RTDB own account/profile/preferences`; `ATB_RTDB_USER_SYNC success=true ... credentialsStored=false`; `ATB_ACCOUNT_RTDB_LOAD success=true firestore_reads=0`; Career warm read `AtlasBoardRtdbCareerReadModel`. | **CLOSED — current Editor normal-runtime path.** Legacy Firestore belgeleri normal account yüklemesi için zorunlu değil. Protected XP/Gold/wallet/entitlement/reward authority ayrı OPEN güvenlik kapısıdır. |
+| **Host+Bot-only room cleanup** | `ATB_RTDB_ROOM_CLOSED data_cleanup_attempted=true complete=True no_other_rooms_touched=true` + `ATB_RTDB_HOST_ONLY_CLOSE cleanup_acknowledged=true context=host-bot-only`; ardından yeni oda kurulabildi. | **OWNER PASS — Host+Bot-only + smoke.** Multi-human leave/reconnect/hard-crash/migration orphan cleanup OPEN. |
+| **Canonical identity current session** | `Vuartex` canonical header yüklendi, Steam local display slot 0'a sync oldu, Profile modal `source=canonical_local_identity`. | **CURRENT EDITOR SESSION PASS.** Tüm ekranlar, manual #3 ve two-device Guest→Vuartex flash kabulü OPEN. |
+| **Private entry / Cancel clone regression** | `local_button=independent aligned=true cancel_listener_cloned=false duplicates_removed=true`. | **CURRENT EDITOR SESSION PASS.** 10x entry/exit ve Android layout kabulü OPEN. |
+| **App Check Editor provider** | Firebase init öncesi Editor debug provider hazırlandı; token değeri loglanmadı. | **EDITOR DEBUG PROVIDER READY.** Android Play Integrity / production enforcement / negative-request acceptance OPEN. |
+| **Pawn Animator binding** | Kenney visuals için runtime avatar/Animator binding logları var; bu tur loglarında önceki missing/inactive Animator warning'i görünmedi. | **EVIDENCE IMPROVED; final visual acceptance OPEN.** Walk/idle/result/re-entry manuel görsel kontrolü gerekir. |
+
+### 0C.2 Host Migration statüsü — FOUNDATION VAR, GERÇEK PASS YOK
+
+- Match create sırasında `ATB_RTDB_AUTHORITY_ANCHOR ready=true epoch=...` üretiliyor.
+- Host Leave gameplay hareketi sürerken doğrudan state yırtmak yerine safe checkpoint'e queue ediliyor.
+- Sağlanan manuel maçlarda kalan P2–P4 koltukları Bot olduğu için doğru sonuç authority'yi Bota devretmek değil, host-only-with-bots room'u güvenle kapatmaktı; cleanup bunu yaptı.
+- **OPEN:** iki gerçek Human ile deterministic successor; atomik ve monoton `authorityEpoch`; eski Host publish/intent reddi; original Host follower olarak geri dönebilmesi; crash/heartbeat timeout takeover; trade/auction/decision/movement sırasında split-brain olmaması.
+
+### 0C.3 Şimdi roadmap execution order — buradan sapma
+
+1. **İki gerçek Human RTDB gameplay:** join → ready → 5sn start countdown → dice → move → buy → rent → trade → auction → turn sync. Smoke çıktısı açıkça `remote_join=UNTESTED remote_gameplay=UNTESTED`; bunu PASS varsayma.
+2. **Remote Human disconnect:** gerçek ağ kesintisi → yaklaşık 20sn sonra `TEMPORARY BOT`; aynı account 5dk içinde dönerse aynı SeatId/money/properties/development/pawn/turn/decision state ile Human restore.
+3. **5dk expiry + AFK removal:** `PERMANENT BOT`; late/fake reclaim ve eski Human intent fail-closed.
+4. **Graceful Host Leave + hard Host crash:** gerçek remote Human successor, `authorityEpoch` artışı, stale-host rejection, güvenli checkpoint, split-brain yok.
+5. **Manual reusable-session #3:** aynı Editor process; Private match #3 + Shop/Career/Settings + Tablet/HUD/identity dönüşleri; stale UI/listener/old match state yok.
+6. **Tablet/HUD:** tablet açık en az 30sn; tek aktif tablet/presentation owner; değişmeyen snapshot'ta gereksiz HUD/scene search/SetActive churn yok.
+7. **Android S20 FE profiler:** physical device CPU/Canvas/GC/Update/physics ölçümü; 15–23 FPS P0 kök nedenini Android-only düzelt, Windows/Steam'i bozma.
+8. **Production App Check / protected result authority:** Play Integrity/enforcement ve verified reward/result sınırı. Spark/free-first korunur; owner açık izni olmadan Blaze/paid service yok.
+
+### 0C.4 Korunacak kabul edilmiş davranışlar
+
+- **10 saniyelik Human auto-roll fail-safe oyun kuralıdır; kaldırma/kısaltma.** Bot normal karar hızında oynar; 10sn timeout Bot hız mekanizması değildir.
+- Normal Bot HUD `BOT • AGGRESSIVE / SAFE / BALANCED / ADAPTIVE` ve lokalize eşleri; disconnected Human `TEMPORARY BOT`; expiry/AFK sonrası `PERMANENT BOT`; zamanında reconnect tekrar Human.
+- `permanent_bot` RTDB wire normal Bot için de kullanılabilir; “Human permanent oldu” lifecycle anlamını yalnız wire string'den türetme.
+- Canonical local identity `Vuartex` + `V`; transient Guest/G kabul edilmez.
+- Tablet/Travel/Property/Trade/Auction/City Info/Career/Shop için tek UI owner; duplicate prefab/controller/callback ile çözüm yasak.
+- Firebase Auth kalır. Normal account/profile/preferences/Career RTDB'ye geçmiştir; **real-money/Gold/rewards/verified XP/entitlements client-writable RTDB'ye taşınmaz**.
+- Firebase deploy/rules/paid service/production mutation bu checkpoint için gerekmez.
+
+---
+
+## 0B. 16 Ekim 2026 — OWNER SON LOG / İKİ HATA GRUBU / YENİ SOHBET DEVİR SÖZLEŞMESİ (0C TARAFINDAN SUPERSEDE EDİLDİ)
+
+> **TARİHSEL 16 EKİM CHECKPOINT:** Bu bölüm v5.33.0 CAS failure handoff kaydıdır ve 17 Ekim tarihli **0C** tarafından supersede edilmiştir. Buradaki `ATB_SPARK_MATCH_QA FAIL stage=start_1` artık güncel blocker değildir; 0C kanıtında bounded revision resync sonrası 3x Live Spark smoke PASS görülmüştür. Ancak `SOURCE CHANGED`, `STATIC CHECK`, `UNITY EDITOR QA`, `REAL 2-DEVICE`, `ANDROID DEVICE`, `PROD LIVE` durumlarını ayırma kuralı aynen korunur.
+
+### 0B.1 Kanıtlı son test ledger — en güncel owner logları (16 Ekim)
+
+| Test / olay | Sonuç | Doğru kapsam ve yorum |
+|---|---|---|
+| `ATB_SPARK_BOT_WIRE_QA PASS mode=local_no_network` | **PASS (yerel kod sözleşmesi)** | Legacy `permanentbot` → `permanent_bot`; Human ve Bot wire ayrımı. Gerçek oyuncu reconnect testi değil. |
+| `ATB_RTDB_PRESENCE_QA PASS stages=human_temp_reconnect_expire_no_reclaim` | **PASS (ağsız durum makinesi QA)** | Kod seviyesinde Human → Temporary → Reconnected Human / expired Permanent geçişi. Bu, iki cihaz presence/lease/yeniden girişin canlı RTDB'de çalıştığını **kanıtlamaz**. |
+| `ATB_RTDB_ROOM_CREATED visibility=private transport=RTDB code_length=6` | **PASS (oda oluşturma)** | Smoke QA test oturumu oluşturuldu; gerçek iki cihazlı maç değil. |
+| `ATB_RTDB_LOBBY_STALE_RESPONSE ignored=true incoming=... cached=...` | **BEKLENEN KORUMA OLABİLİR** | Eski yanıt önbelleği ezmedi; olay sıra/host poll yazıcıları incelenmeli. |
+| `ATB_RTDB_LOBBY_CAS stale=true expected=... actual=...` | **FAIL — P0 race** | `StoreSnapshot` yeni revizyonu gördü, eski revizyonla yazmayı reddetti. CAS mekanizmasını atlatma; yazma sahiplerini ve concurrency kök nedenini bul. |
+| `ATB_SPARK_MATCH_QA FAIL stage=start_1 ... RTDB match start could not commit the lobby event` | **FAIL — P0 release blocker** | Maç state yaratıldıktan sonra roomState commit çakıştı; yalnız yeni match state rollback edildi. `StartCasualMatchAsync` ile `SnapshotAsync/AcceptPendingJoins/AcceptReadyUpdates` ve host UI heartbeat/refresh yarışını incele. |
+| `ATB_RTDB_ROOM_CLOSED ... complete=True` | **PASS (bu tek QA oda cleanup'ı)** | Bütün hesap/oda/maçların veya cihazlarda orphan-free cleanupların tamamı için PASS değil. |
+| `ATB_SPARK_MATCH_QA FAIL stage=precondition reason=requires_idle_live_spark_lobby_and_match_bridges` | **DOĞRU QA ÖNKOŞULU** | Kullanıcı ayrı bir Private oda açıkken smoke test başlatmış. İlk Start CAS FAIL ile karıştırma; test canlı oda açıkken koşmamalı / zararsız çıkmalı. |
+| `ATB_BOOTSTRAP phase=profile ... success=false code=ATB120` | **OPEN** | `AtlasBoardProgressionBridge` hâlâ callable/Firestore profil yolunu kullanıyor; hesap belgeleri de eksik. Spark/RTDB Career/profile göçü gerekiyor. |
+| `AtlasBoard account ... required Firestore documents are missing` | **OPEN** | `AtlasBoardAccountService` üç legacy Firestore belgesini (`users`, `public_profiles`, `preferences`) required sanıyor. Yeniden oluşturma hilesi yerine RTDB profil sözleşmesini planla. |
+| `PawnCosmetic_* did not contain an Animator` | **OPEN** | `PawnMotionAnimator.BindCosmeticVisual` runtime Animator ekliyor; Kenney rig/avatar ve aktif Animator/sahne lifecycle doğrulanmalı. |
+| `ATB_LOADING_DELAY ... elapsedMs=13786 code=ATB101` | **OPEN** | Startup'da 10s uyarısı var; `startup_ready totalMs=815` ile farklı ölçüm kapsamları. FPS/CPU ve startup kritik yolunu ayırıp ölç. |
+| `ATB_RTDB_PUBLIC_DIRECTORY success=true rooms=0` | **PASS (istek)** | Boş public liste hata değildir. |
+
+**Log güvenliği:** UID, SteamID, room code, Firebase token/debug credential veya tam kişisel verileri bu roadmap'e, commit açıklamasına, genel QA loglarına kopyalama. ID ve oda kodları kullanıcı oyun UI'sında gerektiğinde gösterilir; kalıcı public troubleshoot metinlerinde maskelenir. App Check debug tokenı hiçbir yerde loglanmaz.
+
+### 0B.2 BİRİNCİ GRUP — 4 kritik RTDB lifecycle kusuru
+
+| ID | Kaynak / risk | v5.33.0 durumu | Doğrulama kapısı |
+|---|---|---|---|
+| **G1-P0-01 Host migration/crash recovery** | `AtlasBoardMatchRuntimeBridge.TryRecoverCrashedHostAsync()` hâlâ `match.error.service_unavailable` döner; `HostMigrateAtSafeCheckpointAsync` timeout/leave flow kaynakları. Host ayrıldığında maçın authority epoch, hostUid ve roomMeta tek otoriteyle devredilmesi eksik. | **OPEN — v5.33.0 değiştirmedi** | İki gerçek insan, host gracefully leave / crash, stale host publish denial, monotonic epoch, güvenli checkpoint, trade/auction ortasında split brain yok. RTDB rules ile desteklenemeyen yetki devrini sahte PASS ilan etme. |
+| **G1-P0-02 Human disconnect → Temporary Bot → reconnect** | `AtlasBoardSparkRtdbMatchTransport.HostMaintenanceAsync`, `TouchAsync`, `LeaveAsync`, `ToSnapshot`, coordinator. v5.33.0 20s stale-presence + 5min TemporaryBot/reclaim kod adayı getirdi. | **YEREL NO-NETWORK QA PASS; REAL RTDB OPEN** | İki hesap, remote heartbeat kes, 20s sonra temp bot, orijinal envanter/kimlik korunur; aynı UID 5 dakika içinde koltuğunu geri alır; Host AI yalnız bot seat'te. Unity restart ve network outage ayrı test. |
+| **G1-P0-03 5 dakikalık reconnect expiry / no stale reclaim** | Aynı maintenance CAS + `reconnectExpiresAtEpochMs`; normal Bot kişilikleri ile zaman aşımından sonra `PERMANENT BOT` karıştırılmayacak. | **YEREL NO-NETWORK QA PASS; REAL RTDB OPEN** | 5min bitmeden Human döner; bitince PermanentBot, eski uid rejoin reddedilir; HUD Temporary/Permanent/personality uygun; ACK ve callback race yok. |
+| **G1-P0-04 AFK Human → gerçek Bot yetkisi** | `HostRemoveAfkAsync` eski sürümde yalnız `afkLockedOut=true` ve `connection=removed` yazıyordu, controller Human kalıyordu. v5.33.0 kaynaktaki controller=PermanentBot write ve Human intent authorization filtresi kontrol edilmeli. | **SOURCE CANDIDATE; LIVE OWNER TEST OPEN** | Host kaldırma bir kez işlenir, removed user intent yapamaz, Host normal Bot hızında oynar; 10 saniyelik kullanıcı tasarımı zar fail-safe KORUNUR. |
+
+### 0B.3 İKİNCİ GRUP — 6 çapraz sistem regresyonu (eksiksiz)
+
+| ID | Hata / sahip modül | Durum | Bitiş ölçütü |
+|---|---|---|---|
+| **G2-P0-01 Lobby CAS/start/rematch revision race** | `AtlasBoardRtdbCasualLobbyTransport.StoreSnapshot` ve `SnapshotAsync` asenkron host yazıcıları, `StartCasualMatchAsync`, `AtlasBoardLobbyRuntimeBridge.AcceptSnapshot`. v5.33.0 ETag CAS güvenlik sağlıyor, **ancak `start_1` şimdi gerçek FAIL**. | **BLOCKER** | Tek canonical roomState writer/serialized host room mutation, gerekirse bounded read/rebase/retry; eski response yeniyi ezmez; `Create→Start` 3 kere, Remote Ready ve Rematch 3 kere, `SettingsRevision` ≠ `TransportRevision`, no phantom Start, no orphan match. |
+| **G2-P0-02 Room/match cleanup partial failure** | `CloseAsync`, `LeaveAsync`, `HostRematchAsync`; önceden partial delete success dönebiliyordu. v5.33.0 cleanup success koşulları sıkılaştırıldı. | **BU QA ODASI CLEANUP PASS; GENEL OPEN** | Kod, roomMembers, intent/ACK, matchPresence, matchState, directory, join requests ve roomState yalnız doğru odaya ait; işleme retry/idempotency; test eden aktif yabancı room silinmez. |
+| **G2-P1-03 Bot AI initialization enable→disable→enable** | `MatchSetupManager.ResetForNewMatchSession`, `AtlasBoardTurnDiceNetworkCoordinator.ApplyLobbyIdentitySnapshot/ApplyOnlineSeatMetadata`, `BotPlayerController.SetBotEnabled`. | **OPEN** | First/second/third maç Host+3 Bot hızlı doğal roll/purchase/auction; gereksiz role toggling yok; oturum exit cleanup yine doğru. `SetBotEnabled(false)` gerçek seat Human geçişi değildir. |
+| **G2-P1-04 Unchanged RTDB snapshot → HUD redraw + scene search** | `ApplyOnlineSeatMetadata` koşulsuz `RefreshTurnPresentationForControlChange`; `PlayerHudPanel` koordinatör bulma ve layout tekrarı; tablet HUD flicker. | **OPEN** | Kimlik, seat, bağlantı, turn değişmedikçe redraw/log/SetActive yok; tek UI owner, tablet açık 30s titreme yok, 3 match reentry eski Travel/Property/CityInfo klonlamıyor. |
+| **G2-P1-05 Legacy Firestore profile/account dependency** | `AtlasBoardAccountService` `users/public_profiles/preferences`; `AtlasBoardProgressionBridge` callable, `ATB120`; gerçek hesap ve Career RTDB göçü eksik. | **OPEN — LOGDA DOĞRULANDI** | Auth Firebase'de kalır; RTDB canonical profile/settings/career/guest migration, inactive Firestore normal writes, migration fallback only explicit; deneyim/gold entitlements verified backend yokken sahte mint yok. |
+| **G2-P2-06 Animator/rig warnings & idle animation** | `PawnMotionAnimator.BindCosmeticVisual`, Kenney FBX imported rigs; disabled/missing Animator üzerinde action; game setup lifecycle. | **OPEN — LOGDA DOĞRULANDI** | Gerçek humanoid/avatar rig çalışır ya da kasıtlı statik mesh fallback; no repeated runtime component add, warnings nedenleri çözülür, gerçek hareket düzgün. |
+
+### 0B.4 Bunlardan ayrı MUST-KEEP ve ilave açık kapılar
+
+1. **v5.32.6 Owner gameplay PASS referansı**: gerçek Private RTDB Host + 3 Bot, doğal hızda zar, satın alma, açık artırma, turn ilerlemesi. v5.33.0 bu oyunun acceptance'ını otomatik devralmaz; regresyon görürsen düzelt ve yeniden PASS al.
+2. **Bot HUD sözleşmesi**: normal Bot = `BOT • AGGRESSIVE / SAFE / BALANCED / ADAPTIVE` (yerel dil); reconnect Human geçici kaybı = `TEMPORARY BOT`; sürenin sonunda = `PERMANENT BOT`; reconnect olunca = Human. `permanent_bot` wire her zaman insan-expiry anlamına gelmez. v5.32.8 yanlış kısaltma, v5.32.9 restorasyon; bunu bir daha regresyon yapma.
+3. **Rematch guard**: `match_complete` öncesinde yasak; üç maç QA testinde önce negatif active-rematch, ardından gerçekten complete stage ve rematch. Oda kodu/üyeler korunmalı; eski match cleanup'ın hata durumunu raporla. CAS engelini kaldırarak smoke testi yeşile boyama.
+4. **Two-real-device ONLINE**: Host/remote dice, movement, tile/rent, trade, auction, decision deadline, purchase, intent submission/ACK/dedupe/retry, UI. 8 snapshot read örneği `median=248ms`, `p95=3060ms` idi; bu **snapshot RTT**, zar/karar süresi değil. `0.75s` REST polling ve seri GET/PUT/ACK maliyeti gerçek iki cihazda ölçülecek; gerçek zamanlı dinleyici refactor risk/bütçe gerekçesiyle incelenir. Firestore'a geçiş çözüm diye varsayma.
+5. **Security**: Security Core 01 local emulator PASS Cloud Functions/Firestore testidir; RTDB gerçek casual gameplay proof DEĞİL. RTDB host-authoritative Casual VERIFIED XP/Gold ödülü üretmez; trusted match-result verifier OPEN. Firebase Spark/free; onaysız Blaze, Cloud Functions deploy, RTDB Rules deploy veya canlı silme YOK.
+6. **Identity/UI/reentry**: `Vuartex`/`V` (Guest flash/G avatar yok), Public/Private/Shop/Career/Trade aynı canonical profile; tek Cancel ve bağımsız Local Offline; altı haneli kod lobby+ESC; aynı sahnede 3 maç, old UI clone yok; Tablet Property/Travel/Trade/City Info tek sahne owner, account Sign In doğru yerde.
+7. **Android & Startup**: S20 FE FPS (~16–23), ATB101 13.786s startup, loaded profile ATB120, Animator warnings; CPU/Canvas/GC ve RTDB request path ayrı profillenecek. Android-önce, Windows/Steam etkilenmemeli. Debug logs APK klasörüne isteniyor; USB şart değil. Unity Editor 0 error olmadan APK build YOK.
+8. **RTDB migration gap matrix**: `users/{uid}`, user.general, nested settings.platforms, device data, `guestProfiles`, `careerProfiles`, `casualStats`, achievements, catalogs/store, Shop entitlement, daily/promo, account rename cooldown, Firebase Auth/email identity; her alanın RTDB rules CRUD/owner/old Firestore read-only fallback/parity durumunu tek tek incele. RTDB hedef path roadmap'te yazıyor diye implemented sayma. `AtlasBoardAccountService` ve `AtlasBoardProgressionBridge` eski Firestore/Functions branch'lerini aramayı unutma.
+9. **Additional liveness/robustness**: Public join/ready, 5..1 countdown, room close + orphan recovery, real reconnect after app restart, host graceful leave & crash, stale follower/host frame anti-replay, commandId idempotency. Aynı issue iki ayrı controller'da çözülmemeli.
+
+### 0B.5 Yeni sohbet için KESİN çalışma/teslim sırası — onay bekleme
+
+1. **Önce güncel `MASTER_ROADMAP.md`**: bu 0B + 0A ve eski kaynakların tarihsel durumlarını ayır. Sonra GitHub `main` ile **owner'ın son gönderdiği `v5.33.0_RTDB_LIFECYCLE_CAS_REMATCH_FULL_FILES.zip` ve en son local tam dosyaları SHA/diff karşılaştır**. GitHub `main` tarihsel roadmap v5.32.6 iken ZIP içinde daha yeni v5.33.0 roadmap var; yeni kodu eski GitHub kopyasıyla ezme. Sahiplik tablosunu çıkar, mevcut helper/enum/serializer/animator/layout var mı önce ara.
+2. **P0 önce**: `ATB_SPARK_MATCH_QA FAIL stage=start_1` CAS race. Host'un `SnapshotAsync` içinde `AcceptPendingJoins/AcceptReadyUpdates` gibi yan etkiler yapan GET'lerini ve aktif lobby poll/heartbeat yazıcılarını araştır; sadece CAS guard eklemek yetmedi. Tek serialized authoritative writer veya güvenli bounded retry yap, hem expected `TransportRevision` hem `SettingsRevision` ve phase/seat invariant'larını koru. Test `start_1 → 3x start/read/publish/complete/rematch/close` PASS değilse sonraki P0'a geçme.
+3. **Sonra G1 lifecycle**: 20s disconnect → TemporaryBot, 5dk gerçek reclaim/expiry, AFK Bot, 2nd/3rd maç, host takeover rules+authorityEpoch güvenliği. İki cihaz test edilmeyen security/host migration'a PASS deme. Çalışan Bot label/personality ve 10s auto roll fail-safe bozulmayacak.
+4. **Sonra G2**: cleanup failure/retry, bot init duplicate owner, seat metadata delta HUD, animator, Firestore→RTDB profile/account/progression. Diğer açık network metrics/UI/Android gates sırasıyla.
+5. **Teslimat**: **yalnız tam değiştirilmiş orijinal dosyalarla proje-relative dizinli ZIP**; `.ps1`, `.py`, diff, patch, snippets file deliver etme. Test/Console/PowerShell komutu gerekirse doğrudan sohbet içine. C# ayrı Editor assembly public/internal erişim kontrolü; 0 compiler errors; actual runnable tests; ZIP integrity + diff against exact source; başarısız veya yapılmamış test OPEN olarak kalır. Tek canonical roadmap güncelle, ayrı phase/QA/md dosyası çıkarma. GitHub push her küçük işlem için beklenmez. Değişen bir fonksiyonun kopyasını üretme; tek owner, kısa açıklayıcı comment, no parallel controllers. Kullanıcıdan ayrıca onay istemeden açık P0'ı çözüp tam dosya ZIP'i ver; ücretli/deploy/irreversible işlemler için önceden onay gerekir.
+6. **Durum raporu**: satır satır `SOURCE CHANGED / STATIC CHECK / UNITY COMPILE / EDITOR NO NETWORK / LIVE RTDB / TWO DEVICES` ayır; `ATB_RTDB_PRESENCE_QA PASS` yalnız local state testidir; `start_1` CAS FAIL'den sonra Unity smoke/PASS YOK. GitHub Summary/Description önceki gerçek test ve çözüm sınırlarıyla uyumlu olsun.
+
+---
 
 ## 0A. 16 Ekim 2026 — v5.33.0 RTDB lifecycle / CAS / rematch SOURCE CANDIDATE
 
@@ -100,19 +217,20 @@
 
 | ID / önem | Kullanıcının tekrar gördüğü bug | Kök alan / kalıcı kabul kapısı | Şimdi |
 |---|---|---|---|
-| **P0-01 Identity/avatar** | Bir ekranda `Vuartex` yanında **G**, başka sahnede V; bir an Guest→Vuartex; kimlik HUD değişimleri | Tek canonical `DisplayName` + `AvatarInitial` aynı snapshot'tan; ilk karede Main Menu / Profile / Private / Public / Career / Shop / tur bar / tablet / HUD; ayrı prefab fallback yok; per-frame `IdentityChanged` yok | **OPEN**. v5.31.9 kaynak düzeltmesi kabul edilmedi |
+| **P0-01 Identity/avatar** | Bir ekranda `Vuartex` yanında **G**, başka sahnede V; bir an Guest→Vuartex; kimlik HUD değişimleri | Tek canonical `DisplayName` + `AvatarInitial` aynı snapshot'tan; ilk karede Main Menu / Profile / Private / Public / Career / Shop / tur bar / tablet / HUD; ayrı prefab fallback yok; per-frame `IdentityChanged` yok | **KISMİ OWNER PASS:** v5.39 current Editor session `Vuartex` header + Steam slot0 sync + canonical Profile modal doğru. Cross-screen Guest flash, manual #3 ve two-device OPEN |
 | **P0-02 HUD flicker** | Tablet açıkken P1–P4 player HUD görünür/gizli, tekrar tekrar boyanıyor | Tek HUD görünürlük sahibi; tablet açıkken tüm player HUD kapalı 30s hiç titreme yok; kapalıyken doğru geri gelir; değişmeyene SetActive/Canvas yazma yok | **OPEN**, v5.31.9 adayı |
 | **P0-03 Tablet birikmesi** | Property üzerinde eski Travel çiziliyor; kararsız karar ekranları birikiyor, City Info ikinci maçta kaybolabiliyor | `TabletUIManager` tek aktif canonical panel; Travel/Property/Trade/Event/Auction/Development/City Info eski ve modernleri aynı anda çizemez; her kapatmada cleanup; 3 maç | **OPEN**, v5.31.9 kısmi adayı |
-| **P0-04 Seat auto Bot** | Seçilmemiş P2–P4 yanlışlıkla Local Human | LocalOffline P1 host, explicit P2 Local/P3 Bot korunur; seçili ama boş P4 → Bot. Online explicit Remote Human seçimi asla sessizce bozulmaz. 5→1 countdown ve doğru snapshot | **KISMİ OWNER PASS:** v5.32.6 RTDB host+3 Bot oynandı; LocalOffline/RemoteHuman/3 oturum OPEN |
-| **P0-05 re-entry** | Maç #1 açılıyor, menü→aynı/başka lobi→maç #2 Start çalışmıyor veya eski UI geliyor | Tek session lifecycle reset, stale callbacks/Unity destroyed refs/listener duplicate yok; maç #1/#2/#3 ve Shop/Career/Settings dönüşü PASS | **FAIL/OPEN** |
-| **P0-06 online match** | RTDB room kodu var ama ESC `NO NETWORK SESSION`, Public Start pasif, private gameplay local gibi | Match transport Functions→RTDB host snapshot/intent/ack/revision, remote join & ready, reconnect/rematch, gerçek network RTT; LocalOffline N/A | **KISMİ OWNER PASS:** host+3 Bot RTDB oyun başarılı; 2 gerçek oyuncu, live sync/reconnect OPEN |
-| **P0-07 Cancel klonu** | İki Cancel, Cancel oda oluşturuyor, Local Offline hizası hatalı | Canlı Cancel klonlamak yasak; tek bağımsız Local Offline ve tek Cancel, tıklama işlevleri ayrık, 10 kez menüye dön/aç, güzel eşit aralık | **OPEN**; v5.31.8 kod adayı |
+| **P0-04 Seat auto Bot** | Seçilmemiş P2–P4 yanlışlıkla Local Human | LocalOffline P1 host, explicit P2 Local/P3 Bot korunur; seçili ama boş P4 → Bot. Online explicit Remote Human seçimi asla sessizce bozulmaz. 5→1 countdown ve doğru snapshot | **KISMİ OWNER PASS:** v5.39'da iki ardışık Online Host+3 Bot start doğru; LocalOffline explicit Local/Bot matrix, RemoteHuman ve manual #3 OPEN |
+| **P0-05 re-entry** | Maç #1 açılıyor, menü→aynı/başka lobi→maç #2 Start çalışmıyor veya eski UI geliyor | Tek session lifecycle reset, stale callbacks/Unity destroyed refs/listener duplicate yok; maç #1/#2/#3 ve Shop/Career/Settings dönüşü PASS | **KISMİ OWNER PASS:** manual #1→#2 rearm/new-room/new-match geçti; Live Spark backend 3x rematch PASS. Manual #3 + tüm UI roundtrip OPEN |
+| **P0-06 online match** | RTDB room kodu var ama ESC `NO NETWORK SESSION`, Public Start pasif, private gameplay local gibi | Match transport Functions→RTDB host snapshot/intent/ack/revision, remote join & ready, reconnect/rematch, gerçek network RTT; LocalOffline N/A | **KISMİ OWNER PASS:** v5.39 Host+3 Bot manual + Live Spark 3x roundtrip PASS; CAS stale revision bounded resync çalışıyor. Smoke hâlâ `remote_join=UNTESTED remote_gameplay=UNTESTED`; 2 gerçek Human/reconnect OPEN |
+| **P0-07 Cancel klonu** | İki Cancel, Cancel oda oluşturuyor, Local Offline hizası hatalı | Canlı Cancel klonlamak yasak; tek bağımsız Local Offline ve tek Cancel, tıklama işlevleri ayrık, 10 kez menüye dön/aç, güzel eşit aralık | **CURRENT EDITOR SESSION PASS:** `local_button=independent aligned=true cancel_listener_cloned=false duplicates_removed=true`; 10x repetition/Android acceptance OPEN |
 | **P0-08 profil para/gold** | Public Lobby'de `Vuartex` yanında G, `$ 0 / G 0` önceki profille tutarsız | Profil ve wallet tek veri kaynağı, Guest/verified hesap ayrımı, yokken loading/missing doğru; sahte currency yok | **OPEN** |
 | **P0-09 Android FPS** | Samsung S20 FE 16–23 FPS, CPU ~40–65ms, GPU birkaç ms | Unity Profiler CPU/Canvas/GC/Update/physics ayrımı, Android-only değişiklik; Steam/Windows değişmez; fiziksel cihaz kabul | **OPEN** |
-| **P1-10 account/profile** | `ATB120`, eski Firestore documents missing; Career bazen loading | `AtlasBoardAccountService` eski belge zorunluluğu kaldır, RTDB hesap + Career eşleşmesi; guest preview koru | **OPEN** |
-| **P1-11 room cleanup** | RTDB dump'ta closed veya boş inviteCode olan yetim rooms | Host owned atomic close; roomMeta/roomMembers/joinCodes/roomState temizliği; hata/retry idempotent, doğrulanmış live room silinmez | **OPEN** |
+| **P1-10 account/profile** | `ATB120`, eski Firestore documents missing; Career bazen loading | `AtlasBoardAccountService` eski belge zorunluluğu kaldır, RTDB hesap + Career eşleşmesi; guest preview koru | **NORMAL EDITOR RUNTIME CLOSED:** RTDB user sync + account load `firestore_reads=0` + RTDB Career read proven. Cross-device account migration ve protected progression/reward authority ayrı OPEN gate |
+| **P1-11 room cleanup** | RTDB dump'ta closed veya boş inviteCode olan yetim rooms | Host owned atomic close; roomMeta/roomMembers/joinCodes/roomState temizliği; hata/retry idempotent, doğrulanmış live room silinmez | **KISMİ OWNER PASS:** Host+Bot-only close ve smoke close `complete=True no_other_rooms_touched=true`; multi-human leave/hard-crash orphan cleanup OPEN |
+| **P0-12 board visual churn** | Aynı map/config akışında generated tile root/label/band üst üste üretimi; consistency guard daha önce 64/96 stale visual temizliyordu | `BoardGenerator` + `BoardTileVisualPresenter` idempotent; same-map reapply no-op; guard yalnız fallback; manual #1/#2/#3 + Android profiler | **OWNER EDITOR PASS (iki-session evidence):** same-map skip logları var ve v5.39 loglarında eski cleanup storm yok. Manual #3 + Android P0-09 OPEN |
 
-**Kesin statü disiplini:** 16 Ekim yeni v5.32.6 owner PASS yalnızca host+3 Bot oyun akışına uygulanır. v5.31.8 kaynakları Cancel cleanup için, v5.31.9 kaynakları tablet/HUD/avatar için hazırlanmış. Kullanıcı bunları son testten sonra kabul ettiğini söylemedi. *Source prepared ≠ PASS*. Network oyununu oda oluşturabildiğimiz için bitmiş sayma.
+**Kesin statü disiplini:** 17 Ekim v5.39 kanıtı CAS 3x Live Spark smoke, normal account/profile/Career RTDB runtime, manual #1→#2 re-entry, Host+Bot-only cleanup, current-session Cancel/Local entry ve board same-map idempotency için statüyü yükseltti. Buna rağmen smoke çıktısı remote join/gameplay'i açıkça UNTESTED bırakıyor; 3. manuel session, iki gerçek Human, reconnect/TemporaryBot/5dk expiry, gerçek Host Migration, Android FPS ve production App Check **OPEN**. *Source prepared ≠ PASS; Editor PASS ≠ real two-device PASS ≠ Android PASS ≠ production PASS.*
 
 ## 4. Tek kimlik ve tek session mimarisi
 
