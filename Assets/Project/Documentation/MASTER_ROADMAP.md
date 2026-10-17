@@ -1,10 +1,50 @@
 # ATLAS BOARD — MASTER ROADMAP (CANONICAL)
 
-**Güncel konsolidasyon:** 17 Ekim 2026 · **Aktif checkpoint:** local v5.40.2 **v5.40.1 Unity compile/runtime açıldı; manual match #2/#3 gameplay çalışıyor fakat HUD player/Bot name presentation re-entry regresyonu bulundu ve v5.40.2 source fix hazırlandı; RTDB identity/economy state kaybolmadı; iki gerçek Human / gerçek Host Migration / Android hâlâ OPEN** · Unity 6000.5.6f1 · `vuartex/AtlasBoardPrototype` · `atlasboard-usa` · Android önce, Windows/Steam korunur.
+**Güncel konsolidasyon:** 17 Ekim 2026 · **Aktif checkpoint:** local v5.40.3 **manual match #1/#2/#3 gameplay, zar, lobby/main-menu identity ve auction akışı çalışıyor; v5.40.2 sonrasında kalan HUD name leaf + TURN/SIRA badge text presentation regresyonu için v5.40.3 source fix hazırlandı; authoritative PlayerGameState/turn/economy state doğru; iki gerçek Human / gerçek Host Migration / Android hâlâ OPEN** · Unity 6000.5.6f1 · `vuartex/AtlasBoardPrototype` · `atlasboard-usa` · Android önce, Windows/Steam korunur.
 
 > **ÖNCELİK KURALI:** Bu belgenin 1–10 bölümleri geçerli ürün kararı ve test durumudur. Daha alttaki v5.30.0 ve öncesinin tarihsel kaydı geriye dönük denetim içindir. Tarihsel “current/PASS/next” yazıları güncel durumun üzerine çıkamaz. **Kod hazır ≠ Unity compile PASS ≠ gerçek cihaz PASS ≠ iki cihaz online PASS.**
 >
 > **TEK DOSYA KURALI:** Bundan sonra yalnız `Assets/Project/Documentation/MASTER_ROADMAP.md` kanoniktir. Her yama/sürümde yeni QA/phase/roadmap/next-chat dokümanı açma. Anlamlı mimari değişikliği, kullanıcı test sonucu veya phase milestone olduğunda bu dosyayı güncelle; küçük düzenlemelerde ayrıca doküman yazma. Eski dosyalar şu an otomatik silinmez; bu roadmap kaynaklarını konsolide eder.
+
+## 0G. 17 Ekim 2026 — v5.40.3 RESIDUAL HUD NAME / TURN BADGE LEAF RECOVERY SOURCE FIX
+
+> **KABUL DURUMU:** v5.40.2 owner retest gameplay tarafında olumlu: ana menü/lobby `V` + `Vuartex`, zar, menüler ve Host+3 Bot match akışı çalışıyor; auction ekranında Current Bid / sonraki bid değerleri ve bidder isimleri görünür. Ancak HUD'da iki presentation kusuru kaldı: match #2/#3'te bazı Player/Bot name satırları aralıklı kayboluyor ve aktif oyuncunun renkli TurnBadge kutusu görünmesine rağmen `TURN/SIRA` yazısı ilk/ikinci/üçüncü match fark etmeksizin görünmüyor. Bu bölüm SOURCE FIX'tir; owner retest olmadan CLOSED değildir.
+
+### 0G.1 Kanıt / kapsam ayrımı
+
+- Sağlanan runtime logunda match setup `Vuartex`, `BOT 2`, `BOT 3`, `BOT 4` kimliklerini doğru hazırlıyor; starting order ve sonraki `Turn started:` kayıtları doğru slot+isimlerle ilerliyor. Bu nedenle bu turda RTDB seat identity, TurnManager authority veya economy state yeniden tasarlanmadı.
+- HUD screenshot'ında current-turn outline ve TurnBadge renkli kutusu aktif olduğu halde badge text boş. Bu, current-turn seçiminin doğru olup yalnız TMP leaf presentation'ın kayıp/disabled kalabildiğini gösterir.
+- v5.40.2 `playerNameText` activeSelf recovery eklemişti; residual bulgu, re-entry sonrasında serialized TMP leaf reference'ın stale/null olabileceği veya TMP component'in disabled kalabileceği edge'i kapatmadığını gösterdi.
+- Auction ekranındaki tek anlık kanıt `Current Bid 300`, `Bid 310`, `Bid 350` ve Vuartex/BOT 4 isimlerini birlikte gösteriyor. Bu screenshot current presentation'ın authoritative bid matematiğiyle uyumlu olduğunu gösterir; tüm auction boyunca dinamik update kabulü yine manual retest ile kapanır. Trade visible-value retesti OPEN kalır.
+
+### 0G.2 v5.40.3 kaynak düzeltmesi — tek owner içinde
+
+- Yalnız canonical `PlayerHudPanel` değiştirildi. Yeni HUD manager/prefab/controller/helper owner yaratılmadı; TurnManager, RTDB transport, Bot AI ve economy/trade/auction authority değişmedi.
+- `PlayerHudPanel.Refresh()` participating HUD için yalnız kendi panel hiyerarşisindeki iki kritik leaf'i doğrular: direct `PlayerName` ve `TurnBadge/Text`. Serialized reference null/stale veya artık panelin child'ı değilse aynı canonical child'a local olarak rebind eder; **whole-scene search yoktur**.
+- `PlayerName` TMP GameObject/component gerekli olduğunda tekrar enable edilir. Stabil durumda `SetActive`/`enabled` yazımı yapılmaz.
+- `TurnBadge/Text` TMP GameObject/component de gerekli olduğunda tekrar enable edilir; text önce `hud.turn` ile yazılır, badge root visibility daha sonra current-turn state'e göre uygulanır. Böylece renkli fakat boş badge kutusu kalmamalıdır.
+- Rebind yalnız layout cache'ini gerektiğinde invalidate eder; v5.40'ın delta-only HUD refresh/per-frame geometry optimizasyonu korunur.
+- 10 saniyelik Human auto-roll fail-safe, Bot personality label, Temporary/Permanent Bot lifecycle, `Vuartex` canonical identity ve tablet single-owner kuralları değiştirilmedi.
+
+### 0G.3 Güncel statü
+
+- **P0-05 reusable session:** manual #1/#2/#3 gameplay start/turn/dice akışı owner tarafından gözlendi; **HUD presentation nedeniyle full PASS değil**. v5.40.3 retest OPEN.
+- **P0-01 identity:** authoritative state/log ve main menu/lobby identity doğru; HUD name leaf render residual bug için **SOURCE FIX / RETEST OPEN**.
+- **P0-02 HUD:** current-turn outline çalışıyor; `TURN/SIRA` TMP leaf görünürlüğü **SOURCE FIX / RETEST OPEN**. Tablet 30sn no-flicker kapısı da OPEN.
+- **P0-03 tablet:** v5.40.2 rearm korunuyor. Auction single screenshot improved; Trade + repeated Auction update retesti OPEN.
+- **Two-device Human / reconnect / 20sn Temporary Bot / 5dk expiry / AFK / real Host Migration / Android profiler:** değişmedi, OPEN.
+
+### 0G.4 Owner acceptance — bir sonraki test
+
+1. Unity compile: 0 red error.
+2. Aynı Play Mode: Private Host+3 Bot match #1 → leave → #2 → leave → #3. Her matchte dört name lane sürekli görünür: `Vuartex`, `BOT 2`, `BOT 3`, `BOT 4`.
+3. Her starting-order roll ve normal turn boyunca yalnız current player HUD'unda badge görünür ve badge içinde aktif dilde `TURN` / `SIRA` (ve diğer lokalizasyon karşılığı) okunur. Renkli boş badge kabul edilmez.
+4. Turn değiştikçe outline + badge aynı karta birlikte geçmeli; name/money/control satırlarından hiçbiri kaybolmamalı.
+5. Tablet 30sn açık → HUD gizli ve flicker yok; kapat → dört name + current TurnBadge tek repaint ile doğru dönmeli.
+6. Auction sırasında en az 3 bid değişimi gözle: Current Bid, next bid buttons, bidder/leader isimleri birlikte ilerlemeli. Trade'de From/To/property/cash presentation authoritative offer ile eşleşmeli.
+7. Bu UI retesti geçince roadmap sırasına göre iki gerçek Human join/ready/gameplay → disconnect/reclaim/expiry → Host migration kapılarına devam et.
+
+---
 
 ## 0F. 17 Ekim 2026 — v5.40.2 RE-ENTRY HUD NAME + TABLET EDGE REARM SOURCE FIX
 
