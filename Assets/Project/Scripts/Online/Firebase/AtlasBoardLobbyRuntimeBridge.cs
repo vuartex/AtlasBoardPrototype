@@ -201,6 +201,55 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         ResolveEmulatorHost();
 
 
+    private bool ownedRoomSweepInFlight;
+    private string lastOwnedRoomSweepUid = string.Empty;
+
+    private async void Start()
+    {
+        // Background loading-screen opportunity, but never create a Firebase
+        // account just for cleanup. Only reuse an already signed-in identity.
+        if (UsingLocalEmulators) return;
+        for (int i = 0; i < 40; ++i)
+        {
+            if (this == null || !Application.isPlaying) return;
+            AtlasBoardAccountService account = AtlasBoardAccountService.Instance;
+            if (AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession ||
+                (account != null && account.IsSignedIn))
+            {
+                AtlasLobbyOperationResult auth = await EnsureIdentityAsync();
+                if (auth.Success) await SweepOwnedRoomsOnceAsync(10);
+                return;
+            }
+            await Task.Delay(500);
+        }
+    }
+
+    private async Task SweepOwnedRoomsOnceAsync(int maxDeletes)
+    {
+        if (UsingLocalEmulators || ownedRoomSweepInFlight ||
+            string.IsNullOrWhiteSpace(currentAccountId) ||
+            string.IsNullOrWhiteSpace(idToken)) return;
+        if (maxDeletes > 1 && lastOwnedRoomSweepUid == currentAccountId) return;
+        ownedRoomSweepInFlight = true;
+        try
+        {
+            var scan = await AtlasBoardRtdbCasualLobbyTransport.
+                CleanupOwnedDormantRoomsAsync(currentAccountId, idToken,
+                    currentLobbyId, maxDeletes);
+            if (scan.scanned && maxDeletes > 1)
+                lastOwnedRoomSweepUid = currentAccountId;
+            if (!scan.scanned)
+                Debug.LogWarning("ATB_RTDB_ORPHAN_CLEANUP scanned=false " +
+                    "cause=owner_query_denied_or_unavailable");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning("ATB_RTDB_ORPHAN_CLEANUP failed=true category=" +
+                ex.GetType().Name);
+        }
+        finally { ownedRoomSweepInFlight = false; }
+    }
+
     private async void Update()
     {
         if (!HasLobby)
@@ -1168,6 +1217,9 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         if (result.Success && result.Snapshot != null)
         {
             AcceptSnapshot(result.Snapshot);
+            // One old owned Waiting room at most, in background; never block
+            // the newly-started match or remove this active room.
+            _ = SweepOwnedRoomsOnceAsync(1);
         }
         return result;
     }

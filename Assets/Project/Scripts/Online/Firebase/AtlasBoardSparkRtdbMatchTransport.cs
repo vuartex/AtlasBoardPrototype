@@ -669,24 +669,76 @@ public static class AtlasBoardSparkRtdbMatchTransport
     private static SeatWire FindEligibleAuthoritySeat(
         SeatsWire roster, string uid, Dictionary<string, PresenceWire> presence, long now)
     {
-        if (roster == null || roster.seats == null) return null;
+        if (roster == null || roster.seats == null || presence == null) return null;
         SeatWire best = null;
         foreach (SeatWire seat in roster.seats)
         {
+            // Presence alone never restores authority to an expired/temporary
+            // bot or a disconnected Human. Host maintenance owns reconnection.
             if (seat == null || seat.host || seat.afkLockedOut ||
-                seat.mode != "remotehuman" || string.IsNullOrEmpty(seat.uid))
+                seat.mode != "remotehuman" ||
+                seat.controller != "human" || seat.connection != "connected" ||
+                string.IsNullOrEmpty(seat.uid))
                 continue;
-            PresenceWire p;
-            presence.TryGetValue(seat.uid, out p);
+            if (!presence.TryGetValue(seat.uid, out PresenceWire p))
+                continue;
             bool recent = p != null && p.online &&
                 now - p.lastSeenAt >= 0 &&
                 now - p.lastSeenAt <= AuthorityCandidatePresenceMs;
             if (!recent) continue;
-            if (uid != null && seat.uid != uid) continue;
             if (best == null || seat.slotIndex < best.slotIndex)
                 best = seat;
         }
-        return best;
+        // Evaluate the WHOLE eligible roster before checking requester UID.
+        // Previously every candidate filtered to itself and raced the RTDB CAS:
+        // a higher seat could win instead of the deterministic lowest seat.
+        return best != null && (uid == null ||
+            string.Equals(best.uid, uid, StringComparison.Ordinal)) ? best : null;
+    }
+
+    public static bool ValidateHostMigrationElectionContract()
+    {
+        const long now = 2000000L;
+        SeatsWire roster = new SeatsWire { seats = new[] {
+            new SeatWire { uid = "host", host = true, slotIndex = 0,
+                mode = "hostlocal", controller = "human", connection = "connected" },
+            // Intentionally out of seat order to validate deterministic election.
+            new SeatWire { uid = "b", slotIndex = 2, mode = "remotehuman",
+                controller = "human", connection = "connected" },
+            new SeatWire { uid = "expired", slotIndex = -2, mode = "remotehuman",
+                controller = "permanent_bot", connection = "reconnect_expired" },
+            new SeatWire { uid = "temporary", slotIndex = -1, mode = "remotehuman",
+                controller = "temporary_bot", connection = "reconnecting" },
+            new SeatWire { uid = "a", slotIndex = 1, mode = "remotehuman",
+                controller = "human", connection = "connected" }
+        }};
+        Dictionary<string, PresenceWire> online = new Dictionary<string, PresenceWire> {
+            { "a", new PresenceWire { online = true, lastSeenAt = now - 500 } },
+            { "b", new PresenceWire { online = true, lastSeenAt = now - 1000 } },
+            { "expired", new PresenceWire { online = true, lastSeenAt = now } },
+            { "temporary", new PresenceWire { online = true, lastSeenAt = now } }
+        };
+        SeatWire elected = FindEligibleAuthoritySeat(roster, null, online, now);
+        if (elected == null || elected.uid != "a" ||
+            FindEligibleAuthoritySeat(roster, "a", online, now) == null ||
+            FindEligibleAuthoritySeat(roster, "b", online, now) != null)
+            return false;
+        online["a"].online = false;
+        elected = FindEligibleAuthoritySeat(roster, null, online, now);
+        if (elected == null || elected.uid != "b" ||
+            FindEligibleAuthoritySeat(roster, "a", online, now) != null)
+            return false;
+        // Stale heartbeat, retired bot, AFK and reconnecting seats cannot win.
+        online["b"].lastSeenAt = now - AuthorityCandidatePresenceMs - 1;
+        if (FindEligibleAuthoritySeat(roster, null, online, now) != null)
+            return false;
+        online["b"].lastSeenAt = now;
+        roster.seats[1].afkLockedOut = true;
+        if (FindEligibleAuthoritySeat(roster, null, online, now) != null)
+            return false;
+        roster.seats[1].afkLockedOut = false;
+        roster.seats[1].connection = "reconnecting";
+        return FindEligibleAuthoritySeat(roster, null, online, now) == null;
     }
 
     private static async Task<Dictionary<string, PresenceWire>> ReadPresenceAsync(
@@ -958,6 +1010,89 @@ public static class AtlasBoardSparkRtdbMatchTransport
             Revision = state.revision
         };
     }
+
+#if UNITY_EDITOR
+    // Explicit Live Spark QA only. Runs the SAME expiry transition used by
+    // HostMaintenanceAsync, but advances time for ONE disconnected test seat.
+    // Never alters the production 5-minute lease or other users' rooms.
+    public static async Task<AtlasMatchNetworkResult>
+        EditorExpireSingleTemporaryHumanForQaAsync(
+            string matchId, string uid, string token)
+    {
+        if (string.IsNullOrWhiteSpace(matchId) ||
+            string.IsNullOrWhiteSpace(uid) || string.IsNullOrWhiteSpace(token))
+            return Failure("qa_identity_or_match_missing");
+
+        string matchPath = StatePath(matchId);
+        Response read = await Send("GET", matchPath, token, null, null, true);
+        MatchState state = Decode<MatchState>(read.Body);
+        if (!read.Ok || state == null || string.IsNullOrEmpty(read.ETag) ||
+            state.matchId != matchId || state.hostUid != uid ||
+            state.status != "active")
+            return Failure("qa_requires_current_live_match_host");
+
+        Response roomRead = await Send("GET",
+            "roomMeta/" + PathKey(state.lobbyId), token);
+        RoomMetaWire room = Decode<RoomMetaWire>(roomRead.Body);
+        if (!roomRead.Ok || room == null || room.closed ||
+            room.hostUid != uid || room.activeMatchId != matchId ||
+            room.authorityEpoch != state.authorityEpoch)
+            return Failure("qa_authority_epoch_anchor_mismatch");
+
+        SeatsWire roster = Decode<SeatsWire>(state.seatsJson);
+        if (roster == null || roster.seats == null)
+            return Failure("qa_roster_not_available");
+        SeatWire candidate = null;
+        int pending = 0;
+        long now = Now;
+        foreach (SeatWire seat in roster.seats)
+        {
+            if (seat == null || seat.host || seat.afkLockedOut ||
+                seat.mode != "remotehuman" || seat.controller != "temporary_bot" ||
+                seat.connection != "reconnecting" ||
+                seat.disconnectedAt <= 0 || seat.reconnectExpiresAt <= now ||
+                string.IsNullOrEmpty(seat.uid)) continue;
+            candidate = seat;
+            pending++;
+        }
+        // Never guess which Human to expire in a 3- or 4-player match.
+        if (pending != 1)
+            return Failure("qa_requires_exactly_one_unexpired_temporary_human");
+
+        Response presenceRead = await Send("GET",
+            "matchPresence/" + PathKey(matchId) + "/" +
+            PathKey(candidate.uid), token);
+        if (!presenceRead.Ok)
+            return Failure("qa_presence_check_failed");
+        PresenceWire presence = Decode<PresenceWire>(presenceRead.Body);
+        if (presence != null && presence.online &&
+            presence.lastSeenAt > candidate.disconnectedAt &&
+            now >= presence.lastSeenAt &&
+            now - presence.lastSeenAt <= RemotePresenceTimeoutMs)
+            return Failure("qa_remote_human_already_reconnected");
+
+        long simulatedNow = candidate.reconnectExpiresAt + 1L;
+        if (!AdvanceRemoteSeat(candidate, null, simulatedNow, state.createdAt) ||
+            candidate.controller != "permanent_bot" ||
+            candidate.connection != "reconnect_expired")
+            return Failure("qa_canonical_expiry_transition_rejected");
+
+        state.seatsJson = JsonUtility.ToJson(roster);
+        state.revision++;
+        state.updatedAt = now;
+        state.hostHeartbeatAt = now;
+        Response committed = await Send("PUT", matchPath, token,
+            JsonUtility.ToJson(state), read.ETag);
+        if (!committed.Ok)
+            return Failure("qa_match_cas_rejected_" + FailReason(committed));
+        // This is a simulated-deadline test, not proof of a 5-minute wall-clock wait.
+        return new AtlasMatchNetworkResult {
+            Success = true,
+            Snapshot = ToSnapshot(state, uid),
+            Revision = state.revision
+        };
+    }
+#endif
 
     private const long RemotePresenceTimeoutMs = 20000L;
     private const long ReconnectWindowMs = 5L * 60L * 1000L;

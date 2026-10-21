@@ -235,6 +235,22 @@ public sealed class AtlasBoardMatchRuntimeBridge : MonoBehaviour
             AcceptSnapshot(result.Snapshot);
         return result;
     }
+#if UNITY_EDITOR
+    // Editor QA may invoke the existing transport, never access Auth credentials.
+    // The production bridge remains the only identity/token owner.
+    public Task<AtlasMatchNetworkResult> EditorExpireSingleTemporaryHumanForQaAsync(string matchId = "")
+    {
+        string match = ResolveMatchId(matchId);
+        if (string.IsNullOrWhiteSpace(match) || currentSnapshot == null ||
+            currentSnapshot.MatchId != match || !currentSnapshot.LocalIsHost)
+            return Task.FromResult(AtlasMatchNetworkResult.Fail(
+                "match.error.host_only", "QA requires the current live host."));
+        return WithIdentity((uid, token) =>
+            AtlasBoardSparkRtdbMatchTransport.EditorExpireSingleTemporaryHumanForQaAsync(
+                match, uid, token));
+    }
+#endif
+
     public Task<AtlasMatchNetworkResult> HostMarkAfkRemovedAsync(
         int slotIndex, string matchId = "")
     {

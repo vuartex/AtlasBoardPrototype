@@ -155,6 +155,8 @@
       }
     },
     "roomMeta": {
+      ".indexOn": ["hostUid"],
+      ".read": "auth != null && query.orderByChild === 'hostUid' && query.equalTo === auth.uid && query.limitToFirst != null && query.limitToFirst <= 11",
       "$roomId": {
         ".read": "auth != null && (data.child('hostUid').val() === auth.uid || root.child('roomMembers').child($roomId).child(auth.uid).child('active').val() === true)",
         ".write": "auth != null && ((!data.exists() && newData.exists() && newData.child('hostUid').val() === auth.uid) || (data.exists() && data.child('hostUid').val() === auth.uid && (!newData.exists() || newData.child('hostUid').val() === data.child('hostUid').val())) || (data.exists() && newData.exists() && data.child('closed').val() === false && newData.child('hostUid').val() !== data.child('hostUid').val() && newData.child('authorityEpoch').val() === data.child('authorityEpoch').val() + 1 && newData.child('activeMatchId').val() === data.child('activeMatchId').val() && root.child('roomMembers').child($roomId).child(newData.child('hostUid').val()).child('active').val() === true && root.child('roomMembers').child($roomId).child(newData.child('hostUid').val()).child('role').val() === 'remoteHuman' && root.child('matchState').child(data.child('activeMatchId').val()).child('hostUid').val() === data.child('hostUid').val() && root.child('matchState').child(data.child('activeMatchId').val()).child('authorityEpoch').val() === data.child('authorityEpoch').val() && ((data.child('hostUid').val() === auth.uid) || (newData.child('hostUid').val() === auth.uid && root.child('matchState').child(data.child('activeMatchId').val()).child('hostHeartbeatAt').val() <= now - 12000))))",

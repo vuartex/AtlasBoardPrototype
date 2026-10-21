@@ -40,6 +40,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
     {
         public string hostUid, mode, mapId, themeId, passwordHash, inviteCode;
         public long createdAt, updatedAt;
+        public string activeMatchId;
         public bool closed;
         public int maxPlayers, roundLimit;
     }
@@ -277,9 +278,143 @@ public static class AtlasBoardRtdbCasualLobbyTransport
     // Phase 18G: reserve the six-digit code FIRST, before creating room records.
     // If a subsequent RTDB write fails, remove only this newly-created room.
     // Conditional PUT + null_etag prevents two hosts from claiming one code.
+    private const int MaxPriorHostRooms = 10;
+    private const int MaxOwnedRoomScan = MaxPriorHostRooms + 1;
+    private const long DormantRoomAgeMs = 24L * 60L * 60L * 1000L;
+    // Guard an owner's current match + one new room. This is client-side flow
+    // control, NOT a server-enforced global quota; malicious API clients need
+    // an authenticated backend admission service for a hard abuse bound.
+    private static async Task<(bool success, List<KeyValuePair<string,Meta>> rooms)>
+        ReadOwnedRoomMetadataAsync(string uid, string token)
+    {
+        var result = new List<KeyValuePair<string,Meta>>(MaxOwnedRoomScan);
+        if (string.IsNullOrEmpty(uid) || string.IsNullOrEmpty(token))
+            return (false, result);
+        // Match the REST query encoding used by the existing Public directory.
+        string query = "orderBy=%22hostUid%22&equalTo=%22" + Safe(uid) +
+            "%22&limitToFirst=" + MaxOwnedRoomScan;
+        Response response = await Send("GET", "roomMeta", token, query:query);
+        if (!response.Ok) return (false, result);
+        foreach (KeyValuePair<string,string> node in JsonObjectMembers(response.Body))
+        {
+            Meta meta = Parse<Meta>(node.Value);
+            if (meta == null || !string.Equals(meta.hostUid, uid,
+                    StringComparison.Ordinal)) continue;
+            result.Add(new KeyValuePair<string,Meta>(node.Key, meta));
+        }
+        return (true, result);
+    }
+
+    // Live Spark only: never delete someone else's room, our currently selected
+    // room, or a room with any recent activity. A fresh read is mandatory even
+    // if the earlier indexed scan identified a candidate.
+    public static async Task<(bool scanned, int found, int deleted)>
+        CleanupOwnedDormantRoomsAsync(string uid, string token,
+            string activeRoom, int maxDeletes = 10)
+    {
+        var scan = await ReadOwnedRoomMetadataAsync(uid, token);
+        if (!scan.success) return (false, 0, 0);
+        long now = Now();
+        int removed = 0;
+        int limit = Mathf.Clamp(maxDeletes, 0, MaxPriorHostRooms);
+        scan.rooms.Sort((a,b) => a.Value.createdAt.CompareTo(b.Value.createdAt));
+        foreach (var entry in scan.rooms)
+        {
+            if (removed >= limit) break;
+            string room = entry.Key;
+            if (string.IsNullOrWhiteSpace(room) ||
+                string.Equals(room, activeRoom, StringComparison.Ordinal)) continue;
+            Meta indexed = entry.Value;
+            if (!IsDormantCandidate(indexed, uid, now)) continue;
+            SemaphoreSlim gate = GetRoomWriterGate(room);
+            await gate.WaitAsync();
+            try
+            {
+                Response check = await Send("GET", "roomMeta/" + Safe(room), token);
+                Meta latest = check.Ok ? Parse<Meta>(check.Body) : null;
+                if (!IsDormantCandidate(latest, uid, Now())) continue;
+                // Active matches can remain live for >24h: protect them even if
+                // the lobby metadata itself was not refreshed by gameplay.
+                if (!string.IsNullOrWhiteSpace(latest.activeMatchId))
+                    continue; // Started matches need authoritative presence proof.
+                Response state = await Send("GET", "roomState/" + Safe(room), token);
+                State wire = state.Ok ? Parse<State>(state.Body) : null;
+                AtlasLobbySnapshot snap = wire != null
+                    ? Parse<AtlasLobbySnapshot>(wire.snapshotJson) : null;
+                if (!state.Ok || snap == null ||
+                    !string.Equals(snap.HostAccountId, uid, StringComparison.Ordinal) ||
+                    snap.LifecycleState != AtlasRoomLifecycleState.Waiting ||
+                    !string.IsNullOrWhiteSpace(snap.MatchId)) continue;
+                AtlasLobbyOperationResult closed = await CloseAsync(room, uid, token);
+                if (closed.Success) removed++;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("ATB_RTDB_ORPHAN_CLEANUP failed=true category=" +
+                    ex.GetType().Name);
+            }
+            finally { gate.Release(); }
+        }
+        Debug.Log("ATB_RTDB_ORPHAN_CLEANUP scanned=true owner_only=true " +
+            "max_scan=11 found=" + scan.rooms.Count +
+            " deleted=" + removed + " age_min_hours=24 " +
+            "active_matches_skipped=true");
+        return (true, scan.rooms.Count, removed);
+    }
+
+    private static bool IsDormantCandidate(Meta data, string uid, long now)
+    {
+        return data != null &&
+            string.Equals(data.hostUid, uid, StringComparison.Ordinal) &&
+            data.createdAt > 0 && data.updatedAt > 0 &&
+            data.createdAt <= now - DormantRoomAgeMs &&
+            data.updatedAt <= now - DormantRoomAgeMs;
+    }
+
+    // Uses the identical candidate function as the live owner-cleanup path.
+    public static bool ValidateDormantCleanupGuardContract()
+    {
+        long now = 1000000000L;
+        Meta m = new Meta { hostUid = "qa_owner", createdAt = now - DormantRoomAgeMs - 1,
+            updatedAt = now - DormantRoomAgeMs - 1, closed = false };
+        if (!IsDormantCandidate(m, "qa_owner", now) ||
+            IsDormantCandidate(m, "another_uid", now)) return false;
+        m.updatedAt = now - DormantRoomAgeMs + 1;
+        if (IsDormantCandidate(m, "qa_owner", now)) return false;
+        m.updatedAt = now - DormantRoomAgeMs - 1;
+        m.createdAt = now - DormantRoomAgeMs + 1;
+        if (IsDormantCandidate(m, "qa_owner", now)) return false;
+        m.createdAt = now - DormantRoomAgeMs - 1;
+        m.closed = true;
+        return IsDormantCandidate(m, "qa_owner", now) &&
+            MaxPriorHostRooms == 10 && MaxOwnedRoomScan == 11;
+    }
+
     private static async Task<AtlasLobbyOperationResult> CreateAsync(
         Request req, string uid, string token, string name, bool isPublic)
     {
+        var owned = await ReadOwnedRoomMetadataAsync(uid, token);
+        if (!owned.success)
+            return Failure("lobby.error.service_unavailable",
+                "Cannot verify host room quota; check deployed RTDB owner-query rules.");
+        int openRoomCount = 0;
+        foreach (var record in owned.rooms)
+            if (!record.Value.closed) openRoomCount++;
+        if (openRoomCount >= MaxOwnedRoomScan)
+        {
+            // Bounded owner-only retry for rooms stranded before startup cleanup.
+            await CleanupOwnedDormantRoomsAsync(uid, token, "", MaxPriorHostRooms);
+            owned = await ReadOwnedRoomMetadataAsync(uid, token);
+            if (!owned.success)
+                return Failure("lobby.error.service_unavailable",
+                    "Cannot verify owner room quota after cleanup.");
+            openRoomCount = 0;
+            foreach (var record in owned.rooms)
+                if (!record.Value.closed) openRoomCount++;
+            if (openRoomCount >= MaxOwnedRoomScan)
+                return Failure("lobby.error.service_unavailable",
+                    "Host room capacity (10 prior rooms plus current room) reached.");
+        }
         string room = Guid.NewGuid().ToString("N") +
             Guid.NewGuid().ToString("N").Substring(0, 4);
         long now = Now();

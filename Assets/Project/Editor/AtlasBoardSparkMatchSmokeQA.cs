@@ -30,6 +30,20 @@ public static class AtlasBoardSparkMatchSmokeQA
             Debug.LogError("ATB_RTDB_PRESENCE_QA FAIL stage=seat_transition_contract");
     }
 
+    [MenuItem("Atlas Board/QA & Diagnostics/RTDB/Verify Host Migration Election (No Network)")]
+    private static void VerifyHostMigrationElection()
+    {
+        bool passed = AtlasBoardSparkRtdbMatchTransport.ValidateHostMigrationElectionContract();
+        if (passed)
+            Debug.Log("ATB_RTDB_HOST_ELECTION_QA PASS " +
+                "stages=lowest_live_human_stale_presence_tempbot_expired_afk " +
+                "mode=local_no_network live_takeover=UNTESTED");
+        else
+            Debug.LogError("ATB_RTDB_HOST_ELECTION_QA FAIL " +
+                "stage=deterministic_authority_candidate");
+    }
+
+
     [MenuItem("Atlas Board/QA & Diagnostics/RTDB/Verify Remote Ready Toggle (No Network)")]
     private static void VerifyRemoteReadyToggle()
     {
@@ -41,6 +55,94 @@ public static class AtlasBoardSparkMatchSmokeQA
         else
             Debug.LogError("ATB_RTDB_REMOTE_READY_QA FAIL " +
                 "stage=ready_state_transition");
+    }
+
+    [MenuItem("Atlas Board/QA & Diagnostics/RTDB/Verify Orphan Cleanup Guard (No Network)")]
+    private static void VerifyOrphanCleanupGuard()
+    {
+        bool ok = AtlasBoardRtdbCasualLobbyTransport.ValidateDormantCleanupGuardContract();
+        if (ok)
+            Debug.Log("ATB_RTDB_ORPHAN_GUARD_QA PASS " +
+                "stages=owner_age24h_activity_age24h_closed_retry_max10plus1 " +
+                "mode=local_no_network live_cleanup=UNTESTED");
+        else
+            Debug.LogError("ATB_RTDB_ORPHAN_GUARD_QA FAIL stage=owner_age_guard");
+    }
+
+    [MenuItem("Atlas Board/QA & Diagnostics/RTDB/Inspect Live Match Host (Read Only, Play Mode)")]
+    private static async void InspectLiveMatchHost()
+    {
+        if (!TryResolveLiveMatch(out AtlasBoardLobbyRuntimeBridge lobby,
+                out AtlasBoardMatchRuntimeBridge match, out string matchId)) return;
+        AtlasMatchNetworkResult result = await match.GetSnapshotAsync(matchId);
+        if (!result.Success || result.Snapshot == null)
+        {
+            Debug.LogError("ATB_RTDB_HOST_INSPECT FAIL reason=live_snapshot_unavailable");
+            return;
+        }
+        AtlasMatchNetworkSnapshot snapshot = result.Snapshot;
+        int hostSlot = -1;
+        int humanCount = 0;
+        foreach (AtlasMatchNetworkSeat seat in snapshot.Seats)
+        {
+            if (seat == null) continue;
+            if (seat.IsHost) hostSlot = seat.SlotIndex;
+            if (string.Equals(seat.ControllerKind, "human", StringComparison.OrdinalIgnoreCase))
+                humanCount++;
+        }
+        Debug.Log("ATB_RTDB_HOST_INSPECT RESULT source=live_rtdb local_role=" +
+            (snapshot.LocalIsHost ? "HOST" : "FOLLOWER") +
+            " authority_epoch=" + snapshot.AuthorityEpoch +
+            " host_slot=" + hostSlot +
+            " human_seats=" + humanCount +
+            " revision=" + snapshot.Revision +
+            " migration=requires_before_after_comparison");
+    }
+
+    [MenuItem("Atlas Board/QA & Diagnostics/RTDB/Simulate 5-Min Reconnect Expiry (Live Host, Play Mode)")]
+    private static async void SimulateReconnectExpiry()
+    {
+        if (!TryResolveLiveMatch(out AtlasBoardLobbyRuntimeBridge lobby,
+                out AtlasBoardMatchRuntimeBridge match, out string matchId)) return;
+        AtlasMatchNetworkResult current = await match.GetSnapshotAsync(matchId);
+        if (!current.Success || current.Snapshot == null ||
+            !current.Snapshot.LocalIsHost)
+        {
+            Debug.LogError("ATB_RTDB_EXPIRY_QA FAIL reason=requires_authenticated_live_host");
+            return;
+        }
+        AtlasMatchNetworkResult result = await
+            match.EditorExpireSingleTemporaryHumanForQaAsync(matchId);
+        if (!result.Success)
+        {
+            Debug.LogError("ATB_RTDB_EXPIRY_QA FAIL reason=" +
+                (result.TechnicalMessage ?? "unavailable"));
+            return;
+        }
+        AtlasMatchNetworkResult refreshed = await match.GetSnapshotAsync(matchId);
+        Debug.Log("ATB_RTDB_EXPIRY_QA " +
+            (refreshed.Success ? "PASS" : "PARTIAL") +
+            " mode=live_rtdb simulated_deadline=true " +
+            "transition=temporary_bot_to_permanent_bot " +
+            "real_5min_elapsed=UNTESTED reclaim_after_expiry=UNTESTED");
+    }
+
+    private static bool TryResolveLiveMatch(
+        out AtlasBoardLobbyRuntimeBridge lobby,
+        out AtlasBoardMatchRuntimeBridge match, out string matchId)
+    {
+        lobby = UnityEngine.Object.FindAnyObjectByType<AtlasBoardLobbyRuntimeBridge>(
+            FindObjectsInactive.Include);
+        match = UnityEngine.Object.FindAnyObjectByType<AtlasBoardMatchRuntimeBridge>(
+            FindObjectsInactive.Include);
+        matchId = match != null ? match.CurrentMatchId : string.Empty;
+        if (!Application.isPlaying || lobby == null || match == null ||
+            lobby.UsingLocalEmulators || string.IsNullOrWhiteSpace(matchId))
+        {
+            Debug.LogError("ATB_RTDB_N4_QA FAIL reason=requires_active_Live_Spark_match_in_Play_Mode");
+            return false;
+        }
+        return true;
     }
 
     [MenuItem("Atlas Board/QA & Diagnostics/RTDB/Measure Live Match Read Latency (Play Mode)")]
