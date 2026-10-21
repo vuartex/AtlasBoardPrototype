@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
+
 /// <summary>
 /// Mobile-only, additive account usability fixes. Does not change Windows/Steam,
 /// auth persistence, Firebase rules, network transports or stored credentials.
@@ -33,6 +34,7 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
     private static Sprite eyeVisibleSprite;
     private static Sprite eyeHiddenSprite;
 
+
     // Compile under Unity Editor for preflight; instantiate only on real mobile.
 #if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -46,6 +48,7 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
     }
 #endif
 
+
     private void Awake()
     {
         if (instance != null && instance != this)
@@ -56,11 +59,13 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
         instance = this;
     }
 
+
     private void OnDestroy()
     {
         if (instance == this)
             instance = null;
     }
+
 
     private void Update()
     {
@@ -72,6 +77,7 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
         UpdateKeyboardFocus();
     }
 
+
     private static T Find<T>(string objectName) where T : Component
     {
         T[] items = Resources.FindObjectsOfTypeAll<T>();
@@ -81,6 +87,7 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
                 return item;
         return null;
     }
+
 
     private static TMP_InputField FindInput(Transform root, string name)
     {
@@ -92,6 +99,7 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
                 return field;
         return null;
     }
+
 
     private void RepairAccountUi()
     {
@@ -110,6 +118,7 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
             oldPassword = newPassword = confirmPassword = null;
         }
 
+
         Transform form = accountWindow.Find("FormRoot");
         if (form != null)
         {
@@ -119,7 +128,6 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
             bool register = FindInput(form, "RegisterPasswordRepeat") != null;
             RepairFormStatus(register);
             EnsureChangePasswordButton(form);
-            EnsureGuestContinueButton(form);
         }
         // Shared Account tab layout is owned by AtlasBoardUniversalCareerTheme
         // on every platform, never by this mobile-only helper.
@@ -127,10 +135,12 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
         EnsureFocusBar();
     }
 
+
     private static void SetupPasswordVisibility(TMP_InputField field)
     {
         if (field == null)
             return;
+
 
         if (field.placeholder != null)
         {
@@ -141,12 +151,14 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
         if (field.transform.Find("MobilePasswordEye") != null)
             return;
 
+
         // Keep the editable text clear of the eye target.
         if (field.textViewport != null)
         {
             var offset = field.textViewport.offsetMax;
             field.textViewport.offsetMax = new Vector2(Mathf.Min(offset.x, -108f), offset.y);
         }
+
 
         Button button = MakeButton(field.transform, "MobilePasswordEye", "SHOW",
             new Vector2(1f, 0.5f), new Vector2(-8f, 0f),
@@ -185,6 +197,7 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
         });
     }
 
+
     private static Sprite GetEyeSprite(bool visible)
     {
         if (visible && eyeVisibleSprite != null) return eyeVisibleSprite;
@@ -218,6 +231,7 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
         return sprite;
     }
 
+
     private void RepairFormStatus(bool register)
     {
         TMP_Text status = null;
@@ -247,67 +261,6 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
         }
     }
 
-    private void EnsureGuestContinueButton(Transform form)
-    {
-        Button reset = Find<Button>("Button_ResetPassword");
-        if (reset == null || reset.transform.parent != form ||
-            form.Find("Button_ContinueAsGuest") != null)
-            return;
-
-        AtlasBoardAccountAccessUI access = Find<AtlasBoardAccountAccessUI>("AtlasBoard_Account_Access_UI");
-        if (access == null || !ReadBool(access, "openCareerAfterAuthentication"))
-            return;
-
-        Button guest = Instantiate(reset, form, false);
-        guest.name = "Button_ContinueAsGuest";
-        var rect = guest.transform as RectTransform;
-        rect.anchoredPosition = new Vector2(0f, -336f);
-        rect.sizeDelta = new Vector2(420f, 60f);
-        Image image = guest.GetComponent<Image>();
-        if (image != null) image.color = new Color32(82, 67, 170, 255);
-        TMP_Text text = guest.GetComponentInChildren<TMP_Text>(true);
-        if (text != null)
-        {
-            text.text = AtlasBoardL.R("CONTINUE AS GUEST", "MİSAFİR OLARAK DEVAM ET", "CONTINUAR COMO INVITADO", "CONTINUER COMME INVITÉ", "ALS GAST FORTFAHREN", "게스트로 계속", "ПРОДОЛЖИТЬ КАК ГОСТЬ");
-            text.fontSize = 17f;
-            text.enableAutoSizing = true;
-            text.fontSizeMin = 13f;
-        }
-        guest.onClick = new Button.ButtonClickedEvent();
-        guest.onClick.AddListener(() => OpenGuestCareer(access));
-    }
-
-    private static bool ReadBool(object owner, string field)
-    {
-        FieldInfo info = owner.GetType().GetField(field, BindingFlags.Instance | BindingFlags.NonPublic);
-        return info != null && info.GetValue(owner) is bool result && result;
-    }
-
-    private void OpenGuestCareer(AtlasBoardAccountAccessUI access)
-    {
-        if (access == null)
-            return;
-        MethodInfo close = access.GetType().GetMethod("CloseModal", BindingFlags.Instance | BindingFlags.NonPublic);
-        if (close == null)
-            return;
-        close.Invoke(access, null);
-
-        AtlasBoardProgressionUI career = UnityEngine.Object.FindAnyObjectByType<AtlasBoardProgressionUI>(FindObjectsInactive.Include);
-        if (career == null)
-            return;
-        // Transient placeholder: never claim a cloud reward or a match statistic.
-        FieldInfo snap = career.GetType().GetField("snapshot", BindingFlags.Instance | BindingFlags.NonPublic);
-        if (snap != null && snap.GetValue(career) == null)
-            snap.SetValue(career, new AtlasBoardProgressionSnapshot
-            {
-                Success = false, // Local UI fallback, NOT a fetched cloud profile.
-                DisplayName = AtlasBoardGuestIdentity.DisplayName,
-                Level = 1
-            });
-        MethodInfo open = career.GetType().GetMethod("OpenCareer", BindingFlags.Instance | BindingFlags.NonPublic);
-        if (open != null)
-            open.Invoke(career, null);
-    }
 
     private void EnsureChangePasswordButton(Transform form)
     {
@@ -315,6 +268,7 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
         if (rename == null || rename.transform.parent != form ||
             form.Find("Button_ChangePassword") != null)
             return;
+
 
         Button button = Instantiate(rename, form, false);
         button.name = "Button_ChangePassword";
@@ -327,6 +281,7 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
         button.onClick = new Button.ButtonClickedEvent();
         button.onClick.AddListener(OpenPasswordOverlay);
 
+
         Button signOut = Find<Button>("Button_SignOut");
         if (signOut != null && signOut.transform.parent == form)
         {
@@ -336,12 +291,14 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
         }
     }
 
+
     private void OpenPasswordOverlay()
     {
         if (passwordBusy || accountWindow == null)
             return;
         if (passwordOverlay != null)
             Destroy(passwordOverlay);
+
 
         GameObject root = new GameObject("MobileChangePasswordOverlay",
             typeof(RectTransform), typeof(Image));
@@ -354,6 +311,7 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
         root.GetComponent<Image>().color = new Color32(247, 246, 241, 255);
         passwordOverlay = root;
 
+
         MakeText(root.transform, "PasswordChangeHeading", AtlasBoardL.R("CHANGE PASSWORD", "ŞİFRE DEĞİŞTİR", "CAMBIAR CONTRASEÑA", "CHANGER DE MOT DE PASSE", "PASSWORT ÄNDERN", "비밀번호 변경", "СМЕНИТЬ ПАРОЛЬ"), 27f,
             new Vector2(0f, 250f), new Vector2(700f, 45f));
         MakeText(root.transform, "OldPasswordLabel", AtlasBoardL.R("CURRENT PASSWORD", "MEVCUT ŞİFRE", "CONTRASEÑA ACTUAL", "MOT DE PASSE ACTUEL", "AKTUELLES PASSWORT", "현재 비밀번호", "ТЕКУЩИЙ ПАРОЛЬ"), 18f,
@@ -365,6 +323,7 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
         MakeText(root.transform, "ConfirmPasswordLabel", AtlasBoardL.R("CONFIRM NEW PASSWORD", "YENİ ŞİFRE TEKRAR", "CONFIRMAR CONTRASEÑA", "CONFIRMER LE MOT DE PASSE", "PASSWORT BESTÄTIGEN", "새 비밀번호 확인", "ПОВТОРИТЕ НОВЫЙ ПАРОЛЬ"), 18f,
             new Vector2(0f, -37f), new Vector2(700f, 34f));
         confirmPassword = MakePasswordField(root.transform, "ChangeConfirmPassword", -89f);
+
 
         passwordStatus = MakeText(root.transform, "PasswordChangeStatus", "", 17f,
             new Vector2(0f, -165f), new Vector2(770f, 55f));
@@ -380,6 +339,7 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
         SetupPasswordVisibility(newPassword);
         SetupPasswordVisibility(confirmPassword);
     }
+
 
     private async Task UpdatePasswordAsync()
     {
@@ -427,10 +387,12 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
         }
     }
 
+
     private void SetPasswordStatus(string text)
     {
         if (passwordStatus != null) passwordStatus.text = text;
     }
+
 
     private void RepairCareerPlaceholder()
     {
@@ -445,6 +407,7 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
         if (old != null && old.gameObject.activeSelf)
             old.gameObject.SetActive(false);
     }
+
 
     private void EnsureFocusBar()
     {
@@ -470,11 +433,13 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
         host.SetActive(false);
     }
 
+
     private static readonly string[] RegisterFields = {
         "RegisterName", "RegisterEmail", "RegisterPassword", "RegisterPasswordRepeat", "CaptchaAnswer"
     };
     private static readonly string[] LoginFields = { "LoginEmail", "LoginPassword" };
     private static readonly string[] ChangeFields = { "ChangeOldPassword", "ChangeNewPassword", "ChangeConfirmPassword" };
+
 
     private void UpdateKeyboardFocus()
     {
@@ -494,6 +459,7 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
             focusBar.SetAsLastSibling();
         lastFocusedInput = input;
 
+
         string fieldName = input.gameObject.name;
         string friendly = fieldName.Replace("Register", "").Replace("Login", "")
             .Replace("Change", "").Replace("PasswordRepeat", "Confirm password")
@@ -508,6 +474,7 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
         if (focusNext != null)
             focusNext.interactable = NextField(input) != null;
     }
+
 
     private TMP_InputField NextField(TMP_InputField selected)
     {
@@ -524,6 +491,7 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
             : FindInput(accountWindow, list[index + 1]);
     }
 
+
     private void FocusNextField()
     {
         TMP_InputField input = lastFocusedInput;
@@ -533,6 +501,7 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
         next.Select();
         next.ActivateInputField();
     }
+
 
     private static TMP_Text MakeText(Transform parent, string name, string content, float size,
         Vector2 position, Vector2 dimensions)
@@ -553,6 +522,7 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
         text.raycastTarget = false;
         return text;
     }
+
 
     private static Button MakeButton(Transform parent, string name, string content,
         Vector2 anchor, Vector2 position, Vector2 dimensions, Color color)
@@ -575,6 +545,7 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
         title.fontSizeMax = 19f;
         return button;
     }
+
 
     private static TMP_InputField MakePasswordField(Transform parent, string name, float y)
     {
@@ -606,3 +577,4 @@ public sealed class AtlasBoardMobileAccountUX : MonoBehaviour
         return input;
     }
 }
+

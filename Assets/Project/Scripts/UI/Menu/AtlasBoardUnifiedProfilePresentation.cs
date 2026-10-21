@@ -6,6 +6,7 @@ using System.Reflection;
 using TMPro;
 using UnityEngine;
 
+
 [DefaultExecutionOrder(16000)]
 [DisallowMultipleComponent]
 public sealed class AtlasBoardUnifiedProfilePresentation :
@@ -14,29 +15,38 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
     private const float ReferenceRefreshInterval =
         0.75f;
 
+
     private const string LevelSeparator =
         " • Lv. ";
+
 
     private static AtlasBoardUnifiedProfilePresentation
         instance;
 
+
     private readonly List<TMP_Text> profileNameTexts =
         new List<TMP_Text>();
+
 
     private readonly List<TMP_Text> avatarInitialTexts =
         new List<TMP_Text>();
 
+
     private AtlasBoardCanonicalProfileHeader
         canonicalHeader;
+
 
     private AtlasBoardMainMenuController
         mainMenuController;
 
+
     private AtlasBoardPrivateLobbyUIController
         privateLobbyController;
 
+
     private FieldInfo canonicalDisplayNameField;
     private FieldInfo menuProfileNameField;
+
 
     private FieldInfo lobbySeatNamesField;
     private FieldInfo lobbySnapshotField;
@@ -44,10 +54,13 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
     private FieldInfo lobbyRoomActiveField;
     private FieldInfo lobbyLocalIsHostField;
 
+
     private string canonicalDisplayName =
         string.Empty;
 
+
     private float nextReferenceRefreshAt;
+
 
     [RuntimeInitializeOnLoadMethod(
         RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -58,9 +71,11 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
             return;
         }
 
+
         AtlasBoardUnifiedProfilePresentation existing =
             UnityEngine.Object.FindAnyObjectByType<
                 AtlasBoardUnifiedProfilePresentation>();
+
 
         if (existing != null)
         {
@@ -68,17 +83,21 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
             return;
         }
 
+
         GameObject root =
             new GameObject(
                 "AtlasBoard_UnifiedProfilePresentation");
 
+
         DontDestroyOnLoad(
             root);
+
 
         instance =
             root.AddComponent<
                 AtlasBoardUnifiedProfilePresentation>();
     }
+
 
     private void Awake()
     {
@@ -88,14 +107,18 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
             Destroy(
                 gameObject);
 
+
             return;
         }
 
+
         instance = this;
+
 
         ResolveReflection();
         RefreshReferences();
     }
+
 
     private void LateUpdate()
     {
@@ -106,11 +129,14 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
                 Time.unscaledTime +
                 ReferenceRefreshInterval;
 
+
             RefreshReferences();
         }
 
+
         string resolved =
             ResolveCanonicalDisplayName();
+
 
         if (string.IsNullOrWhiteSpace(
                 resolved))
@@ -118,19 +144,23 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
             return;
         }
 
+
         canonicalDisplayName =
             resolved.Trim();
+
 
         SynchronizeMainMenuProfileSource();
         SynchronizeSharedProfileCards();
         SynchronizeLocalLobbySeat();
     }
 
+
     private void ResolveReflection()
     {
         const BindingFlags flags =
             BindingFlags.Instance |
             BindingFlags.NonPublic;
+
 
         canonicalDisplayNameField =
             typeof(
@@ -139,12 +169,14 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
                     "appliedDisplayName",
                     flags);
 
+
         menuProfileNameField =
             typeof(
                 AtlasBoardMainMenuController)
                 .GetField(
                     "profileName",
                     flags);
+
 
         lobbySeatNamesField =
             typeof(
@@ -153,12 +185,14 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
                     "privateSeatNames",
                     flags);
 
+
         lobbySnapshotField =
             typeof(
                 AtlasBoardPrivateLobbyUIController)
                 .GetField(
                     "backendSnapshot",
                     flags);
+
 
         lobbyLocalAccountIdField =
             typeof(
@@ -167,12 +201,14 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
                     "backendLocalAccountId",
                     flags);
 
+
         lobbyRoomActiveField =
             typeof(
                 AtlasBoardPrivateLobbyUIController)
                 .GetField(
                     "roomActive",
                     flags);
+
 
         lobbyLocalIsHostField =
             typeof(
@@ -181,6 +217,7 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
                     "localIsHost",
                     flags);
     }
+
 
     private void RefreshReferences()
     {
@@ -191,12 +228,14 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
                     AtlasBoardCanonicalProfileHeader>();
         }
 
+
         if (mainMenuController == null)
         {
             mainMenuController =
                 UnityEngine.Object.FindAnyObjectByType<
                     AtlasBoardMainMenuController>();
         }
+
 
         if (privateLobbyController == null)
         {
@@ -205,12 +244,15 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
                     AtlasBoardPrivateLobbyUIController>();
         }
 
+
         profileNameTexts.Clear();
         avatarInitialTexts.Clear();
+
 
         TMP_Text[] texts =
             Resources.FindObjectsOfTypeAll<
                 TMP_Text>();
+
 
         foreach (TMP_Text text
                  in texts)
@@ -221,6 +263,7 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
                 continue;
             }
 
+
             if (string.Equals(
                     text.gameObject.name,
                     "ProfileName",
@@ -229,8 +272,10 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
                 profileNameTexts.Add(
                     text);
 
+
                 continue;
             }
+
 
             if (string.Equals(
                     text.gameObject.name,
@@ -243,14 +288,22 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
         }
     }
 
+
     private string ResolveCanonicalDisplayName()
     {
+        // Live QA's authoritative local alias becomes available only after
+        // the anonymous Auth UID is assigned. A stale header snapshot must
+        // never overwrite the UID-bound alias in the next LateUpdate.
+        if (AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession)
+            return AtlasBoardGuestIdentity.DisplayName;
+
         if (canonicalHeader != null &&
             canonicalDisplayNameField != null)
         {
             string headerValue =
                 canonicalDisplayNameField.GetValue(
                     canonicalHeader) as string;
+
 
             if (IsRealProfileName(
                     headerValue))
@@ -259,12 +312,14 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
             }
         }
 
+
         if (mainMenuController != null &&
             menuProfileNameField != null)
         {
             string controllerValue =
                 menuProfileNameField.GetValue(
                     mainMenuController) as string;
+
 
             if (IsRealProfileName(
                     controllerValue))
@@ -274,8 +329,10 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
             }
         }
 
+
         return canonicalDisplayName;
     }
+
 
     private void SynchronizeMainMenuProfileSource()
     {
@@ -287,9 +344,11 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
             return;
         }
 
+
         string current =
             menuProfileNameField.GetValue(
                 mainMenuController) as string;
+
 
         if (!string.Equals(
                 current,
@@ -302,6 +361,7 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
         }
     }
 
+
     private void SynchronizeSharedProfileCards()
     {
         if (profileNameTexts.Count == 0)
@@ -309,8 +369,10 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
             return;
         }
 
+
         string sharedLevelSuffix =
             ResolveSharedLevelSuffix();
+
 
         foreach (TMP_Text text
                  in profileNameTexts)
@@ -320,14 +382,17 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
                 continue;
             }
 
+
             string visible =
                 text.text != null
                     ? text.text.Trim()
                     : string.Empty;
 
+
             string localSuffix =
                 ExtractValidLevelSuffix(
                     visible);
+
 
             string suffix =
                 !string.IsNullOrWhiteSpace(
@@ -335,9 +400,11 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
                     ? localSuffix
                     : sharedLevelSuffix;
 
+
             string expected =
                 canonicalDisplayName +
                 suffix;
+
 
             if (!string.Equals(
                     visible,
@@ -349,9 +416,11 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
             }
         }
 
+
         string initial =
             GetInitial(
                 canonicalDisplayName);
+
 
         foreach (TMP_Text text
                  in avatarInitialTexts)
@@ -361,10 +430,12 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
                 continue;
             }
 
+
             string visible =
                 text.text != null
                     ? text.text.Trim()
                     : string.Empty;
+
 
             if (!string.Equals(
                     visible,
@@ -377,6 +448,7 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
         }
     }
 
+
     private string ResolveSharedLevelSuffix()
     {
         foreach (TMP_Text text
@@ -387,9 +459,11 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
                 continue;
             }
 
+
             string suffix =
                 ExtractValidLevelSuffix(
                     text.text);
+
 
             if (!string.IsNullOrWhiteSpace(
                     suffix))
@@ -398,8 +472,10 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
             }
         }
 
+
         return string.Empty;
     }
+
 
     private void SynchronizeLocalLobbySeat()
     {
@@ -412,20 +488,24 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
             return;
         }
 
+
         bool roomActive =
             lobbyRoomActiveField.GetValue(
                 privateLobbyController) is bool active &&
             active;
+
 
         if (!roomActive)
         {
             return;
         }
 
+
         TMP_Text[] seatNames =
             lobbySeatNamesField.GetValue(
                 privateLobbyController) as
                 TMP_Text[];
+
 
         if (seatNames == null ||
             seatNames.Length == 0)
@@ -433,8 +513,10 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
             return;
         }
 
+
         int localSlot =
             ResolveLocalLobbySlot();
+
 
         if (localSlot < 0 ||
             localSlot >=
@@ -444,9 +526,11 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
             return;
         }
 
+
         string you =
             AtlasBoardL.T(
                 "lobby.online.you_short");
+
 
         if (string.IsNullOrWhiteSpace(
                 you) ||
@@ -459,8 +543,10 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
                 "YOU";
         }
 
+
         string expected =
             $"{canonicalDisplayName} ({you})";
+
 
         if (!string.Equals(
                 seatNames[localSlot].text,
@@ -472,12 +558,14 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
         }
     }
 
+
     private int ResolveLocalLobbySlot()
     {
         if (privateLobbyController == null)
         {
             return -1;
         }
+
 
         AtlasLobbySnapshot snapshot =
             lobbySnapshotField != null
@@ -486,12 +574,14 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
                     AtlasLobbySnapshot
                 : null;
 
+
         string localAccountId =
             lobbyLocalAccountIdField != null
                 ? lobbyLocalAccountIdField.GetValue(
                     privateLobbyController) as
                     string
                 : string.Empty;
+
 
         if (snapshot != null &&
             snapshot.Members != null &&
@@ -508,11 +598,13 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
                             localAccountId,
                             StringComparison.Ordinal));
 
+
             if (local != null)
             {
                 return local.SlotIndex;
             }
         }
+
 
         bool localIsHost =
             lobbyLocalIsHostField != null &&
@@ -520,10 +612,12 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
                 privateLobbyController) is bool host &&
             host;
 
+
         return localIsHost
             ? 0
             : -1;
     }
+
 
     private static bool IsRealProfileName(
         string value)
@@ -534,9 +628,11 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
             return false;
         }
 
+
         string baseName =
             StripLevelSuffix(
                 value);
+
 
         return !string.Equals(
                    baseName,
@@ -549,6 +645,7 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
                    StringComparison.OrdinalIgnoreCase);
     }
 
+
     private static string StripLevelSuffix(
         string value)
     {
@@ -558,24 +655,29 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
             return string.Empty;
         }
 
+
         string trimmed =
             value.Trim();
+
 
         int separator =
             trimmed.LastIndexOf(
                 LevelSeparator,
                 StringComparison.Ordinal);
 
+
         if (separator < 0)
         {
             return trimmed;
         }
+
 
         string suffix =
             trimmed.Substring(
                 separator +
                 LevelSeparator.Length)
                 .Trim();
+
 
         if (!int.TryParse(
                 suffix,
@@ -587,11 +689,13 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
             return trimmed;
         }
 
+
         return trimmed.Substring(
                 0,
                 separator)
             .Trim();
     }
+
 
     private static string ExtractValidLevelSuffix(
         string value)
@@ -602,24 +706,29 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
             return string.Empty;
         }
 
+
         string trimmed =
             value.Trim();
+
 
         int separator =
             trimmed.LastIndexOf(
                 LevelSeparator,
                 StringComparison.Ordinal);
 
+
         if (separator < 0)
         {
             return string.Empty;
         }
+
 
         string levelText =
             trimmed.Substring(
                 separator +
                 LevelSeparator.Length)
                 .Trim();
+
 
         if (!int.TryParse(
                 levelText,
@@ -631,11 +740,13 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
             return string.Empty;
         }
 
+
         return
             LevelSeparator +
             level.ToString(
                 CultureInfo.InvariantCulture);
     }
+
 
     private static string GetInitial(
         string value)
@@ -646,9 +757,11 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
             return "P";
         }
 
+
         string element =
             StringInfo.GetNextTextElement(
                 value.Trim());
+
 
         return string.IsNullOrWhiteSpace(
                    element)
@@ -656,3 +769,5 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
             : element.ToUpperInvariant();
     }
 }
+
+

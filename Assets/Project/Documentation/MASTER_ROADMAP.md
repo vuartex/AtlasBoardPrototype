@@ -1,10 +1,130 @@
 # ATLAS BOARD — MASTER ROADMAP (CANONICAL)
 
-**Güncel konsolidasyon:** 17 Ekim 2026 · **Aktif checkpoint:** local v5.40.6 **OWNER MANUAL PASS — Player HUD isimleri (Vuartex, BOT 2, BOT 3, BOT 4) ve TURN/SIRA badge maç #1/#2/#3 boyunca görünür. Eski HUD regresyonu kapalı. Normal RTDB account/profile/preferences/Career Editor yolu CLOSED. İki gerçek Human, reconnect/Host Migration, tablet 30sn no-flicker, tüm UI roundtrip ve Android/production acceptance OPEN.** · Unity 6000.5.6f1 · `vuartex/AtlasBoardPrototype` · `atlasboard-usa` · Android önce, Windows/Steam korunur.
+**Güncel konsolidasyon:** 21 Ekim 2026 · **Aktif checkpoint:** local v5.40.11 **OWNER REPORTED FIX — kalıcı Windows Live Spark Guest adı ve Firebase oturumu yeniden başlatmada korunuyor; RTDB `guestNameClaims` rules deploy kullanıcı tarafından başarılı bildirildi (`firebase.cmd`).** v5.40.10 Guest/Host lobi isimleri ve v5.40.8 canlı Editor + Guest Public/Private iki-Human oyun **OWNER MANUAL PASS** (4 maç, aynı Windows makinede iki proses). Üç kontrollü yeniden başlatma/UID eşitliği, farklı UID ile aynı ad claim reddi, Firebase Auth orphan sayımı, Host graceful close/crash, reconnect/Host Migration, tablet/full UI, Android ve production security **AYRI ACCEPTANCE OPEN**. · Unity 6000.5.6f1 · `vuartex/AtlasBoardPrototype` · `atlasboard-usa` · Android önce, Windows/Steam korunur.
 
 > **ÖNCELİK KURALI:** Bu belgenin 1–10 bölümleri geçerli ürün kararı ve test durumudur. Daha alttaki v5.30.0 ve öncesinin tarihsel kaydı geriye dönük denetim içindir. Tarihsel “current/PASS/next” yazıları güncel durumun üzerine çıkamaz. **Kod hazır ≠ Unity compile PASS ≠ gerçek cihaz PASS ≠ iki cihaz online PASS.**
 >
 > **TEK DOSYA KURALI:** Bundan sonra yalnız `Assets/Project/Documentation/MASTER_ROADMAP.md` kanoniktir. Her yama/sürümde yeni QA/phase/roadmap/next-chat dokümanı açma. Anlamlı mimari değişikliği, kullanıcı test sonucu veya phase milestone olduğunda bu dosyayı güncelle; küçük düzenlemelerde ayrıca doküman yazma. Eski dosyalar şu an otomatik silinmez; bu roadmap kaynaklarını konsolide eder.
+
+## 0M. 21 Ekim 2026 — v5.40.11 PERSISTENT LIVE GUEST + RTDB UID-OWNED NAME CLAIM — OWNER UPDATE
+
+**DURUM: OWNER REPORTED FIX / RTDB RULES DEPLOY REPORTED SUCCESS; KONTROLLÜ REGRESYON TESTLERİ KISMEN OPEN.** Kullanıcı v5.40.11 sonrası sorunun düzeldiğini bildirdi. Üç ayrı restart için aynı UID+adın logla birebir karşılaştırması, eşzamanlı farklı UID isim claim reddi ve Firebase Auth anonim hesap sayısı ayrı test kanıtı olarak henüz sunulmadı; bunlara **PASS** yazma. v5.40.10 lobi isimleri ve v5.40.8 iki istemcili Public/Private maç owner gözlemleri geçerli; Steam/Editor ve Spark/free kontratı korunur.
+
+- **Kök neden:** `AtlasBoardLobbyRuntimeBridge.EnsureLiveGuestQaIdentityAsync` v5.40.10'da her EXE başlangıcında Firebase Anonymous `accounts:signUp` çağırıyordu. `AtlasBoardGuestIdentity` UID hash'inden her seferinde başka isim üretiyordu. Bu Firebase Auth'ta her yeniden açılışta yeni anonim kullanıcı bırakıyordu.
+- **v5.40.11 kaynak değişikliği:** Aynı mevcut bridge dosyasında Windows Development Guest için DPAPI CurrentUser şifreli refresh token + UID `Application.persistentDataPath/live_spark_guest_v1.dpapi` dosyasına atomik yazılır. Yeniden başlatınca yeni `signUp` yerine `securetoken` refresh yapılır; UID korunur. Restore/DPAPI/refresh hatasında **yeni UID otomatik oluşturma**, mevcut Guest adını değiştirme ve sessiz orphan yaratma YASAK. Unity PlayerPrefs'e/token log'a credential yazılmaz; Windows kullanıcı profili değişirse credentials otomatik taşınmaz.
+- **RTDB global claim:** `Backend/Firebase/database.rules.json` altına `/guestNameClaims/{Guest+16hex}` eklenir. Her isim bir tek `auth.uid` tarafından first-writer-wins `if-match:null_etag` ile claim edilir; başka UID yazamaz, claim silinmez ve UID/name/createdAt değiştirilemez. Bu küçük kalıcı kayıt tek Guest hesabı başına bir defa oluşur. Mevcut `/guestProfiles` kısa ömürlü kayıtları/cleanup sözleşmesi korunur; XP/Gold/wallet güvenilir authority buraya taşınmaz. Spark/free, Cloud Functions/Blaze yok.
+- **Güvenlik sınırı:** Guest adı kullanıcı hesabının Firebase UID kimliği değildir; UID/Auth token otoritedir. Aynı UID için hash deterministiktir; oda girişinde Guest adını Host zaten giriş isteğinin UID'sinden hesaplar. Claim ilk yazan sahibi korur, ama dış istemci bu biçimi taklit edebilir; RTDB kuralları yalnız claim üzerinde sahipliği garanti eder. Bunu tüm platformlarda global profil adı rezervasyonu diye genişletme.
+- **DEPLOY GATE / OWNER RESULT:** `Backend/Firebase/database.rules.json` içindeki `guestNameClaims` dalını kullanıcı manuel olarak `firebase.cmd deploy --only database --project atlasboard-usa` komutuyla deploy ettiğini ve sorunun düzeldiğini bildirdi. İlk `firebase` komutu Windows PowerShell execution-policy nedeniyle `.ps1` bloklandı; güvenlik ayarı değiştirilmeden `firebase.cmd` kullanıldı. **Deploy owner-reported SUCCESS**; Firebase Console aktif rules hash/diff ayrı bağımsız doğrulama olarak yapılmadı. Firestore, Cloud Functions, Hosting, Blaze ve production ücretli servis deploy edilmedi. Gelecekte her RTDB rule değişikliğinde deploy için PowerShell `firebase.cmd` komutu mutlaka verilmeli.
+- **OWNER TEST (KISMİ):** Kullanıcı Guest kimliği sorununun düzeldiğini bildirdi; isim/oturum kalıcılığı için owner-reported fix var. **Ayrı OPEN kanıt:** aynı Windows hesabında EXE 3 kez kapat/aç → `identity=reused`, UID ve isim sabit; yeni anonim Firebase Auth kullanıcı sayısı ve `guestNameClaims` kayıt sayısı artmaz; farklı UID aynı ada claim atamaz (rules/ETag reject). Bu kontrollü testlerin çıktısı alınmadan bütünüyle SERVER ACCEPTANCE PASS yazma. Normal Host Leave ve ani Host Crash/epoch takeover ayrı lifecycle testidir.
+
+---
+
+### 0M.1 GÜNCEL ACCEPTANCE ÖZETİ — 21 Ekim 2026
+
+| Kanıt kapısı | Sonuç |
+|---|---|
+| İki yerel proses, iki gerçek Firebase UID, dört Public/Private oyun, dice/buy/trade/snapshot | **OWNER MANUAL PASS** (v5.40.8; fiziksel iki cihaz değil) |
+| Guest lobi P1=Jr. Vuartex, P2=Guest UID alias; maçta iki kimlik ayrık | **OWNER SCREENSHOT PASS** (v5.40.10) |
+| Kalıcı Guest adı / yeniden açılış | **OWNER REPORTED FIXED** (v5.40.11; tekrar sayısı/UID logu belirtilmedi) |
+| `guestNameClaims` RTDB Rules deploy | **OWNER REPORTED SUCCESS** (`firebase.cmd`) |
+| 3 restart UID equality, orphan Auth/claim growth ve cross-UID claim reject | **OPEN — ayrı kabul testi** |
+| Normal Host Leave → Guest menu, host crash migration, 20s/5min reconnect | **OPEN** |
+| Android physical FPS/App Check/rewards, Career/Store trust boundaries | **OPEN** |
+
+**Sıradaki roadmap gate:** En düşük riskli veri büyüme testiyle tek Guest UID/claim reuse değerini teyit et; sonra var olan N4 disconnect/reconnect, graceful leave ve gerçek crash takeover testlerine dön. Yeni auth manager veya HUD sahibi ekleme. Public/Private gameplay PASS korunmalı.
+
+---
+
+## 0L. 20 Ekim 2026 — v5.40.10 LIVE SPARK GUEST NAME / LOBBY OWNERSHIP FIX
+
+**STATUS: OWNER VISUAL PASS — TWO DISTINCT LOBBY NAMES (v5.40.10), live Guest UID-bound alias works.** The v5.40.8 four-match owner manual gameplay PASS and the v5.40.9 host-close source candidate remain unchanged. New screenshots on Guest (room 353010, 4 seats) show P1 rapidly alternating between `Guest81842U` and `Jr. Vuartex`, while P2 is `Guest81842U (SEN)`. The user started `Launch_Guest_Live_Spark_QA.bat`, which is the correct real Firebase test path, NOT the cause. The older `Launch_Guest_Local_Emulators.bat` is a different local-emulator topology and must not be used for live RTDB acceptance.
+
+**Verified source defect:** In `AtlasBoardAccountAccessUI.ApplyIdentityPresentation`, the local account presenter unconditionally rewrote `privateSeatNames[0].text = localGuestName` approximately every 1.25 seconds even when the caller was the Guest who owned P2, not the remote P1 Host. The authoritative `AtlasBoardPrivateLobbyUIController` then restored Host's snapshot name. This was a multi-writer presentation race, not evidence of two gameplay principals sharing the same Firebase UID. v5.40.10 removes Account UI ownership of online seat labels. The snapshot renderer owns all four names, and `AtlasBoardUnifiedProfilePresentation` may relabel only a UID-confirmed locally owned seat.
+
+**Guest nickname concern:** The legacy offline `Guest#####X` is `PlayerPrefs`-local; multiple standalone processes on the same Windows profile can read the SAME value. This does NOT mean Firebase anonymous UIDs were duplicated. For **Live Spark Guest QA only**, the presentation alias is now `Guest` + the first 64 bits of SHA-256 of the authenticated anonymous Firebase UID, uppercase hex. The alias is process-scoped (not a credential, not saved to PlayerPrefs) and bound immediately after Anonymous Auth. The Live RTDB transport submits that UID-bound alias rather than a stale cached menu label. Host-authored RTDB admission verifies join UID matches its request key, derives Guest aliases from authenticated join UIDs, and refuses a room-local display-name collision. This is **not server-global nickname registration**; 64-bit alias collisions are theoretically possible and any user-supplied non-Guest alias is not a verified unique account name. Firebase UID is the sole authenticated principal.
+
+**Regressions protected:** v5.40.7 READY/NOT READY transition, v5.40.8 Live Guest Anonymous Auth, v5.40.9 safe host-close, 5-sec Start, online HUD names/turns, gameplay intent/snapshot and Spark/free/no-Functions policies. Historical v5.40.10 behavior: a process restart acquired a new ephemeral Firebase UID; **this specific defect is superseded by v5.40.11 secure session restore** (see 0M). No Android, Steam Release, deployed rules or rewarded economy is modified.
+
+**Required retest:** Apply full-file ZIP, Unity compile zero errors, rebuild Development Guest, run `Launch_Guest_Live_Spark_QA.bat`, join fresh Public + Private rooms with different UIDs. On both clients, monitor P1/P2 identities for 60 seconds with no flicker; READY→NOT READY→READY; then dice/buy/trade on both clients. Return Guest to menu and rejoin; run two separate Guest build processes simultaneously (they must not share a Live UID-bound nickname). Finally test graceful Host Leave closes room and returns Guest to menu. **Do not mark PASS until observed.** The emulator BAT is for local-only tests. The BAT distinction and QA sequence are recorded here in the canonical roadmap.
+
+---
+
+## 0K. 17 Ekim 2026 — v5.40.9 LIVE RTDB TWO-CLIENT OWNER PASS / SAFE HOST CLOSE + HOST LABEL FIX
+
+**OWNER MANUAL PASS (v5.40.8):** Editor gerçek Steam/Firebase Vuartex hesabı ve ayrı Windows Development Guest QA anonim Firebase UID ile `atlasboard-usa` canlı Spark RTDB üzerinde aynı Public/Private odada buluştu. Owner 4 maç başlattı; lobby keşif/join, READY, start, zar/sıra, hareket, satın alma, ticaret ve para/mülk state'i iki istemcide eşleşti. Guest kapanıp/açıp odaya yeniden girme davranışının bazı bölümleri gözlemlendi. Bu **aynı Windows makinesindeki iki bağımsız proses** kanıtıdır; **iki ayrı fiziksel cihaz**, network cut/AFK/reconnect/temporary bot/expiry, kritik auction edge-case, server-authoritative rewarded progression veya Production PASS değildir. `ATB_LIVE_GUEST_QA auth=ready provider=anonymous`, `ATB_RTDB_REMOTE_QA join_confirmed`, `ready_submitted`, Editor `ATB_SPARK_MATCH_START ... remote_humans=1`, Guest takipçi zar/hareket ve BUY logları görüldü. Dört maç owner gözlemi, tüm kombinasyonların otomatik test edildiği anlamına gelmez.
+
+### Açık kalan iki somut UI/lifecycle bug
+
+- **L1 Guest Lobby Host DisplayName (P1):** Editor Host lobby `Vuartex`, Guest lobby P1+P2 her ikisi `Guest81842U` olarak görünüyor; match HUD iki tarafta Vuartex+Guest olarak doğru. Bu v5.40.9 kaynak adayında mevcut `AtlasBoardRtdbCasualLobbyTransport.SnapshotAsync` takipçi yolunda host adı şüpheli/Guest ise **host UID'ye bağlı /roomMembers kaydından yalnız read-only doğrulama** yapar; mevcut `AtlasBoardPrivateLobbyUIController` P1 label'ı authoritative Host UID snapshot isminden gerektiğinde yeniden uzlaştırır. Client guest kimliği host adını değiştiremez. Ek manager/ikinci UI yok, oda adına hardcode yok. **Owner visual retest OPEN**; iki ayrı ad görülmeden CLOSED sayılmaz.
+- **L2 Graceful Host Leave (P0):** Host oyundan ana menüye dönerken eski 11G host migration path bir successor devri tamamlayamıyor, Guest tarafında oyun donuk kalıyor ve `RTDB authority match read: http_200` recovery uyarıları tekrarlanıyor. Product owner **oda kapanmasını kabul etti**. v5.40.9 canlı Spark RTDB'de bilinçli Host Leave/Quit için mevcut `CloseLobbyAsync` yolunu seçer (yalnız o hostun odası, join code/match/presence/room cleanup); follower `roomMeta.closed` veya gerçek veri silinmesini **doğruladığında** mevcut `LobbyAccessLost` üzerinden oyun state'ini söküp ana menüye döner. Geçici HTTP 401/403 veya timeout tek başına oda kapandı kabul edilmez. Emulator/Steam Release için yeni migration iddiası yok. **Owner test OPEN**. Crash/force-kill durumunda verified epoch/CAS takeover hâlâ G1-P0-01 OPEN.
+- **İkincil warning:** Guest lobby'de non-host `SetPawnCosmeticAsync` denemesi host_only ile reject oluyor. Kozmetik yetki akışı ve trade window/auction UI tam sahiplik ayrı P1 inceleme; bu güvenlik kuralını gevşetmedik. Anonim Guest kalıcı XP/Gold/Wallet ödülü kazanamaz.
+
+### En küçük retest (APK isteme, GitHub push isteme)
+
+1. ZIP içindeki tam dosyaları proje köküne aç. Unity compile `0 errors`; Local Emulator QA, Steam Editor/Vuartex ve mevcut Player HUD/TURN regression korunmalı.
+2. **Bir defa** Windows Development Guest'i `Build Two-Client Guest Test v1` ile güncelle, `Launch Live Spark Guest QA (No Steam)` başlat; Editor Live Spark RTDB + Steam/Vuartex. İki hesap ve iki süreç ayrı olmalı.
+3. Editor Public iki kişilik lobby oluştur; Guest Public Browser ile katılsın. **Her iki lobby:** P1=Vuartex, P2=Guest#####X. Guest adı host ismine kopyalanırsa `ATB_RTDB_LOBBY_HOST_NAME` ve `ATB_RTDB_LOBBY_HOST_LABEL` loglarını karşılaştır.
+4. Guest READY, mümkünse NOT READY→READY; Host 5 saniye Start; her tarafta TURN+isim/para; bir iki zar/BUY kontrolü.
+5. **Guest oyundayken Editor host ESC→Leave→Confirm→ana menü.** Guest'in otomatik menüye dönmesi ve odanın Public listeden kaldırılması beklenir. `ATB_RTDB_HOST_GRACEFUL_EXIT mode=close_room`, `ATB_RTDB_ROOM_TERMINATION ... closed`, `ATB_RTDB_FOLLOWER_HOST_LEFT`, Guest menüye dönüş loglarını kontrol et. Host'un görevini Guest'e devretmesi BU testin amacı değildir. Ayrı Host crash/kilitlenme testi çalıştırma.
+6. Bu iki UI/lifecycle denetimi geçerse L1/L2 CLOSED; sonra roadmap N4 reconnect/20sn Temporary Bot/5dk expiry/AFK ve gerçek crash-election mimarisine ilerle. **Bu adımda Firebase rules/deploy/Blaze/Cloud Functions/ekstra HUD script değişmedi.**
+
+**TEST STATÜSÜ:** v5.40.8 canlı iki istemci gameplay OWNER MANUAL PASS; v5.40.9 yalnız source/static QA candidate. Unity compile, Windows build ve host-close canlı retest YAPILMADI; başarısızsa PASS yazma. v5.40.6 Player HUD üç maç OWNER PASS hâlâ geçerli.
+
+---
+
+## 0J. 17 Ekim 2026 — v5.40.8 LIVE SPARK GUEST QA / PLAYER-FACING ERROR ISOLATION
+
+**HISTORICAL STATUS (v5.40.8 SOURCE CANDIDATE; OWNER v5.40.8 LIVE GAMEPLAY PASS now recorded in 0K).** v5.40.7 READY/NOT READY contract owner tarafından `ATB_RTDB_REMOTE_READY_QA PASS ... mode=local_no_network remote_join=UNTESTED` olarak doğrulandı; gerçek iki-istemci kabulü YOK. v5.40.6 HUD/TURN 3x OWNER PASS korunuyor.
+
+### Owner test kanıtı ve kök neden
+
+- Editor Live Spark RTDB, Steam AppID 480 + kanonik Firebase hesabı ile Public oda oluşturabildi. Guest `AtlasBoardGuest.exe`'nin `-atlasLocalEmulators` ile başlatılması localhost Auth Emulator'a gidiyor; emülatör çalışmadığı için HTTP=0/ATB110 ve offline fallback. Emülatör bayrağı olmadan çalıştırmak ise mevcut desktop Steam/App Check yolunu seçiyor; SteamAPI.Init başarısız oluyor, Guest build scene'de `AtlasBoardAccountService` kasıtlı stripped olduğu için `AtlasBoardAccountService is not available`, public browser ATB202 ve online join fail.
+- Guest adı `Guest#####X` yerel olarak korunuyor; sadece ekran adı Firebase authentication kanıtı değildir. `ATB110`, `ATB202`, `ATB212` gibi mevcut hata kodları player-facing kullanılmalı; `Stable Auth Emulator...`, `AtlasBoardAccountService...`, HTTP response, backend URL veya project id UI'da ASLA görünmez.
+
+### Kaynak değişiklikleri ve tek owner
+
+1. Mevcut `AtlasBoardAppCheckTokenSource`, `AtlasBoardPlatformRuntime` ve `AtlasBoardLobbyRuntimeBridge` içinde **yalnız Windows Development `AtlasBoardGuest.exe` + açık `-atlasLiveGuestQa` bayrağı** için seçilen transport: Steam provider kapalı; native Steam App Check başlamaz; **hiçbir sahte App Check tokenı canlı servise gönderilmez**; HTTPS Firebase Anonymous Auth ile geçici ayrı UID alınır; RTDB kullanıcısı bu UID olur, ekran adı cihazın mevcut Guest ismidir. Token/refresh token yalnız proses belleğinde tutulur, 45 dakika sonra aynı UID ile yenilenir. Bu, Firebase Console'da Anonymous Auth etkin ve canlı RTDB anonymous-member rules izinli ise çalışabilir; gerçek network acceptance OPEN. Anonim UID verified XP/Gold/Wallet/Store ödülleri için asla trusted değildir. Uygulama tam kapanıp yeniden açılırsa aynı anonim UID'ye reconnect henüz garanti edilmez; N4 OPEN.
+2. Var olan `AtlasBoardTwoClientLobbyTestV1.cs` builder korunur; ayrıca `Launch Live Spark Guest QA (No Steam)` QA menüsü ve build klasörüne `Launch_Guest_Live_Spark_QA.bat` eklenir. Eski emulator `Launch Two-Client Guest Test v1` ve `Launch_Guest_Local_Emulators.bat` değişmedi. Ayrı oyun modülü/manager yok, Firebase rules/deploy/Blaze değişmedi.
+3. `AtlasBoardAccountAccessUI` login panelinde bütün platformlar için tek orijinal-owner `CONTINUE AS GUEST / MİSAFİR OLARAK DEVAM ET` butonu. Career'dan gelinirse local preview (Success=false, Level=1, kalıcı ödül yok) açılır, Settings'den gelinirse modal kapanır. `AtlasBoardMobileAccountUX` içindeki eski login/reset button `Instantiate` guest klonu kaldırıldı; artık iki owner yok.
+4. `AtlasBoardPrivateLobbyUIController` Entry/Room/Password/Kick hata yolları mevcut `AtlasBoardFrontendErrorCodes` kayıtlarını (ATB110/212/210/204/206) ve 7 dilde `PublicMessage()` kullanır; sanitize edilmiş teknik detay yalnız iç loga gider. Error codebook'ta zaten tanımlı kodlar yeniden kullanıldı; yeni kod, ayrı doküman ve duplicate error handler yok.
+
+### Şimdi uygulanacak minimum test — APK isteme
+
+1. ZIP'i proje köküne aç; Unity Editor **0 kırmızı compile** olmalı. Editor `Use Live Spark RTDB in Editor` (yalnız Play Mode dışında) ve Steam/Vuartex hesabı aynen çalışmalı; Public/Private Host+Bot smoke regresyon yok.
+2. **Bir defa** `Atlas Board/Online & Backend/Online/Build Two-Client Guest Test v1` ile Windows Development client yeniden derle. Testte **`-atlasLocalEmulators` kullanma**. Yeni menü `Launch Live Spark Guest QA (No Steam)` veya build klasöründeki `Launch_Guest_Live_Spark_QA.bat` ile başlat. Log `ATB_LIVE_GUEST_QA auth=ready provider=anonymous` ve `steam=false` olmalı; `ATB110`, Steam API retry veya eski Auth Emulator HTTP=0 olmamalı. Firebase Auth Anonymous kapalıysa sahte PASS değil; log ve gerçek Firebase Console auth-provider durumu üzerinden karar ver, production ayarı/deploy onaysız yapma.
+3. Guest Header `Guest#####X` / G kalmalı. Settings Account ve Career login panelinde **Misafir Olarak Devam Et** butonu tek kez görünmeli, Career preview açılmalı, 0 cloud ödül. Yanlış RTDB/Network halinde yalnız `ATBxxx` genel yerelleştirilmiş mesaj görünmeli, teknik metin değil.
+4. Editor Public Host oluştur; Guest Public Browser listeleyip Join veya 6 haneli kod ile Private/Public odaya girsin. B READY → NOT READY → READY; Host Start gating; 5 saniye countdown; A/B zar–move–rent–buy–trade–auction–turn snapshots; her iki logdan intent/ACK consistency. Canlı iki-istemci PASS olmadan N1–N3 CLOSED sayma.
+5. Play Mode çıkmadan 3 oturum/Leave/re-entry, HDU name/TURN, bot personality/10s auto-roll regressions kontrol et. Network disconnect/20sn Temporary Bot/5dk expiry/Host Migration N4 aşamasında, Career/Store gerçek migration bu online temel testinden sonra.
+
+**Sınırlamalar:** İlk Guest QA build hâlâ gerçek Windows standalone derleme ister; Android APK gerekmez. PowerShell/no-network QA gerçek iki Human online senkronizasyonunun yerine geçmez. Windows/Steam Release ve Android branch'leri bu QA yolu nedeniyle değiştirilmez. Firebase settings/rules/App Check deployment yapılmadı; owner local Unity test kanıtı gelene dek `SOURCE CANDIDATE`.
+
+---
+
+## 0I. 17 Ekim 2026 — v5.40.7 TWO-ACCOUNT LIVE SPARK RTDB READY/ADMISSION SOURCE CANDIDATE
+
+**STATUS: SOURCE CHANGED + STATIC CONTRACT CHECK. TWO-CLIENT LIVE RTDB / UNITY COMPILE / WINDOWS BUILD / ACTUAL GAMEPLAY ALL OPEN.** v5.40.6 3x HUD name + TURN/SIRA OWNER PASS korunuyor. Bu adım yalnız roadmap N1 Ready/admission altyapısının somut kusurlarını kapatır; N1–N3'ü tamamlandı varsayma.
+
+### Kod sahipliği ve düzeltmeler
+
+- Kanonik `AtlasBoardRtdbCasualLobbyTransport.cs`: Host `AcceptReadyUpdates` artık `ready=true` kadar `ready=false` durumunu da kabul eder; aynı settings revision'ında NOT READY tıklaması `ReadyForRevision=0` yapar ve Host Start gate'i false olur. Eski kod yalnız true'yu işleyerek unready sonra bile Start'a izin verebiliyordu.
+- Yinelenen join isteğinde zaten aktif bir `AccountId` yeniden `RemoteHuman` olarak atanmaz, ready/Host seat yeniden yazılmaz. Yalnız authoritative lobby snapshot commit'i doğrulanmış join request temizlenir; source fallback ve CAS/ETag guard korunur.
+- Aynı Firebase UID ile Host ve Remote Human taklidi reddedilir; iki ayrı Auth account gerekir.
+- Privacy-safe `ATB_RTDB_REMOTE_QA` olayları: join_requested, seat_admitted, join_confirmed, join_timeout, ready_submitted, ready_changed. E-posta, Auth token, Firebase ID/UID, 6 haneli kod veya URL loglanmaz.
+- Mevcut `AtlasBoardSparkMatchSmokeQA.cs` menüsüne `Verify Remote Ready Toggle (No Network)` eklendi; `AtlasBoardRtdbCasualLobbyTransport.ValidateRemoteReadyTransitionContract()` canlı kodla aynı tek ready transition helper'ını test eder; ikinci Ready algoritması yaratılmadı.
+- **Hiçbir HUD, TurnManager, Bot AI, ekonomi, auth, RTDB Rules, App Check enforcement, Cloud Function, Android veya Steam Release dosyası değiştirilmedi.** Spark/free korunur. Kodlar henüz Unity'de compile edilmedi.
+
+### APK olmadan test — kabul seviyeleri
+
+1. **Unity Editor, Live Spark RTDB:** `Atlas Board → QA & Diagnostics → RTDB → Use Live Spark RTDB in Editor`; Unity compile = 0 kırmızı hata. `Verify Remote Ready Toggle (No Network)` -> `ATB_RTDB_REMOTE_READY_QA PASS ... remote_join=UNTESTED` yalnız SOURCE/LOCAL contract kanıtıdır.
+2. **İkinci istemci:** mevcut `Atlas Board → Online & Backend → Online → Build Two-Client Guest Test v1` menüsüyle Windows Development `AtlasBoardGuest.exe` **bir defa** yeniden build edilir; online test için `-atlasLocalEmulators` OLMADAN çalıştırılır. Bu durumda eski emulator-only Guest topology değil, normal Firebase Auth/Live Spark yoludur. Steam/native/App Check desktop davranışı ayrıca test edilir; Release veya Android PASS denmez. İkinci hesap başka e-posta/Firebase UID ile giriş yapmalıdır.
+3. **N1 live:** Editor Host Account A → Private Table / 2 oyuncu → Show/Copy 6 haneli kod; standalone Account B → Join by Code → Host join kabul eder → Remote seat iki ekranda görünür. B READY → Host READY görünür; B NOT READY → Host Start pasif; B yeniden READY → Host Start aktif. Aynı UID iki oyuncu olamaz.
+4. **N2 live:** Host Start → her istemci aynı roomId/matchId ve 5 saniye sunucu zaman damgalı countdown; Human A + Human B (diğer açık slot varsa explicit bot) kalır. BOT 3/4 isimleri ve TURN/SIRA v5.40.6 regresyon yapmaz.
+5. **N3 live:** A ve B sırayla dice, pawn movement, buy/rent, trade/auction ve turn flow yapar; iki istemcide snapshot ve state aynı, intent→ACK bir kere, para/ownership aynı. Kayıp veya duplicate command yok. Bu gerçek iki proses/iki hesap live RTDB kanıtı olabilir; **iki ayrı fiziksel cihaz** acceptance ayrıca OPEN.
+6. Test sonunda Host Close → joinCode/member/presence/match cleanup başarılı olmalı. Kırmızı hata veya `ATB_RTDB_REMOTE_QA join_timeout`, ready ekranda takılma, stale CAS ya da farklı snapshot varsa iki istemcinin sanitize edilmiş loglarını karşılaştır; N1–N3 PASS yazma.
+
+**Test sınıflandırması:** PowerShell statik sözleşme/smoke veya Editor no-network PASS, gerçek iki-client RTDB gameplay PASS **değildir**. Emulator Guest `-atlasLocalEmulators` eski Functions/Emulator yoludur; Live Spark RTDB kanıtı olarak sayılmaz. Android APK'yi ancak Editor+Windows iki-client kabulünden sonra birleşik performans/UI testinde üret. N4 reconnect/20sn TemporaryBot/5dk expiry/AFK ve Host Migration daha sonra ayrı gate; Career/Shop/Guest migration bunların ardından.
+
+---
 
 ## 0H. 17 Ekim 2026 — v5.40.6 PLAYER HUD / TURN-SIRA OWNER ACCEPTANCE
 

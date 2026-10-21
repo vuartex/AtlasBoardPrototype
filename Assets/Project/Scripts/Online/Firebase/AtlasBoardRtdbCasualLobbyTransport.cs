@@ -459,6 +459,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         if(!await Write("PUT","joinRequests/"+Safe(room)+"/"+Safe(uid),token,
             JsonUtility.ToJson(request)))
             return Failure("lobby.error.not_joinable","RTDB join request denied.");
+        Debug.Log("ATB_RTDB_REMOTE_QA event=join_requested transport=live_spark_rtdb");
         // Host accepts the request in its normal snapshot poll. This is bounded;
         // no cloud function and no infinite request loop.
         for(int attempt=0;attempt<24;attempt++)
@@ -470,6 +471,15 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             Response stateResponse=await Send("GET","roomState/"+Safe(room),token);
             State state=Parse<State>(stateResponse.Body);
             AtlasLobbySnapshot snap=state!=null?Parse<AtlasLobbySnapshot>(state.snapshotJson):null;
+            // Joining with the Host's own Firebase UID is never a second Human.
+            // Preserve the host seat instead of presenting a false remote join.
+            if(snap!=null && string.Equals(snap.HostAccountId,uid,StringComparison.Ordinal))
+            {
+                Debug.LogWarning("ATB_RTDB_REMOTE_QA event=join_rejected " +
+                    "reason=account_already_hosts_room");
+                return Failure("lobby.error.not_joinable",
+                    "A second, distinct Firebase account is required for Remote Human.");
+            }
             // Membership may become visible before the host has published the
             // new snapshot. Never return a stale lobby with an empty seat.
             if(snap!=null && snap.Members!=null &&
@@ -482,11 +492,15 @@ public static class AtlasBoardRtdbCasualLobbyTransport
                 {
                     if(!string.IsNullOrWhiteSpace(admittedMeta.inviteCode))
                         ActiveCode[room] = admittedMeta.inviteCode;
+                    Debug.Log("ATB_RTDB_REMOTE_QA event=join_confirmed " +
+                        "member_in_snapshot=true settings_revision=" + snap.SettingsRevision);
                     return AtlasLobbyOperationResult.Ok(snap,
                         admittedMeta.inviteCode??"",true);
                 }
             }
         }
+        Debug.LogWarning("ATB_RTDB_REMOTE_QA event=join_timeout " +
+            "admission_confirmed=false attempts=24");
         return Failure("lobby.error.service_unavailable","RTDB host has not approved the join request.");
     }
 
@@ -497,7 +511,65 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         Response response=await Send("GET","roomState/"+Safe(room),token);
         State state=Parse<State>(response.Body);
         AtlasLobbySnapshot snap=state!=null?Parse<AtlasLobbySnapshot>(state.snapshotJson):null;
-        if(!response.Ok||snap==null) return Failure("lobby.error.not_joinable","RTDB room state unavailable.");
+        if (!response.Ok || snap == null)
+        {
+            // REST 200/null is a definitive removed room, not a transient
+            // network timeout. When RTDB rules hide roomState after membership
+            // cleanup, verify the caller's own member record before reporting
+            // a close; a 401 or temporary HTTP failure alone is NOT enough.
+            if (response.Ok && snap == null &&
+                (string.IsNullOrWhiteSpace(response.Body) ||
+                 response.Body.Trim() == "null"))
+                return Failure("lobby.error.closed", "RTDB room state removed.");
+            if (response.Code == 403 || response.Code == 401)
+            {
+                Response ownSeat = await Send("GET", "roomMembers/" + Safe(room) +
+                    "/" + Safe(uid), token);
+                if (ownSeat.Ok && (string.IsNullOrWhiteSpace(ownSeat.Body) ||
+                    ownSeat.Body.Trim() == "null"))
+                    return Failure("lobby.error.closed", "RTDB room membership removed.");
+            }
+            return Failure("lobby.error.not_joinable", "RTDB room state unavailable.");
+        }
+        if (snap.HostAccountId != uid)
+        {
+            // The host marks metadata closed before removing dependent
+            // match/lobby records. This lets a follower leave cleanly even
+            // if deletion is still in progress (or partially retryable).
+            Response metadata = await Send("GET", "roomMeta/" + Safe(room), token);
+            Meta liveMeta = metadata.Ok ? Parse<Meta>(metadata.Body) : null;
+            if (liveMeta != null && liveMeta.closed)
+                return Failure("lobby.error.closed", "RTDB host closed the room.");
+
+            // A host's identity is bound to its UID, never to this client's
+            // device-local Guest nickname. Repair only a suspect host label
+            // from the existing authoritative roomMembers record; this is
+            // presentation-only and does not write the host's snapshot.
+            AtlasLobbyMemberSnapshot hostSeat = snap.Members != null
+                ? snap.Members.Find(seat => seat != null && seat.Active &&
+                    string.Equals(seat.AccountId, snap.HostAccountId,
+                        StringComparison.Ordinal)) : null;
+            if (hostSeat != null &&
+                (string.IsNullOrWhiteSpace(hostSeat.DisplayName) ||
+                 string.Equals(hostSeat.DisplayName, CleanName(name),
+                     StringComparison.OrdinalIgnoreCase)))
+            {
+                Response hostResponse = await Send("GET", "roomMembers/" +
+                    Safe(room) + "/" + Safe(snap.HostAccountId), token);
+                Member host = hostResponse.Ok ? Parse<Member>(hostResponse.Body) : null;
+                if (host != null && host.active &&
+                    string.Equals(host.uid, snap.HostAccountId,
+                        StringComparison.Ordinal) &&
+                    !string.IsNullOrWhiteSpace(host.displayName))
+                {
+                    hostSeat.DisplayName = CleanName(host.displayName);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                    Debug.Log("ATB_RTDB_LOBBY_HOST_NAME verified=true " +
+                        "source=host_uid_membership local_override=false");
+#endif
+                }
+            }
+        }
         // The canonical state revision is separate from the room settings
         // revision. A rematch may change Starting->Waiting with no new rules.
         snap.TransportRevision = Math.Max(snap.TransportRevision, state.revision);
@@ -515,11 +587,13 @@ public static class AtlasBoardRtdbCasualLobbyTransport
                 if (!await StoreSnapshot(room,snap,token,state.revision+1))
                     return Failure("lobby.error.service_unavailable",
                         "Host RTDB snapshot commit failed; join requests retained.");
-                foreach (string acceptedUid in accepted)
-                    await Send("DELETE", "joinRequests/" + Safe(room) + "/" + Safe(acceptedUid), token);
                 if(snap.Visibility==AtlasRoomVisibility.Public)
                     await StoreIndex(room,snap,token,Now());
             }
+            // Delete already-committed duplicate joins even when nothing changed.
+            // New admissions only reach this point after their snapshot commit.
+            foreach (string acceptedUid in accepted)
+                await Send("DELETE", "joinRequests/" + Safe(room) + "/" + Safe(acceptedUid), token);
         }
         string persistedCode = ActiveCode.TryGetValue(room, out string cached)
             ? cached : string.Empty;
@@ -542,7 +616,12 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         foreach(var pair in JsonObjectMembers(r.Body))
         {
             Join join=Parse<Join>(pair.Value);
-            if (join == null || string.IsNullOrEmpty(join.uid)) continue;
+            if (join == null || string.IsNullOrEmpty(join.uid) ||
+                !string.Equals(pair.Key, join.uid, StringComparison.Ordinal))
+            {
+                Debug.LogWarning("ATB_RTDB_JOIN rejected=true reason=uid_key_mismatch");
+                continue;
+            }
             if (Now() - join.requestedAt > 120000L ||
                 (!string.IsNullOrEmpty(meta.passwordHash) && join.passwordHash != meta.passwordHash))
             {
@@ -553,10 +632,38 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             // The request is authenticated by RTDB rules as its own UID.
             AtlasLobbyMemberSnapshot seat=null;
             foreach(var member in snap.Members)if(member!=null && member.Active && member.AccountId==join.uid){seat=member;break;}
-            if(seat==null)
-                foreach(var member in snap.Members)if(member!=null && !member.Active && member.SeatMode==AtlasLobbySeatMode.OpenOnline){seat=member;break;}
+            if(seat!=null)
+            {
+                // An existing member (including the Host from a second client)
+                // must NEVER be re-admitted into another role or reset readiness.
+                // The earlier committed snapshot already owns this identity.
+                accepted.Add(join.uid);
+                continue;
+            }
+            foreach(var member in snap.Members)
+                if(member!=null && !member.Active && member.SeatMode==AtlasLobbySeatMode.OpenOnline)
+                { seat=member; break; }
             if(seat==null)continue;
-            Member admitted=new Member{uid=join.uid,role="remoteHuman",displayName=CleanName(join.displayName),active=true,joinedAt=Now()};
+            // Never accept a bare client-provided Guest nickname as proof of
+            // identity. Bind Guest display names to the authenticated UID in
+            // the host's admission path and reject a room-local name conflict.
+            string requestedName = CleanName(join.displayName);
+            string admittedName = AtlasBoardGuestIdentity.LooksLikeGuestName(requestedName)
+                ? AtlasBoardGuestIdentity.NameForAuthenticatedUid(join.uid)
+                : requestedName;
+            bool nameCollision = snap.Members.Exists(existing =>
+                existing != null && existing.Active &&
+                !string.Equals(existing.AccountId, join.uid, StringComparison.Ordinal) &&
+                string.Equals(existing.DisplayName, admittedName,
+                    StringComparison.OrdinalIgnoreCase));
+            if (nameCollision)
+            {
+                Debug.LogWarning("ATB_RTDB_JOIN rejected=true reason=display_name_collision " +
+                    "different_authenticated_uid=true");
+                await Send("DELETE", "joinRequests/" + Safe(room) + "/" + Safe(join.uid), token);
+                continue;
+            }
+            Member admitted=new Member{uid=join.uid,role="remoteHuman",displayName=admittedName,active=true,joinedAt=Now()};
             if(!await Write("PUT","roomMembers/"+Safe(room)+"/"+Safe(join.uid),token,
                     JsonUtility.ToJson(admitted))) continue;
             seat.Active=true;
@@ -571,6 +678,8 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             seat.ReadyForRevision=0;
             changed=true;
             accepted.Add(join.uid);
+            Debug.Log("ATB_RTDB_REMOTE_QA event=seat_admitted " +
+                "slot=" + seat.SlotIndex + " awaiting_ready=true");
         }
         return changed;
     }
@@ -583,11 +692,50 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             if(seat==null||!seat.Active||seat.SeatMode!=AtlasLobbySeatMode.RemoteHuman)continue;
             Response r=await Send("GET","roomReady/"+Safe(room)+"/"+Safe(seat.AccountId),token);
             Ready ready=Parse<Ready>(r.Body);
-            if(ready!=null && ready.ready && ready.revision==snap.SettingsRevision &&
-                seat.ReadyForRevision!=ready.revision)
-            {seat.ReadyForRevision=ready.revision;changed=true;}
+            if(ApplyRemoteReady(seat,ready,snap.SettingsRevision))
+            {
+                changed=true;
+                Debug.Log("ATB_RTDB_REMOTE_QA event=ready_changed " +
+                    "slot=" + seat.SlotIndex +
+                    " ready=" + seat.IsReadyFor(snap.SettingsRevision) +
+                    " settings_revision=" + snap.SettingsRevision);
+            }
         }
         return changed;
+    }
+
+    // One canonical transition for remote READY and NOT READY. The previous
+    // implementation only accepted true, allowing Start after an unready click.
+    private static bool ApplyRemoteReady(
+        AtlasLobbyMemberSnapshot seat, Ready request, int settingsRevision)
+    {
+        if(seat==null || !seat.Active || seat.SeatMode!=AtlasLobbySeatMode.RemoteHuman ||
+            request==null || request.revision!=settingsRevision) return false;
+        int desired=request.ready ? settingsRevision : 0;
+        if(seat.ReadyForRevision==desired) return false;
+        seat.ReadyForRevision=desired;
+        return true;
+    }
+
+    // No-network contract QA only; not a second-player live RTDB PASS.
+    public static bool ValidateRemoteReadyTransitionContract()
+    {
+        var seat=new AtlasLobbyMemberSnapshot {
+            SeatMode=AtlasLobbySeatMode.RemoteHuman,Active=true,
+            AccountId="qa_remote_uid",ReadyForRevision=0
+        };
+        var ready=new Ready {revision=4,ready=true};
+        if(!ApplyRemoteReady(seat,ready,4) || !seat.IsReadyFor(4)) return false;
+        if(ApplyRemoteReady(seat,ready,4)) return false;
+        ready.ready=false;
+        if(!ApplyRemoteReady(seat,ready,4) || seat.IsReadyFor(4)) return false;
+        if(ApplyRemoteReady(seat,ready,4)) return false;
+        ready.ready=true;
+        ready.revision=3;
+        if(ApplyRemoteReady(seat,ready,4) || seat.IsReadyFor(4)) return false;
+        seat.Active=false;
+        ready.revision=4;
+        return !ApplyRemoteReady(seat,ready,4);
     }
 
     private static async Task<AtlasLobbyOperationResult> SetReadyAsync(
@@ -598,6 +746,9 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         Ready update=new Ready{uid=uid,revision=state.Snapshot.SettingsRevision,ready=ready};
         if(!await Write("PUT","roomReady/"+Safe(room)+"/"+Safe(uid),token,JsonUtility.ToJson(update)))
             return Failure("lobby.error.service_unavailable","RTDB ready update rejected.");
+        Debug.Log("ATB_RTDB_REMOTE_QA event=ready_submitted ready=" + ready +
+            " settings_revision=" + update.revision +
+            " authoritative_host_ack=pending");
         return state;
     }
 

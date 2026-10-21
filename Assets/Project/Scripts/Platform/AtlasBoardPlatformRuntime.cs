@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 
+
 [DefaultExecutionOrder(-9000)]
 [DisallowMultipleComponent]
 public sealed class AtlasBoardPlatformRuntime :
@@ -14,13 +15,17 @@ public sealed class AtlasBoardPlatformRuntime :
     private const float ProviderSignInRetryInitialSeconds = 5f;
     private const float ProviderSignInRetryMaxSeconds = 30f;
 
+
     private static AtlasBoardPlatformRuntime instance;
+
 
     private AtlasBoardDevelopmentPlatformAdapter
         developmentAdapter;
 
+
     private AtlasBoardSteamPlatformAdapter
         steamAdapter;
+
 
     private IAtlasIdentityProvider identityProvider;
     private IAtlasInviteProvider inviteProvider;
@@ -28,14 +33,18 @@ public sealed class AtlasBoardPlatformRuntime :
     private IAtlasPresenceProvider presenceProvider;
     private IAtlasAchievementProjectionProvider achievementProvider;
 
+
     private AtlasBoardLobbyRuntimeBridge lobbyBridge;
     private AtlasBoardProgressionBridge progressionBridge;
+
 
     private float nextPresencePollAt;
     private float nextAchievementPollAt;
 
+
     private string lastPresenceFingerprint =
         string.Empty;
+
 
     private bool presenceSyncInFlight;
     private bool achievementSyncInFlight;
@@ -49,26 +58,32 @@ public sealed class AtlasBoardPlatformRuntime :
     private string steamRecoveryAchievementAccountId =
         string.Empty;
 
+
     private string pendingStartupJoinCode =
         string.Empty;
 
+
     public static AtlasBoardPlatformRuntime Instance =>
         instance;
+
 
     public string ActiveProviderId =>
         identityProvider != null
             ? identityProvider.ProviderId
             : "none";
 
+
     public AtlasPlatformKind ActivePlatform =>
         identityProvider != null
             ? identityProvider.Platform
             : AtlasPlatformKind.Unknown;
 
+
     public AtlasPlayerIdentity CurrentPlatformIdentity =>
         identityProvider != null
             ? identityProvider.CurrentIdentity
             : null;
+
 
     public bool IsSteamProviderActive =>
         steamAdapter != null &&
@@ -76,34 +91,41 @@ public sealed class AtlasBoardPlatformRuntime :
             identityProvider,
             steamAdapter);
 
+
     public bool SteamInitialized =>
         steamAdapter != null &&
         steamAdapter.IsInitialized;
+
 
     public uint SteamAppId =>
         steamAdapter != null
             ? steamAdapter.CurrentAppId
             : 0;
 
+
     public ulong SteamId =>
         steamAdapter != null
             ? steamAdapter.CurrentSteamId
             : 0;
+
 
     public string SteamPersonaName =>
         steamAdapter != null
             ? steamAdapter.CurrentPersonaName
             : string.Empty;
 
+
     public string SteamLastError =>
         steamAdapter != null
             ? steamAdapter.LastError
             : string.Empty;
 
+
     public int SteamProjectedAchievementCount =>
         steamAdapter != null
             ? steamAdapter.ProjectedAchievementCount
             : 0;
+
 
     public AtlasBoardPlatformPresence CurrentPresence
     {
@@ -111,7 +133,9 @@ public sealed class AtlasBoardPlatformRuntime :
         private set;
     } = new AtlasBoardPlatformPresence();
 
+
     public event Action<string> PlatformJoinRequested;
+
 
     [RuntimeInitializeOnLoadMethod(
         RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -122,10 +146,12 @@ public sealed class AtlasBoardPlatformRuntime :
             return;
         }
 
+
         AtlasBoardPlatformRuntime existing =
             FindAnyObjectByType<
                 AtlasBoardPlatformRuntime>(
                 FindObjectsInactive.Include);
+
 
         if (existing != null)
         {
@@ -133,13 +159,16 @@ public sealed class AtlasBoardPlatformRuntime :
             return;
         }
 
+
         GameObject root =
             new GameObject(
                 "AtlasBoardPlatformRuntime");
 
+
         root.AddComponent<
             AtlasBoardPlatformRuntime>();
     }
+
 
     private void Awake()
     {
@@ -150,14 +179,18 @@ public sealed class AtlasBoardPlatformRuntime :
             return;
         }
 
+
         instance = this;
         DontDestroyOnLoad(gameObject);
+
 
         ConfigureProviders();
         CaptureStartupJoinPayload();
 
+
         _ = EnsureProviderSignedInAsync();
     }
+
 
     private void OnDestroy()
     {
@@ -167,7 +200,9 @@ public sealed class AtlasBoardPlatformRuntime :
                 HandleProviderJoinRequested;
         }
 
+
         steamAdapter?.Shutdown();
+
 
         if (instance == this)
         {
@@ -175,12 +210,15 @@ public sealed class AtlasBoardPlatformRuntime :
         }
     }
 
+
     private void Update()
     {
         steamAdapter?.RunCallbacks();
 
+
         ResolveRuntimeBridges();
         RefreshCanonicalIdentityBinding();
+
 
         if (!providerSignInStarted &&
             !providerSignInComplete &&
@@ -189,11 +227,13 @@ public sealed class AtlasBoardPlatformRuntime :
             _ = EnsureProviderSignedInAsync();
         }
 
+
         if (!string.IsNullOrWhiteSpace(
                 pendingStartupJoinCode))
         {
             string code =
                 pendingStartupJoinCode;
+
 
             if (TryOpenJoinOverlay(code))
             {
@@ -202,6 +242,7 @@ public sealed class AtlasBoardPlatformRuntime :
             }
         }
 
+
         if (Time.unscaledTime >=
             nextPresencePollAt)
         {
@@ -209,8 +250,10 @@ public sealed class AtlasBoardPlatformRuntime :
                 Time.unscaledTime +
                 PresencePollSeconds;
 
+
             _ = RefreshPresenceAsync();
         }
+
 
         if (steamRecoveryAchievementResyncPending &&
             !achievementSyncInFlight &&
@@ -221,12 +264,15 @@ public sealed class AtlasBoardPlatformRuntime :
             string accountId =
                 steamRecoveryAchievementAccountId;
 
+
             steamRecoveryAchievementResyncPending = false;
             steamRecoveryAchievementAccountId = string.Empty;
+
 
             _ = SynchronizeAchievementsAfterSteamRecoveryAsync(
                 accountId);
         }
+
 
         if (Time.unscaledTime >=
             nextAchievementPollAt)
@@ -235,13 +281,16 @@ public sealed class AtlasBoardPlatformRuntime :
                 Time.unscaledTime +
                 AchievementPollSeconds;
 
+
             _ = SynchronizeAchievementsNowAsync();
         }
     }
 
+
     public async Task<bool> ShowInviteUiAsync()
     {
         ResolveRuntimeBridges();
+
 
         if (inviteProvider == null ||
             lobbyBridge == null ||
@@ -250,9 +299,11 @@ public sealed class AtlasBoardPlatformRuntime :
             return false;
         }
 
+
         AtlasRoomDescriptor room =
             BuildRoomDescriptor(
                 lobbyBridge);
+
 
         if (room == null ||
             string.IsNullOrWhiteSpace(
@@ -261,18 +312,22 @@ public sealed class AtlasBoardPlatformRuntime :
             return false;
         }
 
+
         if (inviteProvider.SupportsNativeInvites)
         {
             return await inviteProvider
                 .ShowNativeInviteAsync(room);
         }
 
+
         return false;
     }
+
 
     public string BuildCurrentShareableJoinLink()
     {
         ResolveRuntimeBridges();
+
 
         if (inviteProvider == null ||
             lobbyBridge == null ||
@@ -282,9 +337,11 @@ public sealed class AtlasBoardPlatformRuntime :
             return string.Empty;
         }
 
+
         return inviteProvider.BuildShareableJoinLink(
             BuildRoomDescriptor(lobbyBridge));
     }
+
 
     public async Task<
         AtlasBoardAchievementProjectionResult>
@@ -296,7 +353,9 @@ public sealed class AtlasBoardPlatformRuntime :
                 "Achievement synchronization is already in flight.");
         }
 
+
         ResolveRuntimeBridges();
+
 
         if (achievementProvider == null ||
             !achievementProvider
@@ -307,13 +366,16 @@ public sealed class AtlasBoardPlatformRuntime :
                 "No active achievement projection provider.");
         }
 
+
         achievementSyncInFlight = true;
+
 
         try
         {
             AtlasBoardProgressionSnapshot profile =
                 await progressionBridge
                     .GetProfileAsync();
+
 
             if (profile == null ||
                 !profile.Success)
@@ -323,6 +385,7 @@ public sealed class AtlasBoardPlatformRuntime :
                         ? profile.TechnicalMessage
                         : "Progression profile is unavailable.");
             }
+
 
             string[] unlockedIds =
                 profile.Achievements
@@ -339,6 +402,7 @@ public sealed class AtlasBoardPlatformRuntime :
                         StringComparer.OrdinalIgnoreCase)
                     .ToArray();
 
+
             return await achievementProvider
                 .SynchronizeAchievementsAsync(
                     unlockedIds);
@@ -349,6 +413,7 @@ public sealed class AtlasBoardPlatformRuntime :
         }
     }
 
+
 #if UNITY_EDITOR
     public bool DevelopmentSimulateIncomingInvite(
         string payload)
@@ -358,6 +423,7 @@ public sealed class AtlasBoardPlatformRuntime :
             return false;
         }
 
+
         if (!AtlasBoardPlatformJoinPayload.TryParse(
                 payload,
                 out _))
@@ -365,11 +431,14 @@ public sealed class AtlasBoardPlatformRuntime :
             return false;
         }
 
+
         developmentAdapter
             .SimulateIncomingInvite(payload);
 
+
         return true;
     }
+
 
     public int DevelopmentProjectedAchievementCount =>
         developmentAdapter != null
@@ -377,6 +446,7 @@ public sealed class AtlasBoardPlatformRuntime :
                 .ProjectedAchievementCount
             : 0;
 #endif
+
 
     private async Task EnsureProviderSignedInAsync()
     {
@@ -386,13 +456,16 @@ public sealed class AtlasBoardPlatformRuntime :
             return;
         }
 
+
         providerSignInStarted = true;
+
 
         try
         {
             bool signedIn =
                 await identityProvider
                     .EnsureSignedInAsync();
+
 
             if (signedIn)
             {
@@ -401,6 +474,7 @@ public sealed class AtlasBoardPlatformRuntime :
                 nextProviderSignInAttemptAt =
                     float.PositiveInfinity;
 
+
                 if (IsSteamProviderActive &&
                     !returningSteamSignInStarted &&
                     !returningSteamSignInComplete)
@@ -408,10 +482,13 @@ public sealed class AtlasBoardPlatformRuntime :
                     _ = TryAutomaticReturningSteamSignInAsync();
                 }
 
+
                 return;
             }
 
+
             providerSignInFailureCount++;
+
 
             float retryDelaySeconds =
                 Mathf.Min(
@@ -423,8 +500,10 @@ public sealed class AtlasBoardPlatformRuntime :
                             providerSignInFailureCount - 1,
                             3)));
 
+
             nextProviderSignInAttemptAt =
                 Time.unscaledTime + retryDelaySeconds;
+
 
             if (IsSteamProviderActive)
             {
@@ -444,6 +523,7 @@ public sealed class AtlasBoardPlatformRuntime :
         }
     }
 
+
     private async Task TryAutomaticReturningSteamSignInAsync()
     {
         if (returningSteamSignInStarted ||
@@ -455,21 +535,26 @@ public sealed class AtlasBoardPlatformRuntime :
             return;
         }
 
+
         returningSteamSignInStarted = true;
+
 
         try
         {
             AtlasBoardSteamAccountLinkBridge bridge =
                 AtlasBoardSteamAccountLinkBridge.Instance;
 
+
             if (bridge == null)
             {
                 return;
             }
 
+
             AtlasBoardSteamReturningSignInResult result =
                 await bridge
                     .AutomaticReturningSignInCurrentSteamAsync();
+
 
             if (result != null && result.Success)
             {
@@ -478,6 +563,7 @@ public sealed class AtlasBoardPlatformRuntime :
                     "AtlasBoard automatic Steam returning sign-in restored " +
                     "canonical Atlas account " + result.AccountId + ".",
                     this);
+
 
                 steamRecoveryAchievementAccountId =
                     result.AccountId ?? string.Empty;
@@ -505,14 +591,17 @@ public sealed class AtlasBoardPlatformRuntime :
         }
     }
 
+
     private async Task SynchronizeAchievementsAfterSteamRecoveryAsync(
         string accountId)
     {
         AtlasBoardAchievementProjectionResult result =
             await SynchronizeAchievementsNowAsync();
 
+
         string safeAccountId =
             accountId ?? string.Empty;
+
 
         if (result != null && result.Success)
         {
@@ -526,10 +615,12 @@ public sealed class AtlasBoardPlatformRuntime :
             return;
         }
 
+
         string technicalMessage =
             result != null
                 ? result.TechnicalMessage
                 : "Achievement synchronization returned no result.";
+
 
         Debug.LogWarning(
             "AtlasBoard Steam recovery achievement re-sync attempted but " +
@@ -538,10 +629,12 @@ public sealed class AtlasBoardPlatformRuntime :
             this);
     }
 
+
     private void ConfigureProviders()
     {
         bool useSteam =
             ShouldUseSteamProvider();
+
 
         if (useSteam &&
             AtlasBoardSteamPlatformAdapter
@@ -549,6 +642,7 @@ public sealed class AtlasBoardPlatformRuntime :
         {
             steamAdapter =
                 new AtlasBoardSteamPlatformAdapter();
+
 
             identityProvider = steamAdapter;
             inviteProvider = steamAdapter;
@@ -560,6 +654,7 @@ public sealed class AtlasBoardPlatformRuntime :
         {
             developmentAdapter =
                 new AtlasBoardDevelopmentPlatformAdapter();
+
 
             identityProvider =
                 developmentAdapter;
@@ -573,6 +668,7 @@ public sealed class AtlasBoardPlatformRuntime :
                 developmentAdapter;
         }
 
+
         if (incomingInviteProvider != null)
         {
             incomingInviteProvider.JoinRequested +=
@@ -580,12 +676,14 @@ public sealed class AtlasBoardPlatformRuntime :
         }
     }
 
+
     private static bool ShouldUseSteamProvider()
     {
 #if DEVELOPMENT_BUILD && UNITY_STANDALONE_WIN && !UNITY_EDITOR
         // Two-Client Guest QA deliberately uses Firebase emulator identity.
         // Avoid SteamAPI.Init / retry callbacks when no Steam client is needed.
-        if (AtlasBoardAppCheckTokenSource.IsLocalEmulatorGuestSession)
+        if (AtlasBoardAppCheckTokenSource.IsLocalEmulatorGuestSession ||
+            AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession)
         {
             return false;
         }
@@ -596,6 +694,7 @@ public sealed class AtlasBoardPlatformRuntime :
             return false;
         }
 
+
 #if UNITY_EDITOR
         return AtlasBoardSteamRuntimeSettings
             .UseSteamInEditor;
@@ -603,6 +702,7 @@ public sealed class AtlasBoardPlatformRuntime :
         return true;
 #endif
     }
+
 
     private void ResolveRuntimeBridges()
     {
@@ -612,6 +712,7 @@ public sealed class AtlasBoardPlatformRuntime :
                 Resources.FindObjectsOfTypeAll<
                     AtlasBoardLobbyRuntimeBridge>();
 
+
             lobbyBridge =
                 lobbies.FirstOrDefault(
                     item =>
@@ -619,11 +720,13 @@ public sealed class AtlasBoardPlatformRuntime :
                         item.gameObject.scene.IsValid());
         }
 
+
         if (progressionBridge == null)
         {
             AtlasBoardProgressionBridge[] progression =
                 Resources.FindObjectsOfTypeAll<
                     AtlasBoardProgressionBridge>();
+
 
             progressionBridge =
                 progression.FirstOrDefault(
@@ -633,6 +736,7 @@ public sealed class AtlasBoardPlatformRuntime :
         }
     }
 
+
     private void RefreshCanonicalIdentityBinding()
     {
         if (lobbyBridge == null)
@@ -640,8 +744,10 @@ public sealed class AtlasBoardPlatformRuntime :
             return;
         }
 
+
         string accountId =
             lobbyBridge.CurrentAccountId;
+
 
         if (string.IsNullOrWhiteSpace(
                 accountId))
@@ -649,10 +755,12 @@ public sealed class AtlasBoardPlatformRuntime :
             return;
         }
 
+
         string displayName =
             ResolveDisplayName(
                 lobbyBridge.CurrentSnapshot,
                 accountId);
+
 
         if (developmentAdapter != null)
         {
@@ -662,6 +770,7 @@ public sealed class AtlasBoardPlatformRuntime :
                 ResolveNativePlatform());
         }
 
+
         if (steamAdapter != null)
         {
             steamAdapter.BindCanonicalIdentity(
@@ -669,6 +778,7 @@ public sealed class AtlasBoardPlatformRuntime :
                 displayName);
         }
     }
+
 
     private async Task RefreshPresenceAsync()
     {
@@ -679,8 +789,10 @@ public sealed class AtlasBoardPlatformRuntime :
             return;
         }
 
+
         AtlasBoardPlatformPresence next =
             BuildPresence();
+
 
         if (steamAdapter != null)
         {
@@ -688,10 +800,12 @@ public sealed class AtlasBoardPlatformRuntime :
                 BuildCurrentSteamConnectString());
         }
 
+
         string fingerprint =
             next.Fingerprint() +
             "|" +
             BuildCurrentSteamConnectString();
+
 
         if (fingerprint ==
             lastPresenceFingerprint)
@@ -699,7 +813,9 @@ public sealed class AtlasBoardPlatformRuntime :
             return;
         }
 
+
         presenceSyncInFlight = true;
+
 
         try
         {
@@ -707,10 +823,12 @@ public sealed class AtlasBoardPlatformRuntime :
                 await presenceProvider
                     .SetPresenceAsync(next);
 
+
             if (applied)
             {
                 CurrentPresence =
                     next.Clone();
+
 
                 lastPresenceFingerprint =
                     fingerprint;
@@ -722,6 +840,7 @@ public sealed class AtlasBoardPlatformRuntime :
         }
     }
 
+
     private string BuildCurrentSteamConnectString()
     {
         if (lobbyBridge == null ||
@@ -731,8 +850,10 @@ public sealed class AtlasBoardPlatformRuntime :
             return string.Empty;
         }
 
+
         AtlasLobbySnapshot snapshot =
             lobbyBridge.CurrentSnapshot;
+
 
         bool safeJoinable =
             snapshot.LifecycleState ==
@@ -740,19 +861,23 @@ public sealed class AtlasBoardPlatformRuntime :
             snapshot.Visibility !=
                 AtlasRoomVisibility.Private;
 
+
         if (!safeJoinable)
         {
             return string.Empty;
         }
+
 
         return AtlasBoardPlatformJoinPayload
             .BuildSteamConnectString(
                 lobbyBridge.CurrentRoomCode);
     }
 
+
     private AtlasBoardPlatformPresence BuildPresence()
     {
         ResolveRuntimeBridges();
+
 
         if (lobbyBridge == null ||
             !lobbyBridge.HasLobby ||
@@ -765,8 +890,10 @@ public sealed class AtlasBoardPlatformRuntime :
             };
         }
 
+
         AtlasLobbySnapshot snapshot =
             lobbyBridge.CurrentSnapshot;
+
 
         AtlasBoardPlatformPresenceState state =
             snapshot.LifecycleState ==
@@ -779,6 +906,7 @@ public sealed class AtlasBoardPlatformRuntime :
                     ? AtlasBoardPlatformPresenceState.Match
                     : AtlasBoardPlatformPresenceState.MainMenu;
 
+
         int connectedPlayers =
             snapshot.Members != null
                 ? snapshot.Members.Count(
@@ -787,6 +915,7 @@ public sealed class AtlasBoardPlatformRuntime :
                         item.Active &&
                         item.IsHumanSeat)
                 : 0;
+
 
         return new AtlasBoardPlatformPresence
         {
@@ -811,6 +940,7 @@ public sealed class AtlasBoardPlatformRuntime :
         };
     }
 
+
     private void HandleProviderJoinRequested(
         string payload)
     {
@@ -821,7 +951,9 @@ public sealed class AtlasBoardPlatformRuntime :
             return;
         }
 
+
         PlatformJoinRequested?.Invoke(roomCode);
+
 
         if (!TryOpenJoinOverlay(roomCode))
         {
@@ -829,6 +961,7 @@ public sealed class AtlasBoardPlatformRuntime :
                 roomCode;
         }
     }
+
 
     private bool TryOpenJoinOverlay(
         string roomCode)
@@ -838,9 +971,11 @@ public sealed class AtlasBoardPlatformRuntime :
             return false;
         }
 
+
         AtlasBoardPrivateLobbyUIController[] controllers =
             Resources.FindObjectsOfTypeAll<
                 AtlasBoardPrivateLobbyUIController>();
+
 
         AtlasBoardPrivateLobbyUIController controller =
             controllers.FirstOrDefault(
@@ -848,16 +983,20 @@ public sealed class AtlasBoardPlatformRuntime :
                     item != null &&
                     item.gameObject.scene.IsValid());
 
+
         if (controller == null)
         {
             return false;
         }
 
+
         controller.ShowRoomEntryFromMainMenu();
+
 
         TMP_InputField[] inputs =
             Resources.FindObjectsOfTypeAll<
                 TMP_InputField>();
+
 
         TMP_InputField codeInput =
             inputs.FirstOrDefault(
@@ -866,23 +1005,29 @@ public sealed class AtlasBoardPlatformRuntime :
                     item.gameObject.scene.IsValid() &&
                     item.name == "Input_JoinCode");
 
+
         if (codeInput == null)
         {
             return false;
         }
 
+
         codeInput.SetTextWithoutNotify(
             roomCode);
 
+
         codeInput.ForceLabelUpdate();
+
 
         return true;
     }
+
 
     private void CaptureStartupJoinPayload()
     {
         string[] args =
             Environment.GetCommandLineArgs();
+
 
         for (int index = 0;
              index < args.Length;
@@ -891,6 +1036,7 @@ public sealed class AtlasBoardPlatformRuntime :
             string current =
                 args[index] ?? string.Empty;
 
+
             if (current.StartsWith(
                     "-atlasJoinRoom=",
                     StringComparison.OrdinalIgnoreCase))
@@ -898,6 +1044,7 @@ public sealed class AtlasBoardPlatformRuntime :
                 string payload =
                     current.Substring(
                         "-atlasJoinRoom=".Length);
+
 
                 if (AtlasBoardPlatformJoinPayload.TryParse(
                         payload,
@@ -908,6 +1055,7 @@ public sealed class AtlasBoardPlatformRuntime :
                     return;
                 }
             }
+
 
             if (string.Equals(
                     current,
@@ -925,6 +1073,7 @@ public sealed class AtlasBoardPlatformRuntime :
         }
     }
 
+
     private static AtlasRoomDescriptor BuildRoomDescriptor(
         AtlasBoardLobbyRuntimeBridge bridge)
     {
@@ -935,8 +1084,10 @@ public sealed class AtlasBoardPlatformRuntime :
             return null;
         }
 
+
         AtlasLobbySnapshot snapshot =
             bridge.CurrentSnapshot;
+
 
         return new AtlasRoomDescriptor
         {
@@ -985,6 +1136,7 @@ public sealed class AtlasBoardPlatformRuntime :
         };
     }
 
+
     private static string ResolveDisplayName(
         AtlasLobbySnapshot snapshot,
         string accountId)
@@ -996,6 +1148,7 @@ public sealed class AtlasBoardPlatformRuntime :
             return "Atlas Player";
         }
 
+
         AtlasLobbyMemberSnapshot member =
             snapshot.Members.FirstOrDefault(
                 item =>
@@ -1005,12 +1158,14 @@ public sealed class AtlasBoardPlatformRuntime :
                         accountId,
                         StringComparison.OrdinalIgnoreCase));
 
+
         return member != null &&
                !string.IsNullOrWhiteSpace(
                    member.DisplayName)
             ? member.DisplayName.Trim()
             : "Atlas Player";
     }
+
 
     private static AtlasPlatformKind ResolveNativePlatform()
     {
@@ -1037,3 +1192,4 @@ public sealed class AtlasBoardPlatformRuntime :
         };
     }
 }
+

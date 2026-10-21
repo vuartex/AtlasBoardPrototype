@@ -30,6 +30,19 @@ public static class AtlasBoardSparkMatchSmokeQA
             Debug.LogError("ATB_RTDB_PRESENCE_QA FAIL stage=seat_transition_contract");
     }
 
+    [MenuItem("Atlas Board/QA & Diagnostics/RTDB/Verify Remote Ready Toggle (No Network)")]
+    private static void VerifyRemoteReadyToggle()
+    {
+        bool passed=AtlasBoardRtdbCasualLobbyTransport.ValidateRemoteReadyTransitionContract();
+        if (passed)
+            Debug.Log("ATB_RTDB_REMOTE_READY_QA PASS " +
+                "stages=ready_unready_idempotent_stale_revision_inactive_seat " +
+                "mode=local_no_network remote_join=UNTESTED");
+        else
+            Debug.LogError("ATB_RTDB_REMOTE_READY_QA FAIL " +
+                "stage=ready_state_transition");
+    }
+
     [MenuItem("Atlas Board/QA & Diagnostics/RTDB/Measure Live Match Read Latency (Play Mode)")]
     private static async void MeasureLiveReadLatency()
     {

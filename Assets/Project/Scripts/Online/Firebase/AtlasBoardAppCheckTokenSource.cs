@@ -3,33 +3,42 @@ using System.Threading.Tasks;
 using Firebase.AppCheck;
 using UnityEngine;
 
+
 public static class AtlasBoardAppCheckTokenSource
 {
     public const string RequestHeaderName =
         "X-Firebase-AppCheck";
 
+
     public const string DebugTokenEnvironmentVariable =
         "ATLAS_APP_CHECK_DEBUG_TOKEN";
 
+
     public const string LocalEmulatorToken =
         "atlasboard-local-emulator-development-only";
+
 
     private static bool debugProviderConfigured;
     private static bool steamProviderConfigured;
     private static string configurationMessage =
         string.Empty;
 
+
     public static bool IsSdkAvailable =>
         true;
+
 
     public static bool DebugProviderConfigured =>
         debugProviderConfigured;
 
+
     public static bool SteamProviderConfigured =>
         steamProviderConfigured;
 
+
     public static string ConfigurationMessage =>
         configurationMessage;
+
 
     /// <summary>
     /// True only for the explicit Windows Development Guest launched against
@@ -44,8 +53,10 @@ public static class AtlasBoardAppCheckTokenSource
             bool localEmulators = false;
             string host = "127.0.0.1";
 
+
             string[] args =
                 Environment.GetCommandLineArgs();
+
 
             for (int index = 0;
                  index < args.Length;
@@ -53,6 +64,7 @@ public static class AtlasBoardAppCheckTokenSource
             {
                 string argument =
                     args[index] ?? string.Empty;
+
 
                 if (string.Equals(
                         argument,
@@ -63,8 +75,10 @@ public static class AtlasBoardAppCheckTokenSource
                     continue;
                 }
 
+
                 const string hostPrefix =
                     "-atlasEmulatorHost=";
+
 
                 if (argument.StartsWith(
                         hostPrefix,
@@ -75,6 +89,7 @@ public static class AtlasBoardAppCheckTokenSource
                             hostPrefix.Length);
                     continue;
                 }
+
 
                 if (string.Equals(
                         argument,
@@ -88,6 +103,7 @@ public static class AtlasBoardAppCheckTokenSource
                 }
             }
 
+
             bool loopback =
                 string.Equals(
                     host,
@@ -98,11 +114,38 @@ public static class AtlasBoardAppCheckTokenSource
                     "localhost",
                     StringComparison.OrdinalIgnoreCase);
 
+
             return localEmulators &&
                 loopback;
 #else
             return false;
 #endif
+        }
+    }
+
+
+    /// <summary>
+    /// The separate Windows Development Guest is a disposable, non-rewarded
+    /// live RTDB test client. A command-line switch cannot disable any Release
+    /// attestation, and no fake App Check token is issued to live services.
+    /// </summary>
+    public static bool IsLiveGuestQaSession
+    {
+        get
+        {
+#if UNITY_STANDALONE_WIN && DEVELOPMENT_BUILD && !UNITY_EDITOR
+            if (IsLocalEmulatorGuestSession)
+                return false;
+            string buildPath = Application.dataPath ?? string.Empty;
+            if (buildPath.IndexOf("AtlasBoardGuest_Data",
+                    StringComparison.OrdinalIgnoreCase) < 0)
+                return false;
+            foreach (string arg in Environment.GetCommandLineArgs())
+                if (string.Equals(arg, "-atlasLiveGuestQa",
+                        StringComparison.OrdinalIgnoreCase))
+                    return true;
+#endif
+            return false;
         }
     }
 
@@ -113,11 +156,14 @@ public static class AtlasBoardAppCheckTokenSource
         debugProviderConfigured =
             false;
 
+
         steamProviderConfigured =
             false;
 
+
         configurationMessage =
             string.Empty;
+
 
         /*
          * IMPORTANT:
@@ -137,25 +183,40 @@ public static class AtlasBoardAppCheckTokenSource
                 "Local Guest QA: native Firebase App Check provider " +
                 "registration bypassed. Emulator-only HTTP token path active.";
 
+
             Debug.Log(
                 "AtlasBoard LOCAL GUEST APPCHECK NATIVE BYPASS ACTIVE. " +
                 "No Firebase App Check provider was registered for this " +
                 "loopback Development Guest.");
 
+
             return;
         }
 
+
+        if (IsLiveGuestQaSession)
+        {
+            // This QA client uses HTTPS Identity Toolkit + authenticated RTDB
+            // REST. Do not initialize the Steam native App Check factory, but
+            // never send the emulator placeholder to the live database.
+            configurationMessage = "Development Guest: live anonymous RTDB QA; no Steam App Check provider.";
+            Debug.Log("ATB_LIVE_GUEST_QA appcheck=native_steam_not_started " +
+                      "emulator_placeholder=false rewards=false release_unchanged=true");
+            return;
+        }
         ConfigureProviderForCurrentBuild();
     }
+
 
     [RuntimeInitializeOnLoadMethod(
         RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void ConfigureBeforeSceneLoad()
     {
-        if (IsLocalEmulatorGuestSession)
+        if (IsLocalEmulatorGuestSession || IsLiveGuestQaSession)
         {
             return;
         }
+
 
         if (!debugProviderConfigured &&
             !steamProviderConfigured)
@@ -163,6 +224,7 @@ public static class AtlasBoardAppCheckTokenSource
             ConfigureProviderForCurrentBuild();
         }
     }
+
 
     public static bool TryConfigureDebugProviderFromEnvironment(
         out string message)
@@ -173,12 +235,15 @@ public static class AtlasBoardAppCheckTokenSource
             message =
                 configurationMessage;
 
+
             return true;
         }
+
 
         string debugToken =
             ResolveDebugToken(
                 out string debugTokenSource);
+
 
         if (string.IsNullOrWhiteSpace(
                 debugToken))
@@ -188,11 +253,14 @@ public static class AtlasBoardAppCheckTokenSource
                 $"found in {DebugTokenEnvironmentVariable} " +
                 "(process or Windows User environment).";
 
+
             message =
                 configurationMessage;
 
+
             return false;
         }
+
 
         try
         {
@@ -200,15 +268,19 @@ public static class AtlasBoardAppCheckTokenSource
                 .SetDebugToken(
                     debugToken.Trim());
 
+
             FirebaseAppCheck
                 .SetAppCheckProviderFactory(
                     DebugAppCheckProviderFactory.Instance);
 
+
             debugProviderConfigured =
                 true;
 
+
             steamProviderConfigured =
                 false;
+
 
             configurationMessage =
                 "Firebase App Check debug provider configured before " +
@@ -216,12 +288,15 @@ public static class AtlasBoardAppCheckTokenSource
                 $"TokenSource={debugTokenSource}. " +
                 "Debug token value was not logged.";
 
+
             message =
                 configurationMessage;
+
 
             Debug.Log(
                 "Phase 15E App Check EDITOR provider READY. " +
                 configurationMessage);
+
 
             return true;
         }
@@ -230,6 +305,7 @@ public static class AtlasBoardAppCheckTokenSource
             debugProviderConfigured =
                 false;
 
+
             configurationMessage =
                 "Firebase App Check Editor debug-provider configuration " +
                 "failed: " +
@@ -237,12 +313,15 @@ public static class AtlasBoardAppCheckTokenSource
                     ? exception.ToString()
                     : "unknown error");
 
+
             message =
                 configurationMessage;
+
 
             Debug.LogWarning(
                 "Phase 15E App Check Editor bootstrap failed. " +
                 configurationMessage);
+
 
             return false;
         }
@@ -250,16 +329,22 @@ public static class AtlasBoardAppCheckTokenSource
         configurationMessage =
             "Debug App Check provider is Editor-only in Phase 15E.";
 
+
         message =
             configurationMessage;
+
 
         return false;
 #endif
     }
 
+
     public static async Task<string> GetTokenAsync(
         bool forceRefresh = false)
     {
+        if (IsLiveGuestQaSession)
+            return string.Empty; // Do not mint a fake live App Check token.
+
         if (IsLocalEmulatorGuestSession)
         {
             /*
@@ -270,17 +355,20 @@ public static class AtlasBoardAppCheckTokenSource
             return LocalEmulatorToken;
         }
 
+
         if (!debugProviderConfigured &&
             !steamProviderConfigured)
         {
             ConfigureProviderForCurrentBuild();
         }
 
+
         if (!debugProviderConfigured &&
             !steamProviderConfigured)
         {
             return string.Empty;
         }
+
 
         try
         {
@@ -289,6 +377,7 @@ public static class AtlasBoardAppCheckTokenSource
                     .DefaultInstance
                     .GetAppCheckTokenAsync(
                         forceRefresh);
+
 
             return !string.IsNullOrWhiteSpace(
                     token.Token)
@@ -303,20 +392,27 @@ public static class AtlasBoardAppCheckTokenSource
                     ? exception.ToString()
                     : "Unknown error."));
 
+
             return string.Empty;
         }
     }
 
+
     private static void ConfigureProviderForCurrentBuild()
     {
+        if (IsLiveGuestQaSession)
+            return;
+
         if (IsLocalEmulatorGuestSession)
         {
             configurationMessage =
                 "Local Guest QA: native Firebase App Check provider " +
                 "registration bypassed.";
 
+
             return;
         }
+
 
 #if UNITY_EDITOR
         TryConfigureDebugProviderFromEnvironment(
@@ -328,15 +424,19 @@ public static class AtlasBoardAppCheckTokenSource
                 .SetAppCheckProviderFactory(
                     new AtlasBoardSteamAppCheckProviderFactory());
 
+
             steamProviderConfigured =
                 true;
+
 
             debugProviderConfigured =
                 false;
 
+
             configurationMessage =
                 "Steam custom App Check provider configured for desktop " +
                 "standalone build.";
+
 
             Debug.Log(
                 "Phase 15E App Check STEAM provider READY. " +
@@ -348,11 +448,13 @@ public static class AtlasBoardAppCheckTokenSource
             steamProviderConfigured =
                 false;
 
+
             configurationMessage =
                 "Steam custom App Check provider configuration failed: " +
                 (exception != null
                     ? exception.ToString()
                     : "unknown error");
+
 
             Debug.LogError(
                 "Phase 15E App Check Steam bootstrap failed. " +
@@ -363,10 +465,12 @@ public static class AtlasBoardAppCheckTokenSource
             "Phase 15E has no production App Check provider configured for " +
             "this platform yet.";
 
+
         Debug.LogWarning(
             configurationMessage);
 #endif
     }
+
 
     private static string ResolveDebugToken(
         out string source)
@@ -374,9 +478,11 @@ public static class AtlasBoardAppCheckTokenSource
         source =
             "None";
 
+
         string processValue =
             Environment.GetEnvironmentVariable(
                 DebugTokenEnvironmentVariable);
+
 
         if (!string.IsNullOrWhiteSpace(
                 processValue))
@@ -384,8 +490,10 @@ public static class AtlasBoardAppCheckTokenSource
             source =
                 "ProcessEnvironment";
 
+
             return processValue.Trim();
         }
+
 
 #if UNITY_EDITOR_WIN
         try
@@ -395,11 +503,13 @@ public static class AtlasBoardAppCheckTokenSource
                     DebugTokenEnvironmentVariable,
                     EnvironmentVariableTarget.User);
 
+
             if (!string.IsNullOrWhiteSpace(
                     userValue))
             {
                 source =
                     "WindowsUserEnvironment";
+
 
                 return userValue.Trim();
             }
@@ -413,6 +523,8 @@ public static class AtlasBoardAppCheckTokenSource
         }
 #endif
 
+
         return string.Empty;
     }
 }
+

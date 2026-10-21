@@ -8,6 +8,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+
 /// <summary>
 /// Provider-neutral AtlasBoard account entry surface.
 ///
@@ -26,14 +27,18 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         Account
     }
 
+
     private const long RenameCooldownMilliseconds =
         24L * 60L * 60L * 1000L;
 
+
     private static AtlasBoardAccountAccessUI instance;
+
 
     private AtlasBoardAccountService accountService;
     private AtlasBoardProgressionUI progressionUi;
     private AtlasBoardSettingsV2Controller settingsController;
+
 
     private Canvas canvas;
     private GameObject modalBackdrop;
@@ -45,8 +50,10 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
     private Button contextButton;
     private TMP_Text contextButtonLabel;
 
+
     private TMP_InputField loginEmail;
     private TMP_InputField loginPassword;
+
 
     private TMP_InputField registerName;
     private TMP_InputField registerEmail;
@@ -55,10 +62,13 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
     private TMP_InputField captchaAnswer;
     private TMP_Text captchaQuestion;
 
+
     private TMP_InputField renameInput;
+
 
     private readonly List<Button> activeFormButtons =
         new List<Button>();
+
 
     private Button boundCareerButton;
     private float nextScanAt;
@@ -69,14 +79,17 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
     private bool openCareerAfterAuthentication;
     private AuthView currentView;
 
+
     private int captchaA;
     private int captchaB;
     private bool captchaAddition;
     private int captchaExpected;
 
+
     private string loadedUid = string.Empty;
     private string canonicalDisplayName = string.Empty;
     private bool identityLoadInFlight;
+
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Bootstrap()
@@ -84,12 +97,15 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         if (instance != null)
             return;
 
+
         GameObject host =
             new GameObject("AtlasBoard_Account_Access_UI");
+
 
         DontDestroyOnLoad(host);
         host.AddComponent<AtlasBoardAccountAccessUI>();
     }
+
 
     private void Awake()
     {
@@ -99,23 +115,28 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             return;
         }
 
+
         instance = this;
         AtlasBoardGuestIdentity.EnsureCreated();
+
 
         BuildUi();
         AtlasBoardLocalizationManager.LanguageChanged +=
             HandleLanguageChanged;
     }
 
+
     private void OnDestroy()
     {
         if (instance != this)
             return;
 
+
         AtlasBoardLocalizationManager.LanguageChanged -=
             HandleLanguageChanged;
         instance = null;
     }
+
 
     private void Update()
     {
@@ -124,6 +145,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         {
             busyAnimationAt = Time.unscaledTime + 0.35f;
             busyDots = (busyDots + 1) % 4;
+
 
             if (busyText != null)
             {
@@ -140,15 +162,18 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             }
         }
 
+
         if (Time.unscaledTime >= nextScanAt)
         {
             nextScanAt = Time.unscaledTime + 0.85f;
+
 
             ResolveRuntimeReferences();
             BindCareerButton();
             UpdateContextButton();
             _ = ObserveAuthenticationAsync();
         }
+
 
         if (Time.unscaledTime >= nextIdentityApplyAt)
         {
@@ -157,9 +182,11 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         }
     }
 
+
     private void HandleLanguageChanged()
     {
         UpdateContextButton();
+
 
         if (modalBackdrop != null &&
             modalBackdrop.activeSelf)
@@ -168,11 +195,13 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         }
     }
 
+
     private void ResolveRuntimeReferences()
     {
         if (accountService == null)
         {
             accountService = AtlasBoardAccountService.Instance;
+
 
             if (accountService == null)
             {
@@ -183,6 +212,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             }
         }
 
+
         if (progressionUi == null)
         {
             progressionUi =
@@ -191,10 +221,12 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                         FindObjectsInactive.Include);
         }
 
+
         if (settingsController == null)
         {
             settingsController =
                 AtlasBoardSettingsV2Controller.Instance;
+
 
             if (settingsController == null)
             {
@@ -206,6 +238,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         }
     }
 
+
     private void BindCareerButton()
     {
         Button button = FindSceneButton("ProgressionCard");
@@ -215,17 +248,21 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             return;
         }
 
+
         boundCareerButton = button;
+
 
         // One canonical Career entry path: unsigned users get the account
         // gate, signed users invoke the existing Career implementation.
         button.onClick = new Button.ButtonClickedEvent();
         button.onClick.AddListener(HandleCareerPressed);
 
+
         Debug.Log(
             "ATB_ACCOUNT_UI career_entry_bound=true signedIn=" +
             IsSignedIn());
     }
+
 
     private void HandleCareerPressed()
     {
@@ -235,8 +272,10 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             return;
         }
 
+
         openCareerAfterAuthentication = true;
         OpenModal(AuthView.Login);
+
 
         SetStatus(
             T(
@@ -249,12 +288,15 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 "Войдите, чтобы использовать облачную карьеру. Офлайн-игра останется доступной."));
     }
 
+
     private void InvokeProgressionOpenCareer()
     {
         ResolveRuntimeReferences();
 
+
         if (progressionUi == null)
             return;
+
 
         MethodInfo method =
             progressionUi.GetType().GetMethod(
@@ -262,8 +304,10 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 BindingFlags.Instance |
                 BindingFlags.NonPublic);
 
+
         if (method == null)
             return;
+
 
         try
         {
@@ -277,28 +321,35 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         }
     }
 
+
     private void UpdateContextButton()
     {
         if (contextButton == null)
             return;
+
 
         bool settingsVisible =
             IsPrivateRootVisible(
                 settingsController,
                 "settingsRoot");
 
+
         bool careerVisible =
             IsPrivateRootVisible(
                 progressionUi,
                 "root");
 
+
         bool show = settingsVisible || careerVisible;
+
 
         if (contextButton.gameObject.activeSelf != show)
             contextButton.gameObject.SetActive(show);
 
+
         if (!show || contextButtonLabel == null)
             return;
+
 
         contextButtonLabel.text =
             IsSignedIn()
@@ -320,12 +371,15 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                     "ВОЙТИ");
     }
 
+
     private async Task ObserveAuthenticationAsync()
     {
         if (identityLoadInFlight)
             return;
 
+
         ResolveRuntimeReferences();
+
 
         if (accountService == null)
         {
@@ -333,6 +387,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             canonicalDisplayName = string.Empty;
             return;
         }
+
 
         if (!accountService.IsSignedIn)
         {
@@ -344,10 +399,13 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 ApplyIdentityPresentation();
             }
 
+
             return;
         }
 
+
         string uid = accountService.CurrentAccountId ?? string.Empty;
+
 
         if (string.IsNullOrWhiteSpace(uid) ||
             (string.Equals(
@@ -359,12 +417,15 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             return;
         }
 
+
         identityLoadInFlight = true;
+
 
         try
         {
             AtlasAccountSnapshot snapshot =
                 await accountService.LoadCurrentAccountAsync();
+
 
             if (snapshot == null ||
                 string.IsNullOrWhiteSpace(snapshot.DisplayName))
@@ -372,12 +433,15 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 return;
             }
 
+
             loadedUid = snapshot.AccountId ?? uid;
             canonicalDisplayName = snapshot.DisplayName.Trim();
             ApplyIdentityPresentation();
 
+
             await AtlasBoardRtdbUserProfileMirror.SyncCurrentUserAsync(
                 canonicalDisplayName);
+
 
             Debug.Log(
                 "ATB_ACCOUNT_IDENTITY canonical_loaded=true uid=" +
@@ -395,6 +459,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         }
     }
 
+
     private void ApplyIdentityPresentation()
     {
         string name =
@@ -403,19 +468,23 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 ? canonicalDisplayName
                 : AtlasBoardGuestIdentity.DisplayName;
 
+
         AtlasBoardMainMenuController menu =
             UnityEngine.Object.FindAnyObjectByType<
                 AtlasBoardMainMenuController>(
                     FindObjectsInactive.Include);
 
+
         if (menu != null)
         {
             SetPrivateField(menu, "profileName", name);
+
 
             TMP_Text profileNameText =
                 ReadPrivateField<TMP_Text>(
                     menu,
                     "profileNameText");
+
 
             if (profileNameText != null &&
                 !string.Equals(
@@ -426,10 +495,12 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 profileNameText.text = name;
             }
 
+
             Transform avatar =
                 FindChildRecursive(
                     menu.transform,
                     "AvatarInitial");
+
 
             if (avatar != null &&
                 avatar.TryGetComponent(out TMP_Text avatarText))
@@ -438,10 +509,12 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             }
         }
 
+
         // There may be more than one ProfileName presentation (Main Menu and
         // lobby header). Keep them synchronized from the same canonical value.
         TMP_Text[] allText =
             Resources.FindObjectsOfTypeAll<TMP_Text>();
+
 
         foreach (TMP_Text text in allText)
         {
@@ -455,12 +528,15 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 continue;
             }
 
+
             text.text = name;
         }
+
 
         PlayerGameState[] players =
             UnityEngine.Object.FindObjectsByType<PlayerGameState>(
                 FindObjectsInactive.Include);
+
 
         foreach (PlayerGameState player in players)
         {
@@ -471,10 +547,12 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 continue;
             }
 
+
             string current =
                 ReadPrivateField<string>(
                     player,
                     "displayName");
+
 
             if (string.Equals(
                     current,
@@ -484,10 +562,12 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 continue;
             }
 
+
             SetPrivateField(
                 player,
                 "displayName",
                 name);
+
 
             FieldInfo eventField =
                 typeof(PlayerGameState).GetField(
@@ -495,27 +575,20 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                     BindingFlags.Instance |
                     BindingFlags.NonPublic);
 
+
             if (eventField?.GetValue(player) is Action<PlayerGameState> action)
                 action.Invoke(player);
         }
 
-        AtlasBoardPrivateLobbyUIController privateLobby =
-            UnityEngine.Object.FindAnyObjectByType<
-                AtlasBoardPrivateLobbyUIController>(
-                    FindObjectsInactive.Include);
 
-        TMP_Text[] seatNames =
-            ReadPrivateField<TMP_Text[]>(
-                privateLobby,
-                "privateSeatNames");
-
-        if (seatNames != null &&
-            seatNames.Length > 0 &&
-            seatNames[0] != null)
-        {
-            seatNames[0].text = name;
-        }
+        // Online lobby seat labels belong exclusively to the authoritative
+        // lobby snapshot renderer, NOT the local account/profile UI.
+        // On a remote Guest client slot 0 is another user's Host seat.
+        // Writing the local Guest alias there caused the observed 1.25-second
+        // Guest/Host name oscillation. AtlasBoardPrivateLobbyUIController and
+        // AtlasBoardUnifiedProfilePresentation own seat-aware labels.
     }
+
 
     private void BuildUi()
     {
@@ -528,15 +601,18 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 typeof(GraphicRaycaster));
         canvasObject.transform.SetParent(transform, false);
 
+
         canvas = canvasObject.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 1700;
+
 
         CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920f, 1080f);
         scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
         scaler.matchWidthOrHeight = 1f;
+
 
         contextButton = CreateButton(
             canvasObject.transform,
@@ -556,10 +632,12 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                     : AuthView.Login));
         contextButton.gameObject.SetActive(false);
 
+
         modalBackdrop = CreatePanel(
             canvasObject.transform,
             "AccountModalBackdrop",
             new Color(0f, 0f, 0f, 0.66f));
+
 
         modalWindow = CreatePanel(
                 modalBackdrop.transform,
@@ -572,6 +650,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         modalWindow.sizeDelta = new Vector2(980f, 900f);
         modalWindow.anchoredPosition = Vector2.zero;
 
+
         GameObject header = CreatePanel(
             modalWindow,
             "Header",
@@ -583,6 +662,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         headerRect.sizeDelta = new Vector2(0f, 104f);
         headerRect.anchoredPosition = Vector2.zero;
 
+
         modalTitle = CreateText(
             header.transform,
             "AccountTitle",
@@ -591,6 +671,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             TextAlignmentOptions.Center,
             Color.white);
         Stretch(modalTitle.rectTransform, 95f, 18f);
+
 
         Button close = CreateButton(
             header.transform,
@@ -602,6 +683,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             new Vector2(1f, 1f),
             new Vector2(1f, 1f));
         close.onClick.AddListener(CloseModal);
+
 
         statusText = CreateText(
             modalWindow,
@@ -616,6 +698,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             new Vector2(820f, 84f));
         statusText.textWrappingMode = TextWrappingModes.Normal;
 
+
         busyText = CreateText(
             modalWindow,
             "Busy",
@@ -629,12 +712,15 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             new Vector2(500f, 42f));
         busyText.gameObject.SetActive(false);
 
+
         modalBackdrop.SetActive(false);
     }
+
 
     private void OpenModal(AuthView view)
     {
         ResolveRuntimeReferences();
+
 
         currentView = view;
         modalBackdrop.SetActive(true);
@@ -643,21 +729,26 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         RebuildCurrentView();
     }
 
+
     private void CloseModal()
     {
         if (busy)
             return;
 
+
         openCareerAfterAuthentication = false;
         modalBackdrop.SetActive(false);
     }
+
 
     private void RebuildCurrentView()
     {
         if (formRoot != null)
             Destroy(formRoot);
 
+
         activeFormButtons.Clear();
+
 
         formRoot =
             new GameObject(
@@ -665,12 +756,14 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 typeof(RectTransform));
         formRoot.transform.SetParent(modalWindow, false);
 
+
         RectTransform formRect =
             formRoot.GetComponent<RectTransform>();
         formRect.anchorMin = Vector2.zero;
         formRect.anchorMax = Vector2.one;
         formRect.offsetMin = Vector2.zero;
         formRect.offsetMax = new Vector2(0f, -104f);
+
 
         switch (currentView)
         {
@@ -685,9 +778,18 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 break;
         }
 
+
+        if (statusText != null)
+        {
+            // Keep the canonical Guest action separate from error/status copy.
+            RectTransform statusRect = statusText.rectTransform;
+            statusRect.anchoredPosition = new Vector2(0f,
+                currentView == AuthView.Login ? -385f : -282f);
+        }
         if (busy)
             ApplyBusyState(true);
     }
+
 
     private void BuildLoginView()
     {
@@ -700,11 +802,14 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             "ATLAS 계정",
             "АККАУНТ ATLAS");
 
+
         CreateFieldLabel("EmailLabel", T("Email", "E-posta", "Correo", "E-mail", "E-Mail", "이메일", "Эл. почта"), 250f);
         loginEmail = CreateInput("LoginEmail", 190f, false, true);
 
+
         CreateFieldLabel("PasswordLabel", T("Password", "Şifre", "Contraseña", "Mot de passe", "Passwort", "비밀번호", "Пароль"), 92f);
         loginPassword = CreateInput("LoginPassword", 32f, true, false);
+
 
         Button signIn = CreateFormButton(
             "Button_SignIn",
@@ -714,6 +819,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             new Vector2(330f, 70f));
         signIn.onClick.AddListener(
             () => _ = SignInAsync());
+
 
         Button register = CreateFormButton(
             "Button_OpenRegister",
@@ -729,6 +835,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 RebuildCurrentView();
             });
 
+
         Button reset = CreateFormButton(
             "Button_ResetPassword",
             T("FORGOT PASSWORD?", "ŞİFREMİ UNUTTUM", "¿OLVIDASTE TU CONTRASEÑA?", "MOT DE PASSE OUBLIÉ ?", "PASSWORT VERGESSEN?", "비밀번호 재설정", "ЗАБЫЛИ ПАРОЛЬ?"),
@@ -737,6 +844,48 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             new Vector2(410f, 58f));
         reset.onClick.AddListener(
             () => _ = SendPasswordResetAsync());
+
+        // The canonical Account modal owns this action on every platform.
+        // A Guest never needs Firebase credentials just to preview Career or
+        // return to offline play; no button cloning or mobile-only callbacks.
+        Button continueGuest = CreateFormButton(
+            "Button_ContinueAsGuest",
+            T("CONTINUE AS GUEST", "MİSAFİR OLARAK DEVAM ET",
+              "CONTINUAR COMO INVITADO", "CONTINUER COMME INVITÉ",
+              "ALS GAST FORTFAHREN", "게스트로 계속", "ПРОДОЛЖИТЬ КАК ГОСТЬ"),
+            new Color32(82, 67, 170, 255),
+            new Vector2(0f, -292f),
+            new Vector2(430f, 60f));
+        continueGuest.onClick.AddListener(ContinueAsGuest);
+    }
+
+    private void ContinueAsGuest()
+    {
+        if (busy)
+            return;
+        bool openCareer = openCareerAfterAuthentication;
+        openCareerAfterAuthentication = false;
+        modalBackdrop.SetActive(false);
+        if (!openCareer)
+            return;
+
+        ResolveRuntimeReferences();
+        if (progressionUi == null)
+            return;
+        // Placeholder is only a local Guest preview, NEVER a cloud Career or
+        // an authoritative reward/statistic.
+        FieldInfo field = progressionUi.GetType().GetField("snapshot",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        if (field != null && field.GetValue(progressionUi) == null)
+            field.SetValue(progressionUi, new AtlasBoardProgressionSnapshot
+            {
+                Success = false,
+                DisplayName = AtlasBoardGuestIdentity.DisplayName,
+                Level = 1
+            });
+        InvokeProgressionOpenCareer();
+        Debug.Log("ATB_GUEST_CAREER preview=local_only rewards=false " +
+                  "account_sign_in_required=false");
     }
 
     private void BuildRegisterView()
@@ -750,18 +899,23 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             "ATLAS 계정 만들기",
             "СОЗДАТЬ АККАУНТ ATLAS");
 
+
         CreateFieldLabel("NameLabel", T("Display name", "Oyuncu adı", "Nombre", "Nom", "Anzeigename", "표시 이름", "Имя игрока"), 292f);
         registerName = CreateInput("RegisterName", 240f, false, false);
         registerName.text = AtlasBoardGuestIdentity.DisplayName;
 
+
         CreateFieldLabel("EmailLabel", T("Email", "E-posta", "Correo", "E-mail", "E-Mail", "이메일", "Эл. почта"), 165f);
         registerEmail = CreateInput("RegisterEmail", 113f, false, true);
+
 
         CreateFieldLabel("PasswordLabel", T("Password", "Şifre", "Contraseña", "Mot de passe", "Passwort", "비밀번호", "Пароль"), 38f);
         registerPassword = CreateInput("RegisterPassword", -14f, true, false);
 
+
         CreateFieldLabel("RepeatLabel", T("Repeat password", "Şifre tekrar", "Repetir contraseña", "Répéter le mot de passe", "Passwort wiederholen", "비밀번호 확인", "Повторите пароль"), -89f);
         registerPasswordRepeat = CreateInput("RegisterPasswordRepeat", -141f, true, false);
+
 
         captchaQuestion = CreateText(
             formRoot.transform,
@@ -775,6 +929,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             new Vector2(-230f, -222f),
             new Vector2(260f, 52f));
 
+
         captchaAnswer = CreateInput("CaptchaAnswer", -222f, false, false);
         RectTransform captchaRect = captchaAnswer.transform as RectTransform;
         if (captchaRect != null)
@@ -783,7 +938,9 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             captchaRect.anchoredPosition = new Vector2(175f, -222f);
         }
 
+
         GenerateCaptcha();
+
 
         Button create = CreateFormButton(
             "Button_CreateAccount",
@@ -793,6 +950,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             new Vector2(350f, 70f));
         create.onClick.AddListener(
             () => _ = RegisterAsync());
+
 
         Button back = CreateFormButton(
             "Button_BackToLogin",
@@ -809,6 +967,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             });
     }
 
+
     private void BuildAccountView()
     {
         modalTitle.text = T(
@@ -820,10 +979,12 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             "계정",
             "АККАУНТ");
 
+
         string visibleName =
             !string.IsNullOrWhiteSpace(canonicalDisplayName)
                 ? canonicalDisplayName
                 : AtlasBoardGuestIdentity.DisplayName;
+
 
         string email = string.Empty;
         FirebaseUser user =
@@ -831,8 +992,10 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 ? FirebaseAuth.DefaultInstance.CurrentUser
                 : null;
 
+
         if (user != null)
             email = user.Email ?? string.Empty;
+
 
         TMP_Text identity = CreateText(
             formRoot.transform,
@@ -847,9 +1010,11 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             new Vector2(760f, 110f));
         identity.text = visibleName + "\n" + email;
 
+
         CreateFieldLabel("RenameLabel", T("Change display name", "Oyuncu adını değiştir", "Cambiar nombre", "Changer le nom", "Anzeigenamen ändern", "표시 이름 변경", "Изменить имя"), 105f);
         renameInput = CreateInput("RenameInput", 45f, false, false);
         renameInput.text = visibleName;
+
 
         Button rename = CreateFormButton(
             "Button_Rename",
@@ -859,6 +1024,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             new Vector2(360f, 70f));
         rename.onClick.AddListener(
             () => _ = RenameAsync());
+
 
         TMP_Text cooldown = CreateText(
             formRoot.transform,
@@ -873,6 +1039,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             new Vector2(700f, 48f));
         cooldown.text = BuildRenameCooldownText();
 
+
         Button signOut = CreateFormButton(
             "Button_SignOut",
             T("SIGN OUT", "ÇIKIŞ YAP", "CERRAR SESIÓN", "SE DÉCONNECTER", "ABMELDEN", "로그아웃", "ВЫЙТИ"),
@@ -882,12 +1049,15 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         signOut.onClick.AddListener(SignOut);
     }
 
+
     private async Task SignInAsync()
     {
         if (busy)
             return;
 
+
         ResolveRuntimeReferences();
+
 
         if (accountService == null)
         {
@@ -895,8 +1065,10 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             return;
         }
 
+
         string email = loginEmail?.text?.Trim() ?? string.Empty;
         string password = loginPassword?.text ?? string.Empty;
+
 
         if (string.IsNullOrWhiteSpace(email) ||
             string.IsNullOrEmpty(password))
@@ -905,7 +1077,9 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             return;
         }
 
+
         ApplyBusyState(true);
+
 
         try
         {
@@ -914,25 +1088,31 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                     email,
                     password);
 
+
             if (!result.Success)
             {
                 SetStatus(FriendlyError(result));
                 return;
             }
 
+
             loadedUid = string.Empty;
             canonicalDisplayName = string.Empty;
             await ForceLoadCanonicalIdentityAsync();
 
+
             SetStatus(T("Signed in.", "Giriş yapıldı.", "Sesión iniciada.", "Connexion réussie.", "Angemeldet.", "로그인했습니다.", "Вход выполнен."));
+
 
             Debug.Log(
                 "ATB_ACCOUNT_AUTH action=signin success=true uid=" +
                 ShortUid(result.AccountId));
 
+
             bool career = openCareerAfterAuthentication;
             openCareerAfterAuthentication = false;
             modalBackdrop.SetActive(false);
+
 
             if (career)
                 InvokeProgressionOpenCareer();
@@ -943,12 +1123,15 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         }
     }
 
+
     private async Task RegisterAsync()
     {
         if (busy)
             return;
 
+
         ResolveRuntimeReferences();
+
 
         if (accountService == null)
         {
@@ -956,16 +1139,19 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             return;
         }
 
+
         string displayName = registerName?.text?.Trim() ?? string.Empty;
         string email = registerEmail?.text?.Trim() ?? string.Empty;
         string password = registerPassword?.text ?? string.Empty;
         string repeat = registerPasswordRepeat?.text ?? string.Empty;
+
 
         if (password != repeat)
         {
             SetStatus(T("Passwords do not match.", "Şifreler eşleşmiyor.", "Las contraseñas no coinciden.", "Les mots de passe ne correspondent pas.", "Passwörter stimmen nicht überein.", "비밀번호가 일치하지 않습니다.", "Пароли не совпадают."));
             return;
         }
+
 
         if (!int.TryParse(
                 captchaAnswer?.text?.Trim(),
@@ -981,12 +1167,15 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             return;
         }
 
+
         string language =
             AtlasBoardLocalizationManager.Instance != null
                 ? AtlasBoardLocalizationManager.Instance.CurrentLanguageCode
                 : "en";
 
+
         ApplyBusyState(true);
+
 
         try
         {
@@ -998,6 +1187,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                     "ZZ",
                     language);
 
+
             if (!result.Success)
             {
                 SetStatus(FriendlyError(result));
@@ -1005,18 +1195,22 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 return;
             }
 
+
             loadedUid = string.Empty;
             canonicalDisplayName = string.Empty;
             await ForceLoadCanonicalIdentityAsync();
+
 
             Debug.Log(
                 "ATB_ACCOUNT_AUTH action=register success=true uid=" +
                 ShortUid(result.AccountId) +
                 " passwordStoredByAtlasBoard=false");
 
+
             bool career = openCareerAfterAuthentication;
             openCareerAfterAuthentication = false;
             modalBackdrop.SetActive(false);
+
 
             if (career)
                 InvokeProgressionOpenCareer();
@@ -1027,12 +1221,15 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         }
     }
 
+
     private async Task SendPasswordResetAsync()
     {
         if (busy)
             return;
 
+
         ResolveRuntimeReferences();
+
 
         string email = loginEmail?.text?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(email))
@@ -1041,17 +1238,21 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             return;
         }
 
+
         if (accountService == null)
         {
             SetStatus(ServiceUnavailable());
             return;
         }
 
+
         ApplyBusyState(true);
+
 
         try
         {
             await accountService.EnsureInitializedAsync();
+
 
             FirebaseAuth auth = FirebaseAuth.DefaultInstance;
             if (auth == null)
@@ -1060,9 +1261,12 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 return;
             }
 
+
             await auth.SendPasswordResetEmailAsync(email);
 
+
             SetStatus(T("Password reset email sent.", "Şifre sıfırlama e-postası gönderildi.", "Correo de restablecimiento enviado.", "E-mail de réinitialisation envoyé.", "E-Mail zum Zurücksetzen wurde gesendet.", "비밀번호 재설정 이메일을 보냈습니다.", "Письмо для сброса пароля отправлено."));
+
 
             Debug.Log(
                 "ATB_ACCOUNT_AUTH action=password_reset requested=true");
@@ -1073,6 +1277,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 "ATB_ACCOUNT_AUTH action=password_reset success=false type=" +
                 error.GetType().Name);
 
+
             SetStatus(T("Could not send the reset email. Check the address and connection.", "Sıfırlama e-postası gönderilemedi. Adresi ve bağlantıyı kontrol et.", "No se pudo enviar el correo. Comprueba la dirección y la conexión.", "Impossible d’envoyer l’e-mail. Vérifiez l’adresse et la connexion.", "E-Mail konnte nicht gesendet werden. Adresse und Verbindung prüfen.", "재설정 이메일을 보낼 수 없습니다. 주소와 연결을 확인하세요.", "Не удалось отправить письмо. Проверьте адрес и соединение."));
         }
         finally
@@ -1080,6 +1285,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             ApplyBusyState(false);
         }
     }
+
 
     private async Task RenameAsync()
     {
@@ -1090,15 +1296,18 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             return;
         }
 
+
         string uid = accountService.CurrentAccountId ?? string.Empty;
         long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         long nextAllowed = ReadRenameNextAllowed(uid);
+
 
         if (nextAllowed > now)
         {
             SetStatus(BuildRenameCooldownText());
             return;
         }
+
 
         string name = renameInput?.text?.Trim() ?? string.Empty;
         if (name.Length < 2 || name.Length > 32)
@@ -1107,12 +1316,15 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             return;
         }
 
+
         ApplyBusyState(true);
+
 
         try
         {
             AtlasAccountSnapshot snapshot =
                 await accountService.LoadCurrentAccountAsync();
+
 
             if (snapshot == null)
             {
@@ -1120,11 +1332,13 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 return;
             }
 
+
             AtlasAccountOperationResult result =
                 await accountService.UpdatePublicProfileAsync(
                     name,
                     snapshot.AvatarId,
                     snapshot.ProfileFrameId);
+
 
             if (!result.Success)
             {
@@ -1135,17 +1349,21 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 return;
             }
 
+
             WriteRenameNextAllowed(
                 uid,
                 now + RenameCooldownMilliseconds);
+
 
             canonicalDisplayName = name;
             loadedUid = uid;
             ApplyIdentityPresentation();
 
+
             await AtlasBoardRtdbUserProfileMirror.SyncCurrentUserAsync(
                 canonicalDisplayName,
                 force: true);
+
 
             AtlasBoardCanonicalProfileHeader header =
                 UnityEngine.Object.FindAnyObjectByType<
@@ -1153,11 +1371,14 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                         FindObjectsInactive.Include);
             header?.RefreshNow();
 
+
             SetStatus(T("Display name updated.", "Oyuncu adı güncellendi.", "Nombre actualizado.", "Nom mis à jour.", "Name aktualisiert.", "표시 이름이 변경되었습니다.", "Имя обновлено."));
+
 
             Debug.Log(
                 "ATB_ACCOUNT_PROFILE rename=success cooldownHours=24 uid=" +
                 ShortUid(uid));
+
 
             RebuildCurrentView();
         }
@@ -1167,10 +1388,12 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         }
     }
 
+
     private void SignOut()
     {
         if (busy || accountService == null)
             return;
+
 
         accountService.SignOut();
         loadedUid = string.Empty;
@@ -1178,10 +1401,12 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         ApplyIdentityPresentation();
         modalBackdrop.SetActive(false);
 
+
         Debug.Log(
             "ATB_ACCOUNT_AUTH action=signout success=true guest=" +
             AtlasBoardGuestIdentity.DisplayName);
     }
+
 
     private async Task ForceLoadCanonicalIdentityAsync()
     {
@@ -1191,8 +1416,10 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             return;
         }
 
+
         AtlasAccountSnapshot snapshot =
             await accountService.LoadCurrentAccountAsync();
+
 
         if (snapshot == null ||
             string.IsNullOrWhiteSpace(snapshot.DisplayName))
@@ -1200,20 +1427,24 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             return;
         }
 
+
         loadedUid = snapshot.AccountId ?? accountService.CurrentAccountId;
         canonicalDisplayName = snapshot.DisplayName.Trim();
         ApplyIdentityPresentation();
+
 
         await AtlasBoardRtdbUserProfileMirror.SyncCurrentUserAsync(
             canonicalDisplayName,
             force: true);
     }
 
+
     private void GenerateCaptcha()
     {
         captchaA = UnityEngine.Random.Range(2, 10);
         captchaB = UnityEngine.Random.Range(1, 10);
         captchaAddition = UnityEngine.Random.value >= 0.28f;
+
 
         if (!captchaAddition && captchaB > captchaA)
         {
@@ -1222,10 +1453,12 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             captchaB = temp;
         }
 
+
         captchaExpected =
             captchaAddition
                 ? captchaA + captchaB
                 : captchaA - captchaB;
+
 
         if (captchaQuestion != null)
         {
@@ -1237,14 +1470,17 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         }
     }
 
+
     private void ApplyBusyState(bool value)
     {
         busy = value;
         busyDots = 0;
         busyAnimationAt = 0f;
 
+
         if (busyText != null)
             busyText.gameObject.SetActive(value);
+
 
         foreach (Button button in activeFormButtons)
         {
@@ -1253,17 +1489,20 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         }
     }
 
+
     private bool IsSignedIn()
     {
         return accountService != null &&
                accountService.IsSignedIn;
     }
 
+
     private string FriendlyError(
         AtlasAccountOperationResult result)
     {
         if (result == null)
             return ServiceUnavailable();
+
 
         switch (result.ErrorCode)
         {
@@ -1284,10 +1523,12 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         }
     }
 
+
     private string ServiceUnavailable()
     {
         return T("Account service is not ready. Try again shortly.", "Hesap servisi hazır değil. Kısa süre sonra tekrar dene.", "El servicio de cuenta no está listo. Inténtalo de nuevo en breve.", "Le service de compte n’est pas prêt. Réessayez bientôt.", "Kontodienst ist noch nicht bereit. Bitte gleich erneut versuchen.", "계정 서비스가 아직 준비되지 않았습니다. 잠시 후 다시 시도하세요.", "Сервис аккаунтов еще не готов. Повторите чуть позже.");
     }
+
 
     private string BuildRenameCooldownText()
     {
@@ -1297,33 +1538,41 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             return string.Empty;
         }
 
+
         long next =
             ReadRenameNextAllowed(
                 accountService.CurrentAccountId);
         long now =
             DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
+
         if (next <= now)
         {
             return T("Display name can be changed once every 24 hours.", "Oyuncu adı 24 saatte bir değiştirilebilir.", "El nombre se puede cambiar una vez cada 24 horas.", "Le nom peut être modifié une fois toutes les 24 heures.", "Der Name kann einmal alle 24 Stunden geändert werden.", "표시 이름은 24시간에 한 번 변경할 수 있습니다.", "Имя можно менять один раз в 24 часа.");
         }
 
+
         TimeSpan remaining =
             TimeSpan.FromMilliseconds(next - now);
 
+
         int hours = Mathf.Max(0, Mathf.CeilToInt((float)remaining.TotalHours));
+
 
         return T("Name change available in {0}h.", "Ad değişikliği {0} saat sonra kullanılabilir.", "Cambio de nombre disponible en {0} h.", "Changement de nom disponible dans {0} h.", "Namensänderung in {0} Std. verfügbar.", "이름 변경은 {0}시간 후 가능합니다.", "Смена имени будет доступна через {0} ч.", hours);
     }
+
 
     private static long ReadRenameNextAllowed(string uid)
     {
         if (string.IsNullOrWhiteSpace(uid))
             return 0L;
 
+
         string raw = PlayerPrefs.GetString(
             "atlasboard.account.rename.next." + uid,
             "0");
+
 
         return long.TryParse(
                    raw,
@@ -1334,6 +1583,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             : 0L;
     }
 
+
     private static void WriteRenameNextAllowed(
         string uid,
         long value)
@@ -1341,17 +1591,20 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         if (string.IsNullOrWhiteSpace(uid))
             return;
 
+
         PlayerPrefs.SetString(
             "atlasboard.account.rename.next." + uid,
             value.ToString(CultureInfo.InvariantCulture));
         PlayerPrefs.Save();
     }
 
+
     private void SetStatus(string value)
     {
         if (statusText != null)
             statusText.text = value ?? string.Empty;
     }
+
 
     private void CreateFieldLabel(
         string name,
@@ -1372,6 +1625,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         label.text = value;
     }
 
+
     private TMP_InputField CreateInput(
         string name,
         float y,
@@ -1386,14 +1640,17 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 typeof(TMP_InputField));
         root.transform.SetParent(formRoot.transform, false);
 
+
         RectTransform rect = root.GetComponent<RectTransform>();
         SetAnchored(
             rect,
             new Vector2(0f, y),
             new Vector2(700f, 64f));
 
+
         Image image = root.GetComponent<Image>();
         image.color = Color.white;
+
 
         GameObject viewport =
             new GameObject(
@@ -1404,6 +1661,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         RectTransform viewportRect = viewport.GetComponent<RectTransform>();
         Stretch(viewportRect, 14f, 8f);
 
+
         TMP_Text text = CreateText(
             viewport.transform,
             "Text",
@@ -1413,6 +1671,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             new Color32(35, 40, 48, 255));
         Stretch(text.rectTransform, 0f, 0f);
         text.textWrappingMode = TextWrappingModes.NoWrap;
+
 
         TMP_Text placeholder = CreateText(
             viewport.transform,
@@ -1428,6 +1687,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 ? "••••••••"
                 : string.Empty;
 
+
         TMP_InputField input = root.GetComponent<TMP_InputField>();
         input.targetGraphic = image;
         input.textViewport = viewportRect;
@@ -1440,8 +1700,10 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 ? TMP_InputField.ContentType.EmailAddress
                 : TMP_InputField.ContentType.Standard;
 
+
         return input;
     }
+
 
     private Button CreateFormButton(
         string name,
@@ -1460,9 +1722,11 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             new Vector2(0.5f, 0.5f),
             new Vector2(0.5f, 0.5f));
 
+
         activeFormButtons.Add(button);
         return button;
     }
+
 
     private static GameObject CreatePanel(
         Transform parent,
@@ -1476,15 +1740,18 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 typeof(Image));
         panel.transform.SetParent(parent, false);
 
+
         RectTransform rect = panel.GetComponent<RectTransform>();
         rect.anchorMin = Vector2.zero;
         rect.anchorMax = Vector2.one;
         rect.offsetMin = Vector2.zero;
         rect.offsetMax = Vector2.zero;
 
+
         panel.GetComponent<Image>().color = color;
         return panel;
     }
+
 
     private static TMP_Text CreateText(
         Transform parent,
@@ -1501,6 +1768,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 typeof(TextMeshProUGUI));
         item.transform.SetParent(parent, false);
 
+
         TMP_Text text = item.GetComponent<TMP_Text>();
         if (TMP_Settings.defaultFontAsset != null)
             text.font = TMP_Settings.defaultFontAsset;
@@ -1510,8 +1778,10 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         text.color = color;
         text.raycastTarget = false;
 
+
         return text;
     }
+
 
     private static Button CreateButton(
         Transform parent,
@@ -1531,6 +1801,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 typeof(Button));
         root.transform.SetParent(parent, false);
 
+
         RectTransform rect = root.GetComponent<RectTransform>();
         rect.anchorMin = anchor;
         rect.anchorMax = anchor;
@@ -1538,11 +1809,14 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         rect.anchoredPosition = position;
         rect.sizeDelta = size;
 
+
         Image image = root.GetComponent<Image>();
         image.color = color;
 
+
         Button button = root.GetComponent<Button>();
         button.targetGraphic = image;
+
 
         TMP_Text text = CreateText(
             root.transform,
@@ -1557,8 +1831,10 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         text.fontSizeMin = 13f;
         text.fontSizeMax = 24f;
 
+
         return button;
     }
+
 
     private static void SetAnchored(
         RectTransform rect,
@@ -1572,6 +1848,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         rect.sizeDelta = size;
     }
 
+
     private static void Stretch(
         RectTransform rect,
         float horizontal,
@@ -1583,9 +1860,11 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         rect.offsetMax = new Vector2(-horizontal, -vertical);
     }
 
+
     private static Button FindSceneButton(string name)
     {
         Button[] all = Resources.FindObjectsOfTypeAll<Button>();
+
 
         foreach (Button button in all)
         {
@@ -1600,8 +1879,10 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             }
         }
 
+
         return null;
     }
+
 
     private static bool IsPrivateRootVisible(
         object owner,
@@ -1612,33 +1893,40 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 owner,
                 fieldName);
 
+
         return root != null &&
                root.activeInHierarchy;
     }
+
 
     private static string GetInitial(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
             return "G";
 
+
         string element =
             StringInfo.GetNextTextElement(
                 value.Trim());
+
 
         return string.IsNullOrWhiteSpace(element)
             ? "G"
             : element.ToUpperInvariant();
     }
 
+
     private static string ShortUid(string uid)
     {
         if (string.IsNullOrWhiteSpace(uid))
             return "none";
 
+
         return uid.Length <= 6
             ? uid
             : uid.Substring(0, 6) + "…";
     }
+
 
     private static Transform FindChildRecursive(
         Transform root,
@@ -1647,9 +1935,11 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         if (root == null)
             return null;
 
+
         for (int i = 0; i < root.childCount; i++)
         {
             Transform child = root.GetChild(i);
+
 
             if (string.Equals(
                     child.name,
@@ -1659,17 +1949,21 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 return child;
             }
 
+
             Transform nested =
                 FindChildRecursive(
                     child,
                     childName);
 
+
             if (nested != null)
                 return nested;
         }
 
+
         return null;
     }
+
 
     private static T ReadPrivateField<T>(
         object owner,
@@ -1678,19 +1972,23 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         if (owner == null)
             return default;
 
+
         FieldInfo field = owner.GetType().GetField(
             fieldName,
             BindingFlags.Instance |
             BindingFlags.NonPublic);
 
+
         if (field == null)
             return default;
+
 
         object value = field.GetValue(owner);
         return value is T typed
             ? typed
             : default;
     }
+
 
     private static void SetPrivateField(
         object owner,
@@ -1700,13 +1998,16 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
         if (owner == null)
             return;
 
+
         FieldInfo field = owner.GetType().GetField(
             fieldName,
             BindingFlags.Instance |
             BindingFlags.NonPublic);
 
+
         if (field == null)
             return;
+
 
         try
         {
@@ -1720,6 +2021,7 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
                 " type=" + error.GetType().Name);
         }
     }
+
 
     private static string T(
         string en,
@@ -1742,3 +2044,4 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
             args);
     }
 }
+

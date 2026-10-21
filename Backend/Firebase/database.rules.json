@@ -574,6 +574,25 @@
           ".validate": false
         }
       }
+    },
+    "guestNameClaims": {
+      "$guestName": {
+        ".read": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid)",
+        ".write": "auth != null && auth.token.firebase.sign_in_provider === 'anonymous' && newData.exists() && ((!data.exists() && newData.child('uid').val() === auth.uid) || (data.exists() && data.child('uid').val() === auth.uid && newData.child('uid').val() === auth.uid))",
+        ".validate": "newData.hasChildren(['uid','displayName','createdAt']) && newData.child('uid').isString() && newData.child('uid').val() === auth.uid && newData.child('displayName').isString() && newData.child('displayName').val() === $guestName && newData.child('displayName').val().matches(/^Guest[0-9A-F]{16}$/) && newData.child('createdAt').isNumber() && ((!data.exists() && newData.child('createdAt').val() >= now - 300000 && newData.child('createdAt').val() <= now + 60000) || (data.exists() && newData.child('createdAt').val() === data.child('createdAt').val()))",
+        "uid": {
+          ".validate": "newData.isString() && newData.val() === auth.uid"
+        },
+        "displayName": {
+          ".validate": "newData.isString() && newData.val() === $guestName && newData.val().matches(/^Guest[0-9A-F]{16}$/)"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber() && newData.val() <= now + 60000"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
     }
   }
 }

@@ -10,13 +10,16 @@ using UnityEngine.SceneManagement;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
+
 public static class AtlasBoardTwoClientLobbyTestV1
 {
     private const string BuildFolderName =
         "AtlasBoard_3D3C_GuestBuild";
 
+
     private const string ExecutableName =
         "AtlasBoardGuest.exe";
+
 
     [MenuItem(
         "Atlas Board/Online & Backend/Online/Build Two-Client Guest Test v1",
@@ -31,8 +34,10 @@ public static class AtlasBoardTwoClientLobbyTestV1
             return;
         }
 
+
         Scene activeScene =
             SceneManager.GetActiveScene();
+
 
         if (!activeScene.IsValid() ||
             string.IsNullOrWhiteSpace(
@@ -42,6 +47,7 @@ public static class AtlasBoardTwoClientLobbyTestV1
                 "3D.3C guest build aborted: the currently active Unity scene has no saved asset path. Save the Main Menu/Lobby scene first.");
             return;
         }
+
 
         if (activeScene.isDirty)
         {
@@ -54,11 +60,13 @@ public static class AtlasBoardTwoClientLobbyTestV1
             }
         }
 
+
         List<string> scenePaths =
             new List<string>
             {
                 activeScene.path
             };
+
 
         foreach (EditorBuildSettingsScene scene in
                  EditorBuildSettings.scenes)
@@ -75,19 +83,24 @@ public static class AtlasBoardTwoClientLobbyTestV1
                 continue;
             }
 
+
             scenePaths.Add(
                 scene.path);
         }
 
+
         string[] scenes =
             scenePaths.ToArray();
+
 
         Debug.Log(
             "AtlasBoard 3D.3C Guest startup scene forced to current active scene: " +
             activeScene.path);
 
+
         string outputFolder =
             GetBuildFolder();
+
 
         if (Directory.Exists(
                 outputFolder))
@@ -97,11 +110,14 @@ public static class AtlasBoardTwoClientLobbyTestV1
                 true);
         }
 
+
         Directory.CreateDirectory(
             outputFolder);
 
+
         string executable =
             GetExecutablePath();
+
 
         BuildPlayerOptions options =
             new BuildPlayerOptions
@@ -112,14 +128,18 @@ public static class AtlasBoardTwoClientLobbyTestV1
                 options = BuildOptions.Development
             };
 
+
         Debug.Log(
             "AtlasBoard 3D.3C: building standalone Guest development client. " +
             $"Output={executable}");
 
+
         InsecureHttpOption previousInsecureHttpOption =
             PlayerSettings.insecureHttpOption;
 
+
         BuildReport report;
+
 
         try
         {
@@ -127,6 +147,7 @@ public static class AtlasBoardTwoClientLobbyTestV1
             // Permit it only in Development Builds; release builds remain HTTPS-only.
             PlayerSettings.insecureHttpOption =
                 InsecureHttpOption.DevelopmentOnly;
+
 
             report =
                 BuildPipeline.BuildPlayer(
@@ -139,6 +160,7 @@ public static class AtlasBoardTwoClientLobbyTestV1
                 previousInsecureHttpOption;
         }
 
+
         if (report.summary.result !=
             BuildResult.Succeeded)
         {
@@ -149,7 +171,9 @@ public static class AtlasBoardTwoClientLobbyTestV1
             return;
         }
 
+
         WriteLaunchScript();
+
 
         Debug.Log(
             "AtlasBoard 3D.3C guest build PASSED. " +
@@ -157,6 +181,7 @@ public static class AtlasBoardTwoClientLobbyTestV1
             "Development-only HTTP is enabled inside this build for shared Firebase emulator testing. " +
             "The project PlayerSettings value was restored immediately after the build.");
     }
+
 
     [MenuItem(
         "Atlas Board/Online & Backend/Online/Launch Two-Client Guest Test v1",
@@ -167,6 +192,7 @@ public static class AtlasBoardTwoClientLobbyTestV1
         string executable =
             GetExecutablePath();
 
+
         if (!File.Exists(
                 executable))
         {
@@ -175,6 +201,7 @@ public static class AtlasBoardTwoClientLobbyTestV1
                 "Atlas Board -> Online -> Build Two-Client Guest Test v1 first.");
             return;
         }
+
 
         ProcessStartInfo info =
             new ProcessStartInfo
@@ -192,11 +219,38 @@ public static class AtlasBoardTwoClientLobbyTestV1
                     "-screen-fullscreen 0"
             };
 
+
         Process.Start(
             info);
 
+
         Debug.Log(
             "AtlasBoard 3D.3C Guest launched with localhost Firebase emulators and a separate temporary Auth identity.");
+    }
+
+
+    [MenuItem(
+        "Atlas Board/Online & Backend/Online/Launch Live Spark Guest QA (No Steam)",
+        false, 457)]
+    public static void LaunchLiveGuestQa()
+    {
+        string executable = GetExecutablePath();
+        if (!File.Exists(executable))
+        {
+            Debug.LogError("ATB_LIVE_GUEST_QA executable=missing build_guest_first=true");
+            return;
+        }
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = executable,
+            WorkingDirectory = Path.GetDirectoryName(executable) ?? string.Empty,
+            UseShellExecute = true,
+            Arguments = "-atlasLiveGuestQa -screen-width 1280 " +
+                        "-screen-height 720 -screen-fullscreen 0"
+        });
+        Debug.Log("ATB_LIVE_GUEST_QA launch=live_spark " +
+                  "steam=false emulator=false guest_name=firebase_uid_bound " +
+                  "auth=ephemeral_anonymous rewards=false");
     }
 
     [MenuItem(
@@ -208,12 +262,15 @@ public static class AtlasBoardTwoClientLobbyTestV1
         string folder =
             GetBuildFolder();
 
+
         Directory.CreateDirectory(
             folder);
+
 
         EditorUtility.RevealInFinder(
             folder);
     }
+
 
     [MenuItem(
         "Atlas Board/Online & Backend/Online/Validate Two-Client Test Support v1",
@@ -226,6 +283,7 @@ public static class AtlasBoardTwoClientLobbyTestV1
                 AtlasBoardLobbyRuntimeBridge>(
                 FindObjectsInactive.Include);
 
+
         if (bridge == null)
         {
             Debug.LogError(
@@ -233,8 +291,10 @@ public static class AtlasBoardTwoClientLobbyTestV1
             return;
         }
 
+
         Scene activeScene =
             SceneManager.GetActiveScene();
+
 
         if (!activeScene.IsValid() ||
             string.IsNullOrWhiteSpace(
@@ -245,12 +305,14 @@ public static class AtlasBoardTwoClientLobbyTestV1
             return;
         }
 
+
         Debug.Log(
             "AtlasBoard Two-Client Lobby Test support v1 static validation PASSED. " +
             "Guest startup scene will be the CURRENT ACTIVE SCENE: " +
             activeScene.path +
             ". Actual PASS still requires Editor Host + standalone Guest against the same local Firebase emulators.");
     }
+
 
     private static string GetBuildFolder()
     {
@@ -260,19 +322,23 @@ public static class AtlasBoardTwoClientLobbyTestV1
                     Application.dataPath,
                     ".."));
 
+
         DirectoryInfo project =
             new DirectoryInfo(
                 projectRoot);
+
 
         string parent =
             project.Parent != null
                 ? project.Parent.FullName
                 : projectRoot;
 
+
         return Path.Combine(
             parent,
             BuildFolderName);
     }
+
 
     private static string GetExecutablePath()
     {
@@ -281,25 +347,37 @@ public static class AtlasBoardTwoClientLobbyTestV1
             ExecutableName);
     }
 
+
     private static void WriteLaunchScript()
     {
         string folder =
             GetBuildFolder();
+
 
         string batch =
             Path.Combine(
                 folder,
                 "Launch_Guest_Local_Emulators.bat");
 
+
         string contents =
             "@echo off\r\n" +
+            "echo TEST MODE: LOCAL FIREBASE EMULATORS (not live Spark)\r\n" +
             "cd /d \"%~dp0\"\r\n" +
             "start \"Atlas Board Guest\" \"" +
             ExecutableName +
             "\" -atlasLocalEmulators -atlasDevName=\"Guest Player\" -screen-width 1280 -screen-height 720 -screen-fullscreen 0\r\n";
 
-        File.WriteAllText(
-            batch,
-            contents);
+
+        File.WriteAllText(batch, contents);
+        // Separate launch target; never mutate the legacy emulator launcher.
+        File.WriteAllText(Path.Combine(folder, "Launch_Guest_Live_Spark_QA.bat"),
+            "@echo off\r\n" +
+            "echo TEST MODE: LIVE FIREBASE SPARK RTDB (real two-client test)\r\n" +
+            "cd /d \"%~dp0\"\r\n" +
+            "start \"Atlas Board Live Guest QA\" \"" + ExecutableName +
+            "\" -atlasLiveGuestQa -screen-width 1280 " +
+            "-screen-height 720 -screen-fullscreen 0\r\n");
     }
 }
+
