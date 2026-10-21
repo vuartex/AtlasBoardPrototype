@@ -217,7 +217,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 (account != null && account.IsSignedIn))
             {
                 AtlasLobbyOperationResult auth = await EnsureIdentityAsync();
-                if (auth.Success) await SweepOwnedRoomsOnceAsync(10);
+                if (auth.Success) await SweepOwnedRoomsOnceAsync(0);
                 return;
             }
             await Task.Delay(500);
@@ -229,14 +229,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         if (UsingLocalEmulators || ownedRoomSweepInFlight ||
             string.IsNullOrWhiteSpace(currentAccountId) ||
             string.IsNullOrWhiteSpace(idToken)) return;
-        if (maxDeletes > 1 && lastOwnedRoomSweepUid == currentAccountId) return;
+        if (maxDeletes == 0 && lastOwnedRoomSweepUid == currentAccountId) return;
         ownedRoomSweepInFlight = true;
         try
         {
             var scan = await AtlasBoardRtdbCasualLobbyTransport.
                 CleanupOwnedDormantRoomsAsync(currentAccountId, idToken,
                     currentLobbyId, maxDeletes);
-            if (scan.scanned && maxDeletes > 1)
+            if (scan.scanned && maxDeletes == 0)
                 lastOwnedRoomSweepUid = currentAccountId;
             if (!scan.scanned)
                 Debug.LogWarning("ATB_RTDB_ORPHAN_CLEANUP scanned=false " +
@@ -632,6 +632,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             cards);
     }
 
+
+    public Task<AtlasLobbyOperationResult> CloseOwnedWaitingRoomsOnConsentAsync()
+    {
+        // The transport operation verifies owner UID again for every room.
+        // Never start cleanup from a passive UI refresh or a failed Create.
+        return CallLobbyFunctionAsync("lobbyCloseOwnedWaitingRooms",
+            new LobbySnapshotRequest { lobbyId = currentLobbyId });
+    }
 
     public async Task<AtlasLobbyOperationResult> CreatePrivateRoomAsync(
         AtlasBoardLobbySelection selection)

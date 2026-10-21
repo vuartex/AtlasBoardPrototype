@@ -741,6 +741,92 @@ public static class AtlasBoardSparkRtdbMatchTransport
         return FindEligibleAuthoritySeat(roster, null, online, now) == null;
     }
 
+    // Owner-safe, no-network regression: genuine second successor selection.
+    public static bool ValidateMultiHopAuthorityContract()
+    {
+        long now = 4000000L;
+        SeatsWire roster = new SeatsWire { seats = new[] {
+            new SeatWire { uid="old", seatId="seat_0", slotIndex=0, host=true,
+                mode="hostlocal", controller="human", connection="connected" },
+            new SeatWire { uid="second", seatId="seat_1", slotIndex=1,
+                mode="remotehuman", controller="human", connection="connected" },
+            new SeatWire { uid="third", seatId="seat_2", slotIndex=2,
+                mode="remotehuman", controller="human", connection="connected" }
+        }};
+        var presence = new Dictionary<string, PresenceWire> {
+            { "second", new PresenceWire { online=true, lastSeenAt=now } },
+            { "third", new PresenceWire { online=true, lastSeenAt=now } }
+        };
+        SeatWire first = FindEligibleAuthoritySeat(roster, null, presence, now);
+        if (first == null || first.uid != "second") return false;
+        ApplyAuthoritySeatTransfer(roster, "old", first.uid, now);
+        if (!roster.seats[1].host || roster.seats[0].controller != "temporary_bot" ||
+            roster.seats[0].seatId != "seat_0") return false;
+        // Rejoining an old Host cannot steal authority back while the new one
+        // remains alive, and reconnecting Temporary Bots cannot self-elect.
+        if (FindEligibleAuthoritySeat(roster, "old", presence, now) != null) return false;
+        presence["second"].online = false;
+        SeatWire next = FindEligibleAuthoritySeat(roster, null, presence, now);
+        if (next == null || next.uid != "third") return false;
+        ApplyAuthoritySeatTransfer(roster, "second", next.uid, now+3000);
+        int hostCount = 0;
+        foreach (SeatWire seat in roster.seats) if (seat != null && seat.host) hostCount++;
+        return hostCount == 1 && roster.seats[2].host &&
+            roster.seats[1].controller == "temporary_bot" &&
+            roster.seats[2].seatId == "seat_2" &&
+            FindEligibleAuthoritySeat(roster, null, new Dictionary<string, PresenceWire>(), now) == null;
+    }
+
+    // Read-only authority proof for the two-client QA. Read the RTDB room lock
+    // and match frame separately, not only the client's displayed HUD role.
+    internal static async Task<AtlasMatchNetworkResult> InspectAuthorityChainAsync(
+        string matchId, string uid, string token)
+    {
+        if (string.IsNullOrWhiteSpace(matchId) || string.IsNullOrWhiteSpace(uid))
+            return Failure("Missing authenticated match for authority proof.");
+        Response read = await Send("GET", StatePath(matchId), token);
+        MatchState match = read.Ok ? Decode<MatchState>(read.Body) : null;
+        if (match == null || !read.Ok || match.matchId != matchId)
+            return Failure("Authority proof match state unavailable.");
+        Response anchor = await Send("GET", "roomMeta/" + PathKey(match.lobbyId), token);
+        RoomMetaWire meta = anchor.Ok ? Decode<RoomMetaWire>(anchor.Body) : null;
+        if (!anchor.Ok || meta == null)
+            return Failure("Authority proof roomMeta unavailable.");
+        SeatsWire seats = Decode<SeatsWire>(match.seatsJson);
+        int hostSeats = 0, hostSlot = -1;
+        bool hostSlotsAreValid = true;
+        if (seats != null && seats.seats != null)
+            foreach (SeatWire seat in seats.seats)
+                if (seat != null && seat.host)
+                {
+                    hostSeats++; hostSlot = seat.slotIndex;
+                    if (seat.uid != match.hostUid) hostSlotsAreValid = false;
+                }
+        bool epochOk = match.authorityEpoch > 0 &&
+            match.authorityEpoch == meta.authorityEpoch;
+        bool ownerOk = string.Equals(match.hostUid, meta.hostUid, StringComparison.Ordinal);
+        bool matchOk = string.Equals(meta.activeMatchId, matchId, StringComparison.Ordinal);
+        bool seatsOk = hostSeats == 1 && hostSlotsAreValid;
+        Response roomRead = await Send("GET", "roomState/" + PathKey(match.lobbyId), token);
+        RoomWire lobbyWire = roomRead.Ok ? Decode<RoomWire>(roomRead.Body) : null;
+        AtlasLobbySnapshot lobby = lobbyWire != null
+            ? Decode<AtlasLobbySnapshot>(lobbyWire.snapshotJson) : null;
+        bool lobbyOk = lobby != null &&
+            string.Equals(lobby.HostAccountId, match.hostUid, StringComparison.Ordinal);
+        bool okay = epochOk && ownerOk && matchOk && seatsOk && lobbyOk && !meta.closed;
+        return new AtlasMatchNetworkResult {
+            Success = okay,
+            Snapshot = ToSnapshot(match, uid),
+            Revision = match.revision,
+            TechnicalMessage = "epoch=" + match.authorityEpoch +
+                " host_slot=" + hostSlot +
+                " epoch_consistent=" + epochOk + " host_uid_consistent=" + ownerOk +
+                " match_anchor_consistent=" + matchOk + " single_host_seat=" + seatsOk +
+                " lobby_host_consistent=" + lobbyOk + " closed=" + meta.closed,
+            ErrorLocalizationKey = okay ? "" : "match.error.host_migration_not_safe"
+        };
+    }
+
     private static async Task<Dictionary<string, PresenceWire>> ReadPresenceAsync(
         string matchId, string token)
     {

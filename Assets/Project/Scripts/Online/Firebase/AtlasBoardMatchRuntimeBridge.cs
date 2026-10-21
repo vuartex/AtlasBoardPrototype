@@ -251,6 +251,13 @@ public sealed class AtlasBoardMatchRuntimeBridge : MonoBehaviour
     }
 #endif
 
+    public Task<AtlasMatchNetworkResult> InspectAuthorityChainReadOnlyAsync(string matchId = "")
+    {
+        string match = ResolveMatchId(matchId);
+        return WithIdentity((uid, token) =>
+            AtlasBoardSparkRtdbMatchTransport.InspectAuthorityChainAsync(match, uid, token));
+    }
+
     public Task<AtlasMatchNetworkResult> HostMarkAfkRemovedAsync(
         int slotIndex, string matchId = "")
     {

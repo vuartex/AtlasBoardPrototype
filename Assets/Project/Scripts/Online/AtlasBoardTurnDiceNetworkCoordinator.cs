@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using UnityEngine;
 
 
+
+
 [DisallowMultipleComponent]
 [RequireComponent(typeof(AtlasBoardLobbyRuntimeBridge))]
 [RequireComponent(typeof(AtlasBoardMatchRuntimeBridge))]
@@ -25,6 +27,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         public int roundLimit = 20;
 
 
+
+
         // 11G Host Migration scheduler checkpoint. Followers remain
         // presentation-only, but keep these hidden scheduler values hydrated
         // so a promoted Host continues the same turn order/round bookkeeping.
@@ -37,12 +41,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             Array.Empty<int>();
 
 
+
+
         public int diceSequence;
         public int dicePlayerSlotIndex = -1;
         public int dieOne;
         public int dieTwo;
         public int total;
         public bool startingOrderDice;
+
+
 
 
         public int movementSequence;
@@ -55,6 +63,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         public bool movementUsesSprint;
 
 
+
+
         // Stable-slot indexed authoritative position checkpoint. The follower
         // uses this only as a correction after visual movement; it never resolves
         // a tile or economy action from these values.
@@ -62,6 +72,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         {
             -1, -1, -1, -1
         };
+
+
 
 
         // Phase 5D authoritative economy checkpoint. Money is indexed by
@@ -74,6 +86,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         };
 
 
+
+
         // Schema 9: bankruptcy is authoritative gameplay state, not merely a
         // result-panel string. Followers need it so their pawn visibility,
         // turn eligibility and result presentation mirror the Host.
@@ -83,8 +97,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         };
 
 
+
+
         public int[] tileOwnerSlotIndices =
             Array.Empty<int>();
+
+
 
 
         // Phase 5F authoritative development checkpoint by stable tile index.
@@ -92,9 +110,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             Array.Empty<int>();
 
 
+
+
         // Phase 5F final result snapshot. Host computes this once from the same
         // authoritative economy/development state and Remote only presents it.
         public MatchResultManager.OnlineResultSnapshot matchResult;
+
+
 
 
         // Phase 5E blocking decision mirror. Schema 5 extends the original
@@ -114,6 +136,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         public string decisionText3 = string.Empty;
 
 
+
+
         // Match-session authoritative cosmetic ids by stable slot. RemoteHuman
         // slots are learned from their owning client instead of Host PlayerPrefs.
         public string[] pawnCosmeticIds =
@@ -124,6 +148,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             string.Empty
         };
     }
+
+
 
 
     private sealed class FollowerMovementCommand
@@ -138,11 +164,15 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     [Serializable]
     private sealed class RollIntentPayload
     {
         public bool startingOrder;
     }
+
+
 
 
     [Serializable]
@@ -161,13 +191,19 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     [Header("Phase 5B Polling")]
     [SerializeField, Min(0.1f)]
     private float hostIntentPollSeconds = 0.25f;
 
 
+
+
     [SerializeField, Min(0.1f)]
     private float hostStatePublishCheckSeconds = 0.20f;
+
+
 
 
     [Header("Phase 11G.2 Crash Recovery")]
@@ -175,16 +211,24 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     private float matchPresenceHeartbeatSeconds = 3f;
 
 
+
+
     [SerializeField, Min(2f)]
     private float disconnectedSeatSweepSeconds = 5f;
+
+
 
 
     [SerializeField, Min(2f)]
     private float hostCrashRecoveryProbeSeconds = 2.5f;
 
 
+
+
     [SerializeField, Min(5f)]
     private float hostCrashSuspectAfterSeconds = 12f;
+
+
 
 
     private AtlasBoardLobbyRuntimeBridge lobbyBridge;
@@ -202,16 +246,24 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     private TabletUIManager tabletUIManager;
 
 
+
+
     public bool IsPreparedOnlineMatch =>
         prepared;
+
+
 
 
     public bool LocalIsHost =>
         prepared && localIsHost;
 
 
+
+
     public bool IsOnlineSessionActive =>
         prepared;
+
+
 
 
     public bool IsLocallyControlledHumanSlot(
@@ -223,14 +275,20 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private readonly List<int>
         locallyControlledHumanSlots =
             new List<int>();
 
 
+
+
     private readonly HashSet<int>
         submittedRemoteCosmeticSlots =
             new HashSet<int>();
+
+
 
 
     private string[] authoritativePawnCosmeticIds =
@@ -242,14 +300,20 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     };
 
 
+
+
     private bool remoteCosmeticSubmitInFlight;
     private float nextRemoteCosmeticSubmitAt;
+
+
 
 
     private AtlasLobbySnapshot startLobbySnapshot;
     private bool prepared;
     private bool localIsHost;
     private bool hostNetworkInitialized;
+
+
 
 
     // Phase 16H.2: cold-start bootstrap is serialized and prioritized.
@@ -260,6 +324,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     private bool hostInitialPublishCompleted;
 
 
+
+
     private bool hostIntentPollInFlight;
     private bool hostPublishInFlight;
     private float nextIntentPollAt;
@@ -268,12 +334,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     private string lastPublishedFrameJson = string.Empty;
 
 
+
+
     private int diceSequence;
     private int dicePlayerSlotIndex = -1;
     private int lastDieOne;
     private int lastDieTwo;
     private int lastTotal;
     private bool lastDiceWasStartingOrder;
+
+
 
 
     // Phase 5C host movement telemetry. The Host remains the only gameplay
@@ -288,14 +358,20 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     private bool movementUsesSprint;
 
 
+
+
     private readonly List<PlayerPawnMover>
         subscribedPawns =
             new List<PlayerPawnMover>();
 
 
+
+
     private readonly Queue<FollowerMovementCommand>
         followerMovementQueue =
             new Queue<FollowerMovementCommand>();
+
+
 
 
     private int lastQueuedFollowerMovementSequence;
@@ -306,16 +382,22 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     };
 
 
+
+
     private readonly string[] lastAppliedFollowerPawnCosmeticIds =
     {
         string.Empty, string.Empty, string.Empty, string.Empty
     };
 
 
+
+
     private readonly Dictionary<int, string> lastObservedControllerBySlot =
         new Dictionary<int, string>();
     private readonly Dictionary<int, string> lastObservedConnectionBySlot =
         new Dictionary<int, string>();
+
+
 
 
     private bool reconnectExpiryInFlight;
@@ -335,16 +417,22 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     private bool followerNeedsInitialCheckpointSnap;
 
 
+
+
     private void Awake()
     {
         ResolveReferences();
     }
 
 
+
+
     private void OnDestroy()
     {
         UnsubscribeFromTurnManager();
         UnsubscribeFromPawnMovement();
+
+
 
 
         if (tileResolutionManager != null)
@@ -358,11 +446,15 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         if (specialTileManager != null)
         {
             specialTileManager.RemoteContinueRequested -=
                 HandleRemoteSpecialContinueRequested;
         }
+
+
 
 
         if (eventCardManager != null)
@@ -372,11 +464,15 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         if (auctionManager != null)
         {
             auctionManager.RemoteAuctionDecisionRequested -=
                 HandleRemoteAuctionDecisionRequested;
         }
+
+
 
 
         if (tradeManager != null)
@@ -390,11 +486,15 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         if (matchBridge != null)
         {
             matchBridge.SnapshotChanged -=
                 HandleMatchSnapshotChanged;
         }
+
+
 
 
         if (lobbyBridge != null)
@@ -406,6 +506,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         if (humanRollTimeoutController != null)
         {
             humanRollTimeoutController.AfkRemovalTriggered -=
@@ -414,12 +516,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private async void Update()
     {
         if (!prepared)
         {
             return;
         }
+
+
 
 
         ResolveTurnManager();
@@ -432,10 +538,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         ResolveMatchResultManager();
 
 
+
+
         if (subscribedPawns.Count < 2)
         {
             SubscribeToPawnMovement();
         }
+
+
 
 
         if (turnManager == null ||
@@ -445,11 +555,15 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         if (!localIsHost)
         {
             bool criticalIntentActive =
                 matchBridge != null &&
                 matchBridge.HasCriticalIntentInFlight;
+
+
 
 
             if (!criticalIntentActive &&
@@ -463,8 +577,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                         matchPresenceHeartbeatSeconds);
 
 
+
+
                 await SendMatchPresenceHeartbeatAsync();
             }
+
+
 
 
             if (!criticalIntentActive &&
@@ -479,8 +597,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                         hostCrashRecoveryProbeSeconds);
 
 
+
+
                 await TryRecoverCrashedHostAsync();
             }
+
+
 
 
             if (!criticalIntentActive &&
@@ -491,10 +613,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             ProcessFollowerMovementQueue();
             ApplyFollowerPositionCorrections();
             return;
         }
+
+
 
 
         // Phase 16H.2:
@@ -511,8 +637,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             return;
         }
+
+
 
 
         // Gameplay-critical Host traffic is evaluated before maintenance.
@@ -526,8 +656,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     hostIntentPollSeconds);
 
 
+
+
             await PollHostIntentsAsync();
         }
+
+
 
 
         if (!hostPublishInFlight &&
@@ -540,8 +674,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     hostStatePublishCheckSeconds);
 
 
+
+
             await PublishHostStateIfChangedAsync();
         }
+
+
 
 
         if (!matchPresenceHeartbeatInFlight &&
@@ -554,8 +692,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     matchPresenceHeartbeatSeconds);
 
 
+
+
             await SendMatchPresenceHeartbeatAsync();
         }
+
+
 
 
         if (!disconnectedSeatSweepInFlight &&
@@ -568,8 +710,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     disconnectedSeatSweepSeconds);
 
 
+
+
             await SweepDisconnectedMatchSeatsAsync();
         }
+
+
 
 
         if (!reconnectExpiryInFlight &&
@@ -579,9 +725,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 Time.unscaledTime + 5f;
 
 
+
+
             await ExpireReconnectReservationsAsync();
         }
     }
+
+
 
 
     public void PrepareForAuthoritativeMatchStart(
@@ -591,6 +741,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         {
             return;
         }
+
+
 
 
         ResolveReferences();
@@ -607,8 +759,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         SubscribeToPawnMovement();
 
 
+
+
         string incomingMatchId =
             lobbySnapshot.MatchId ?? string.Empty;
+
+
 
 
         bool needsFreshSessionReset =
@@ -619,6 +775,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 StringComparison.Ordinal);
 
 
+
+
         if (needsFreshSessionReset)
         {
             ResetRuntimePresentationForNewMatchSession(
@@ -626,17 +784,25 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         preparedMatchId = incomingMatchId;
+
+
 
 
         startLobbySnapshot =
             lobbySnapshot;
 
 
+
+
         string localAccountId =
             lobbyBridge != null
                 ? lobbyBridge.CurrentAccountId
                 : string.Empty;
+
+
 
 
         localIsHost =
@@ -647,6 +813,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 StringComparison.Ordinal);
 
 
+
+
         List<int> controlledSlots =
             BuildLocallyControlledHumanSlots(
                 lobbySnapshot,
@@ -654,12 +822,18 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 localIsHost);
 
 
+
+
         locallyControlledHumanSlots.Clear();
         locallyControlledHumanSlots.AddRange(
             controlledSlots.Distinct());
 
 
+
+
         ApplyLobbyIdentitySnapshot(lobbySnapshot);
+
+
 
 
         if (tileResolutionManager != null)
@@ -671,10 +845,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         specialTileManager?
             .ConfigureOnlineDecisionAuthority(
                 localIsHost,
                 controlledSlots);
+
+
 
 
         eventCardManager?
@@ -683,15 +861,21 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 controlledSlots);
 
 
+
+
         auctionManager?
             .ConfigureOnlineDecisionAuthority(
                 controlledSlots);
+
+
 
 
         tradeManager?
             .ConfigureOnlineTradeAuthority(
                 localIsHost,
                 controlledSlots);
+
+
 
 
         if (turnManager != null)
@@ -702,8 +886,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     controlledSlots);
 
 
+
+
             SubscribeToTurnManager();
         }
+
+
 
 
         if (matchBridge != null)
@@ -712,15 +900,21 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 HandleMatchSnapshotChanged;
 
 
+
+
             matchBridge.SnapshotChanged +=
                 HandleMatchSnapshotChanged;
         }
+
+
 
 
         if (lobbyBridge != null)
         {
             lobbyBridge.SnapshotChanged -=
                 HandleLobbySnapshotChanged;
+
+
 
 
             lobbyBridge.SnapshotChanged +=
@@ -732,10 +926,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         if (humanRollTimeoutController != null)
         {
             humanRollTimeoutController.AfkRemovalTriggered -=
                 HandleHostAfkRemovalTriggered;
+
+
 
 
             if (localIsHost)
@@ -746,12 +944,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         diceSequence = 0;
         dicePlayerSlotIndex = -1;
         lastDieOne = 0;
         lastDieTwo = 0;
         lastTotal = 0;
         lastDiceWasStartingOrder = false;
+
+
 
 
         movementSequence = 0;
@@ -764,6 +966,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         movementUsesSprint = false;
 
 
+
+
         followerMovementQueue.Clear();
         lastQueuedFollowerMovementSequence = 0;
         followerMovementVisualActive = false;
@@ -773,12 +977,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             new[] { -1, -1, -1, -1 };
 
 
+
+
         for (int index = 0;
              index < lastAppliedFollowerPawnCosmeticIds.Length;
              index++)
         {
             lastAppliedFollowerPawnCosmeticIds[index] = string.Empty;
         }
+
+
 
 
         lastObservedControllerBySlot.Clear();
@@ -806,10 +1014,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         localAfkExitScheduled = false;
 
 
+
+
         submittedRemoteCosmeticSlots.Clear();
         remoteCosmeticSubmitInFlight = false;
         nextRemoteCosmeticSubmitAt = 0f;
         InitializeAuthoritativePawnCosmetics();
+
+
 
 
         hostKnownRevision = 0;
@@ -822,12 +1034,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         prepared = true;
 
 
+
+
         Debug.Log(
             localIsHost
                 ? "AtlasBoard Phase 5F v1.1 prepared HOST authoritative Turn/Dice + Movement + Economy + Trade/Development/Match Result simulation."
                 : "AtlasBoard Phase 5F v1.1 prepared REMOTE follower presentation + owned Trade/Development decisions + Match Result.",
             this);
     }
+
+
 
 
     private void ResolveReferences()
@@ -840,6 +1056,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         if (matchBridge == null)
         {
             matchBridge =
@@ -847,6 +1065,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     AtlasBoardMatchRuntimeBridge>();
         }
     }
+
+
 
 
     private void ResolveTileResolutionManager()
@@ -857,9 +1077,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         TileResolutionManager[] managers =
             Resources.FindObjectsOfTypeAll<
                 TileResolutionManager>();
+
+
 
 
         foreach (TileResolutionManager manager
@@ -872,31 +1096,47 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             tileResolutionManager = manager;
+
+
 
 
             tileResolutionManager.RemotePurchaseDecisionRequested -=
                 HandleRemotePurchaseDecisionRequested;
 
 
+
+
             tileResolutionManager.RemotePurchaseDecisionRequested +=
                 HandleRemotePurchaseDecisionRequested;
+
+
 
 
             tileResolutionManager.RemoteTravelDecisionRequested -=
                 HandleRemoteTravelDecisionRequested;
 
 
+
+
             tileResolutionManager.RemoteTravelDecisionRequested +=
                 HandleRemoteTravelDecisionRequested;
+
+
 
 
             tileResolutionManager.RemoteDevelopmentDecisionRequested -=
                 HandleRemoteDevelopmentDecisionRequested;
 
 
+
+
             tileResolutionManager.RemoteDevelopmentDecisionRequested +=
                 HandleRemoteDevelopmentDecisionRequested;
+
+
 
 
             if (prepared)
@@ -908,9 +1148,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             return;
         }
     }
+
+
 
 
     private void ResolveSpecialTileManager()
@@ -921,9 +1165,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         SpecialTileManager[] managers =
             Resources.FindObjectsOfTypeAll<
                 SpecialTileManager>();
+
+
 
 
         foreach (SpecialTileManager manager in managers)
@@ -935,11 +1183,15 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             specialTileManager = manager;
             specialTileManager.RemoteContinueRequested -=
                 HandleRemoteSpecialContinueRequested;
             specialTileManager.RemoteContinueRequested +=
                 HandleRemoteSpecialContinueRequested;
+
+
 
 
             if (prepared)
@@ -951,9 +1203,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             return;
         }
     }
+
+
 
 
     private void ResolveEventCardManager()
@@ -964,9 +1220,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         EventCardManager[] managers =
             Resources.FindObjectsOfTypeAll<
                 EventCardManager>();
+
+
 
 
         foreach (EventCardManager manager in managers)
@@ -978,11 +1238,15 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             eventCardManager = manager;
             eventCardManager.RemoteContinueRequested -=
                 HandleRemoteEventContinueRequested;
             eventCardManager.RemoteContinueRequested +=
                 HandleRemoteEventContinueRequested;
+
+
 
 
             if (prepared)
@@ -994,9 +1258,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             return;
         }
     }
+
+
 
 
     private void ResolveAuctionManager()
@@ -1007,9 +1275,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         AuctionManager[] managers =
             Resources.FindObjectsOfTypeAll<
                 AuctionManager>();
+
+
 
 
         foreach (AuctionManager manager in managers)
@@ -1021,11 +1293,15 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             auctionManager = manager;
             auctionManager.RemoteAuctionDecisionRequested -=
                 HandleRemoteAuctionDecisionRequested;
             auctionManager.RemoteAuctionDecisionRequested +=
                 HandleRemoteAuctionDecisionRequested;
+
+
 
 
             if (prepared)
@@ -1036,9 +1312,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             return;
         }
     }
+
+
 
 
     private void ResolveTradeManager()
@@ -1049,9 +1329,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         TradeManager[] managers =
             Resources.FindObjectsOfTypeAll<
                 TradeManager>();
+
+
 
 
         foreach (TradeManager manager in managers)
@@ -1061,6 +1345,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             {
                 continue;
             }
+
+
 
 
             tradeManager = manager;
@@ -1078,6 +1364,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 HandleRemoteTradeWindowChanged;
 
 
+
+
             if (prepared)
             {
                 tradeManager.ConfigureOnlineTradeAuthority(
@@ -1086,9 +1374,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             return;
         }
     }
+
+
 
 
     private void ResolvePropertyDevelopmentManager()
@@ -1099,9 +1391,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         PropertyDevelopmentManager[] managers =
             Resources.FindObjectsOfTypeAll<
                 PropertyDevelopmentManager>();
+
+
 
 
         foreach (PropertyDevelopmentManager manager in managers)
@@ -1116,6 +1412,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private void ResolveMatchResultManager()
     {
         if (matchResultManager != null)
@@ -1124,9 +1422,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         MatchResultManager[] managers =
             Resources.FindObjectsOfTypeAll<
                 MatchResultManager>();
+
+
 
 
         foreach (MatchResultManager manager in managers)
@@ -1141,6 +1443,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private void ResolveHumanRollTimeoutController()
     {
         if (humanRollTimeoutController != null)
@@ -1149,9 +1453,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         AtlasBoardHumanRollTimeoutController[] controllers =
             Resources.FindObjectsOfTypeAll<
                 AtlasBoardHumanRollTimeoutController>();
+
+
 
 
         foreach (AtlasBoardHumanRollTimeoutController controller in controllers)
@@ -1166,6 +1474,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private void ResolveTabletUIManager()
     {
         if (tabletUIManager != null)
@@ -1174,8 +1484,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         TabletUIManager[] managers =
             Resources.FindObjectsOfTypeAll<TabletUIManager>();
+
+
 
 
         foreach (TabletUIManager manager in managers)
@@ -1190,6 +1504,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private void ResolveTurnManager()
     {
         if (turnManager != null)
@@ -1198,9 +1514,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         TurnManager[] managers =
             Resources.FindObjectsOfTypeAll<
                 TurnManager>();
+
+
 
 
         foreach (TurnManager manager
@@ -1217,6 +1537,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private void SubscribeToTurnManager()
     {
         if (turnManager == null)
@@ -1225,33 +1547,49 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         turnManager.AuthoritativeDiceCommitted -=
             HandleAuthoritativeDiceCommitted;
+
+
 
 
         turnManager.AuthoritativeDiceCommitted +=
             HandleAuthoritativeDiceCommitted;
 
 
+
+
         turnManager.OnlineRollRequested -=
             HandleOnlineRollRequested;
 
 
+
+
         turnManager.OnlineTripleDoublePenaltyContinueRequested -=
             HandleOnlineTripleDoublePenaltyContinueRequested;
+
+
 
 
         turnManager.OnlineRollRequested +=
             HandleOnlineRollRequested;
 
 
+
+
         turnManager.OnlineTripleDoublePenaltyContinueRequested -=
             HandleOnlineTripleDoublePenaltyContinueRequested;
+
+
 
 
         turnManager.OnlineTripleDoublePenaltyContinueRequested +=
             HandleOnlineTripleDoublePenaltyContinueRequested;
     }
+
+
 
 
     private void UnsubscribeFromTurnManager()
@@ -1262,13 +1600,19 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         turnManager.AuthoritativeDiceCommitted -=
             HandleAuthoritativeDiceCommitted;
+
+
 
 
         turnManager.OnlineRollRequested -=
             HandleOnlineRollRequested;
     }
+
+
 
 
     private void SubscribeToPawnMovement()
@@ -1285,9 +1629,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         PlayerPawnMover[] pawns =
             Resources.FindObjectsOfTypeAll<
                 PlayerPawnMover>();
+
+
 
 
         foreach (PlayerPawnMover pawn in pawns)
@@ -1300,10 +1648,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             pawn.MovementStarted -=
                 HandlePawnMovementStarted;
             pawn.MovementEnded -=
                 HandlePawnMovementEnded;
+
+
 
 
             pawn.MovementStarted +=
@@ -1312,9 +1664,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 HandlePawnMovementEnded;
 
 
+
+
             subscribedPawns.Add(pawn);
         }
     }
+
+
 
 
     private void UnsubscribeFromPawnMovement()
@@ -1328,6 +1684,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             pawn.MovementStarted -=
                 HandlePawnMovementStarted;
             pawn.MovementEnded -=
@@ -1335,8 +1693,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         subscribedPawns.Clear();
     }
+
+
 
 
     private void HandlePawnMovementStarted(
@@ -1350,14 +1712,20 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         PlayerGameState player =
             pawn.GetComponent<PlayerGameState>();
+
+
 
 
         if (player == null)
         {
             return;
         }
+
+
 
 
         movementSequence++;
@@ -1376,7 +1744,11 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         movementInProgress = true;
 
 
+
+
         nextPublishCheckAt = 0f;
+
+
 
 
         Debug.Log(
@@ -1390,6 +1762,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private void HandlePawnMovementEnded(
         PlayerPawnMover pawn)
     {
@@ -1401,8 +1775,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         PlayerGameState player =
             pawn.GetComponent<PlayerGameState>();
+
+
 
 
         if (player == null ||
@@ -1413,10 +1791,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         movementTargetTileIndex =
             pawn.CurrentTileIndex;
         movementInProgress = false;
         nextPublishCheckAt = 0f;
+
+
 
 
         Debug.Log(
@@ -1426,6 +1808,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             $"sequence={movementSequence}.",
             this);
     }
+
+
 
 
     private static List<int>
@@ -1438,11 +1822,15 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             new List<int>();
 
 
+
+
         if (snapshot == null ||
             snapshot.Members == null)
         {
             return result;
         }
+
+
 
 
         foreach (AtlasLobbyMemberSnapshot member
@@ -1455,6 +1843,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             if (isHost &&
                 (member.SeatMode ==
                      AtlasLobbySeatMode.HostLocal ||
@@ -1464,6 +1854,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 result.Add(member.SlotIndex);
                 continue;
             }
+
+
 
 
             if (member.SeatMode ==
@@ -1478,8 +1870,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         return result.Distinct().ToList();
     }
+
+
 
 
     private void HandleAuthoritativeDiceCommitted(
@@ -1496,6 +1892,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         diceSequence++;
         dicePlayerSlotIndex =
             player.PlayerSlotIndex;
@@ -1506,9 +1904,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             startingOrder;
 
 
+
+
         // Force the next host update to publish the exact committed values.
         nextPublishCheckAt = 0f;
     }
+
+
 
 
     private async void HandleOnlineRollRequested(
@@ -1524,6 +1926,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         RollIntentPayload payload =
             new RollIntentPayload
             {
@@ -1531,9 +1935,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             };
 
 
+
+
         string commandId =
             "roll-" +
             Guid.NewGuid().ToString("N");
+
+
 
 
         AtlasMatchNetworkResult result =
@@ -1543,10 +1951,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 commandId);
 
 
+
+
         if (!result.Success)
         {
             turnManager?.
                 NotifyOnlineRollRequestFailed();
+
+
 
 
             Debug.LogWarning(
@@ -1555,6 +1967,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 this);
         }
     }
+
+
 
 
     private async Task BootstrapHostInitialStateAsync()
@@ -1569,11 +1983,17 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         hostBootstrapInFlight = true;
+
+
 
 
         double startedAt =
             Time.realtimeSinceStartupAsDouble;
+
+
 
 
         try
@@ -1584,6 +2004,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             if (!prepared ||
                 !localIsHost ||
                 !hostNetworkInitialized)
@@ -1592,11 +2014,15 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             // A fresh match intentionally starts with lastPublishedFrameJson
             // empty, so this publishes the first authoritative Turn/Dice frame.
             // On a transient publish failure the existing publish method
             // refreshes the revision; this bootstrap simply retries next frame.
             await PublishHostStateIfChangedAsync();
+
+
 
 
             if (!prepared ||
@@ -1609,7 +2035,11 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             hostInitialPublishCompleted = true;
+
+
 
 
             // The match has just started. Give gameplay traffic first access
@@ -1627,12 +2057,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 Time.unscaledTime + 5f;
 
 
+
+
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             float elapsedMs =
                 (float)(
                     (Time.realtimeSinceStartupAsDouble -
                      startedAt) *
                     1000.0);
+
+
 
 
             Debug.Log(
@@ -1650,6 +2084,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private async Task InitializeHostNetworkAsync()
     {
         if (hostNetworkInitialized ||
@@ -1659,8 +2095,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         AtlasMatchNetworkResult result =
             await matchBridge.GetSnapshotAsync();
+
+
 
 
         if (!result.Success ||
@@ -1670,13 +2110,19 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         hostKnownRevision =
             result.Snapshot.Revision;
+
+
 
 
         hostNetworkInitialized = true;
         nextPublishCheckAt = 0f;
     }
+
+
 
 
     private async Task PollHostIntentsAsync()
@@ -1690,7 +2136,11 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         hostIntentPollInFlight = true;
+
+
 
 
         try
@@ -1700,12 +2150,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     .HostListPendingIntentsAsync();
 
 
+
+
             if (!result.Success ||
                 result.Intents == null ||
                 result.Intents.Length == 0)
             {
                 return;
             }
+
+
 
 
             // Phase 12A intentionally serializes remote gameplay commands.
@@ -1722,10 +2176,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                             candidate.IntentId));
 
 
+
+
             if (intent == null)
             {
                 return;
             }
+
+
 
 
             if (string.Equals(
@@ -1738,10 +2196,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                         intent.SeatId);
 
 
+
+
                 PlayerGameState player =
                     turnManager
                         .GetPlayerStateBySlotIndex(
                             slotIndex);
+
+
 
 
                 bool accepted =
@@ -1749,6 +2211,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     turnManager
                         .TryRequestAuthoritativeNetworkRoll(
                             player);
+
+
 
 
                 Debug.Log(
@@ -1766,6 +2230,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             // Invalid/mismatched current intents are consumed as well. Truly
             // stale revision/epoch/seat intents never reach this point because
             // the backend marks them stale before returning the queue.
@@ -1775,6 +2241,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     {
                         intent.IntentId
                     });
+
+
 
 
             // If the command mutated gameplay, the same Update continues into
@@ -1789,6 +2257,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private void HandleHostDecisionIntent(
         AtlasMatchIntent intent)
     {
@@ -1800,7 +2270,11 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         DecisionIntentPayload payload;
+
+
 
 
         try
@@ -1816,14 +2290,20 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         if (payload == null)
         {
             return;
         }
 
 
+
+
         int authoritativeSlotIndex =
             ResolveSlotIndex(intent.SeatId);
+
+
 
 
         if (authoritativeSlotIndex < 0 ||
@@ -1838,6 +2318,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         if (string.Equals(
                 payload.kind,
                 "pawn_cosmetic",
@@ -1850,6 +2332,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         if (string.Equals(
                 payload.kind,
                 "triple_double_penalty",
@@ -1859,6 +2343,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 turnManager != null
                     ? turnManager.TripleDoublePenaltyPlayerState
                     : null;
+
+
 
 
             if (penaltyPlayer == null ||
@@ -1875,10 +2361,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             turnManager.ContinueTripleDoublePenalty();
             nextPublishCheckAt = 0f;
             return;
         }
+
+
 
 
         if (string.Equals(
@@ -1889,10 +2379,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             ResolveHumanRollTimeoutController();
 
 
+
+
             PlayerGameState activePlayer =
                 turnManager != null
                     ? turnManager.CurrentPlayerState
                     : null;
+
+
 
 
             if (activePlayer == null ||
@@ -1904,11 +2398,15 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             bool open =
                 string.Equals(
                     payload.action,
                     "open",
                     StringComparison.Ordinal);
+
+
 
 
             bool close =
@@ -1918,10 +2416,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     StringComparison.Ordinal);
 
 
+
+
             if (!open && !close)
             {
                 return;
             }
+
+
 
 
             humanRollTimeoutController
@@ -1931,8 +2433,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     30f);
 
 
+
+
             return;
         }
+
+
 
 
         ResolveTileResolutionManager();
@@ -1940,6 +2446,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         ResolveEventCardManager();
         ResolveAuctionManager();
         ResolveTradeManager();
+
+
 
 
         if (string.Equals(
@@ -1955,12 +2463,18 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             PlayerGameState pendingPlayer =
                 tileResolutionManager.PendingPurchasePlayer;
 
 
+
+
             BoardTile pendingTile =
                 tileResolutionManager.PendingPurchaseTile;
+
+
 
 
             if (pendingPlayer.PlayerSlotIndex != authoritativeSlotIndex ||
@@ -1971,6 +2485,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     this);
                 return;
             }
+
+
 
 
             if (string.Equals(
@@ -1993,9 +2509,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             nextPublishCheckAt = 0f;
             return;
         }
+
+
 
 
         if (string.Equals(
@@ -2015,6 +2535,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     this);
                 return;
             }
+
+
 
 
             if (string.Equals(
@@ -2037,9 +2559,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             nextPublishCheckAt = 0f;
             return;
         }
+
+
 
 
         if (string.Equals(
@@ -2062,6 +2588,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             if (string.Equals(
                     payload.action,
                     "develop",
@@ -2082,9 +2610,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             nextPublishCheckAt = 0f;
             return;
         }
+
+
 
 
         if (string.Equals(
@@ -2096,6 +2628,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 specialTileManager != null
                     ? specialTileManager.CurrentSpecialPlayer
                     : null;
+
+
 
 
             if (specialTileManager == null ||
@@ -2111,10 +2645,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             specialTileManager.ContinueAfterSpecialTile();
             nextPublishCheckAt = 0f;
             return;
         }
+
+
 
 
         if (string.Equals(
@@ -2126,6 +2664,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 eventCardManager != null
                     ? eventCardManager.CurrentEventPlayer
                     : null;
+
+
 
 
             if (eventCardManager == null ||
@@ -2142,10 +2682,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             eventCardManager.ContinueAfterEvent();
             nextPublishCheckAt = 0f;
             return;
         }
+
+
 
 
         if (string.Equals(
@@ -2158,6 +2702,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             {
                 return;
             }
+
+
 
 
             if (string.Equals(
@@ -2181,6 +2727,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                         : null;
 
 
+
+
                 bool accepted =
                     initiator != null &&
                     targetPlayer != null &&
@@ -2193,6 +2741,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                         payload.requestedCash);
 
 
+
+
                 if (!accepted)
                 {
                     Debug.LogWarning(
@@ -2201,9 +2751,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 }
 
 
+
+
                 nextPublishCheckAt = 0f;
                 return;
             }
+
+
 
 
             if (string.Equals(
@@ -2219,6 +2773,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     tradeManager.TradeTarget;
 
 
+
+
                 if (!tradeManager.IsAwaitingResponse ||
                     targetPlayer == null ||
                     targetPlayer.PlayerSlotIndex != authoritativeSlotIndex)
@@ -2228,6 +2784,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                         this);
                     return;
                 }
+
+
 
 
                 if (string.Equals(
@@ -2243,13 +2801,19 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 }
 
 
+
+
                 nextPublishCheckAt = 0f;
                 return;
             }
 
 
+
+
             return;
         }
+
+
 
 
         if (string.Equals(
@@ -2263,10 +2827,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     : null;
 
 
+
+
             BoardTile property =
                 auctionManager != null
                     ? auctionManager.AuctionProperty
                     : null;
+
+
 
 
             if (auctionManager == null ||
@@ -2281,6 +2849,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     this);
                 return;
             }
+
+
 
 
             if (string.Equals(
@@ -2310,9 +2880,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             nextPublishCheckAt = 0f;
         }
     }
+
+
 
 
     private async Task PublishHostStateIfChangedAsync()
@@ -2327,12 +2901,18 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         TurnDiceFrame frame =
             BuildHostFrame();
 
 
+
+
         string json =
             JsonUtility.ToJson(frame);
+
+
 
 
         if (string.Equals(
@@ -2344,7 +2924,11 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         hostPublishInFlight = true;
+
+
 
 
         try
@@ -2352,6 +2936,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             string turnSeatId =
                 ResolveSeatId(
                     frame.activeSlotIndex);
+
+
 
 
             AtlasMatchNetworkResult result =
@@ -2364,6 +2950,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                         json);
 
 
+
+
             if (!result.Success)
             {
                 // Most likely the local cached revision was stale. Refresh
@@ -2371,6 +2959,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 AtlasMatchNetworkResult refreshed =
                     await matchBridge
                         .GetSnapshotAsync();
+
+
 
 
                 if (refreshed.Success &&
@@ -2381,12 +2971,18 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 }
 
 
+
+
                 return;
             }
 
 
+
+
             hostKnownRevision =
                 result.Revision;
+
+
 
 
             lastPublishedFrameJson =
@@ -2399,16 +2995,22 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private TurnDiceFrame BuildHostFrame()
     {
         string phase =
             DetermineHostPhase();
 
 
+
+
         PlayerGameState activePlayer =
             turnManager.IsStartingOrderPhase
                 ? turnManager.StartingOrderPlayerState
                 : turnManager.CurrentPlayerState;
+
+
 
 
         ResolveTileResolutionManager();
@@ -2418,6 +3020,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         ResolveTradeManager();
         ResolvePropertyDevelopmentManager();
         ResolveMatchResultManager();
+
+
 
 
         string decisionKind = string.Empty;
@@ -2433,6 +3037,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         string decisionText1 = string.Empty;
         string decisionText2 = string.Empty;
         string decisionText3 = string.Empty;
+
+
 
 
         if (turnManager != null &&
@@ -2618,6 +3224,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         return new TurnDiceFrame
         {
             phase = phase,
@@ -2651,6 +3259,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             total = lastTotal,
             startingOrderDice =
                 lastDiceWasStartingOrder,
+
+
 
 
             movementSequence =
@@ -2717,12 +3327,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private int[] BuildHostPawnTileIndices()
     {
         int[] result =
         {
             -1, -1, -1, -1
         };
+
+
 
 
         foreach (PlayerPawnMover pawn
@@ -2734,8 +3348,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             PlayerGameState player =
                 pawn.GetComponent<PlayerGameState>();
+
+
 
 
             if (player == null ||
@@ -2747,13 +3365,19 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             result[player.PlayerSlotIndex] =
                 pawn.CurrentTileIndex;
         }
 
 
+
+
         return result;
     }
+
+
 
 
     private int[] BuildHostPlayerMoney()
@@ -2764,10 +3388,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         };
 
 
+
+
         if (turnManager == null)
         {
             return result;
         }
+
+
 
 
         for (int slotIndex = 0;
@@ -2780,6 +3408,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                         slotIndex);
 
 
+
+
             if (player == null ||
                 !player.IsParticipating)
             {
@@ -2787,13 +3417,19 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             result[slotIndex] =
                 Mathf.Max(0, player.CurrentMoney);
         }
 
 
+
+
         return result;
     }
+
+
 
 
     private bool[] BuildHostPlayerBankrupt()
@@ -2804,10 +3440,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         };
 
 
+
+
         if (turnManager == null)
         {
             return result;
         }
+
+
 
 
         for (int slotIndex = 0;
@@ -2820,6 +3460,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                         slotIndex);
 
 
+
+
             result[slotIndex] =
                 player != null &&
                 player.IsParticipating &&
@@ -2827,13 +3469,19 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         return result;
     }
+
+
 
 
     private int[] BuildHostTileOwnerSlotIndices()
     {
         ResolveBoardPath();
+
+
 
 
         if (boardPath == null ||
@@ -2843,8 +3491,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         int[] result =
             new int[boardPath.TileCount];
+
+
 
 
         for (int index = 0;
@@ -2855,12 +3507,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         for (int index = 0;
              index < boardPath.TileCount;
              index++)
         {
             BoardTile tile =
                 boardPath.GetTile(index);
+
+
 
 
             if (tile == null ||
@@ -2871,19 +3527,27 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             result[tile.TileIndex] =
                 tile.OwnerPlayerIndex;
         }
+
+
 
 
         return result;
     }
 
 
+
+
     private int[] BuildHostTileDevelopmentLevels()
     {
         ResolveBoardPath();
         ResolvePropertyDevelopmentManager();
+
+
 
 
         if (boardPath == null ||
@@ -2893,14 +3557,20 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         int[] result =
             new int[boardPath.TileCount];
+
+
 
 
         if (propertyDevelopmentManager == null)
         {
             return result;
         }
+
+
 
 
         for (int index = 0;
@@ -2911,6 +3581,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 boardPath.GetTile(index);
 
 
+
+
             if (tile == null ||
                 tile.TileIndex < 0 ||
                 tile.TileIndex >= result.Length)
@@ -2919,19 +3591,27 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             result[tile.TileIndex] =
                 propertyDevelopmentManager
                     .GetDevelopmentLevel(tile);
         }
 
 
+
+
         return result;
     }
+
+
 
 
     private string[] BuildHostPawnCosmeticIds()
     {
         RefreshHostControlledPawnCosmetics();
+
+
 
 
         string[] result =
@@ -2941,6 +3621,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             string.Empty,
             string.Empty
         };
+
+
 
 
         for (int slotIndex = 0;
@@ -2955,8 +3637,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         return result;
     }
+
+
 
 
     private void ResolveBoardPath()
@@ -2967,9 +3653,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         BoardPath[] paths =
             Resources.FindObjectsOfTypeAll<
                 BoardPath>();
+
+
 
 
         foreach (BoardPath candidate
@@ -2985,12 +3675,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private string DetermineHostPhase()
     {
         if (turnManager.IsMatchFinished)
         {
             return "match_complete";
         }
+
+
 
 
         if (turnManager.IsStartingOrderPhase)
@@ -3001,6 +3695,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         if (turnManager.IsPlayingPhase)
         {
             if (turnManager.IsResolvingDiceVisual)
@@ -3009,7 +3705,11 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             ResolveTileResolutionManager();
+
+
 
 
             if (tileResolutionManager != null &&
@@ -3020,18 +3720,26 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             if (turnManager.IsWaitingForMovement)
             {
                 return "movement";
             }
 
 
+
+
             return "awaiting_roll";
         }
 
 
+
+
         return "starting";
     }
+
+
 
 
     private void HandleMatchSnapshotChanged(
@@ -3045,13 +3753,19 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         bool wasLocalHost =
             localIsHost;
         bool authorityChanged =
             snapshot.LocalIsHost != localIsHost;
 
 
+
+
         ApplyOnlineSeatMetadata(snapshot);
+
+
 
 
         // A demoted Host does not need to replay its own published follower
@@ -3065,8 +3779,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             return;
         }
+
+
 
 
         if (string.IsNullOrWhiteSpace(
@@ -3078,11 +3796,17 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             return;
         }
 
 
+
+
         TurnDiceFrame frame;
+
+
 
 
         try
@@ -3097,12 +3821,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         if (frame == null ||
             frame.schemaVersion < 1 ||
             frame.schemaVersion > 9)
         {
             return;
         }
+
+
 
 
         turnManager.ApplyOnlineFollowerTurnDiceFrame(
@@ -3115,6 +3843,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             frame.dieTwo,
             frame.total,
             frame.startingOrderDice);
+
+
 
 
         if (frame.schemaVersion >= 8)
@@ -3130,10 +3860,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         if (frame.schemaVersion >= 2)
         {
             QueueFollowerMovementFrame(frame);
         }
+
+
 
 
         if (frame.schemaVersion >= 9)
@@ -3142,10 +3876,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         if (frame.schemaVersion >= 3)
         {
             ApplyFollowerEconomyFrame(frame);
         }
+
+
 
 
         if (frame.schemaVersion >= 4)
@@ -3155,11 +3893,15 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         if (frame.schemaVersion >= 6)
         {
             ApplyFollowerDevelopmentFrame(frame);
             ApplyFollowerMatchResultFrame(frame);
         }
+
+
 
 
         // Promotion happens only AFTER the final old-Host checkpoint has been
@@ -3171,6 +3913,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             ApplyMigratedAuthorityRole(snapshot);
 
 
+
+
             if (localIsHost)
             {
                 RestoreMigratedHostDecisionState(
@@ -3178,6 +3922,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
         }
     }
+
+
 
 
     private void SeedMigratedHostTelemetry(
@@ -3189,6 +3935,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         diceSequence = frame.diceSequence;
         dicePlayerSlotIndex =
             frame.dicePlayerSlotIndex;
@@ -3197,6 +3945,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         lastTotal = frame.total;
         lastDiceWasStartingOrder =
             frame.startingOrderDice;
+
+
 
 
         movementSequence =
@@ -3215,6 +3965,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             frame.movementUsesSprint;
 
 
+
+
         if (frame.pawnCosmeticIds != null &&
             frame.pawnCosmeticIds.Length > 0)
         {
@@ -3226,6 +3978,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     string.Empty,
                     string.Empty
                 };
+
+
 
 
             for (int index = 0;
@@ -3241,6 +3995,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private void RestoreMigratedHostDecisionState(
         TurnDiceFrame frame)
     {
@@ -3252,6 +4008,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         if (!string.Equals(
                 frame.decisionKind,
                 "purchase",
@@ -3261,8 +4019,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         ResolveTileResolutionManager();
         ResolveBoardPath();
+
+
 
 
         if (tileResolutionManager == null ||
@@ -3272,15 +4034,21 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         PlayerGameState decisionPlayer =
             turnManager
                 .GetPlayerStateBySlotIndex(
                     frame.decisionPlayerSlotIndex);
 
 
+
+
         BoardTile decisionTile =
             GetBoardTile(
                 frame.decisionTileIndex);
+
+
 
 
         if (decisionPlayer == null ||
@@ -3292,6 +4060,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         tileResolutionManager
             .RestoreOnlineAuthoritativePurchaseDecision(
                 decisionPlayer,
@@ -3300,12 +4070,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     .CompleteRecoveredAuthoritativeTileResolution);
 
 
+
+
         Debug.Log(
             "AtlasBoard Phase 12D.1: restored unresolved authoritative " +
             $"purchase after Host failover for P{decisionPlayer.PlayerSlotIndex + 1} " +
             $"on tile {decisionTile.TileIndex}.",
             this);
     }
+
+
 
 
     private void ApplyMigratedAuthorityRole(
@@ -3318,12 +4092,18 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         bool nextIsHost =
             snapshot.LocalIsHost;
 
 
+
+
         List<int> controlledSlots =
             new List<int>();
+
+
 
 
         if (snapshot.Seats != null &&
@@ -3340,6 +4120,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                             StringComparison.Ordinal));
 
 
+
+
             if (localSeat != null &&
                 string.Equals(
                     localSeat.ControllerKind,
@@ -3352,12 +4134,18 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         localIsHost = nextIsHost;
+
+
 
 
         locallyControlledHumanSlots.Clear();
         locallyControlledHumanSlots.AddRange(
             controlledSlots.Distinct());
+
+
 
 
         ResolveTileResolutionManager();
@@ -3368,10 +4156,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         ResolveHumanRollTimeoutController();
 
 
+
+
         tileResolutionManager?
             .ConfigureOnlinePurchaseDecisionAuthority(
                 localIsHost,
                 controlledSlots);
+
+
 
 
         specialTileManager?
@@ -3380,15 +4172,21 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 controlledSlots);
 
 
+
+
         eventCardManager?
             .ConfigureOnlineDecisionAuthority(
                 localIsHost,
                 controlledSlots);
 
 
+
+
         auctionManager?
             .ConfigureOnlineDecisionAuthority(
                 controlledSlots);
+
+
 
 
         tradeManager?
@@ -3397,10 +4195,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 controlledSlots);
 
 
+
+
         turnManager?.ConfigureOnlineTurnAuthority(
             followerMode: !localIsHost,
             locallyControlledHumanSlots:
                 controlledSlots);
+
+
 
 
         if (humanRollTimeoutController != null)
@@ -3409,12 +4211,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 HandleHostAfkRemovalTriggered;
 
 
+
+
             if (localIsHost)
             {
                 humanRollTimeoutController.AfkRemovalTriggered +=
                     HandleHostAfkRemovalTriggered;
             }
         }
+
+
 
 
         hostIntentPollInFlight = false;
@@ -3428,6 +4234,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         nextIntentPollAt = 0f;
         nextPublishCheckAt = 0f;
         nextReconnectExpiryCheckAt = 0f;
+
+
 
 
         if (localIsHost)
@@ -3446,9 +4254,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             followerNeedsInitialCheckpointSnap = false;
 
 
+
+
             // Re-apply seat metadata after role promotion so this client now
             // enables authoritative Bot controllers for bot-controlled seats.
             ApplyOnlineSeatMetadata(snapshot);
+
+
 
 
             Debug.Log(
@@ -3466,7 +4278,11 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             followerNeedsInitialCheckpointSnap = true;
 
 
+
+
             ApplyOnlineSeatMetadata(snapshot);
+
+
 
 
             Debug.Log(
@@ -3476,9 +4292,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         turnManager?
             .RefreshTurnPresentationForControlChange();
     }
+
+
 
 
     private void ApplyFollowerDecisionFrame(
@@ -3492,19 +4312,27 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         ResolveBoardPath();
 
 
+
+
         if (frame == null)
         {
             return;
         }
 
 
+
+
         string kind =
             frame.decisionKind ?? string.Empty;
+
+
 
 
         bool locallyOwnedDecision =
             locallyControlledHumanSlots.Contains(
                 frame.decisionPlayerSlotIndex);
+
+
 
 
         PlayerGameState player =
@@ -3515,6 +4343,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 : null;
 
 
+
+
         bool tripleDoublePenalty =
             string.Equals(
                 kind,
@@ -3523,9 +4353,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             locallyOwnedDecision;
 
 
+
+
         turnManager?.ApplyOnlineFollowerTripleDoublePenalty(
             tripleDoublePenalty,
             frame.decisionPlayerSlotIndex);
+
+
 
 
         // PURCHASE ---------------------------------------------------------
@@ -3542,6 +4376,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         {
             BoardTile tile =
                 GetBoardTile(frame.decisionTileIndex);
+
+
 
 
             if (player == null ||
@@ -3569,6 +4405,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                             frame.decisionTileIndex;
 
 
+
+
                 if (!same)
                 {
                     tileResolutionManager
@@ -3578,6 +4416,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 }
             }
         }
+
+
 
 
         // TRAVEL -----------------------------------------------------------
@@ -3610,6 +4450,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                         frame.decisionValue0;
 
 
+
+
             if (!same)
             {
                 tileResolutionManager
@@ -3619,6 +4461,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                         frame.decisionValue0);
             }
         }
+
+
 
 
         // DEVELOPMENT ------------------------------------------------------
@@ -3636,6 +4480,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         {
             BoardTile tile =
                 GetBoardTile(frame.decisionTileIndex);
+
+
 
 
             bool same =
@@ -3656,6 +4502,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                         frame.decisionTileIndex;
 
 
+
+
             if (!same)
             {
                 if (tile == null)
@@ -3674,12 +4522,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         // TRADE ------------------------------------------------------------
         bool localTradeParticipant =
             locallyControlledHumanSlots.Contains(
                 frame.decisionPlayerSlotIndex) ||
             locallyControlledHumanSlots.Contains(
                 frame.decisionAuxSlotIndex);
+
+
 
 
         if (!string.Equals(
@@ -3710,6 +4562,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     : null;
 
 
+
+
             if (tradeTarget == null ||
                 tradeInitiator == null)
             {
@@ -3726,6 +4580,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     frame.decisionValue2);
             }
         }
+
+
 
 
         // EVENT ------------------------------------------------------------
@@ -3754,6 +4610,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         // SPECIAL RESULT / CONTINUE ---------------------------------------
         if (!string.Equals(
                 kind,
@@ -3774,6 +4632,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     : null;
 
 
+
+
             PlayerGameState contextPlayer =
                 frame.decisionAuxSlotIndex >= 0 &&
                 turnManager != null
@@ -3781,6 +4641,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                         .GetPlayerStateBySlotIndex(
                             frame.decisionAuxSlotIndex)
                     : null;
+
+
 
 
             specialTileManager
@@ -3801,6 +4663,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         // AUCTION is shared presentation. Every Remote client may watch it,
         // but AuctionManager only enables buttons when the current bidder is
         // one of this device's locally-owned Human seats.
@@ -3818,12 +4682,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 GetBoardTile(frame.decisionTileIndex);
 
 
+
+
             PlayerGameState currentBidder =
                 turnManager != null
                     ? turnManager
                         .GetPlayerStateBySlotIndex(
                             frame.decisionPlayerSlotIndex)
                     : null;
+
+
 
 
             PlayerGameState highestBidder =
@@ -3833,6 +4701,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                         .GetPlayerStateBySlotIndex(
                             frame.decisionAuxSlotIndex)
                     : null;
+
+
 
 
             if (property == null ||
@@ -3857,6 +4727,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private void ApplyFollowerDevelopmentFrame(
         TurnDiceFrame frame)
     {
@@ -3868,8 +4740,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         ResolveBoardPath();
         ResolvePropertyDevelopmentManager();
+
+
 
 
         if (boardPath == null ||
@@ -3879,10 +4755,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         int count =
             Mathf.Min(
                 boardPath.TileCount,
                 frame.tileDevelopmentLevels.Length);
+
+
 
 
         for (int index = 0;
@@ -3893,10 +4773,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 boardPath.GetTile(index);
 
 
+
+
             if (tile == null)
             {
                 continue;
             }
+
+
 
 
             int authoritativeOwnerSlot =
@@ -3904,6 +4788,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 index < frame.tileOwnerSlotIndices.Length
                     ? frame.tileOwnerSlotIndices[index]
                     : tile.OwnerPlayerIndex;
+
+
 
 
             PlayerGameState owner =
@@ -3915,6 +4801,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     : null;
 
 
+
+
             propertyDevelopmentManager
                 .ApplyOnlineAuthoritativeDevelopmentLevel(
                     tile,
@@ -3922,6 +4810,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     owner);
         }
     }
+
+
 
 
     private void ApplyFollowerMatchResultFrame(
@@ -3936,7 +4826,11 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         ResolveMatchResultManager();
+
+
 
 
         if (matchResultManager != null &&
@@ -3947,6 +4841,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 localIsHost: false);
         }
     }
+
+
 
 
     private BoardTile GetBoardTile(
@@ -3960,6 +4856,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private void ApplyFollowerPawnCosmetics(
         TurnDiceFrame frame)
     {
@@ -3970,10 +4868,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         int count =
             Mathf.Min(
                 4,
                 frame.pawnCosmeticIds.Length);
+
+
 
 
         for (int slotIndex = 0;
@@ -3984,11 +4886,15 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 frame.pawnCosmeticIds[slotIndex];
 
 
+
+
             if (string.IsNullOrWhiteSpace(
                     cosmeticId))
             {
                 continue;
             }
+
+
 
 
             if (string.Equals(
@@ -4000,6 +4906,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             if (ApplyPawnCosmeticToSlot(
                     slotIndex,
                     cosmeticId))
@@ -4009,6 +4917,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
         }
     }
+
+
 
 
     private void ApplyFollowerBankruptcyFrame(
@@ -4023,10 +4933,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         int playerCount =
             Mathf.Min(
                 4,
                 frame.playerBankrupt.Length);
+
+
 
 
         for (int slotIndex = 0;
@@ -4039,12 +4953,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                         slotIndex);
 
 
+
+
             player?
                 .ApplyOnlineAuthoritativeBankruptcy(
                     frame.playerBankrupt[
                         slotIndex]);
         }
     }
+
+
 
 
     private void ApplyFollowerEconomyFrame(
@@ -4058,12 +4976,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         if (frame.playerMoney != null)
         {
             int playerCount =
                 Mathf.Min(
                     4,
                     frame.playerMoney.Length);
+
+
 
 
             for (int slotIndex = 0;
@@ -4074,10 +4996,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     frame.playerMoney[slotIndex];
 
 
+
+
                 if (authoritativeMoney < 0)
                 {
                     continue;
                 }
+
+
 
 
                 PlayerGameState player =
@@ -4086,13 +5012,19 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                             slotIndex);
 
 
+
+
                 player?.ApplyOnlineAuthoritativeMoney(
                     authoritativeMoney);
             }
         }
 
 
+
+
         ResolveBoardPath();
+
+
 
 
         if (boardPath == null ||
@@ -4103,10 +5035,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         int tileCount =
             Mathf.Min(
                 boardPath.TileCount,
                 frame.tileOwnerSlotIndices.Length);
+
+
 
 
         for (int tileIndex = 0;
@@ -4117,6 +5053,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 boardPath.GetTile(tileIndex);
 
 
+
+
             if (tile == null ||
                 tile.TileIndex != tileIndex)
             {
@@ -4124,11 +5062,17 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             int ownerSlotIndex =
                 frame.tileOwnerSlotIndices[tileIndex];
 
 
+
+
             Material ownerMaterial = null;
+
+
 
 
             if (ownerSlotIndex >= 0)
@@ -4139,6 +5083,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                             ownerSlotIndex);
 
 
+
+
                 ownerMaterial =
                     owner != null
                         ? owner.OwnershipMaterial
@@ -4146,11 +5092,15 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             tile.ApplyOnlineAuthoritativeOwner(
                 ownerSlotIndex,
                 ownerMaterial);
         }
     }
+
+
 
 
     private void QueueFollowerMovementFrame(
@@ -4162,6 +5112,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         if (frame.pawnTileIndices != null &&
             frame.pawnTileIndices.Length > 0)
         {
@@ -4169,11 +5121,15 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 new int[frame.pawnTileIndices.Length];
 
 
+
+
             Array.Copy(
                 frame.pawnTileIndices,
                 latestFollowerPawnTileIndices,
                 frame.pawnTileIndices.Length);
         }
+
+
 
 
         if (followerNeedsInitialCheckpointSnap)
@@ -4190,6 +5146,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         if (frame.movementSequence <=
                 lastQueuedFollowerMovementSequence ||
             frame.movementPlayerSlotIndex < 0 ||
@@ -4199,6 +5157,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         {
             return;
         }
+
+
 
 
         followerMovementQueue.Enqueue(
@@ -4221,9 +5181,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             });
 
 
+
+
         lastQueuedFollowerMovementSequence =
             frame.movementSequence;
     }
+
+
 
 
     private void ProcessFollowerMovementQueue()
@@ -4238,13 +5202,19 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         FollowerMovementCommand command =
             followerMovementQueue.Peek();
+
+
 
 
         PlayerPawnMover pawn =
             FindPawnBySlotIndex(
                 command.PlayerSlotIndex);
+
+
 
 
         if (pawn == null ||
@@ -4254,7 +5224,11 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         followerMovementQueue.Dequeue();
+
+
 
 
         if (pawn.CurrentTileIndex ==
@@ -4263,6 +5237,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             ApplyFollowerPositionCorrections();
             return;
         }
+
+
 
 
         bool started =
@@ -4278,6 +5254,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 });
 
 
+
+
         if (!started)
         {
             // Put the command back at the front logically by rebuilding the
@@ -4287,7 +5265,11 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 new Queue<FollowerMovementCommand>();
 
 
+
+
             rebuilt.Enqueue(command);
+
+
 
 
             while (followerMovementQueue.Count > 0)
@@ -4297,6 +5279,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             while (rebuilt.Count > 0)
             {
                 followerMovementQueue.Enqueue(
@@ -4304,11 +5288,17 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             return;
         }
 
 
+
+
         followerMovementVisualActive = true;
+
+
 
 
         Debug.Log(
@@ -4323,6 +5313,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private void ApplyFollowerPositionCorrections()
     {
         if (localIsHost ||
@@ -4334,10 +5326,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         int count =
             Mathf.Min(
                 4,
                 latestFollowerPawnTileIndices.Length);
+
+
 
 
         for (int slotIndex = 0;
@@ -4348,14 +5344,20 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 latestFollowerPawnTileIndices[slotIndex];
 
 
+
+
             if (tileIndex < 0)
             {
                 continue;
             }
 
 
+
+
             PlayerPawnMover pawn =
                 FindPawnBySlotIndex(slotIndex);
+
+
 
 
             if (pawn == null ||
@@ -4365,10 +5367,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             pawn.SyncOnlineFollowerTileIndex(
                 tileIndex);
         }
     }
+
+
 
 
     private PlayerPawnMover FindPawnBySlotIndex(
@@ -4383,8 +5389,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             PlayerGameState player =
                 pawn.GetComponent<PlayerGameState>();
+
+
 
 
             if (player != null &&
@@ -4396,8 +5406,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         return null;
     }
+
+
 
 
     private void InitializeAuthoritativePawnCosmetics()
@@ -4412,10 +5426,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             };
 
 
+
+
         if (!localIsHost)
         {
             return;
         }
+
+
 
 
         if (startLobbySnapshot != null &&
@@ -4436,9 +5454,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 }
 
 
+
+
                 authoritativePawnCosmeticIds[
                     member.SlotIndex] =
                         member.PawnCosmeticId;
+
+
 
 
                 ApplyPawnCosmeticToSlot(
@@ -4448,8 +5470,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         RefreshHostControlledPawnCosmetics();
     }
+
+
 
 
     private void RefreshHostControlledPawnCosmetics()
@@ -4460,6 +5486,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         {
             return;
         }
+
+
 
 
         for (int slotIndex = 0;
@@ -4475,9 +5503,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             string cosmeticId =
                 GetCurrentPawnCosmeticId(
                     slotIndex);
+
+
 
 
             if (!string.IsNullOrWhiteSpace(
@@ -4491,6 +5523,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private bool IsRemoteHumanSlot(
         int slotIndex)
     {
@@ -4499,6 +5533,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         {
             return false;
         }
+
+
 
 
         AtlasLobbyMemberSnapshot member =
@@ -4511,10 +5547,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                             slotIndex);
 
 
+
+
         return member != null &&
                member.SeatMode ==
                    AtlasLobbySeatMode.RemoteHuman;
     }
+
+
 
 
     private string GetCurrentPawnCosmeticId(
@@ -4525,11 +5565,15 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 slotIndex);
 
 
+
+
         PawnCosmeticApplier applier =
             pawn != null
                 ? pawn.GetComponent<
                     PawnCosmeticApplier>()
                 : null;
+
+
 
 
         if (applier != null &&
@@ -4543,8 +5587,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         AtlasBoardPawnCosmeticService service =
             AtlasBoardPawnCosmeticService.Instance;
+
+
 
 
         PawnCosmeticDefinition fallback =
@@ -4554,10 +5602,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 : null;
 
 
+
+
         return fallback != null
             ? fallback.CosmeticId
             : string.Empty;
     }
+
+
 
 
     private bool ApplyPawnCosmeticToSlot(
@@ -4573,9 +5625,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         PlayerPawnMover pawn =
             FindPawnBySlotIndex(
                 slotIndex);
+
+
 
 
         PawnCosmeticApplier applier =
@@ -4585,11 +5641,15 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 : null;
 
 
+
+
         return applier != null &&
                applier
                    .ApplyOnlineAuthoritativeCosmeticId(
                        cosmeticId);
     }
+
+
 
 
     private void TryAcceptRemotePawnCosmetic(
@@ -4607,8 +5667,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         AtlasBoardPawnCosmeticService service =
             AtlasBoardPawnCosmeticService.Instance;
+
+
 
 
         if (service == null ||
@@ -4622,8 +5686,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 this);
 
 
+
+
             return;
         }
+
+
 
 
         authoritativePawnCosmeticIds[
@@ -4631,12 +5699,18 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 cosmeticId;
 
 
+
+
         ApplyPawnCosmeticToSlot(
             slotIndex,
             cosmeticId);
 
 
+
+
         nextPublishCheckAt = 0f;
+
+
 
 
         Debug.Log(
@@ -4644,6 +5718,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             $"for Remote P{slotIndex + 1}.",
             this);
     }
+
+
 
 
     private async Task
@@ -4658,12 +5734,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         // Phase 16H: a Remote must observe the authoritative match snapshot
         // before submitting revision-bound intents. During a cold start this
         // prevents cosmetic sync from racing the first matchGetSnapshot and
         // producing STALE_MATCH_CLIENT_STATE traffic.
         AtlasMatchNetworkSnapshot authoritativeSnapshot =
             matchBridge.CurrentSnapshot;
+
+
 
 
         if (authoritativeSnapshot == null ||
@@ -4678,11 +5758,17 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 Time.unscaledTime + 0.25f;
 
 
+
+
             return;
         }
 
 
+
+
         int slotToSubmit = -1;
+
+
 
 
         foreach (int slotIndex
@@ -4697,19 +5783,27 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         if (slotToSubmit < 0)
         {
             nextRemoteCosmeticSubmitAt =
                 float.PositiveInfinity;
 
 
+
+
             return;
         }
+
+
 
 
         string cosmeticId =
             GetCurrentPawnCosmeticId(
                 slotToSubmit);
+
+
 
 
         if (string.IsNullOrWhiteSpace(
@@ -4719,11 +5813,17 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 Time.unscaledTime + 1f;
 
 
+
+
             return;
         }
 
 
+
+
         remoteCosmeticSubmitInFlight = true;
+
+
 
 
         try
@@ -4740,6 +5840,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 };
 
 
+
+
             AtlasMatchNetworkResult result =
                 await matchBridge.SubmitIntentAsync(
                     "submit_decision",
@@ -4748,13 +5850,19 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     Guid.NewGuid().ToString("N"));
 
 
+
+
             if (result.Success)
             {
                 submittedRemoteCosmeticSlots.Add(
                     slotToSubmit);
 
 
+
+
                 nextRemoteCosmeticSubmitAt = 0f;
+
+
 
 
                 Debug.Log(
@@ -4768,6 +5876,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     Time.unscaledTime + 1f;
 
 
+
+
                 Debug.LogWarning(
                     "Phase 5E Remote pawn cosmetic sync failed: " +
                     result.TechnicalMessage,
@@ -4779,6 +5889,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             remoteCosmeticSubmitInFlight = false;
         }
     }
+
+
 
 
     private async void
@@ -4797,8 +5909,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 .NotifyOnlineRemotePurchaseSubmitFailed();
 
 
+
+
             return;
         }
+
+
 
 
         DecisionIntentPayload payload =
@@ -4818,6 +5934,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             };
 
 
+
+
         AtlasMatchNetworkResult result =
             await matchBridge.SubmitCriticalIntentAsync(
                 "submit_decision",
@@ -4826,10 +5944,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 Guid.NewGuid().ToString("N"));
 
 
+
+
         if (!result.Success)
         {
             tileResolutionManager?
                 .NotifyOnlineRemotePurchaseSubmitFailed();
+
+
 
 
             Debug.LogWarning(
@@ -4838,8 +5960,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 this);
 
 
+
+
             return;
         }
+
+
 
 
         Debug.Log(
@@ -4848,6 +5974,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             $"P{slotIndex + 1}, tile {tileIndex}.",
             this);
     }
+
+
 
 
     private async void HandleRemoteTravelDecisionRequested(
@@ -4863,6 +5991,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         AtlasMatchNetworkResult result =
             await SubmitDecisionAsync(
                 "travel",
@@ -4873,10 +6003,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 "travel");
 
 
+
+
         if (!result.Success)
         {
             tileResolutionManager?
                 .NotifyOnlineRemoteTravelSubmitFailed();
+
+
 
 
             Debug.LogWarning(
@@ -4885,6 +6019,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 this);
         }
     }
+
+
 
 
     private async void HandleRemoteSpecialContinueRequested(
@@ -4898,6 +6034,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         AtlasMatchNetworkResult result =
             await SubmitDecisionAsync(
                 "special",
@@ -4908,10 +6046,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 "special");
 
 
+
+
         if (!result.Success)
         {
             specialTileManager?
                 .NotifyOnlineRemoteContinueSubmitFailed();
+
+
 
 
             Debug.LogWarning(
@@ -4920,6 +6062,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 this);
         }
     }
+
+
 
 
     private async void HandleRemoteEventContinueRequested(
@@ -4933,6 +6077,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         AtlasMatchNetworkResult result =
             await SubmitDecisionAsync(
                 "event",
@@ -4943,10 +6089,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 "event");
 
 
+
+
         if (!result.Success)
         {
             eventCardManager?
                 .NotifyOnlineRemoteContinueSubmitFailed();
+
+
 
 
             Debug.LogWarning(
@@ -4955,6 +6105,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 this);
         }
     }
+
+
 
 
     private async void HandleRemoteAuctionDecisionRequested(
@@ -4971,8 +6123,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         int tileIndex =
             auctionManager.AuctionProperty.TileIndex;
+
+
 
 
         AtlasMatchNetworkResult result =
@@ -4985,10 +6141,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 "auction");
 
 
+
+
         if (!result.Success)
         {
             auctionManager?
                 .NotifyOnlineRemoteAuctionSubmitFailed();
+
+
 
 
             Debug.LogWarning(
@@ -4997,6 +6157,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 this);
         }
     }
+
+
 
 
     private async void HandleRemoteDevelopmentDecisionRequested(
@@ -5012,6 +6174,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         AtlasMatchNetworkResult result =
             await SubmitDecisionAsync(
                 "development",
@@ -5022,10 +6186,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 "development");
 
 
+
+
         if (!result.Success)
         {
             tileResolutionManager?
                 .NotifyOnlineRemoteDevelopmentSubmitFailed();
+
+
 
 
             Debug.LogWarning(
@@ -5034,6 +6202,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 this);
         }
     }
+
+
 
 
     private async void HandleRemoteTradeWindowChanged(
@@ -5047,6 +6217,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         AtlasMatchNetworkResult result =
             await SubmitDecisionAsync(
                 "trade_hold",
@@ -5057,6 +6229,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 "trade-hold");
 
 
+
+
         if (!result.Success)
         {
             Debug.LogWarning(
@@ -5065,6 +6239,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 this);
         }
     }
+
+
 
 
     private async void HandleRemoteTradeOfferRequested(
@@ -5084,6 +6260,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         DecisionIntentPayload payload =
             new DecisionIntentPayload
             {
@@ -5100,12 +6278,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             };
 
 
+
+
         AtlasMatchNetworkResult result =
             await matchBridge.SubmitCriticalIntentAsync(
                 "submit_decision",
                 JsonUtility.ToJson(payload),
                 "trade-offer-" +
                 Guid.NewGuid().ToString("N"));
+
+
 
 
         if (!result.Success)
@@ -5117,6 +6299,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 this);
         }
     }
+
+
 
 
     private async void HandleRemoteTradeResponseRequested(
@@ -5132,6 +6316,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         AtlasMatchNetworkResult result =
             await SubmitDecisionAsync(
                 "trade",
@@ -5140,6 +6326,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 -1,
                 string.Empty,
                 "trade-response");
+
+
 
 
         if (!result.Success)
@@ -5153,6 +6341,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private bool CanSubmitRemoteDecision(
         int slotIndex)
     {
@@ -5162,6 +6352,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                locallyControlledHumanSlots.Contains(
                    slotIndex);
     }
+
+
 
 
     private Task<AtlasMatchNetworkResult> SubmitDecisionAsync(
@@ -5183,12 +6375,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             };
 
 
+
+
         return matchBridge.SubmitCriticalIntentAsync(
             "submit_decision",
             JsonUtility.ToJson(payload),
             commandPrefix + "-" +
             Guid.NewGuid().ToString("N"));
     }
+
+
 
 
     private async Task SendMatchPresenceHeartbeatAsync()
@@ -5202,7 +6398,11 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         matchPresenceHeartbeatInFlight = true;
+
+
 
 
         try
@@ -5214,6 +6414,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             matchPresenceHeartbeatInFlight = false;
         }
     }
+
+
 
 
     private async Task SweepDisconnectedMatchSeatsAsync()
@@ -5228,7 +6430,11 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         disconnectedSeatSweepInFlight = true;
+
+
 
 
         try
@@ -5236,6 +6442,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             AtlasMatchNetworkResult result =
                 await matchBridge
                     .HostSweepDisconnectedAsync();
+
+
 
 
             if (!result.Success &&
@@ -5257,6 +6465,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private bool ShouldProbeCrashedHostRecovery()
     {
         if (!prepared ||
@@ -5271,8 +6481,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         AtlasMatchNetworkSnapshot snapshot =
             matchBridge.CurrentSnapshot;
+
+
 
 
         if (snapshot == null ||
@@ -5282,14 +6496,20 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         long now =
             DateTimeOffset.UtcNow
                 .ToUnixTimeMilliseconds();
 
 
+
+
         long staleForMs =
             now -
             snapshot.HostHeartbeatAtEpochMs;
+
+
 
 
         return staleForMs >=
@@ -5299,6 +6519,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     hostCrashSuspectAfterSeconds) *
                 1000f);
     }
+
+
 
 
     private async Task TryRecoverCrashedHostAsync()
@@ -5312,7 +6534,11 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         hostCrashRecoveryProbeInFlight = true;
+
+
 
 
         try
@@ -5320,6 +6546,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             AtlasMatchNetworkResult result =
                 await matchBridge
                     .TryRecoverCrashedHostAsync();
+
+
 
 
             if (!result.Success)
@@ -5336,8 +6564,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 }
 
 
+
+
                 return;
             }
+
+
 
 
             if (result.Snapshot != null &&
@@ -5357,6 +6589,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     public void RequestOnlineRematch()
     {
         if (!prepared ||
@@ -5368,8 +6602,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         RequestOnlineRematchAsync();
     }
+
+
 
 
     private async void RequestOnlineRematchAsync()
@@ -5377,10 +6615,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         rematchRequestInFlight = true;
 
 
+
+
         try
         {
             AtlasMatchNetworkResult result =
                 await matchBridge.HostPrepareRematchAsync();
+
+
 
 
             if (!result.Success)
@@ -5390,12 +6632,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     .NotifyOnlineRematchRequestFailed();
 
 
+
+
                 Debug.LogWarning(
                     "Phase 5F synchronized Rematch request failed: " +
                     result.TechnicalMessage,
                     this);
                 return;
             }
+
+
 
 
             Debug.Log(
@@ -5409,12 +6655,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     public bool TryHandleLeaveMatch()
     {
         if (!prepared)
         {
             return false;
         }
+
+
 
 
         // The player's leave intent was already accepted. Do not trap the
@@ -5425,6 +6675,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         if (localIsHost)
         {
             QueueHostMigrationLeave(
@@ -5433,9 +6685,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         LeaveActiveMatchAndReturnToMenuAsync();
         return true;
     }
+
+
 
 
     public bool TryHandleLeaveLobby()
@@ -5446,8 +6702,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         return false;
     }
+
+
 
 
     public bool TryHandleQuitGame()
@@ -5456,6 +6716,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         {
             return false;
         }
+
+
 
 
         if (leaveRequestInFlight || hostMigrationQueued)
@@ -5467,6 +6729,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         if (localIsHost)
         {
             QueueHostMigrationLeave(
@@ -5475,9 +6739,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         LeaveActiveMatchAndQuitAsync();
         return true;
     }
+
+
 
 
     private void QueueHostMigrationLeave(
@@ -5492,14 +6760,20 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         hostMigrationQueued = true;
         hostMigrationQuitAfterHandoff =
             quitAfterHandoff;
 
 
+
+
         // A pending network request can outlive the checkpoint loop. Keep
         // a wall-clock bound even when the async method is awaiting HTTP.
         StartCoroutine(HostLeaveWatchdog(preparedMatchId));
+
+
 
 
         Debug.Log(
@@ -5509,13 +6783,19 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             this);
 
 
+
+
         HostMigrateAtSafeCheckpointAsync();
     }
+
+
 
 
     private System.Collections.IEnumerator HostLeaveWatchdog(string matchId)
     {
         yield return new WaitForSecondsRealtime(7f);
+
+
 
 
         if (!hostMigrationQueued || !prepared || !localIsHost ||
@@ -5525,6 +6805,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         Debug.LogWarning(
             "AtlasBoard UX: host leave watchdog expired. Detaching UI; " +
             "server recovery must resolve the authoritative seat.", this);
@@ -5532,6 +6814,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         DetachLocalClientFromActiveMatch();
         if (quit) QuitApplicationNow();
     }
+
+
 
 
     private async void HostMigrateAtSafeCheckpointAsync()
@@ -5544,21 +6828,24 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         leaveRequestInFlight = true;
+
 
         try
         {
-            // Phase v5.40.9: Spark's two-human RTDB authority handoff is not
-            // yet accepted. The old migration path can strand a live follower
-            // indefinitely (match recovery repeatedly receives HTTP 200/null).
-            // For deliberate host departure, close the single host-owned
-            // room and let existing follower pollers return to the main menu.
-            // This does NOT claim crash recovery or automatic host election.
-            if (lobbyBridge != null && !lobbyBridge.UsingLocalEmulators)
+            // In Live Spark RTDB, a connected eligible Human successor should
+            // inherit via the existing checkpoint + authorityEpoch CAS.
+            // Close the lobby only when no eligible Human can inherit.
+            // v5.40.9 previously closed unconditionally, preventing migration.
+            if (lobbyBridge != null && !lobbyBridge.UsingLocalEmulators &&
+                !HasOtherConnectedRemoteHumanSeat())
             {
                 bool quitAfterClose = hostMigrationQuitAfterHandoff;
                 Task<AtlasLobbyOperationResult> closing =
                     lobbyBridge.CloseLobbyAsync();
+
 
                 if (quitAfterClose)
                 {
@@ -5572,15 +6859,17 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                             "cleanup_may_remain_pending=true", this);
                 }
 
+
                 DetachLocalClientFromActiveMatch();
                 if (!quitAfterClose)
                     _ = ObserveDetachedLobbyCloseAsync(closing,
                         "live-spark-host-with-human");
                 Debug.Log("ATB_RTDB_HOST_GRACEFUL_EXIT mode=close_room " +
-                    "host_migration_unverified=true", this);
+                    "reason=no_connected_human_successor", this);
                 if (quitAfterClose) QuitApplicationNow();
                 return;
             }
+
 
             if (!HasOtherConnectedRemoteHumanSeat())
             {
@@ -5593,11 +6882,17 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                         : null;
 
 
+
+
                 bool quitAfterClose =
                     hostMigrationQuitAfterHandoff;
 
 
+
+
                 DetachLocalClientFromActiveMatch();
+
+
 
 
                 if (pendingClose == null)
@@ -5608,12 +6903,18 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                         this);
 
 
+
+
                     if (quitAfterClose)
                         QuitApplicationNow();
 
 
+
+
                     return;
                 }
+
+
 
 
                 if (quitAfterClose)
@@ -5622,6 +6923,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     await Task.WhenAny(
                         pendingClose,
                         Task.Delay(1000));
+
+
 
 
                     QuitApplicationNow();
@@ -5634,8 +6937,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 }
 
 
+
+
                 return;
             }
+
+
 
 
             float migrationDeadline = Time.realtimeSinceStartup + 6f;
@@ -5655,6 +6962,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 }
 
 
+
+
                 if (!IsSafeHostMigrationCheckpoint() ||
                     hostIntentPollInFlight ||
                     hostPublishInFlight ||
@@ -5665,14 +6974,20 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 }
 
 
+
+
                 // Flush the exact final state before transferring authority.
                 await PublishHostStateIfChangedAsync();
+
+
 
 
                 if (!prepared || !localIsHost)
                 {
                     return;
                 }
+
+
 
 
                 if (!IsSafeHostMigrationCheckpoint() ||
@@ -5683,9 +6998,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 }
 
 
+
+
                 AtlasMatchNetworkResult result =
                     await matchBridge
                         .LeaveActiveMatchAsync();
+
+
 
 
                 if (!prepared || !localIsHost)
@@ -5693,6 +7012,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     // Watchdog already detached this client; do not revive it.
                     return;
                 }
+
+
 
 
                 if (!result.Success)
@@ -5708,15 +7029,23 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                             string.Empty;
 
 
+
+
                         nextPublishCheckAt = 0f;
+
+
 
 
                         await Task.Delay(
                             150);
 
 
+
+
                         continue;
                     }
+
+
 
 
                     Debug.LogWarning(
@@ -5731,11 +7060,17 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 }
 
 
+
+
                 bool quit =
                     hostMigrationQuitAfterHandoff;
 
 
+
+
                 DetachLocalClientFromActiveMatch();
+
+
 
 
                 Debug.Log(
@@ -5745,10 +7080,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     this);
 
 
+
+
                 if (quit)
                 {
                     QuitApplicationNow();
                 }
+
+
 
 
                 return;
@@ -5776,6 +7115,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private bool HasOtherConnectedRemoteHumanSeat()
     {
         AtlasMatchNetworkSnapshot snapshot =
@@ -5784,12 +7125,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 : null;
 
 
+
+
         if (snapshot == null ||
             snapshot.Seats == null)
         {
             // Conservative: if we do not know, use normal safe migration.
             return true;
         }
+
+
 
 
         foreach (AtlasMatchNetworkSeat seat
@@ -5805,6 +7150,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             if (!string.Equals(
                     seat.ConnectionState,
                     "connected",
@@ -5814,20 +7161,58 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             // Active remote Human seats are the only valid Host successors.
-            if (string.Equals(
-                    seat.SeatMode,
-                    "remote_human",
-                    StringComparison.OrdinalIgnoreCase))
-            {
+            if (IsEligibleRemoteHumanSuccessorWire(seat))
                 return true;
-            }
         }
+
+
 
 
         return false;
     }
 
+
+
+
+    // RTDB serializes this seat mode as "remotehuman"; older client models
+    // may spell it "remote_human". Never depend on a single spelling here.
+    private static bool IsEligibleRemoteHumanSuccessorWire(AtlasMatchNetworkSeat seat)
+    {
+        if (seat == null || seat.IsHost || seat.AfkLockedOut ||
+            IsBotControllerWire(seat.ControllerKind) ||
+            !string.Equals(seat.ConnectionState, "connected",
+                StringComparison.OrdinalIgnoreCase)) return false;
+        return string.Equals(seat.SeatMode, "remotehuman",
+                   StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(seat.SeatMode, "remote_human",
+                   StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static bool ValidateLiveHostSuccessorWireContract()
+    {
+        AtlasMatchNetworkSeat seat=new AtlasMatchNetworkSeat {
+            SeatMode="remotehuman", ControllerKind="human",
+            ConnectionState="connected", IsHost=false
+        };
+        if (!IsEligibleRemoteHumanSuccessorWire(seat)) return false;
+        seat.SeatMode="remote_human";
+        if (!IsEligibleRemoteHumanSuccessorWire(seat)) return false;
+        seat.SeatMode="remotehuman";
+        seat.ConnectionState="reconnecting";
+        if (IsEligibleRemoteHumanSuccessorWire(seat)) return false;
+        seat.ConnectionState="connected";
+        seat.ControllerKind="temporary_bot";
+        if (IsEligibleRemoteHumanSuccessorWire(seat)) return false;
+        seat.ControllerKind="human";
+        seat.AfkLockedOut=true;
+        if (IsEligibleRemoteHumanSuccessorWire(seat)) return false;
+        seat.AfkLockedOut=false;
+        seat.IsHost=true;
+        return !IsEligibleRemoteHumanSuccessorWire(seat);
+    }
 
     private static bool IsTransientHostMigrationNotSafe(
         AtlasMatchNetworkResult result)
@@ -5836,6 +7221,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         {
             return false;
         }
+
+
 
 
         if (string.Equals(
@@ -5847,12 +7234,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         return !string.IsNullOrWhiteSpace(
                    result.TechnicalMessage) &&
                result.TechnicalMessage.IndexOf(
                    "HOST_MIGRATION_NOT_SAFE_YET",
                    StringComparison.OrdinalIgnoreCase) >= 0;
     }
+
+
 
 
     private bool IsSafeHostMigrationCheckpoint()
@@ -5866,8 +7257,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         TurnDiceFrame frame =
             BuildHostFrame();
+
+
 
 
         if (frame == null ||
@@ -5877,6 +7272,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         {
             return false;
         }
+
+
 
 
         return string.Equals(
@@ -5894,12 +7291,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private void LeaveActiveMatchAndReturnToMenuAsync()
     {
         if (leaveRequestInFlight || matchBridge == null)
         {
             return;
         }
+
+
 
 
         leaveRequestInFlight = true;
@@ -5927,6 +7328,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private async Task ObserveDetachedLobbyCloseAsync(
         Task<AtlasLobbyOperationResult> pendingClose,
         string context)
@@ -5935,6 +7338,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         {
             AtlasLobbyOperationResult result =
                 await pendingClose;
+
+
 
 
             if (result == null || !result.Success)
@@ -5967,6 +7372,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private async Task ObserveDetachedLeaveAsync(
         Task<AtlasMatchNetworkResult> pendingLeave, string context)
     {
@@ -5993,6 +7400,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private async void LeaveActiveMatchAndQuitAsync()
     {
         if (leaveRequestInFlight || matchBridge == null)
@@ -6000,6 +7409,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             QuitApplicationNow();
             return;
         }
+
+
 
 
         leaveRequestInFlight = true;
@@ -6024,6 +7435,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private static void QuitApplicationNow()
     {
 #if UNITY_EDITOR
@@ -6032,6 +7445,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         Application.Quit();
 #endif
     }
+
+
 
 
     private void DetachLocalClientFromActiveMatch()
@@ -6055,15 +7470,21 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         lastObservedConnectionBySlot.Clear();
 
 
+
+
         AtlasBoardPrivateLobbyUIController privateLobby =
             FindSceneComponent<AtlasBoardPrivateLobbyUIController>();
         privateLobby?.NotifyActiveMatchClientDetached();
+
+
 
 
         AtlasBoardMainMenuController mainMenu =
             FindSceneComponent<AtlasBoardMainMenuController>();
         mainMenu?.ShowMainMenuAfterActiveMatchExit();
     }
+
+
 
 
     private void HandleActiveMatchLobbyAccessLost(string reason)
@@ -6073,10 +7494,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 StringComparison.OrdinalIgnoreCase))
             return;
 
+
         Debug.Log("ATB_RTDB_FOLLOWER_HOST_LEFT response=return_to_menu " +
             "migration_attempted=false", this);
         DetachLocalClientFromActiveMatch();
     }
+
+
 
 
     private void HandleLobbySnapshotChanged(
@@ -6088,8 +7512,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         AtlasLobbySnapshot previous = startLobbySnapshot;
         startLobbySnapshot = snapshot;
+
+
 
 
         bool returnedForRematch =
@@ -6102,6 +7530,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             string.IsNullOrWhiteSpace(snapshot.MatchId);
 
 
+
+
         if (returnedForRematch)
         {
             prepared = false;
@@ -6112,8 +7542,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             preparedMatchId = string.Empty;
 
 
+
+
             ResetRuntimePresentationForNewMatchSession(
                 string.Empty);
+
+
 
 
             // Waiting-lobby membership becomes authoritative again only after
@@ -6121,11 +7555,15 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             ApplyLobbyIdentitySnapshot(snapshot);
 
 
+
+
             AtlasBoardMainMenuController mainMenu =
                 FindSceneComponent<AtlasBoardMainMenuController>();
             mainMenu?.ReturnOnlineMatchToLobby();
             return;
         }
+
+
 
 
         // CRITICAL: while a match is Starting/InMatch, lobby membership is not
@@ -6141,6 +7579,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private void ResetRuntimePresentationForNewMatchSession(
         string matchId)
     {
@@ -6149,6 +7589,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         ResolveMatchResultManager();
         ResolveTabletUIManager();
         ResolveHumanRollTimeoutController();
+
+
 
 
         MatchSetupManager reusableSetup =
@@ -6165,12 +7607,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             FindSceneComponent<PropertyDevelopmentManager>();
 
 
+
+
         reusableSetup?.ResetForNewMatchSession();
         resolution?.ResetForNewMatchSession();
         special?.ResetForNewMatchSession();
         events?.ResetForNewMatchSession();
         auction?.ResetForNewMatchSession();
         development?.ResetAllDevelopmentsForNewMatch();
+
+
 
 
         turnManager?.ResetForOnlineLobbySession();
@@ -6180,10 +7626,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         humanRollTimeoutController?.ResetForNewMatchSession();
 
 
+
+
         if (matchBridge != null)
         {
             matchBridge.ResetForMatchSession(matchId);
         }
+
+
 
 
         followerMovementQueue.Clear();
@@ -6194,6 +7644,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         lastObservedConnectionBySlot.Clear();
         localAfkExitScheduled = false;
     }
+
+
 
 
     private static bool OnlineSeatMirrorNeedsApply(
@@ -6210,10 +7662,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         string expectedController =
             controllerKind ?? string.Empty;
         string expectedConnection =
             connectionState ?? string.Empty;
+
+
 
 
         bool identityChanged =
@@ -6222,6 +7678,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 player.DisplayName,
                 displayName.Trim(),
                 StringComparison.Ordinal);
+
+
 
 
         return identityChanged ||
@@ -6240,6 +7698,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private void ApplyLobbyIdentitySnapshot(
         AtlasLobbySnapshot snapshot)
     {
@@ -6251,12 +7711,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         // Lobby heartbeat/snapshot reads are presentation deltas, not a reason
         // to clear and rebuild all four seats. The previous clear->disable->
         // enable sequence restarted Bot AI and caused HUD churn even when the
         // authoritative lobby state had not changed.
         AtlasLobbyMemberSnapshot[] activeMembers =
             new AtlasLobbyMemberSnapshot[4];
+
+
 
 
         foreach (AtlasLobbyMemberSnapshot member in snapshot.Members)
@@ -6270,11 +7734,17 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             activeMembers[member.SlotIndex] = member;
         }
 
 
+
+
         bool presentationChanged = false;
+
+
 
 
         for (int slotIndex = 0;
@@ -6285,14 +7755,20 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 turnManager.GetPlayerStateBySlotIndex(slotIndex);
 
 
+
+
             if (player == null)
             {
                 continue;
             }
 
 
+
+
             AtlasLobbyMemberSnapshot member =
                 activeMembers[slotIndex];
+
+
 
 
             if (member == null)
@@ -6304,8 +7780,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 }
 
 
+
+
                 continue;
             }
+
+
 
 
             string controllerWire =
@@ -6315,6 +7795,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             bool afkLockedOut =
                 member.ConnectionState ==
                 AtlasSeatConnectionState.AfkRemoved;
+
+
 
 
             if (OnlineSeatMirrorNeedsApply(
@@ -6335,6 +7817,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             // Waiting-lobby metadata is not gameplay AI authority.
             // MatchSetup owns first-session Bot activation and matchState owns
             // all later Human/TemporaryBot/PermanentBot transitions. Keeping
@@ -6343,11 +7827,15 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         if (presentationChanged)
         {
             turnManager.RefreshTurnPresentationForControlChange();
         }
     }
+
+
 
 
     private void ApplyOnlineSeatMetadata(
@@ -6361,10 +7849,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         ResolveTabletUIManager();
 
 
+
+
         bool presentationChanged = false;
+
+
 
 
         foreach (AtlasMatchNetworkSeat seat in snapshot.Seats)
@@ -6375,14 +7869,20 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             PlayerGameState player =
                 turnManager.GetPlayerStateBySlotIndex(seat.SlotIndex);
+
+
 
 
             if (player == null)
             {
                 continue;
             }
+
+
 
 
             string previousController =
@@ -6393,12 +7893,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     : string.Empty;
 
 
+
+
             string previousConnection =
                 lastObservedConnectionBySlot.TryGetValue(
                     seat.SlotIndex,
                     out string priorConnection)
                     ? priorConnection
                     : string.Empty;
+
+
 
 
             if (OnlineSeatMirrorNeedsApply(
@@ -6419,8 +7923,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             BotPlayerController bot =
                 player.GetComponent<BotPlayerController>();
+
+
 
 
             if (bot != null)
@@ -6433,6 +7941,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     IsBotControllerWire(seat.ControllerKind);
 
 
+
+
                 if (bot.BotEnabled != botControlled)
                 {
                     bot.SetBotEnabled(botControlled);
@@ -6441,9 +7951,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             bool firstObservation =
                 string.IsNullOrWhiteSpace(previousController) &&
                 string.IsNullOrWhiteSpace(previousConnection);
+
+
 
 
             if (!firstObservation &&
@@ -6463,10 +7977,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
+
+
             lastObservedControllerBySlot[seat.SlotIndex] =
                 seat.ControllerKind ?? string.Empty;
             lastObservedConnectionBySlot[seat.SlotIndex] =
                 seat.ConnectionState ?? string.Empty;
+
+
 
 
             bool localSeat =
@@ -6475,6 +7993,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     snapshot.LocalSeatId,
                     seat.SeatId,
                     StringComparison.Ordinal);
+
+
 
 
             if (localSeat &&
@@ -6489,6 +8009,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         // Match revisions also advance for gameplay state. A dice/movement/
         // economy publish must not force HUD/layout/controller refresh when
         // role, identity and connection metadata are unchanged.
@@ -6497,6 +8019,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             turnManager.RefreshTurnPresentationForControlChange();
         }
     }
+
+
 
 
     private void ShowSeatLifecycleNotice(
@@ -6510,15 +8034,21 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         string name =
             string.IsNullOrWhiteSpace(seat.DisplayName)
                 ? $"Player {seat.SlotIndex + 1}"
                 : seat.DisplayName;
 
 
+
+
         string controller = seat.ControllerKind ?? string.Empty;
         string connection = seat.ConnectionState ?? string.Empty;
         string message = string.Empty;
+
+
 
 
         if (string.Equals(controller, "temporary_bot", StringComparison.OrdinalIgnoreCase) ||
@@ -6547,12 +8077,16 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 string.Equals(seat.RemovalReason, "afk", StringComparison.OrdinalIgnoreCase);
 
 
+
+
             message = afk
                 ? AtlasBoardOnlineRuntimeText
                     .SeatAfkRemoved(name)
                 : AtlasBoardOnlineRuntimeText
                     .SeatReconnectExpired(name);
         }
+
+
 
 
         if (!string.IsNullOrWhiteSpace(message))
@@ -6562,10 +8096,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private IEnumerator RouteAfkRemovedLocalClientAfterNotice(
         string displayName)
     {
         ResolveTabletUIManager();
+
+
 
 
         string name =
@@ -6574,13 +8112,19 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 : displayName;
 
 
+
+
         tabletUIManager?.ShowOnlineSeatNotice(
             AtlasBoardOnlineRuntimeText
                 .LocalAfkRemoved(name),
             3f);
 
 
+
+
         yield return new WaitForSecondsRealtime(3f);
+
+
 
 
         AtlasBoardPrivateLobbyUIController privateLobby =
@@ -6588,9 +8132,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         privateLobby?.NotifyActiveMatchClientDetached();
 
 
+
+
         AtlasBoardMainMenuController mainMenu =
             FindSceneComponent<AtlasBoardMainMenuController>();
         mainMenu?.ShowMainMenuAfterActiveMatchExit();
+
+
 
 
         if (!localIsHost)
@@ -6608,6 +8156,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private async void HandleHostAfkRemovalTriggered(
         PlayerGameState player,
         int resultingStreak)
@@ -6621,9 +8171,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         AtlasMatchNetworkResult result =
             await matchBridge.HostMarkAfkRemovedAsync(
                 player.PlayerSlotIndex);
+
+
 
 
         if (!result.Success)
@@ -6636,8 +8190,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         nextPublishCheckAt = 0f;
     }
+
+
 
 
     private async void HandleOnlineTripleDoublePenaltyContinueRequested(
@@ -6651,6 +8209,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         AtlasMatchNetworkResult result =
             await SubmitDecisionAsync(
                 "triple_double_penalty",
@@ -6659,6 +8219,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 -1,
                 string.Empty,
                 "triple-double-penalty");
+
+
 
 
         if (!result.Success)
@@ -6670,6 +8232,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 this);
         }
     }
+
+
 
 
     private async Task ExpireReconnectReservationsAsync()
@@ -6684,13 +8248,19 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         reconnectExpiryInFlight = true;
+
+
 
 
         try
         {
             AtlasMatchNetworkResult result =
                 await matchBridge.HostExpireReconnectsAsync();
+
+
 
 
             if (!result.Success)
@@ -6708,6 +8278,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private static string ResolveLobbyControllerWire(
         AtlasLobbyMemberSnapshot member)
     {
@@ -6717,14 +8289,20 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         string explicitController =
             ControllerKindToWire(member.ControllerKind);
+
+
 
 
         if (!string.IsNullOrWhiteSpace(explicitController))
         {
             return explicitController;
         }
+
+
 
 
         // Waiting-lobby snapshots may legitimately omit controllerKind. Seat
@@ -6736,6 +8314,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 return "bot";
 
 
+
+
             case AtlasLobbySeatMode.HostLocal:
             case AtlasLobbySeatMode.LocalHuman:
             case AtlasLobbySeatMode.RemoteHuman:
@@ -6743,10 +8323,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 return "human";
 
 
+
+
             default:
                 return string.Empty;
         }
     }
+
+
 
 
     private static bool IsBotControllerWire(
@@ -6767,6 +8351,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private static string ControllerKindToWire(
         AtlasSeatControllerKind kind)
     {
@@ -6782,6 +8368,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 return string.Empty;
         }
     }
+
+
 
 
     private static string ConnectionStateToWire(
@@ -6805,10 +8393,14 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     }
 
 
+
+
     private static T FindSceneComponent<T>()
         where T : Component
     {
         T[] all = Resources.FindObjectsOfTypeAll<T>();
+
+
 
 
         foreach (T item in all)
@@ -6820,8 +8412,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         return null;
     }
+
+
 
 
     private int ResolveSlotIndex(
@@ -6842,11 +8438,15 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                                 StringComparison.Ordinal));
 
 
+
+
             if (seat != null)
             {
                 return seat.SlotIndex;
             }
         }
+
+
 
 
         if (startLobbySnapshot != null &&
@@ -6863,6 +8463,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                                 StringComparison.Ordinal));
 
 
+
+
             if (member != null)
             {
                 return member.SlotIndex;
@@ -6870,8 +8472,12 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         return -1;
     }
+
+
 
 
     private string ResolveSeatId(
@@ -6889,6 +8495,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                             item.SlotIndex == slotIndex);
 
 
+
+
             if (member != null &&
                 !string.IsNullOrWhiteSpace(
                     member.SeatId))
@@ -6896,6 +8504,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 return member.SeatId;
             }
         }
+
+
 
 
         if (matchBridge != null &&
@@ -6910,6 +8520,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                             item.SlotIndex == slotIndex);
 
 
+
+
             if (seat != null)
             {
                 return seat.SeatId ?? string.Empty;
@@ -6917,7 +8529,11 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         }
 
 
+
+
         return string.Empty;
     }
 }
+
+
 

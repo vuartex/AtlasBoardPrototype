@@ -41,6 +41,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         public string hostUid, mode, mapId, themeId, passwordHash, inviteCode;
         public long createdAt, updatedAt;
         public string activeMatchId;
+        public int authorityEpoch;
         public bool closed;
         public int maxPlayers, roundLimit;
     }
@@ -164,6 +165,8 @@ public static class AtlasBoardRtdbCasualLobbyTransport
                     return await CreateAsync(request, uid, token, displayName, false);
                 case "lobbyCreatePublicRoom":
                     return await CreateAsync(request, uid, token, displayName, true);
+                case "lobbyCloseOwnedWaitingRooms":
+                    return await CloseOwnedWaitingRoomsOnConsentAsync(uid, token, activeRoom);
                 case "lobbyJoinByCode":
                 {
                     Response code = await Send("GET", "joinCodes/" + Safe(request.roomCode), token);
@@ -280,21 +283,29 @@ public static class AtlasBoardRtdbCasualLobbyTransport
     // Conditional PUT + null_etag prevents two hosts from claiming one code.
     private const int MaxPriorHostRooms = 10;
     private const int MaxOwnedRoomScan = MaxPriorHostRooms + 1;
-    private const long DormantRoomAgeMs = 24L * 60L * 60L * 1000L;
+    private const long DormantRoomAgeMs = 3L * 60L * 60L * 1000L;
     // Guard an owner's current match + one new room. This is client-side flow
     // control, NOT a server-enforced global quota; malicious API clients need
     // an authenticated backend admission service for a hard abuse bound.
+    // Quota checks fetch at most 11 records; full owner cleanup deliberately
+    // enumerates ALL records with this UID via the indexed, UID-restricted rule.
+    // A limitToFirst=11 cleanup query could never see stale rows behind 11
+    // fresh/closed rows; it MUST NOT be reused for full enumeration.
     private static async Task<(bool success, List<KeyValuePair<string,Meta>> rooms)>
-        ReadOwnedRoomMetadataAsync(string uid, string token)
+        ReadOwnedRoomMetadataAsync(string uid, string token, bool fullOwnerScan = false)
     {
         var result = new List<KeyValuePair<string,Meta>>(MaxOwnedRoomScan);
         if (string.IsNullOrEmpty(uid) || string.IsNullOrEmpty(token))
             return (false, result);
-        // Match the REST query encoding used by the existing Public directory.
-        string query = "orderBy=%22hostUid%22&equalTo=%22" + Safe(uid) +
-            "%22&limitToFirst=" + MaxOwnedRoomScan;
-        Response response = await Send("GET", "roomMeta", token, query:query);
-        if (!response.Ok) return (false, result);
+        string query = "orderBy=%22hostUid%22&equalTo=%22" + Safe(uid) + "%22" +
+            (fullOwnerScan ? string.Empty : "&limitToFirst=" + MaxOwnedRoomScan);
+        Response response = await Send("GET", "roomMeta", token, query: query);
+        if (!response.Ok)
+        {
+            Debug.LogWarning("ATB_RTDB_OWNER_SCAN success=false http=" + response.Code +
+                " full_owner_scan=" + fullOwnerScan);
+            return (false, result);
+        }
         foreach (KeyValuePair<string,string> node in JsonObjectMembers(response.Body))
         {
             Meta meta = Parse<Meta>(node.Value);
@@ -305,70 +316,647 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         return (true, result);
     }
 
-    // Live Spark only: never delete someone else's room, our currently selected
-    // room, or a room with any recent activity. A fresh read is mandatory even
-    // if the earlier indexed scan identified a candidate.
+    // A 3-hour room is NOT automatically an orphan. We independently check
+    // host UID, last activity, authoritative lobby, and (for started matches)
+    // the match heartbeat + every saved Human heartbeat before deleting it.
+    // Failed/ambiguous reads are always SKIPPED, never interpreted as offline.
+    [Serializable] private sealed class MatchLease
+    {
+        public string matchId, lobbyId, hostUid, status;
+        public long createdAt, updatedAt, hostHeartbeatAt;
+        public int authorityEpoch;
+    }
+    [Serializable] private sealed class PresenceLease
+    {
+        public bool online;
+        public long lastSeenAt;
+    }
+
+    private static bool IsIdleForThreeHours(MatchLease match, Meta meta,
+        string room, string uid, long now)
+    {
+        return match != null && meta != null &&
+            match.matchId == meta.activeMatchId && match.lobbyId == room &&
+            string.Equals(match.hostUid, uid, StringComparison.Ordinal) &&
+            match.authorityEpoch == meta.authorityEpoch &&
+            match.createdAt > 0 && match.updatedAt > 0 &&
+            match.hostHeartbeatAt > 0 &&
+            match.createdAt <= now - DormantRoomAgeMs &&
+            match.updatedAt <= now - DormantRoomAgeMs &&
+            match.hostHeartbeatAt <= now - DormantRoomAgeMs;
+    }
+
+    // Owner-only automatic collection. After THREE hours with no recorded
+    // activity, abandoned pre-start and disconnected matches become eligible.
+    // Any HTTP/identity ambiguity and any recent activity remain fail-closed.
     public static async Task<(bool scanned, int found, int deleted)>
         CleanupOwnedDormantRoomsAsync(string uid, string token,
-            string activeRoom, int maxDeletes = 10)
+            string activeRoom, int maxDeletes = 0)
     {
-        var scan = await ReadOwnedRoomMetadataAsync(uid, token);
+        var scan = await ReadOwnedRoomMetadataAsync(uid, token, true);
         if (!scan.success) return (false, 0, 0);
-        long now = Now();
-        int removed = 0;
-        int limit = Mathf.Clamp(maxDeletes, 0, MaxPriorHostRooms);
+        int deleted = 0, eligible = 0, failed = 0, protectedRooms = 0;
+        int max = maxDeletes <= 0 ? int.MaxValue : Mathf.Clamp(maxDeletes, 1, MaxPriorHostRooms);
         scan.rooms.Sort((a,b) => a.Value.createdAt.CompareTo(b.Value.createdAt));
         foreach (var entry in scan.rooms)
         {
-            if (removed >= limit) break;
+            if (deleted >= max) break;
             string room = entry.Key;
-            if (string.IsNullOrWhiteSpace(room) ||
-                string.Equals(room, activeRoom, StringComparison.Ordinal)) continue;
-            Meta indexed = entry.Value;
-            if (!IsDormantCandidate(indexed, uid, now)) continue;
+            if (string.IsNullOrWhiteSpace(room) || room == activeRoom ||
+                !IsDormantCandidate(entry.Value, uid, Now()))
+            {
+                protectedRooms++;
+                LogRoomCleanupDecision("startup_3h", room,
+                    CleanupProtected(room == activeRoom ? "current_room" : "not_3h_dormant_candidate"),
+                    entry.Value, null);
+                continue;
+            }
             SemaphoreSlim gate = GetRoomWriterGate(room);
             await gate.WaitAsync();
             try
             {
-                Response check = await Send("GET", "roomMeta/" + Safe(room), token);
-                Meta latest = check.Ok ? Parse<Meta>(check.Body) : null;
-                if (!IsDormantCandidate(latest, uid, Now())) continue;
-                // Active matches can remain live for >24h: protect them even if
-                // the lobby metadata itself was not refreshed by gameplay.
-                if (!string.IsNullOrWhiteSpace(latest.activeMatchId))
-                    continue; // Started matches need authoritative presence proof.
-                Response state = await Send("GET", "roomState/" + Safe(room), token);
-                State wire = state.Ok ? Parse<State>(state.Body) : null;
-                AtlasLobbySnapshot snap = wire != null
-                    ? Parse<AtlasLobbySnapshot>(wire.snapshotJson) : null;
-                if (!state.Ok || snap == null ||
-                    !string.Equals(snap.HostAccountId, uid, StringComparison.Ordinal) ||
-                    snap.LifecycleState != AtlasRoomLifecycleState.Waiting ||
-                    !string.IsNullOrWhiteSpace(snap.MatchId)) continue;
-                AtlasLobbyOperationResult closed = await CloseAsync(room, uid, token);
-                if (closed.Success) removed++;
+                Response metaRead = await Send("GET", "roomMeta/" + Safe(room), token);
+                Meta latest = metaRead.Ok ? Parse<Meta>(metaRead.Body) : null;
+                if (!IsDormantCandidate(latest, uid, Now()))
+                {
+                    protectedRooms++;
+                    LogRoomCleanupDecision("startup_3h", room,
+                        CleanupUnknown(metaRead.Ok ? "metadata_changed_since_scan" :
+                            "room_meta_http_" + metaRead.Code), entry.Value, null);
+                    continue;
+                }
+                Response stateRead = await Send("GET", "roomState/" + Safe(room), token);
+                if (!stateRead.Ok)
+                {
+                    failed++;
+                    LogRoomCleanupDecision("startup_3h", room,
+                        CleanupUnknown("room_state_http_" + stateRead.Code), latest, null);
+                    continue;
+                }
+                State wire = Parse<State>(stateRead.Body);
+                AtlasLobbySnapshot snap = wire == null ? null : Parse<AtlasLobbySnapshot>(wire.snapshotJson);
+                RoomCleanupDecision decision = string.IsNullOrWhiteSpace(latest.activeMatchId)
+                    ? (snap != null && !string.IsNullOrWhiteSpace(snap.MatchId)
+                        ? await VerifyUnanchoredStartingMatchAsync(latest, wire, snap,
+                            room, uid, token, DormantRoomAgeMs)
+                        : EvaluateStalePreMatchRoom(latest, wire, snap, uid,
+                            Now(), DormantRoomAgeMs))
+                    : await VerifyMatchInactiveAsync(latest, snap, room, uid, token,
+                        DormantRoomAgeMs, DormantRoomAgeMs);
+                LogRoomCleanupDecision("startup_3h", room, decision, latest, snap);
+                if (!decision.Eligible)
+                {
+                    protectedRooms++;
+                    continue;
+                }
+                eligible++;
+                AtlasLobbyOperationResult result = await CloseAsync(room, uid, token,
+                    true, latest.updatedAt, DormantRoomAgeMs);
+                if (result.Success) deleted++; else failed++;
             }
             catch (Exception ex)
             {
+                failed++;
                 Debug.LogWarning("ATB_RTDB_ORPHAN_CLEANUP failed=true category=" +
                     ex.GetType().Name);
             }
             finally { gate.Release(); }
+            await Task.Yield();
         }
         Debug.Log("ATB_RTDB_ORPHAN_CLEANUP scanned=true owner_only=true " +
-            "max_scan=11 found=" + scan.rooms.Count +
-            " deleted=" + removed + " age_min_hours=24 " +
-            "active_matches_skipped=true");
-        return (true, scan.rooms.Count, removed);
+            "full_scan=true found=" + scan.rooms.Count + " eligible=" + eligible +
+            " deleted=" + deleted + " failed=" + failed +
+            " protected=" + protectedRooms + " age_min_hours=3 " +
+            "remaining_eligible=" + Math.Max(0, eligible - deleted) +
+            " active_match_protected_by_presence=true");
+        return (true, scan.rooms.Count, deleted);
+    }
+
+    // The ONLY opt-in path. No room creation-age gate, but at least ten
+    // minutes without authoritative activity is required before closure.
+    // A started match is eligible only after all its authoritative leases have
+    // been idle for the entire reconnect window, not simply because its owner
+    // pressed OK. Startup orphan collection retains its separate 3h policy.
+    // Intentional: the game seat-reconnect deadline remains five minutes.
+    // Consent cleanup requires TEN minutes of inactivity, not a shortened reconnect deadline.
+    private const long ConsentMatchOfflineGraceMs = 10L * 60L * 1000L;
+
+    // Diagnostics only: a protected room is NOT automatically a live match.
+    // The fingerprint remains stable across restarts without printing room codes,
+    // tokens, account UIDs or actual lobby identifiers.
+    private readonly struct RoomCleanupDecision
+    {
+        internal readonly bool Eligible;
+        internal readonly bool Unknown;
+        internal readonly string Reason;
+        internal RoomCleanupDecision(bool eligible, bool unknown, string reason)
+        {
+            Eligible = eligible;
+            Unknown = unknown;
+            Reason = reason;
+        }
+    }
+
+    private static RoomCleanupDecision CleanupEligible(string reason) =>
+        new RoomCleanupDecision(true, false, reason);
+    private static RoomCleanupDecision CleanupProtected(string reason) =>
+        new RoomCleanupDecision(false, false, reason);
+    private static RoomCleanupDecision CleanupUnknown(string reason) =>
+        new RoomCleanupDecision(false, true, reason);
+
+    private static string RoomDiagnosticReference(string room)
+    {
+        // Collision-resistant reference; intentionally not an invite code.
+        using (SHA256 sha = SHA256.Create())
+        {
+            byte[] bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(room ?? string.Empty));
+            var label = new StringBuilder(12);
+            for (int i = 0; i < 6; i++) label.Append(bytes[i].ToString("x2"));
+            return label.ToString();
+        }
+    }
+
+    private static long RoomDiagnosticAgeSeconds(long timestampMs, long nowMs)
+    {
+        return timestampMs <= 0 ? -1 : Math.Max(0, (nowMs - timestampMs) / 1000L);
+    }
+
+    private static void LogRoomCleanupDecision(string scope, string room,
+        RoomCleanupDecision decision, Meta m, AtlasLobbySnapshot snapshot)
+    {
+        long now = Now();
+        string phase = snapshot == null ? "unknown" : snapshot.LifecycleState.ToString();
+        // No room ID/UID/invite code, no Firebase URLs, no raw backend JSON.
+        Debug.Log("ATB_RTDB_ROOM_DIAG scope=" + scope +
+            " room_ref=" + RoomDiagnosticReference(room) +
+            " action=" + (decision.Eligible ? "candidate" : "protected") +
+            " category=" + (decision.Unknown ? "unknown" : "verified") +
+            " reason=" + decision.Reason +
+            " phase=" + phase +
+            " closed=" + (m != null && m.closed) +
+            " started=" + (m != null && !string.IsNullOrWhiteSpace(m.activeMatchId)) +
+            " created_age_s=" + (m == null ? -1 : RoomDiagnosticAgeSeconds(m.createdAt, now)) +
+            " updated_age_s=" + (m == null ? -1 : RoomDiagnosticAgeSeconds(m.updatedAt, now)));
+    }
+
+    private static RoomCleanupDecision EvaluateConsentMatchLease(
+        MatchLease lease, Meta m, string room, string uid, long now)
+    {
+        if (lease == null) return CleanupUnknown("match_state_missing_or_invalid");
+        if (m == null) return CleanupUnknown("room_meta_missing");
+        if (lease.matchId != m.activeMatchId || lease.lobbyId != room)
+            return CleanupUnknown("match_anchor_mismatch");
+        if (!string.Equals(lease.hostUid, uid, StringComparison.Ordinal))
+            return CleanupUnknown("match_host_mismatch");
+        if (lease.authorityEpoch != m.authorityEpoch)
+            return CleanupUnknown("authority_epoch_mismatch");
+        if (lease.updatedAt <= 0 || lease.hostHeartbeatAt <= 0)
+            return CleanupUnknown("match_lease_timestamp_missing");
+        if (lease.updatedAt > now - ConsentMatchOfflineGraceMs)
+            return CleanupProtected("match_updated_recent_age_s_" +
+                RoomDiagnosticAgeSeconds(lease.updatedAt, now));
+        if (lease.hostHeartbeatAt > now - ConsentMatchOfflineGraceMs)
+            return CleanupProtected("host_heartbeat_recent_age_s_" +
+                RoomDiagnosticAgeSeconds(lease.hostHeartbeatAt, now));
+        return CleanupEligible("match_lease_idle_over_10m");
+    }
+
+    private static bool IsTimestampIdle(long timestamp, long now, long idleMs)
+    {
+        return timestamp > 0 && timestamp <= now - idleMs;
+    }
+
+    // A legacy room may be stranded in Starting with no matchId, or its
+    // roomState may be missing entirely. Neither condition proves a live game.
+    // Only owner+idle metadata, idle roomState, and NO match anchor can release it.
+    private static RoomCleanupDecision EvaluateStalePreMatchRoom(
+        Meta m, State wire, AtlasLobbySnapshot snap, string uid, long now, long idleMs)
+    {
+        if (m == null || m.hostUid != uid)
+            return CleanupUnknown("metadata_owner_missing_or_changed");
+        if (!string.IsNullOrWhiteSpace(m.activeMatchId))
+            return CleanupUnknown("active_match_anchor_present");
+        if (!IsTimestampIdle(m.createdAt, now, idleMs))
+            return CleanupProtected("room_created_recent");
+        if (!m.closed && !IsTimestampIdle(m.updatedAt, now, idleMs))
+            return CleanupProtected("room_meta_updated_recent_age_s_" +
+                RoomDiagnosticAgeSeconds(m.updatedAt, now));
+        if (wire != null && !IsTimestampIdle(wire.updatedAt, now, idleMs))
+            return CleanupProtected("room_state_updated_recent_age_s_" +
+                RoomDiagnosticAgeSeconds(wire.updatedAt, now));
+        if (snap != null)
+        {
+            if (snap.HostAccountId != uid)
+                return CleanupUnknown("snapshot_host_mismatch");
+            if (!string.IsNullOrWhiteSpace(snap.MatchId))
+                return CleanupUnknown("snapshot_match_anchor_present");
+            if (snap.LifecycleState != AtlasRoomLifecycleState.Waiting &&
+                snap.LifecycleState != AtlasRoomLifecycleState.Starting)
+                return CleanupUnknown("unrecognized_prematch_lifecycle");
+        }
+        return CleanupEligible(snap == null ? "stale_missing_snapshot_repair" :
+            snap.LifecycleState == AtlasRoomLifecycleState.Starting
+                ? "stale_starting_without_match" : "idle_waiting_room");
+    }
+
+    // Never equate a stale roomMeta timestamp with a stale match. A started
+    // match also requires stale host writes and *all* human presence records.
+    private static async Task<RoomCleanupDecision> VerifyMatchInactiveAsync(
+        Meta m, AtlasLobbySnapshot snap, string room, string uid, string token,
+        long hostIdleMs, long presenceIdleMs)
+    {
+        if (m == null || m.hostUid != uid ||
+            string.IsNullOrWhiteSpace(m.activeMatchId))
+            return CleanupUnknown("invalid_match_owner_or_anchor");
+        if (snap == null || snap.HostAccountId != uid ||
+            snap.MatchId != m.activeMatchId)
+            return CleanupUnknown("snapshot_match_anchor_mismatch");
+        Response matchRead = await Send("GET", "matchState/" + Safe(m.activeMatchId), token);
+        if (!matchRead.Ok)
+            return CleanupUnknown("match_state_http_" + matchRead.Code);
+        MatchLease lease = Parse<MatchLease>(matchRead.Body);
+        if (lease == null)
+            return CleanupUnknown("match_state_missing_or_invalid");
+        if (lease.lobbyId != room || lease.matchId != m.activeMatchId ||
+            lease.hostUid != uid || lease.authorityEpoch != m.authorityEpoch)
+            return CleanupUnknown("match_authority_or_anchor_mismatch");
+        long now = Now();
+        if (!IsTimestampIdle(lease.updatedAt, now, hostIdleMs) ||
+            !IsTimestampIdle(lease.hostHeartbeatAt, now, hostIdleMs))
+            return CleanupProtected("match_host_updated_recent_or_invalid");
+        Response presence = await Send("GET", "matchPresence/" + Safe(m.activeMatchId), token);
+        if (!presence.Ok)
+            return CleanupUnknown("match_presence_http_" + presence.Code);
+        foreach (var node in JsonObjectMembers(presence.Body))
+        {
+            PresenceLease member = Parse<PresenceLease>(node.Value);
+            if (member == null || member.lastSeenAt <= 0)
+                return CleanupUnknown("human_presence_timestamp_missing");
+            if (!IsTimestampIdle(member.lastSeenAt, Now(), presenceIdleMs))
+                return CleanupProtected("human_presence_recent_age_s_" +
+                    RoomDiagnosticAgeSeconds(member.lastSeenAt, Now()));
+        }
+        return CleanupEligible("host_and_all_humans_inactive");
+    }
+
+    private static async Task<AtlasLobbyOperationResult>
+        CloseOwnedWaitingRoomsOnConsentAsync(string uid, string token, string activeRoom)
+    {
+        var scan = await ReadOwnedRoomMetadataAsync(uid, token, true);
+        if (!scan.success)
+            return Failure("lobby.error.service_unavailable", "Owner-only RTDB room listing failed.");
+        int closed = 0, failed = 0, protectedRooms = 0, selected = 0;
+        int unreadable = 0, recentActivity = 0, unknown = 0;
+        foreach (var entry in scan.rooms)
+        {
+            string room = entry.Key;
+            if (string.IsNullOrWhiteSpace(room) || room == activeRoom)
+            {
+                protectedRooms++;
+                LogRoomCleanupDecision("consent", room,
+                    CleanupProtected(room == activeRoom ? "current_room" : "invalid_room_key"),
+                    entry.Value, null);
+                continue;
+            }
+            SemaphoreSlim gate = GetRoomWriterGate(room);
+            await gate.WaitAsync();
+            try
+            {
+                Response currentMeta = await Send("GET", "roomMeta/" + Safe(room), token);
+                Meta m = currentMeta.Ok ? Parse<Meta>(currentMeta.Body) : null;
+                if (!currentMeta.Ok || m == null)
+                {
+                    protectedRooms++; unreadable++; unknown++;
+                    LogRoomCleanupDecision("consent", room,
+                        CleanupUnknown(currentMeta.Ok ? "room_meta_missing" :
+                            "room_meta_http_" + currentMeta.Code), entry.Value, null);
+                    continue;
+                }
+                if (m.hostUid != uid)
+                {
+                    protectedRooms++; unknown++;
+                    LogRoomCleanupDecision("consent", room,
+                        CleanupUnknown("owner_changed_since_scan"), m, null);
+                    continue;
+                }
+                Response roomState = await Send("GET", "roomState/" + Safe(room), token);
+                State wire = roomState.Ok ? Parse<State>(roomState.Body) : null;
+                AtlasLobbySnapshot snap = wire == null ? null :
+                    Parse<AtlasLobbySnapshot>(wire.snapshotJson);
+                if (!roomState.Ok && !m.closed)
+                {
+                    protectedRooms++; unreadable++; unknown++;
+                    LogRoomCleanupDecision("consent", room,
+                        CleanupUnknown("room_state_http_" + roomState.Code), m, null);
+                    continue;
+                }
+                if (snap != null && snap.HostAccountId != uid)
+                {
+                    protectedRooms++; unknown++;
+                    LogRoomCleanupDecision("consent", room,
+                        CleanupUnknown("snapshot_host_mismatch"), m, snap);
+                    continue;
+                }
+                // "OK" grants deletion of the owner's INACTIVE rooms, but
+                // not live matches. Ten minutes is an activity fence, NOT a room age.
+                RoomCleanupDecision decision = string.IsNullOrWhiteSpace(m.activeMatchId)
+                    ? (snap != null && !string.IsNullOrWhiteSpace(snap.MatchId)
+                        ? await VerifyUnanchoredStartingMatchAsync(m, wire, snap,
+                            room, uid, token, ConsentMatchOfflineGraceMs)
+                        : EvaluateStalePreMatchRoom(m, wire, snap, uid,
+                            Now(), ConsentMatchOfflineGraceMs))
+                    : await VerifyMatchInactiveAsync(m, snap, room, uid, token,
+                        ConsentMatchOfflineGraceMs, ConsentMatchOfflineGraceMs);
+                LogRoomCleanupDecision("consent", room, decision, m, snap);
+                if (!decision.Eligible)
+                {
+                    protectedRooms++;
+                    if (decision.Unknown) unknown++;
+                    else recentActivity++;
+                    continue;
+                }
+                selected++;
+                AtlasLobbyOperationResult result = await CloseAsync(room, uid, token,
+                    true, m.updatedAt, ConsentMatchOfflineGraceMs);
+                if (result.Success) closed++;
+                else
+                {
+                    failed++;
+                    LogRoomCleanupDecision("consent_close", room,
+                        CleanupUnknown("delete_failed_see_cleanup_stage_logs"), m, snap);
+                }
+            }
+            catch (Exception e)
+            {
+                failed++;
+                LogRoomCleanupDecision("consent", room,
+                    CleanupUnknown("exception_" + e.GetType().Name), entry.Value, null);
+            }
+            finally { gate.Release(); }
+            await Task.Yield();
+        }
+        var remaining = await ReadOwnedRoomMetadataAsync(uid, token, true);
+        int remainingOpen = 0, remainingRecords = -1;
+        if (remaining.success)
+        {
+            remainingRecords = remaining.rooms.Count;
+            foreach (var item in remaining.rooms)
+                if (!item.Value.closed) remainingOpen++;
+        }
+        Debug.Log("ATB_RTDB_QUOTA_CONSENT owner_only=true explicitly_approved=true " +
+            "age_min_hours=0 scanned=" + scan.rooms.Count + " selected=" + selected +
+            " closed=" + closed + " failed=" + failed + " protected=" + protectedRooms +
+            " protected_recent=" + recentActivity + " protected_unknown=" + unknown + " unreadable=" + unreadable +
+            " remaining_records=" + remainingRecords + " remaining_open=" + remainingOpen +
+            " active_matches_preserved=true");
+        int permittedCurrent = string.IsNullOrWhiteSpace(activeRoom) ? 0 : 1;
+        if (!remaining.success || remainingRecords > permittedCurrent || failed > 0)
+            return Failure("lobby.error.owner_room_limit",
+                "Owner cleanup incomplete; some rooms are active, unreadable or restricted.");
+        return AtlasLobbyOperationResult.Ok(null);
+    }
+
+    private static bool IsConsentCleanupCandidate(Meta m, AtlasLobbySnapshot snap,
+        string uid, string room, string activeRoom)
+    {
+        if (m == null || uid == null || room == activeRoom ||
+            m.hostUid != uid || string.IsNullOrWhiteSpace(room)) return false;
+        if (m.closed && snap == null &&
+            string.IsNullOrWhiteSpace(m.activeMatchId)) return true; // retry a Waiting partial close
+        return snap != null && snap.HostAccountId == uid &&
+            string.IsNullOrWhiteSpace(m.activeMatchId) &&
+            string.IsNullOrWhiteSpace(snap.MatchId) &&
+            snap.LifecycleState == AtlasRoomLifecycleState.Waiting;
+    }
+
+    private static bool IsConsentMatchLeaseInactive(MatchLease lease, Meta m,
+        string room, string uid, long now)
+    {
+        // No room-age gate. This is a ten-minute *activity* safety fence only.
+        // A closed room may be retried after at least one reconnect window;
+        // never skip the fence for a started match that might have live humans.
+        return lease != null && m != null &&
+            lease.matchId == m.activeMatchId && lease.lobbyId == room &&
+            lease.hostUid == uid && lease.authorityEpoch == m.authorityEpoch &&
+            lease.updatedAt > 0 && lease.hostHeartbeatAt > 0 &&
+            lease.updatedAt <= now - ConsentMatchOfflineGraceMs &&
+            lease.hostHeartbeatAt <= now - ConsentMatchOfflineGraceMs;
+    }
+
+    private static async Task<RoomCleanupDecision> VerifyConsentMatchInactiveAsync(
+        Meta m, AtlasLobbySnapshot snap, string room, string uid, string token)
+    {
+        // A partial Waiting-room closure is safe to retry without a snapshot.
+        if (m.closed && string.IsNullOrWhiteSpace(m.activeMatchId) &&
+            (snap == null || string.IsNullOrWhiteSpace(snap.MatchId)))
+            return CleanupEligible("partial_waiting_room_retry");
+        if (string.IsNullOrWhiteSpace(m.activeMatchId))
+            return CleanupUnknown("unclassified_room_phase");
+        if (snap != null && snap.MatchId != m.activeMatchId)
+            return CleanupUnknown("snapshot_match_anchor_mismatch");
+        Response matchRead = await Send("GET", "matchState/" + Safe(m.activeMatchId), token);
+        if (!matchRead.Ok)
+            return CleanupUnknown("match_state_http_" + matchRead.Code);
+        MatchLease lease = Parse<MatchLease>(matchRead.Body);
+        RoomCleanupDecision leaseDecision = EvaluateConsentMatchLease(lease, m, room, uid, Now());
+        if (!leaseDecision.Eligible) return leaseDecision;
+        Response presence = await Send("GET", "matchPresence/" + Safe(m.activeMatchId), token);
+        if (!presence.Ok)
+            return CleanupUnknown("match_presence_http_" + presence.Code);
+        foreach (var node in JsonObjectMembers(presence.Body))
+        {
+            PresenceLease player = Parse<PresenceLease>(node.Value);
+            if (player == null || player.lastSeenAt <= 0)
+                return CleanupUnknown("presence_timestamp_missing_or_invalid");
+            if (player.lastSeenAt > Now() - ConsentMatchOfflineGraceMs)
+                return CleanupProtected("human_presence_recent_age_s_" +
+                    RoomDiagnosticAgeSeconds(player.lastSeenAt, Now()));
+        }
+        return CleanupEligible("match_and_all_human_leases_idle_over_10m");
+    }
+
+    // V1 legacy rooms can have neither roomMeta.activeMatchId nor
+    // roomMeta.authorityEpoch, even though roomState.snapshotJson.MatchId and
+    // matchState/{matchId} exist. The missing integer deserializes to zero.
+    // A match starts at authorityEpoch=1. This ONE schema transition is
+    // compatible only for an unchanged owner and an exact match/lobby anchor.
+    // Never tolerate 1->2, 2->3, host changes, or a modern activeMatchId.
+    private static bool IsUnanchoredStartingAuthorityConsistent(
+        Meta m, AtlasLobbySnapshot snap, MatchLease lease, string room, string uid)
+    {
+        if (m == null || snap == null || lease == null ||
+            string.IsNullOrWhiteSpace(room) || string.IsNullOrWhiteSpace(uid) ||
+            !string.IsNullOrWhiteSpace(m.activeMatchId) ||
+            !string.Equals(m.hostUid, uid, StringComparison.Ordinal) ||
+            !string.Equals(snap.HostAccountId, uid, StringComparison.Ordinal) ||
+            snap.LifecycleState != AtlasRoomLifecycleState.Starting ||
+            string.IsNullOrWhiteSpace(snap.MatchId) ||
+            !string.Equals(lease.matchId, snap.MatchId, StringComparison.Ordinal) ||
+            !string.Equals(lease.lobbyId, room, StringComparison.Ordinal) ||
+            !string.Equals(lease.hostUid, uid, StringComparison.Ordinal))
+            return false;
+        return (m.authorityEpoch > 0 && lease.authorityEpoch == m.authorityEpoch) ||
+            (m.authorityEpoch == 0 && lease.authorityEpoch == 1);
+    }
+
+    // Regression guard: real legacy RTDB export contained 14 old Starting
+    // rooms with meta epoch absent (0), match epoch 1 and exact owned anchors.
+    // This tests identity/epoch compatibility only; live safety ALSO requires
+    // the unchanged 3h/10m metadata, match-heartbeat and presence checks.
+    private static bool ValidateUnanchoredStartingEpochContract()
+    {
+        var meta = new Meta { hostUid = "qa_owner", activeMatchId = "", authorityEpoch = 0 };
+        var snap = new AtlasLobbySnapshot {
+            HostAccountId = "qa_owner", MatchId = "qa_match",
+            LifecycleState = AtlasRoomLifecycleState.Starting };
+        var lease = new MatchLease { hostUid = "qa_owner", lobbyId = "qa_room",
+            matchId = "qa_match", authorityEpoch = 1 };
+        if (!IsUnanchoredStartingAuthorityConsistent(meta, snap, lease,
+                "qa_room", "qa_owner")) return false;
+        lease.authorityEpoch = 2; // modern migration mismatch MUST stay blocked
+        if (IsUnanchoredStartingAuthorityConsistent(meta, snap, lease,
+                "qa_room", "qa_owner")) return false;
+        lease.authorityEpoch = 1;
+        lease.hostUid = "other_host";
+        if (IsUnanchoredStartingAuthorityConsistent(meta, snap, lease,
+                "qa_room", "qa_owner")) return false;
+        lease.hostUid = "qa_owner";
+        lease.lobbyId = "different_room";
+        if (IsUnanchoredStartingAuthorityConsistent(meta, snap, lease,
+                "qa_room", "qa_owner")) return false;
+        lease.lobbyId = "qa_room";
+        snap.MatchId = "different_match";
+        if (IsUnanchoredStartingAuthorityConsistent(meta, snap, lease,
+                "qa_room", "qa_owner")) return false;
+        snap.MatchId = "qa_match";
+        meta.activeMatchId = "qa_match";
+        if (IsUnanchoredStartingAuthorityConsistent(meta, snap, lease,
+                "qa_room", "qa_owner")) return false;
+        meta.activeMatchId = "";
+        meta.authorityEpoch = 3;
+        lease.authorityEpoch = 3;
+        if (!IsUnanchoredStartingAuthorityConsistent(meta, snap, lease,
+                "qa_room", "qa_owner")) return false;
+        lease.authorityEpoch = 4;
+        return !IsUnanchoredStartingAuthorityConsistent(meta, snap, lease,
+            "qa_room", "qa_owner");
+    }
+
+    // Legacy crash window: matchState may have been created and roomState
+    // switched to Starting, but roomMeta.activeMatchId was never committed.
+    // Never treat that orphan as a fresh Waiting room. Check BOTH real lease
+    // and human presence; missing matchState means it cannot host a live match.
+    private static async Task<RoomCleanupDecision> VerifyUnanchoredStartingMatchAsync(
+        Meta m, State wire, AtlasLobbySnapshot snap, string room, string uid,
+        string token, long idleMs)
+    {
+        if (m == null || m.hostUid != uid || snap == null ||
+            snap.HostAccountId != uid ||
+            snap.LifecycleState != AtlasRoomLifecycleState.Starting ||
+            !string.IsNullOrWhiteSpace(m.activeMatchId) ||
+            string.IsNullOrWhiteSpace(snap.MatchId))
+            return CleanupUnknown("starting_match_ownership_or_phase_mismatch");
+        long now = Now();
+        if (!IsTimestampIdle(m.createdAt, now, idleMs) ||
+            (!m.closed && !IsTimestampIdle(m.updatedAt, now, idleMs)) ||
+            wire == null || !IsTimestampIdle(wire.updatedAt, now, idleMs))
+            return CleanupProtected("starting_room_recent_activity");
+        Response matchRead = await Send("GET", "matchState/" + Safe(snap.MatchId), token);
+        if (!matchRead.Ok)
+            return CleanupUnknown("starting_match_state_http_" + matchRead.Code);
+        MatchLease lease = Parse<MatchLease>(matchRead.Body);
+        if (lease == null)
+            return CleanupEligible("stale_starting_match_state_absent");
+        if (!IsUnanchoredStartingAuthorityConsistent(m, snap, lease, room, uid))
+            return CleanupUnknown("starting_match_authority_mismatch");
+        if (!IsTimestampIdle(lease.updatedAt, now, idleMs) ||
+            !IsTimestampIdle(lease.hostHeartbeatAt, now, idleMs))
+            return CleanupProtected("starting_match_lease_recent");
+        Response presence = await Send("GET", "matchPresence/" + Safe(snap.MatchId), token);
+        if (!presence.Ok)
+            return CleanupUnknown("starting_presence_http_" + presence.Code);
+        foreach (var node in JsonObjectMembers(presence.Body))
+        {
+            PresenceLease member = Parse<PresenceLease>(node.Value);
+            if (member == null || member.lastSeenAt <= 0)
+                return CleanupUnknown("starting_presence_timestamp_invalid");
+            if (!IsTimestampIdle(member.lastSeenAt, Now(), idleMs))
+                return CleanupProtected("starting_presence_recent_age_s_" +
+                    RoomDiagnosticAgeSeconds(member.lastSeenAt, Now()));
+        }
+        return CleanupEligible(m.authorityEpoch == 0 && lease.authorityEpoch == 1
+            ? "stale_legacy_starting_epoch0_to_epoch1_all_players_inactive"
+            : "stale_starting_match_and_players_inactive");
+    }
+
+    public static bool ValidateOwnerConsentCleanupContract()
+    {
+        long now = 1000000000L;
+        Meta m = new Meta { hostUid="owner", activeMatchId="", closed=false };
+        AtlasLobbySnapshot waiting = new AtlasLobbySnapshot {
+            HostAccountId="owner", MatchId="", LifecycleState=AtlasRoomLifecycleState.Waiting };
+        if (!IsConsentCleanupCandidate(m, waiting, "owner", "old", "active")) return false;
+        if (IsConsentCleanupCandidate(m, waiting, "stranger", "old", "active") ||
+            IsConsentCleanupCandidate(m, waiting, "owner", "active", "active")) return false;
+        // A partially deleted closed room is retryable without its roomState.
+        m.closed=true;
+        if (!IsConsentCleanupCandidate(m, null, "owner", "old", "active")) return false;
+        m.closed=false;
+        m.activeMatchId="match_A";
+        waiting.MatchId="match_A";
+        if (IsConsentCleanupCandidate(m, waiting, "owner", "old", "active")) return false;
+        MatchLease idle = new MatchLease { matchId="match_A", lobbyId="old",
+            hostUid="owner", authorityEpoch=1,
+            updatedAt=now-ConsentMatchOfflineGraceMs-1,
+            hostHeartbeatAt=now-ConsentMatchOfflineGraceMs-1 };
+        m.authorityEpoch=1;
+        if (!IsConsentMatchLeaseInactive(idle, m, "old", "owner", now)) return false;
+        idle.hostHeartbeatAt=now-ConsentMatchOfflineGraceMs+1;
+        if (IsConsentMatchLeaseInactive(idle, m, "old", "owner", now)) return false;
+        if (EvaluateConsentMatchLease(null, m, "old", "owner", now).Reason !=
+            "match_state_missing_or_invalid") return false;
+        idle.hostHeartbeatAt=now-ConsentMatchOfflineGraceMs-1;
+        if (!EvaluateConsentMatchLease(idle, m, "old", "owner", now).Eligible) return false;
+        idle.authorityEpoch=2;
+        if (EvaluateConsentMatchLease(idle, m, "old", "owner", now).Reason !=
+            "authority_epoch_mismatch") return false;
+        m.activeMatchId = "";
+        m.createdAt = now - ConsentMatchOfflineGraceMs - 1;
+        m.updatedAt = now - ConsentMatchOfflineGraceMs - 1;
+        AtlasLobbySnapshot starting = new AtlasLobbySnapshot {
+            HostAccountId = "owner", MatchId = "", LifecycleState = AtlasRoomLifecycleState.Starting };
+        State wire = new State { updatedAt = now - ConsentMatchOfflineGraceMs - 1 };
+        if (!EvaluateStalePreMatchRoom(m, wire, starting, "owner", now,
+                ConsentMatchOfflineGraceMs).Eligible) return false;
+        if (!EvaluateStalePreMatchRoom(m, null, null, "owner", now,
+                ConsentMatchOfflineGraceMs).Eligible) return false;
+        wire.updatedAt = now - ConsentMatchOfflineGraceMs + 1;
+        if (EvaluateStalePreMatchRoom(m, wire, starting, "owner", now,
+                ConsentMatchOfflineGraceMs).Eligible) return false;
+        wire.updatedAt = now - ConsentMatchOfflineGraceMs - 1;
+        starting.MatchId = "real_match";
+        if (EvaluateStalePreMatchRoom(m, wire, starting, "owner", now,
+                ConsentMatchOfflineGraceMs).Eligible) return false;
+        starting.MatchId = "";
+        m.updatedAt = now - ConsentMatchOfflineGraceMs + 1;
+        if (EvaluateStalePreMatchRoom(m, wire, starting, "owner", now,
+                ConsentMatchOfflineGraceMs).Eligible) return false;
+        m.updatedAt = now - ConsentMatchOfflineGraceMs - 1;
+        if (EvaluateStalePreMatchRoom(m, wire, starting, "intruder", now,
+                ConsentMatchOfflineGraceMs).Eligible) return false;
+        return ValidateUnanchoredStartingEpochContract();
     }
 
     private static bool IsDormantCandidate(Meta data, string uid, long now)
     {
+        // A failed close marks the room closed and updates updatedAt=now.
+        // That is NOT new player activity: retry after creation is 3h old.
+        // An open room needs BOTH timestamps older than 3h.
         return data != null &&
             string.Equals(data.hostUid, uid, StringComparison.Ordinal) &&
             data.createdAt > 0 && data.updatedAt > 0 &&
             data.createdAt <= now - DormantRoomAgeMs &&
-            data.updatedAt <= now - DormantRoomAgeMs;
+            (data.closed || data.updatedAt <= now - DormantRoomAgeMs);
     }
 
     // Uses the identical candidate function as the live owner-cleanup path.
@@ -385,15 +973,27 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         m.createdAt = now - DormantRoomAgeMs + 1;
         if (IsDormantCandidate(m, "qa_owner", now)) return false;
         m.createdAt = now - DormantRoomAgeMs - 1;
-        m.closed = true;
-        return IsDormantCandidate(m, "qa_owner", now) &&
-            MaxPriorHostRooms == 10 && MaxOwnedRoomScan == 11;
+        m.closed = true; // Failed closures are re-eligible for cleanup retries.
+        m.updatedAt = now - 100; // A failed close updates activity to now.
+        if (!IsDormantCandidate(m, "qa_owner", now)) return false;
+        m.activeMatchId = "match_A";
+        m.authorityEpoch = 3;
+        MatchLease lease = new MatchLease { matchId = "match_A", lobbyId = "room_A",
+            hostUid = "qa_owner", authorityEpoch = 3,
+            createdAt = now - DormantRoomAgeMs - 100,
+            updatedAt = now - DormantRoomAgeMs - 100,
+            hostHeartbeatAt = now - DormantRoomAgeMs - 100 };
+        if (!IsIdleForThreeHours(lease, m, "room_A", "qa_owner", now)) return false;
+        lease.hostHeartbeatAt = now - DormantRoomAgeMs + 100;
+        return !IsIdleForThreeHours(lease, m, "room_A", "qa_owner", now) &&
+            MaxPriorHostRooms == 10 && MaxOwnedRoomScan == 11 &&
+            ValidateUnanchoredStartingEpochContract();
     }
 
     private static async Task<AtlasLobbyOperationResult> CreateAsync(
         Request req, string uid, string token, string name, bool isPublic)
     {
-        var owned = await ReadOwnedRoomMetadataAsync(uid, token);
+        var owned = await ReadOwnedRoomMetadataAsync(uid, token, true);
         if (!owned.success)
             return Failure("lobby.error.service_unavailable",
                 "Cannot verify host room quota; check deployed RTDB owner-query rules.");
@@ -404,7 +1004,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         {
             // Bounded owner-only retry for rooms stranded before startup cleanup.
             await CleanupOwnedDormantRoomsAsync(uid, token, "", MaxPriorHostRooms);
-            owned = await ReadOwnedRoomMetadataAsync(uid, token);
+            owned = await ReadOwnedRoomMetadataAsync(uid, token, true);
             if (!owned.success)
                 return Failure("lobby.error.service_unavailable",
                     "Cannot verify owner room quota after cleanup.");
@@ -412,8 +1012,8 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             foreach (var record in owned.rooms)
                 if (!record.Value.closed) openRoomCount++;
             if (openRoomCount >= MaxOwnedRoomScan)
-                return Failure("lobby.error.service_unavailable",
-                    "Host room capacity (10 prior rooms plus current room) reached.");
+                return Failure("lobby.error.owner_room_limit",
+                    "OWNED_ROOM_LIMIT_10_PLUS_1");
         }
         string room = Guid.NewGuid().ToString("N") +
             Guid.NewGuid().ToString("N").Substring(0, 4);
@@ -1265,12 +1865,66 @@ public static class AtlasBoardRtdbCasualLobbyTransport
     }
 
     private static async Task<AtlasLobbyOperationResult> CloseAsync(
-        string room, string uid, string token)
+        string room, string uid, string token, bool verifiedIdleCleanup = false,
+        long expectedUpdatedAt = 0L, long idleThresholdMs = 0L)
     {
-        AtlasLobbyOperationResult state = await SnapshotAsync(room, uid, token, "");
-        if (!state.Success || state.Snapshot == null) return state;
-        if (!string.Equals(state.Snapshot.HostAccountId, uid, StringComparison.Ordinal))
-            return Failure("lobby.error.access_denied", "Only host can close room.");
+        // Read current owner first. Legacy partial deletes may have no
+        // roomState, and SnapshotAsync intentionally rejects missing records.
+        // This cleanup endpoint must still be able to finish those CLOSED
+        // records without accepting a different owner's room.
+        Response ownerRead = await Send("GET", "roomMeta/" + Safe(room), token);
+        Meta ownerMeta = ownerRead.Ok ? Parse<Meta>(ownerRead.Body) : null;
+        if (ownerMeta == null || !string.Equals(ownerMeta.hostUid, uid, StringComparison.Ordinal))
+            return Failure("lobby.error.access_denied", "Only current host can close room.");
+        Response wireRead = await Send("GET", "roomState/" + Safe(room), token);
+        State stateWire = wireRead.Ok ? Parse<State>(wireRead.Body) : null;
+        AtlasLobbySnapshot snapshot = stateWire != null
+            ? Parse<AtlasLobbySnapshot>(stateWire.snapshotJson) : null;
+        if (snapshot != null && !string.Equals(snapshot.HostAccountId, uid,
+                StringComparison.Ordinal))
+            return Failure("lobby.error.access_denied", "Room host snapshot mismatch.");
+        if (verifiedIdleCleanup)
+        {
+            // Fail-closed if a host refreshed the metadata or roomState since
+            // the scan. Never repair a newly started match with stale evidence.
+            if (ownerMeta.updatedAt != expectedUpdatedAt)
+                return Failure("lobby.error.service_unavailable",
+                    "Room metadata changed since cleanup verification.");
+            if (string.IsNullOrWhiteSpace(ownerMeta.activeMatchId))
+            {
+                RoomCleanupDecision recheck = snapshot != null &&
+                    !string.IsNullOrWhiteSpace(snapshot.MatchId)
+                    ? await VerifyUnanchoredStartingMatchAsync(ownerMeta, stateWire,
+                        snapshot, room, uid, token, idleThresholdMs)
+                    : EvaluateStalePreMatchRoom(ownerMeta, stateWire, snapshot,
+                        uid, Now(), idleThresholdMs);
+                if (!recheck.Eligible)
+                    return Failure("lobby.error.service_unavailable",
+                        "Room activity or match state changed since cleanup verification.");
+            }
+            else
+            {
+                RoomCleanupDecision matchRecheck = await VerifyMatchInactiveAsync(
+                    ownerMeta, snapshot, room, uid, token,
+                    idleThresholdMs, idleThresholdMs);
+                if (!matchRecheck.Eligible)
+                    return Failure("lobby.error.service_unavailable",
+                        "Match or human presence changed since cleanup verification.");
+            }
+        }
+        if (snapshot == null && !ownerMeta.closed &&
+            !(verifiedIdleCleanup && string.IsNullOrWhiteSpace(ownerMeta.activeMatchId)))
+            return Failure("lobby.error.service_unavailable",
+                "Unclosed room has no readable authoritative snapshot.");
+        // A prior partial close is repairable even if its snapshot was removed.
+        if (snapshot == null)
+            snapshot = new AtlasLobbySnapshot {
+                HostAccountId = uid,
+                MatchId = ownerMeta.activeMatchId ?? string.Empty,
+                Visibility = ownerMeta.mode == "publicCasualOnline"
+                    ? AtlasRoomVisibility.Public : AtlasRoomVisibility.Private,
+                Members = new List<AtlasLobbyMemberSnapshot>()
+            };
 
         // Close the join gate first, so no new players can be admitted while
         // the host removes its own room data. Do not touch other hosts' rooms.
@@ -1281,18 +1935,45 @@ public static class AtlasBoardRtdbCasualLobbyTransport
                 "Could not mark RTDB room closed (HTTP " + closed.Code + ").");
 
         bool codeDeleted = true;
-        string code = await GetPersistedRoomCode(room, token);
-        if (!string.IsNullOrEmpty(code))
+        // NEVER delete a reused six-digit code that now belongs to another
+        // room. A cached/stale code is not authority; verify its roomId.
+        string code = ownerMeta.inviteCode;
+        if (!string.IsNullOrWhiteSpace(code))
         {
-            Response removedCode = await Send("DELETE", "joinCodes/" + Safe(code), token);
-            codeDeleted = removedCode.Ok;
-            if (!removedCode.Ok)
-                Debug.LogWarning("ATB_RTDB_ROOM_CLEANUP stage=invite_code http=" + removedCode.Code);
+            Response lookup = await Send("GET", "joinCodes/" + Safe(code), token);
+            Code index = lookup.Ok ? Parse<Code>(lookup.Body) : null;
+            if (!lookup.Ok)
+            {
+                codeDeleted = false;
+                Debug.LogWarning("ATB_RTDB_ROOM_CLEANUP stage=invite_code_lookup http=" +
+                    lookup.Code);
+            }
+            else if (index == null)
+            {
+                Debug.Log("ATB_RTDB_ROOM_CLEANUP stage=invite_code already_absent=true");
+            }
+            else if (index.roomId != room)
+            {
+                // Safe: deleting the metadata of THIS room must not remove a
+                // different room's currently valid invite-code claim.
+                Debug.Log("ATB_RTDB_ROOM_CLEANUP stage=invite_code " +
+                    "stale_reference=true other_room_preserved=true");
+            }
+            else
+            {
+                Response removed = await Send("DELETE", "joinCodes/" + Safe(code), token);
+                codeDeleted = removed.Ok;
+                if (!removed.Ok)
+                    Debug.LogWarning("ATB_RTDB_ROOM_CLEANUP stage=invite_code http=" +
+                        removed.Code + " record_matches_room=true " +
+                        "record_original_host=" + (index.hostUid == uid) +
+                        " verify_deployed_rules=true");
+            }
         }
         // A Public Directory record must disappear before metadata is removed;
         // its write permission is derived from roomMeta.hostUid/mode.
         bool directoryDeletedOk = true;
-        if (state.Snapshot.Visibility == AtlasRoomVisibility.Public)
+        if (snapshot.Visibility == AtlasRoomVisibility.Public)
         {
             Response directoryDeleted = await Send(
                 "DELETE", "publicRoomDirectory/" + Safe(room), token);
@@ -1305,15 +1986,30 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         // Match-dependent branches must be deleted while room membership and
         // host metadata are still valid. Only this host's own match is touched.
         bool matchDeleted = true;
-        string match = state.Snapshot.MatchId ?? string.Empty;
+        string match = snapshot.MatchId ?? string.Empty;
         if (!string.IsNullOrWhiteSpace(match))
         {
-            Response presence = await Send("DELETE", "matchPresence/" + Safe(match), token);
-            Response matchState = await Send("DELETE", "matchState/" + Safe(match), token);
-            matchDeleted = presence.Ok && matchState.Ok;
-            if (!matchDeleted)
-                Debug.LogWarning("ATB_RTDB_ROOM_CLEANUP stage=match http=" +
-                    presence.Code + "/" + matchState.Code);
+            Response matchProbe = verifiedIdleCleanup
+                ? await Send("GET", "matchState/" + Safe(match), token)
+                : new Response { Code = 200, Body = "match_state_not_probed" };
+            if (verifiedIdleCleanup && matchProbe.Ok &&
+                Parse<MatchLease>(matchProbe.Body) == null)
+            {
+                // A missing matchState cannot authorize matchPresence DELETE
+                // under current Spark rules. Log possible unreachable legacy
+                // presence data rather than lying about full-root cleanup.
+                Debug.LogWarning("ATB_RTDB_ROOM_CLEANUP stage=match " +
+                    "missing_match_state=true orphan_presence_unverified=true");
+            }
+            else
+            {
+                Response presence = await Send("DELETE", "matchPresence/" + Safe(match), token);
+                Response matchState = await Send("DELETE", "matchState/" + Safe(match), token);
+                matchDeleted = presence.Ok && matchState.Ok;
+                if (!matchDeleted)
+                    Debug.LogWarning("ATB_RTDB_ROOM_CLEANUP stage=match http=" +
+                        presence.Code + "/" + matchState.Code);
+            }
         }
         Response intents = await Send("DELETE", "intents/" + Safe(room), token);
         Response acks = await Send("DELETE", "intentAcks/" + Safe(room), token);
@@ -1341,24 +2037,21 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         // dead host membership records after every smoke test or room exit.
         Response stateDeleted = await Send("DELETE", "roomState/" + Safe(room), token);
         bool membersDeleted = true;
-        HashSet<string> members = new HashSet<string>(StringComparer.Ordinal);
-        foreach (AtlasLobbyMemberSnapshot seat in state.Snapshot.Members)
+        // Enumerate the actual server record, not a stale roomState seat list:
+        // deleting a seat that was already removed can return 401 under the
+        // current roomMembers validation and needlessly block retries.
+        Response memberIndex = await Send("GET", "roomMembers/" + Safe(room), token);
+        if (!memberIndex.Ok) membersDeleted = false;
+        else foreach (var member in JsonObjectMembers(memberIndex.Body))
         {
-            if (seat == null || string.IsNullOrWhiteSpace(seat.AccountId) ||
-                !members.Add(seat.AccountId)) continue;
-            Response deleted = await Send("DELETE", "roomMembers/" + Safe(room) +
-                "/" + Safe(seat.AccountId), token);
-            if (!deleted.Ok)
+            if (string.IsNullOrWhiteSpace(member.Key)) continue;
+            Response erased = await Send("DELETE", "roomMembers/" + Safe(room) +
+                "/" + Safe(member.Key), token);
+            if (!erased.Ok)
             {
                 membersDeleted = false;
-                Debug.LogWarning("ATB_RTDB_ROOM_CLEANUP stage=member http=" + deleted.Code);
+                Debug.LogWarning("ATB_RTDB_ROOM_CLEANUP stage=member http=" + erased.Code);
             }
-        }
-        if (!members.Contains(uid))
-        {
-            Response deleted = await Send("DELETE", "roomMembers/" + Safe(room) +
-                "/" + Safe(uid), token);
-            membersDeleted &= deleted.Ok;
         }
 
         // If any dependent write failed, retain closed metadata so a host can

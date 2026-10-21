@@ -44,6 +44,16 @@ public static class AtlasBoardSparkMatchSmokeQA
     }
 
 
+    [MenuItem("Atlas Board/QA & Diagnostics/RTDB/Verify Multi-Hop Host Migration (No Network)")]
+    private static void VerifyMultiHopMigration()
+    {
+        bool pass = AtlasBoardSparkRtdbMatchTransport.ValidateMultiHopAuthorityContract();
+        if (pass) Debug.Log("ATB_RTDB_MULTI_HOP_QA PASS " +
+            "stages=host1_to_host2_host2_to_host3_exclude_temporary_bot_single_host " +
+            "mode=local_no_network live_second_takeover=UNTESTED");
+        else Debug.LogError("ATB_RTDB_MULTI_HOP_QA FAIL");
+    }
+
     [MenuItem("Atlas Board/QA & Diagnostics/RTDB/Verify Remote Ready Toggle (No Network)")]
     private static void VerifyRemoteReadyToggle()
     {
@@ -63,10 +73,30 @@ public static class AtlasBoardSparkMatchSmokeQA
         bool ok = AtlasBoardRtdbCasualLobbyTransport.ValidateDormantCleanupGuardContract();
         if (ok)
             Debug.Log("ATB_RTDB_ORPHAN_GUARD_QA PASS " +
-                "stages=owner_age24h_activity_age24h_closed_retry_max10plus1 " +
+                "stages=owner_age3h_activity_age3h_closed_retry_max10plus1_full_owner_scan_started_match_lease_legacy_starting_epoch0_to_epoch1_owner_anchor_guard " +
                 "mode=local_no_network live_cleanup=UNTESTED");
         else
             Debug.LogError("ATB_RTDB_ORPHAN_GUARD_QA FAIL stage=owner_age_guard");
+    }
+
+    [MenuItem("Atlas Board/QA & Diagnostics/RTDB/Verify Live Host Successor Wire (No Network)")]
+    private static void VerifyLiveHostSuccessorWire()
+    {
+        bool ok=AtlasBoardTurnDiceNetworkCoordinator.ValidateLiveHostSuccessorWireContract();
+        if (ok) Debug.Log("ATB_RTDB_HOST_SUCCESSOR_QA PASS " +
+            "stages=remotehuman_legacy_remote_human_bot_exclusion_connected_only " +
+            "mode=local_no_network live_handoff=UNTESTED");
+        else Debug.LogError("ATB_RTDB_HOST_SUCCESSOR_QA FAIL");
+    }
+
+    [MenuItem("Atlas Board/QA & Diagnostics/RTDB/Verify Owner Cleanup Consent Guard (No Network)")]
+    private static void VerifyOwnerCleanupConsentGuard()
+    {
+        bool ok=AtlasBoardRtdbCasualLobbyTransport.ValidateOwnerConsentCleanupContract();
+        if (ok) Debug.Log("ATB_RTDB_QUOTA_CONSENT_QA PASS " +
+            "stages=owner_only_idleness10min_starting_stuck_snapshot_missing_offline10min_active_room_protected_lease_diagnostic_reasons_legacy_starting_epoch0_to_epoch1_owner_anchor_guard " +
+            "mode=local_no_network live_cleanup=UNTESTED");
+        else Debug.LogError("ATB_RTDB_QUOTA_CONSENT_QA FAIL");
     }
 
     [MenuItem("Atlas Board/QA & Diagnostics/RTDB/Inspect Live Match Host (Read Only, Play Mode)")]
@@ -90,13 +120,17 @@ public static class AtlasBoardSparkMatchSmokeQA
             if (string.Equals(seat.ControllerKind, "human", StringComparison.OrdinalIgnoreCase))
                 humanCount++;
         }
-        Debug.Log("ATB_RTDB_HOST_INSPECT RESULT source=live_rtdb local_role=" +
+        AtlasMatchNetworkResult proof = await match.InspectAuthorityChainReadOnlyAsync(matchId);
+        Debug.Log("ATB_RTDB_HOST_INSPECT " +
+            (proof.Success ? "PASS" : "PARTIAL") +
+            " source=live_rtdb local_role=" +
             (snapshot.LocalIsHost ? "HOST" : "FOLLOWER") +
             " authority_epoch=" + snapshot.AuthorityEpoch +
             " host_slot=" + hostSlot +
             " human_seats=" + humanCount +
             " revision=" + snapshot.Revision +
-            " migration=requires_before_after_comparison");
+            " consistency=" + (proof.TechnicalMessage ?? "read_failed") +
+            " multi_hop_requires_live_retest=true");
     }
 
     [MenuItem("Atlas Board/QA & Diagnostics/RTDB/Simulate 5-Min Reconnect Expiry (Live Host, Play Mode)")]
