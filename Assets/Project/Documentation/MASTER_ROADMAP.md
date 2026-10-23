@@ -1,5 +1,143 @@
 # ATLAS BOARD — MASTER ROADMAP (CANONICAL)
 
+**Güncel kabul / 22 Ekim 2026 · v5.40.22 N4 THREE-MATCH OWNER MANUAL PASS.** Kullanıcı, Unity Editor ve Windows Guest ile üç maçlık seri testinde oyun içi test edilen ekranların açıldığını ve denenen akışların çalıştığını bildirdi; kritik bir FAIL bildirilmedi. Bu **owner-reported manual acceptance** kaydıdır; bağımsız Unity derleme çıktısı, 35×3 sonuç tablosu, RTDB chat sunucu güvenlik negatif testi veya her Event/Trade para transferi için ayrı kanıt yerine geçmez. **N4 oyun içi üç-maç regresyon kapısı OWNER MANUAL PASS / gameplay handoff complete** olarak işaretlenir; önceki 14/14 orphan cleanup Live PASS, canlı iki yönde ayrı oturumlarda Host Migration PASS ve Phase 18A–18H planı korunur. **Release/security hardening, same-match epoch=3 multi-hop ve Android FPS kabulü bağımsız OPEN iş kalemleridir.** GitHub push/commit ve Firebase deploy bu dokümantasyon teslimatında yapılmamıştır; kod değişikliği yoktur.
+
+## 0AB. 22 Ekim 2026 — N4 üç maçlık oyun içi regresyon / OWNER MANUAL ACCEPTANCE
+
+**Girdi:** Owner'ın bu konuşmadaki açık testi: “3 maçlık seride her şey açıldı, her şey oldu; PASS olarak sayabiliriz.” Kayda geçirilen sonuç, kullanıcıya ait canlı iki istemci / Unity Editor + Windows Guest manuel kontrolüdür; otomatik 35×3 Markdown raporu veya yeni eksiksiz hata logu sunulmuş değildir.
+
+| N4 kabul kalemi | Kabul edilen kapsam | Durum |
+| --- | --- | --- |
+| 3 maçlık uçtan uca oyun içi regresyon | Üç farklı maç boyunca owner tüm denediği akışların çalıştığını ve ekranların açıldığını bildirdi; kritik hata raporlamadı. | **OWNER MANUAL PASS** |
+| Oyun içi ekran ve UI geri girişleri | Trade, Auction, Event/Special/Tax, Match Result ve oyun içi diğer QA ekranları için owner açılma/görünürlük başarılı bildirdi; UI preview tek başına ekonomi/otorite ispatı değildir. | **OWNER MANUAL PASS — visual/interaction** |
+| Maçlar arası kullanım | Üç maçlık serinin tamamlanması owner tarafından doğrulandı; 2. ve 3. maç UI/sunumunun kullanılabildiği bildirildi. | **OWNER MANUAL PASS** |
+| Önceki orphan room cleanup | Live Spark RTDB before/after export: 14/14 legacy orphan room kapandı, deleted=14, failed=0. | **OWNER LIVE PASS (önceden doğrulandı)** |
+| Canlı Host Migration (ayrı senaryolar) | Unity→Guest takeover/rejoin ve ayrı Guest→Unity takeover, CAS epoch 1→2 ve Inspect tutarlılığı / devam eden zar-hareket logları. | **OWNER LIVE PASS — birer devralma** |
+| Lobby / Match Chat — temel UI | Üç maçlık “her şey çalıştı” owner kabulü kapsamında chat UI akışı da manuel kabul edildi; karşılıklı mesaj teslimi, 10 sn throttle ve deployed Rules için bu tur bağımsız log/rapor sunulmadı. | **OWNER MANUAL PASS (UI); BACKEND NEGATIVE QA OPEN** |
+| RTDB chat Rules ve moderasyon | `chatMessages`, `chatThrottle` v5.40.22 kaynakta hazır; canlı deploy çıktısı bu turda paylaşılmadı. Cloud Functions'ta kalan moderation/report/retention/ban enforcement RTDB'ye taşınmadı. | **SECURITY / RELEASE BLOCKER OPEN** |
+| Aynı maçta ikinci/üçüncü devir | Aynı `matchId` içinde `authorityEpoch=3` ve eski Host'un stale publish/intent reddine dair bağımsız kanıt sunulmadı. | **SEPARATE HARDENING QA OPEN** |
+| RTDB standalone artık kayıtları ve 3 create giriş yolu | Legacy QA `matchState` / closed Guest metadata temizliği ile Private/Public/Browser negatif-güvenlik kayıtları ayrıca kapatılmadı. Üç maçlık owner görsel kabulü bunları kanıtlamaz. | **MAINTENANCE / EDGE QA OPEN** |
+| Android FPS ve fiziksel cihaz | S20 FE tarihsel 16–23 FPS problemi gerçek cihaz profil ölçümüyle yeniden ele alınacak. Windows/Steam ayarları Android-only değişikliklerden korunur. | **NEXT PHASE / OPEN** |
+
+### Karar ve ilerleme sırası
+
+1. **N4 oyun içi üç-maç manuel kabulü KAPANDI (OWNER MANUAL PASS)**. N4'ün bundan önceki kaynak QA ve Live Spark Host Migration kanıtlarını geriye düşürme; `0AA` bölümü bu kabulden *önceki* kaynak-adayı durumunu tarihsel olarak belgelemektedir.
+2. **Sıradaki aktif çalışma: Phase 17 Android FPS profiling/optimization**. Önce mevcut cihaz/Unity Profiler CPU Main Thread, Canvas rebuild, GC allocations, UI raycasts, scene lifecycle ve RTDB polling ölçümleri; ardından Android-only optimizasyon, min/avg/p95 FPS, frame time, thermal/memory değerlendirmesi ve Windows/Steam regresyonu. 60 FPS hedefi testle ölçülmeden başarı ilan edilmez.
+3. **Yayın blokajları bağımsız açık kalır:** RTDB chat security/moderation/report/retention; gerçek Rules deploy kanıtı; stale-authority negative; same-match multi-hop; kalan RTDB orphan metadata; App Check / Play Integrity production enforcement, Android APK/AAB fiziksel QA ve Steam release trust. Bu güvenlik işleri N4 manuel oyun testi kabulüyle gizlenmez.
+4. **Phase 18A–18H** Atlas Pulse, şehir geliştirmeleri, kredi/banka/otomatik tahsilat, Alaşehir Technology Center, ulaşım merkezleri, Economic Memory, Speculative Market, bot ve bütünlük QA olarak **planlı**dır; bu üç maçlık testle uygulanmış sayılmaz.
+5. Bu checkpoint yalnız **kanonik `Assets/Project/Documentation/MASTER_ROADMAP.md`** güncellemesidir. Tek kaynak yol, duplicate yok, Unity C#/Firebase Rules dosyalarına dokunulmadı. GitHub push ve Firebase deploy yapılmadı. v5.40.22 kodu önceden yerel Unity projesine uygulanmış kabul edilir; kullanıcı sonraki GitHub commit'inde kaynak ve bu roadmap değişikliklerini birlikte dahil edecektir.
+
+---
+
+## Previous v5.40.22 source-candidate checkpoint (historical; superseded by 0AB owner acceptance)
+
+# ATLASBOARD v5.40.22 — N4 THREE-MATCH ACCEPTANCE + SPARK RTDB CASUAL CHAT SOURCE CANDIDATE (22 OCT 2026)
+
+**Source candidate, not live PASS.** Replaces only existing `AtlasBoardChatRuntimeBridge.cs` and scoped RTDB `database.rules.json`, adds one Editor-only 3-match QA orchestrator and N4 test guide. The last owner log documents real Guest→Editor takeover (`ATB_RTDB_AUTHORITY_TRANSFER committed=true epoch=2`, `HOST_INSPECT PASS local_role=HOST epoch=2`), a stale remote roll-frame warning, then manual dice/movement resumed. This confirms an additional real takeover; it is **not** an `epoch=3` multi-hop proof in the same match. Previous A→Guest (epoch=2) + rejoin PASS and legacy 14/14 orphan cleanup PASS are preserved. All previous historical sections retained verbatim below this insertion. No GitHub commit/push, actual Firebase deploy or Unity test executed in this authoring environment.
+
+## 0AA. Final N4 three-match owner acceptance — source prepared / live test pending
+
+- **Prerequisite:** Unity 6000.5.6f1 0 compile errors, Editor `N4 Final - Chat Wire (No Network)` PASS, any changed RTDB security Rules actually deployed by owner. The new network parser test does not prove live send/read.
+- **Chat root cause:** old lobby + match chat used paid Function callables (`lobbyChatList/Send`, `matchChatList/Send`) not deployed in free Spark RTDB casual runtime. Existing chat UI contract kept, basic message list/send moved to RTDB `chatMessages/lobby|match`; 10s one-time server throttle tokens `chatThrottle`, authenticated active room membership, immutable messages, server timestamps and length/name checks enforced at RTDB Rules. `AtlasBoardChatModerationBridge` and moderation, profanity/ban/report, retention and abuse-hardening **NOT MIGRATED / RELEASE BLOCKER OPEN**. Existing moderation UI must not be claimed functional on Spark. No Firestore data/read used by new casual chat.
+- **Editor tools:** New `AtlasBoardN4ThreeMatchAcceptanceWindow` is *QA-only*, not duplicate runtime ownership. Opens existing Regression v1/v2, existing Phase14J runtime harness (OFFLINE-only), chat/trade UI and nonmutating UI previews for Event, Tax/Special, Auction, Result. Offline-only Freeze and real random Event; no economic authority/state mutation in Live Spark. Stores manual PASS/FAIL for 35 checks × 3 matches and exports Markdown evidence.
+- **Three-match gate:** Match 1 Unity Host + Guest follower, Public/Browser creation, lobby/match chat and core decisions; Match 2 Guest Host + Unity follower, Private, reverse trade/auction, rent/cards/special, true final result; Match 3 no-app-restart reentry/rejoin/rematch, no HUD/tablet/turn, asset/economy/identity leak, further real host authority checks. Include 7 languages and Phase14J offline aspect sweeps; no fake production multiplayer acceptance. Guest build has no Inspector/Editor QA.
+- **Must remain OPEN:** real 3-match outcomes, runtime compile, live chat/permissions, RTDB emulator negative security tests, moderations & retention, three-create regression, 2-hop same-match authority/old-host stale-write negative proof, leftover standalone QA matchState and closed Guest metadata. Avoid deleting any unrelated data. Phase17 Android FPS performance (historical S20 FE 16–23 FPS) is **NEXT ONLY AFTER** this 3-match gate, with Phase18A–18H future gameplay scope unchanged.
+- **Owner deploy for added chat paths only, after inspection/backup:** `cd C:\Users\crazy\AtlasBoardPrototype\Backend\Firebase`; `Get-Content .\database.rules.json -Raw | ConvertFrom-Json | Out-Null`; `firebase.cmd deploy --only database --project atlasboard-usa`. No Blaze/Functions deploy. Full instructions: `Assets/Project/Documentation/N4_FINAL_3_MATCH_QA_v5.40.22.md`.
+
+---
+
+# ATLAS BOARD — MASTER ROADMAP (CANONICAL)
+
+**22 Ekim 2026 · v5.40.21 OWNER LIVE CHECKPOINT — BİRİNCİ HOST DEVRİ + ESKİ HOST REJOIN = PASS.** Unity Editor (eski Host A) ile Windows Guest B arasında canlı Spark RTDB testinde A normal Leave yaptı; `ATB_RTDB_HOST_EXIT_DECISION close_room=false`, `ATB_RTDB_AUTHORITY_HANDOFF armed=true successor_slot=1 epoch=1` kaydedildi. A aynı odaya yeniden katıldı (`join_confirmed`) ve Unity Editor'deki gerçek RTDB read-only Inspect `local_role=FOLLOWER authority_epoch=2 host_slot=1 human_seats=2 revision=189`, bütün `epoch_consistent/host_uid_consistent/match_anchor_consistent/single_host_seat/lobby_host_consistent=True`, `closed=False` ile **PASS** verdi. Devam eden follower zar/hareket logları gameplay sürekliliğini destekledi. `ATB_RTDB_N4_CORE_QA` ve `ATB_RTDB_HOST_CLOSE_GUARD_QA` ağsız PASS. **İkinci canlı devir B→A / epoch=3, eski Host stale-write negatif testi, üç create yolunun son sürüm regresyonu ve bot-only close hâlâ OPEN; N4 tamamı COMPLETE değildir.** Windows Guest EXE üzerinde Unity Editor QA menüsü/Inspect yoktur; test A'nın Unity Editor'ünden ve gerekirse güvenle maskelenmiş RTDB export'undan yürütülür. **Yalnız roadmap güncellemesidir; C#, Firebase Rules, deploy ve GitHub push yok.**
+
+## 0Z. 22 Ekim 2026 — v5.40.21 FIRST LIVE AUTHORITY HANDOFF + REJOIN / OWNER ACCEPTANCE
+
+**Kaynak:** Owner'ın iki ayrı Unity log çıktısı (`Pasted text(20261023-010519).txt`, `Pasted text (2)(20261023-010701).txt`) ve owner'ın Guest build'inde Inspect çalışmadığı açıklaması. Bu sonuçlar yalnız bu iki istemcili oturum için geçerlidir; ikinci CAS devri test edilmedi.
+
+| N4 kontrolü | Canlı/QA kanıtı | Kabul |
+| --- | --- | --- |
+| Live Spark iki UID oyun başlangıcı | RTDB room created public, remote seat admitted, ready, `ATB_SPARK_MATCH_START committed=true` (local 1 / remote 1 / bots 2) | OWNER LIVE PASS |
+| A Host normal Leave | `Phase 11G ... safe handoff checkpoint armed`; `ATB_RTDB_HOST_EXIT_DECISION close_room=false`; `ATB_RTDB_AUTHORITY_HANDOFF armed=true successor_slot=1 epoch=1 takeover=pending_successor_cas` | OWNER LIVE PASS — doğru devretme yolu |
+| Gerçek Host devri A→B | Sonradan `ATB_RTDB_HOST_INSPECT PASS source=live_rtdb local_role=FOLLOWER authority_epoch=2 host_slot=1 human_seats=2 revision=189` | OWNER LIVE PASS — epoch 1→2 ve Host B |
+| Yetki tutarlılığı ve canlı oda | `epoch_consistent=True`, `host_uid_consistent=True`, `match_anchor_consistent=True`, `single_host_seat=True`, `lobby_host_consistent=True`, `closed=False` | OWNER LIVE PASS — inspect anında split-brain yok |
+| Eski Host A yeniden katılım | `ATB_RTDB_REMOTE_QA event=join_requested`, `join_confirmed member_in_snapshot=true`; Host etiketi snapshot'a göre güncellendi | OWNER LIVE PASS — rejoin kabul |
+| Devralma sonrası oyun akışı | Eski Host Editor'de `Phase 5B follower dice`, `Phase 5C follower movement`, turn ve tile işlemleri devam etti | OWNER LIVE PASS — follower sunumu çalışıyor |
+| N4 core/close guard no-network | `ATB_RTDB_N4_CORE_QA PASS`, `ATB_RTDB_HOST_CLOSE_GUARD_QA PASS`; `mode=local_no_network` | QA PASS; canlı negatif testin yerine geçmez |
+| İkinci devralma B→A | `multi_hop_requires_live_retest=true`, henüz epoch 3 kanıtı yok | OPEN |
+| Eski Host stale publish/intent reddi | Belirli bir negatif istek ve sunucu reddi bu loglarda yok | OPEN |
+| Private / Public / Browser 3 create, consent | Bu oturumda Public Browser oluşturma pozitif; diğer yollar tam matris olarak çalıştırılmadı | OPEN — tam regresyon |
+| Yalnız botlar varken Host ayrılma | Canlı `close_room=true` ve eksiksiz fiziksel cleanup kanıtı bu oturumda yok | OPEN |
+| Kalan standalone RTDB kayıtları | Güncel tüm-dal export ile temizlik yok | OPEN — ayrı, owner-scoped maintenance |
+
+### QA erişimi ve kalan minimum test
+
+- **Guest EXE'de Editor QA menüleri veya `Inspect Live Match Host` yoktur.** QA'nın yalnız Unity Editor'deki A istemcisinde çalışması beklenir. Guest'e Editor komutları vermeyin; Host'un B olması engel değildir çünkü Inspect read-only RTDB authoritative kaynaklarından okur.
+- **İkinci canlı host devri:** A aynı odada follower iken Guest B normal Leave yapsın. Unity Editor A oyunda kaldığında eski maçta `authority_epoch=3`, `host_slot=0`, `local_role=HOST` ve bütün consistency alanları true beklenir; ardından A'da zar/hareket ve varlık koruma test edilir. Guest'in ayrılışıyla maçın haksız yere kapanmaması gerekir. Guest B de tekrar bağlanabiliyorsa (ve hâlâ Human/5dk reclaim hakkı varsa) seat/hud de doğrulanır.
+- **Negatif güvenlik:** Önceden ayrılmış Host'a ait stale epoch publish/intent için server rejection kanıtı, hatalı update değil; bot-only leave için `close_room=true` + tam closure; 3 ayrı create yolunun pozitif ve 10+1 consent negatif matrisleri ayrı test edilir.
+- İki `Phase 5E Remote pawn cosmetic sync failed` uyarısı (`This seat is not currently controlled by a connected Human`, `Remote command refers to an old frame`) birinci rejoin sonrasında görüldü; ardından remote kozmetik submit başarı mesajı bulundu. Bu uyarıların tekrar sıklığı, HUD görsel etkisi ve retry davranışı izlenir; birinci host handoff PASS'ini tersine çevirmeyin, ancak sıfır-risk iddiasında bulunmayın.
+- Bu dokümantasyon **N4'ü komple kapatmaz**; önceki owner 14/14 RTDB cleanup PASS ve Phase 18A–18H planları korunur. Unity/C# dosyaları veya Firebase Rules değiştirilmez.
+
+---
+
+**22 Ekim 2026 · Aktif kaynak adayı v5.40.21 — N4 HOST-EXIT CLOSE GUARD + ONE-CLICK CORE QA (OWNER LIVE ACCEPTANCE OPEN).** GitHub `main` başlangıç HEAD `bd91964eb0860a5a89823678705ab3df41171986`; owner'ın lokal Phase 18 roadmap'i temel alındı; GitHub push/commit yapılmadı. Bu sürüm yalnız mevcut `AtlasBoardTurnDiceNetworkCoordinator.cs` ve `AtlasBoardSparkMatchSmokeQA.cs` dosyalarıyla kanonik roadmap'i değiştirir. Firebase Rules, mevcut RTDB MatchTransport/LobbyTransport, Firebase altyapısı, Steam/Android profil ve gameplay ekonomisi **DEĞİŞMEZ**. Önceki 14/14 orphan cleanup ve Public+Bot match owner PASS korunur; **N4 programı canlı iki istemci migration ve UI create regresyonu bitmeden COMPLETE DEĞİL**.
+
+## 0Y. 22 Ekim 2026 — v5.40.21 N4 HOST EXIT FAIL-CLOSED CLOSE GUARD / SOURCE CANDIDATE
+
+### Dar kapsamlı gerçek hata ve değişiklik
+
+- **Önceki risk:** `HostMigrateAtSafeCheckpointAsync` canlı Spark odasını kapatıp kapatmayacağına yalnız yerel/cache edilmiş `matchBridge.CurrentSnapshot.Seats` üzerinden karar verebiliyordu. Kısa süre önce bağlanan veya yeniden bağlanmakta olan Human, henüz güncellenmemiş cached roster'da görünmezse, odayı `CloseLobbyAsync` ile yanlış sonlandırma tehlikesi vardı. Kullanıcının Guest Host ayrıldığında Vuartex'e devretmek yerine oda kapanması vakasıyla tutarlıdır; aynı vakayı kesin ispatlamaz.
+- **Düzeltme:** Host aktif maçtan **Leave/Quit** isteyince, yalnız otomatik host-only kapanış yolunda önce mevcut `AtlasBoardMatchRuntimeBridge.RefreshSnapshotNowAsync()` ile authenticated canlı match snapshot'ı ve `InspectAuthorityChainReadOnlyAsync()` ile `roomMeta` + `matchState` + `roomState`/tek Host/epoch zinciri yeniden okunur. Bunlar aynı match, same epoch, local current Host ve yalnız non-reclaimable BOT koltukları göstermezse `CloseLobbyAsync` çağrılmaz. Modern `remotehuman` ve legacy `remote_human`; bağlı Human, geçici bot (5dk reconnect hakkı), unknown wire, epoch değişimi veya okuma hatası kapanışı **engeller**.
+- **Kapanış koruması:** Gerçekten tek Host Human + yalnız kalıcı botlar varsa eski Host-only close akışı devam eder. Uygun bağlı Human bulunursa mevcut güvenli checkpoint + `LeaveActiveMatchAsync` + `authorityEpoch` CAS yolu korunur. Bağlantı/lease belirsizliğinde **fail closed** uygulanır: canlı diğer oyuncunun odası silinmez; eski host UI detach ve server host-timeout recovery olabilir. Bu, bütün yarışları engelleyen sunucu-tarafı atomik kapatma kanıtı değildir.
+- **Yeni log:** `ATB_RTDB_HOST_EXIT_DECISION close_room=true|false reason=... fallback=...`; room-id, invite code, token ve PII yazılmaz.
+- **Yeni ağsız testler:** `Atlas Board/QA & Diagnostics/RTDB/Verify Host-Only Close Guard (No Network)` -> `ATB_RTDB_HOST_CLOSE_GUARD_QA PASS`; `.../Run N4 Core Regression (No Network)` -> `ATB_RTDB_N4_CORE_QA PASS`. Tek tık N4 core QA; BOT wire, presence, election, multi-hop, remote-ready, owner orphan guard, consent guard, successor wire ve Host-only close guard sözleşmelerini doğrular. Bu testler **CANLI HANDOFF PASS değildir**.
+- **Değişmeyenler:** Firebase Spark/free (`atlasboard-usa`), RTDB sahiplik/host yetki/5dk bot geçişi, 3 saat owner orphan sweep, kullanıcı TAMAM -> 10dk idle consent, 10+1 soft cap, 3 UI create girişi, UI/HUD/tablet, 7 dil ve Phase 18A–18H planı. Firebase Rules deploy **YOK**.
+
+### Owner için minimum N4 kabul koşulları
+
+1. ZIP'i Unity projesi köküne tam path ile çıkar; Unity 6000.5.6f1, Play Mode dışında **0 C# compile error**; yeni N4 Core QA ve Host-Only Close Guard ikisi PASS. `mode=local_no_network` olduğuna dikkat et.
+2. **LIVE SPARK RTDB** (emulator değil); 2 farklı UID (Steam Editor Host A, Windows Guest B). Yeni **Private** oda aç; B join+Ready, Host Start. İki istemci eşzamanlı oyunda, `Inspect Live Match Host (Read Only, Play Mode)` logunda `consistency` alanları true. Sonra A normal Leave: `ATB_RTDB_HOST_EXIT_DECISION close_room=false`, `ATB_RTDB_AUTHORITY_HANDOFF armed=true`, B yetki devrinden sonra `HOST_INSPECT PASS`, epoch artış, matchId/turn/economy korunmuş ve B oyun oynuyor olmalı. B'nin yeni hostluğu sadece UI'da değil, `roomMeta.hostUid`/`matchState.hostUid`/tek host seat ile kanıtlanmalı.
+3. A'nın 5 dakika dolmadan gerçek hesabıyla **reconnect** etmesi sonrasında B→A ikinci devir; mümkünse üçüncü gerçek UID C ile A→B→C. **Aynı maç/artan epoch**; CAS stale host intent/publish reddi, player money, trade, roll, property ve HOST seçiminde BOT'un reddi. Editor no-network multi-hop PASS canlı testin yerine geçmez. A uygulama menüsüne döndükten sonra aktif maça yeniden giriş desteklenmiyorsa bunu **OPEN BUG** olarak ayrı bildir; sırf test amacıyla Rules bypass etme.
+4. **3 UI yolu:** (a) Main Menu Private Create (b) Main Menu Public Create (c) Public Browser Create; davet kodu, join, Ready/Unready, 10+1 popup/TAMAM ve yeni oda oluşturma. Uygun inaktif odalar temizlenirken başka UID/aktif maç korunur.
+5. **Bot-only kontrol:** yeni Host + 3 bot tek başına canlı maçta Leave -> `ATB_RTDB_HOST_EXIT_DECISION close_room=true` ve `ATB_RTDB_HOST_ONLY_CLOSE cleanup_acknowledged=true`; tüm oda meta/state/intent/membership/directory/joinCode bağlı kayıtları izole şekilde temizlenir. **Negatif test:** 2 Human bağlıyken asla `close_room=true` olmamalı. Zorla process kill ile takeover ayrı denenmeli; watchdog timeout recovery loglanmalı.
+6. Son, maskelenmiş RTDB export'ta geçmişteki bağımsız QA `matchState` ve `closed=true` Guest odası varsa bu **asıl UID/oda owner ile** güvenli, dar kapsamlı bakım gerekir. `users`, `guestNameClaims`, account, rewarded/wallet/progression ve aktif Guest başka kullanıcıya ait veri **silinmez**. Root wildcard query veya yetki genişleten Rules eklenmez. Bu bağımsız kayıt sorunu, 14/14 owner cleanup PASS'ini geriye almaz.
+
+### v5.40.21 teslimat ve durum
+
+- **Dosyalar:** `Assets/Project/Scripts/Online/AtlasBoardTurnDiceNetworkCoordinator.cs` (değişen mevcut canonical owner), `Assets/Project/Editor/AtlasBoardSparkMatchSmokeQA.cs` (mevcut QA), `Assets/Project/Documentation/MASTER_ROADMAP.md` (bu tam dosya). Yeni manager/controller, duplicate QA script, gameplay economy/pulse implementation eklenmez.
+- **Teknik kontrol:** offline statik C# bracket/source-invariant kontrolü ve ZIP hash/integrity; Unity gerçek compile, Firebase live reads, ikinci migration, Private/Browser UI, Android build **UNTESTED**. Owner'ın önceki N4 PASS kanıtları aynen korunur. **N4 COMPLETE kararı yalnız kullanıcının bu canlı kabul testlerini bildirmesinden sonra verilir.**
+
+---
+
+
+**22 Ekim 2026 · ROADMAP-ONLY / READ-ONLY N4 REVIEW — GitHub main `bd91964eb0860a5a89823678705ab3df41171986` (verified).** Bu güncellemede gameplay/C#/Firebase kodu, Rules, deploy, commit/push değiştirilmedi. Kanonik v5.40.20 N4 orphan cleanup ve Public match OWNER LIVE PASS korunur. **N4 PROGRAMI TAM KAPANMADI:** canlı çok-aşamalı Host Migration, 3 create yolunun Private/Browser regresyonu, kalan bağımsız RTDB artık kayıtları ve gerçek cihaz/son güvenlik kabulü için kanıt eksik. N4 read-only karar tablosu `0X`; sonraki onaylanmış fakat **henüz uygulanmamış** oyun genişletmeleri `Phase 18A–18H` bölümündedir. Eski checkpoint kayıtları tarihsel kanıt olarak aynen tutulmuştur.
+
+## 0X. 22 Ekim 2026 — N4 READ-ONLY SOURCE / ACCEPTANCE AUDIT (NO CODE CHANGES)
+
+**Repo:** `vuartex/AtlasBoardPrototype`, GitHub `main` HEAD **`bd91964eb0860a5a89823678705ab3df41171986`**, kanonik roadmap blob **`2af19e6c5ffaf229247da2a9fe550a040b2e4770`** bu denetim başlangıcında doğrulandı. Mevcut `AtlasBoardSparkRtdbMatchTransport`, `AtlasBoardRtdbCasualLobbyTransport`, `AtlasBoardTurnDiceNetworkCoordinator`, `AtlasBoardSparkMatchSmokeQA` ve roadmap kontrol edildi. Bu kayıt *okuma/analiz* kanıtıdır, Unity derlemesi veya yeni canlı test değildir.
+
+| N4 acceptance scope | Son güvenilir kanıt | Karar / tekrar testi |
+| --- | --- | --- |
+| Sahip UID odalarının 3 saatlik orphan cleanup'ı | v5.40.20 owner Live Spark: `found=14 eligible=14 deleted=14 failed=0 protected=0`; iki export'ta 14 oda ve bağlı match/presence/joinCode zincirinin silinmesi | **OWNER LIVE PASS**, bu sınırda kapandı |
+| Oyun içi 5 dakikalık geçici botun kalıcı bota dönüşmesi | Oyuncu gerçek 5 dakika bekledi, Permanent Bot gördü; ağsız Presence QA PASS | **OWNER MANUAL PASS**; geç dönüşte eski koltuğun alınamadığı bütün cihaz kombinasyonları ayrıca regresyonda izlenecek |
+| Public tek Human + 3 Bot Create → Start → host zar/tur | v5.40.20 canlı log, yenilenen Public room ve RTDB matchState | **OWNER PASS (bu kombinasyon)** |
+| Host election / successor wire / multi-hop | `HOST_ELECTION`, `HOST_SUCCESSOR`, `MULTI_HOP` **mode=local_no_network PASS** | **LOCAL QA PASS; LIVE HANDOFF OPEN**; kaynak geçiş fonksiyonu PASS değildir |
+| Normal Host Leave / beklenmeyen process crash | `HostMigrateAtSafeCheckpointAsync` uygun connected Human varsa authority devri yoluna gider, yoksa `CloseLobbyAsync`; 6 s checkpoint deadline / 7 s leave watchdog var | **LIVE REGRESSION OPEN**: Host A→B, ardından B→C veya B→A, epoch tekil/artan, eski host write engeli, 2–4 Human |
+| UI create/return | Public açılış PASS; Private ve Browser Create, Ready/Unready, join code, popup TAMAM, 10+1, yeniden oluşturma her üç yolda canlı regresyonla doğrulanmadı | **OPEN** |
+| Bağımsız RTDB artık kayıtlar | 21 Ekim owner export'unda eski `roomMeta` olmayan QA `matchState`, `closed=true` Guest roomMeta ve ayrı Guest metadata bulunuyordu | **OPEN**: bu export artık güncel canlı durumun kanıtı değildir; owner UID/backlink/lease ile read-only kontrol, yalnız güvenli yetkili path temizliği |
+| Gerçek cihaz / prod trust | Windows Editor+Guest önceki iki UID testleri; Android+Steam gerçek release ve üretim App Check/ödül testleri ayrıdır | N4 ile ilişkili smoke **OPEN**; Phase 15–17 release gate'leri ayrıca OPEN |
+
+**N4'ü program seviyesinde COMPLETE yapmak için somut kanıt dizisi (sıralı, hiçbir güvenlik bypass'ı olmadan):**
+1. Unity Play Mode ve Windows Guest; gerçek RTDB, iki farklı kalıcı UID ile Public ve Private Create/Ready/join; Browser üzerinden ayrıca yeni Public Create; üç ayrı entry point, kod/değişiklik olmadan başarılı. Popup/TAMAM → 10+1 aşımı olduğunda yalnız *kendine ait*, son 10 dk etkin olmayan odaların kapanması; yeni maç/sahip dışı kayıtların korunması.
+2. Gerçek 2-Human maçta Host A→B normal Leave: `roomMeta.hostUid` ve `matchState.hostUid`, `authorityEpoch`, seat Host flag ve `ATB_RTDB_HOST_INSPECT consistency` uyumlu olmalı. Eski Host yeni epoch ile yetkisiz state publish edememeli. B'de zar, satın alma, trade, para/ownership korunmalı. Crash/timeout halefi ayrı test edilmeli.
+3. B→A ikinci yetki devri (2 gerçek UID) ve imkan varsa A→B→C (3 ayrı insan) zinciri; **aynı anda sadece bir Host**, artan epoch, stale CAS reddi, 5 dk reconnect / permanent bot ve botların host seçilmemesi. 2 UID ile B→A sonucu üç benzersiz UID'li testi kanıtlamaz.
+4. Host tek Human+Bot ayrıldığında odayı kapatmalı; bağlı Human varken normal ayrılış odayı kapatmamalı. `7s` watchdog/`6s` checkpoint aşımı durumlarında oda yaşayan oyuncular için recover edilebilir kalmalı. Oda silme başka kullanıcıya taşmamalı.
+5. QA menüleri local/no-network ayrı, canlı test ayrı loglanmalı; son 3 saat automatic ve 10 dk consent, hiçbir canlı heartbeat'e dokunmama, closed retry ve legacy epoch0→1 guard ayrıca regresyona girmeli. Her test için UID'ler maskelenmiş, `matchId`/room code gizlenmiş loglar, host epoch önce/sonra, cihaz/derleme/RTDB mode ve gerçek sonuç kaydedilmeli.
+6. RTDB eski tekil QA kayıtları ve kapanmış Guest metadata için, güncel REST export/okuma ve Rules sahiplik kontrolü sonrası dar kapsamlı cleanup kabulü; `/users`, `/guestNameClaims`, account/rewards gibi kalıcı veriye dokunma. Firebase Spark/free, Blaze/Functions ve prod deploy için ayrı owner onayı gereklidir.
+
+**Açık risk:** `HostMigrateAtSafeCheckpointAsync` yalnız uygun Human'ı gördüğünde otomatik devir yoluna girer. Süre dolması UI detach yapabilir; kaynak kodunun bu davranışı, gerçek iki istemcide kesin yetki devrinin tamamlandığını kanıtlamaz. `Inspect Live Match Host` read-only çıktısı ile `authorityEpoch`/`roomMeta`/`matchState` eşleştirmesi zorunludur. Doğrulanmamış aşamalara PASS yazılmayacak. **Bu turda N4 gameplay kodu değiştirilmedi, canlı Firebase okunmadı/değiştirilmedi.**
+
+---
+
 **Güncel konsolidasyon:** 21 Ekim 2026 · **Aktif checkpoint: v5.40.20 — N4 LEGACY ORPHAN CLEANUP OWNER LIVE PASS (14/14) + PUBLIC MATCH START OWNER PASS.** Kullanıcı Unity Editor **Live Spark RTDB** modunda iki ağsız guard QA testini PASS çalıştırdı. Açılışta 3 saatlik, sahip UID'ye bağlı full-scan temizlik `found=14 eligible=14 deleted=14 failed=0 protected=0 remaining_eligible=0` döndürdü. **Önce/sonra RTDB export farkında 14 eski `roomMeta`/`roomState`/`roomMembers`, 14 `matchState`/`matchPresence` ve 14 `joinCodes` kalıntısının gerçekten kaybolduğu doğrulandı.** Kullanıcı yeni Public oda oluşturdu, gerçek maç başladı ve başlangıç zarı/ilk tur oynanışı loglandı; **OWNER LIVE PASS**. Önceki `v5.40.20 SOURCE CANDIDATE / LIVE OPEN` durumu bu kanıtla kapanmıştır. **Ayrı açık işler:** canlı multi-hop Host Migration, tüm Private/Browser create yollarının yeni sürümde yeniden regresyonu, bağımsız `roomMeta` bulunmayan eski QA matchState kalıntısı, `closed=true` Guest oda metaverisi ve üretim/Android güvenlik kabulü. Firebase Rules değişmedi; yeniden deploy gerekmez. **Kod teslimi v5.40.20 kaynak ZIP'indedir; bu kayıt sadece kanonik roadmap'i günceller, yeni C# veya Firebase Rules değişikliği değildir.**
 
 ## 0W. 21 Ekim 2026 — v5.40.20 N4 OWNER LIVE ACCEPTANCE / FIREBASE RTDB VERIFICATION
@@ -2491,3 +2629,127 @@ Known non-blocking warnings still OPEN and must be cleaned from their canonical 
 - production Play Integrity/App Check enforcement proof remains pending; registration alone is not enforcement proof.
 - Firebase Cloud Functions are not deployed in `atlasboard-usa`; paid Blaze is not authorized.
 - full physical multi-device multiplayer, Google Play release AAB, final performance/device matrix and Steam production trust remain pending.
+
+---
+
+# Phase 18 — AtlasBoard Signature Gameplay Expansion (OWNER-APPROVED DESIGN / PLANNED, NOT IMPLEMENTED)
+
+**Onay kapsamı:** 22 Ekim 2026 owner instruction. Bu bölüm yeni *oyun içeriği* için onaylanmış **gelecek çalışma**dır; kaynakta bulunduğu, test edildiği veya release'e hazır olduğu iddia edilmez. Tarihsel `# 18. Security & Core Audit` **belge bölüm numarasıdır** ve bu yeni *oyun fazı* ile aynı şey değildir. Aşağıdaki 18A–18H ayrı work package'lar olarak uygulanacak. Öncelik: **önce N4 açık gerçek multiplayer kanıtları, Android P0 FPS ve release güvenlik sınırları; ardından Phase 18**. Phase 15–17/Steam/Android ve N4 mevcut kabul kriterleri korunur.
+
+### 18.0 Kanonik mimari ve genel değişmezler
+
+- Mevcut `BoardPath`, `BoardMapDefinition`, `BoardTile`, `TileResolutionManager`, `PropertyDevelopmentManager`, `BoardEconomyProfile`, `TradeManager`, `BankruptcyManager`, `EventCardManager`, `TurnManager`, `MatchResultManager`, `BotPlayerController`, `AtlasBoardTurnDiceNetworkCoordinator`, `AtlasBoardSparkRtdbMatchTransport` ve `AtlasBoardRtdbCasualLobbyTransport` sahipleri üzerinden tasarlanacak. Yeni sistemler bu bileşenlerin görevini devralıp **ikinci otorite/duplicate manager** yaratmayacak. Kod refactor'ı ayrı WP ile karara bağlanır.
+- Mevcut **32 normal yürüyüş tile'ı**, şehir/grup/eşit ev geliştirme sistemi, turn order/10s human dice fallback, HUD/tablet ve tüm oturum resetleri değişmez. Civic alanlar 32 tile indeksini kaydırmayan **3 bağımsız hedef** olarak tanımlanır; 35 görünür konum, 32 yürüyüş hücresi.
+- Local Offline ve Private Casual Online tek deterministik ekonomik kural setini kullanır; gelecekteki Rewarded/Ranked için **server-verified reward** ayrı güvenlik sınırıdır. Host-authoritative state tek gerçek kaynak; follower client yalnız UI/niyet gönderir. RTDB `revision`, `authorityEpoch`, tek kullanım action IDs ve host CAS sürdürülür.
+- 4 kategori seviyesi, kredi/mortgage, Civic sahipliği, Event movement, Economic Memory, net worth şema genişletmeleri için **backward-compatible versioned TurnDiceFrame / snapshot**; no-legacy-wipe ve rollback/snapshot migration planı. Yeni maçta tüm veriler reset, ikinci/üçüncü maçta leak yok; eski Guest UID, 5-min seat reclaim, migration, bot kalıcılaştırma değişmez.
+- Live Spark/free, düşük veri tüketimi; her frame RTDB write veya sınırsız event history yok. Kişisel bilgi/Steam ticket/oda kodu loglanmaz. Açık sonuçlar ve satın alma/ödül güvenliği yalnız yetkili path'te. Bütün UI EN/TR/ES/FR/DE/KO/RU, erişilebilir renk + metin + ikon; desktop ve Android touch performans testi.
+- **Kesin oyun kuralı / öneri ayrımı:** Sistemlerin varlığı, kredi üst sınırı/teminat davranışı, Level 0–4, 3 bağımsız Civic alan, Türkiye Civic isimleri **owner-approved spec**. Aşağıdaki rakamsal geliştirme maliyetleri, faiz/taksit süreleri, kredi ödemeleri, kira bonusu ve Civic fiyat/getirileri **başlangıç balans önerisidir**; uygulama öncesi ekonomi simülasyonu ve kullanıcı kararına bağlıdır.
+
+## Phase 18A — Sol yönetim paneli (Developments / Bank)
+
+**Kapsam / UX:** Mevcut sağ Chat drawer'ına benzer sol, açılıp kapanır, iki sekmeli **Developments** ve **Bank** paneli. Developments: oyuncunun sahip olduğu tüm şehirler; seçilen şehrin **Demand/Prosperity/Traffic/Stability**, dört proje seviyesi, kira etkisi, her satırda ikon/ad/seviye/gösterge/maliyet/**Build**; kilit/yetersiz para/mortgage açıklaması. Bank: teminata uygun şehir, başvuru tutarı/üst limit, 3 loan slot, vade/faiz, kalan ödeme ve **Repay**. Pause/Tablet/Trade/Chat/Modal ile tek input-focus, öncelik/safe-area; Android touch drag/scroll ve kamera pinch/pan/rotate gesture arbitration; klavye/gamepad discovery.
+
+**Teknik / bağımlılıklar:** Mevcut chat drawer ve tablet overlay UI, canonical localization, PlayerGameState/cash, city ownership, PropertyDevelopmentManager, future 18B/18D read models. UI sadece host-snapshot'tan türetilir; Build/Repay niyeti bir kez host'a gönderilir, pending/loading, ack/stale/timeout hata feedback'i olur. Authoritative state duplicate tutulmaz. Offline aynı komut doğrulayıcıyı yerelde kullanır. Botlar panel açmaz fakat **aynı Build/Loan/Repay command'larını** uygular.
+
+**Kabul / QA:** 1–4 Human/Bot, city pagination, ownership trade sırasında panel refresh, banker/mortgage disabled state, no-city empty screen, locale 7 dil, 16:9/ultrawide/tablet/Android, chat ve tablet çakışmama, UI touch → camera yanlış hamle yok. Network retry bir Build'i iki kez çalıştırmaz, Host Migration + reconnect'te pending state tutarlı, ardışık 3 maçta panel sıfırlanır. **Durum: PLANNED**.
+
+## Phase 18B — Atlas Pulse / Living City Economy
+
+**Onaylı mekanik:** Şehir başına dinamik **Demand, Prosperity, Traffic, Stability** (her biri **0–100**) ve ayrı **proje seviyesi 0–4**. Proje seviyesi kalıcı maç içi yatırım state'i; gösterge olay/ziyaret ve ekonomik hafıza ile dalgalanır (birbirine karıştırılmaz). Sahip olunan tek bir şehir bile ev grubu tamamlanmadan Atlas Pulse geliştirebilir. Level 4 sonrasında Build disable; satış/trade/mortgage/iflas politikası 18C–18D ile çapraz tanımlanır.
+
+| Gösterge | Level 1 | Level 2 | Level 3 | Level 4 |
+| --- | --- | --- | --- | --- |
+| Demand | Local Market | Shopping Center | Commercial Plaza | Global Marketplace |
+| Prosperity | Business Office | Corporate Center | Financial District | Economic Hub |
+| Traffic | Bus Terminal | Transit Station | Metro Network | Transport Megahub |
+| Stability | Security Office | Safety Network | Emergency Center | Resilient City |
+
+**Önerilen, kesinleşmemiş denge:** L1 **100 ₵**, L2 **175 ₵**, L3 **250 ₵**, L4 **350 ₵**; dört kategorinin toplam ek kira etkisi için ilk simülasyonda **en fazla +%80** katkı tavanı. Mevcut grup/ev kira katsayıları ile tek tanımlı ve sırası belgelenmiş hesap (rounding/overflow, minimum/maximum rent). 0–100 göstergeler olaylar, oyuncu ziyareti, yatırımlar ve 18G memory ile değişir; **yapı Level** ile gösterge birbirinden bağımsızdır.
+
+**Teknik / bağımlılık:** BoardEconomyProfile konfigurasyonu (tek ekonomi kaynağı); PropertyDevelopmentManager'ın ev hesabı ile ayrı Pulse katkısı, TileResolutionManager kira bağlama; per-city state `cityId + category + projectLevel + metric` ile snapshot serialize. Satın alma yeterli nakit + ownership + mortgage + expected revision ile atomik tek eylem; şehre tek terminal visual/asset variant var ise seviye ile bağlanır, yoksa UI ikon fallback. Ekonomik simülasyon host ve offline aynı deterministik kuralı çalıştırır; bot yatırım kararı cash reserve/personaliteye göre verir; temporary/permanent bot host-authoritative devam eder.
+
+**Kabul / QA:** Her kategori L0→4 ve Level4 overflow, tek şehir vs tam grup, Pulse yatırımından kira etkisi, negatif/pozitif event ve 0–100 sınır, 80% cap, no money/double spend, aynı intent tekrar/stale revision, trade/mortgage/iflas, local/RTDB parity, host rollover/reconnect ve 3rd game reset. Büyük matriste Android FPS/GC ve bant genişliği izlenir. **Durum: PLANNED**.
+
+## Phase 18C — Mevcut üçlü ev grubu sistemi + Pulse beraberliği
+
+**Korunan mevcut kural:** Mevcut 3 şehirlik grup tam olmadan ev inşa edilemez; dengeli grup geliştirme ve mevcut maksimum ev seviyesi korunur. Pulse ise **sahip olunan tek şehirde** gruptan bağımsız yapılabilir. Ev seviyesi ile Pulse dört proje seviyesinin veri alanları ve visual slotları karışmaz. Şehrin tek authoritative owner'ı korunur.
+
+**Teknik / ekonomi:** PropertyDevelopmentManager mevcut ev grubu min/max ve `GetEffectiveRent` kanoniği korunur; Pulse `GetEffectiveRent` zincirine kontrollü, test edilebilir ek katkı sağlar. İpotekte tüm kira 0, ev/Pulse Build disabled, geri ödenen kredide eski geçerli yatırımlar korunur; bankaya foreclosure/iflas dönüşünde her ikisi sıfırlanır. Normal trade mümkün olduğunda geliştirmeler taşınır veya explicit satılma kuralı doğrulanır; mortgage'lı şehir trade dışı. New game tüm ownership, ev/Pulse parametreleri default'a döner.
+
+**Bot / online:** Botlar önce eski ev geliştirme şartını değerlendirir, sonra bağımsız Pulse yatırımını; bir sistemin engeli ötekini haksız engellemez. Hosta tek economic snapshot ve migration sonrası aynı rent sonucu. **Kabul / QA:** 1/2/3 şehir grup, eşit olmayan ev seviye engeli, rent stacking cap, mortgage/trade/bankruptcy, no double payment, follower presentation, offline parity ve 1–3 rematch. **Durum: PLANNED**.
+
+## Phase 18D — Bank / Loans / Mortgage / Auto Collection
+
+**Onaylı v1 kurallar:** Oyuncu **en fazla 3 aktif kredi**, her biri **farklı sahibi olduğu şehir** teminatı; şehir başına tek aktif ipotek. Kredi limiti, şehrin **sabit satın alma fiyatının %70'i** (geliştirilmiş/oynak piyasa değeri değil); oyuncu 0 üstü ve limit altı tutar seçebilir. Alınan anapara nakde bir kez eklenir. İpotekli şehirde **kira=0, yeni ev/Pulse Build yok, yeni teminat yok, normal trade yok**, açık mortgage işareti; owner rengi kalabilir.
+
+| İlk balans önerisi | Vade (borçlunun tamamlanan kendi turu) | Sabit basit faiz |
+| --- | ---: | ---: |
+| Short Loan | 2 | %8 |
+| Standard Loan | 3 | %12 |
+| Extended Loan | 5 | %20 |
+
+**Örnek (önerilen model):** 150 ₵ anapara, Standard Loan %12 → toplam **168 ₵** borç. Global round sayısı değil, **ilgili oyuncunun tamamlama turu** referanstır. Bank UI: şehir, tutar, faiz, toplam/kalan borç, kalan tur, mortgage ve **Repay (tam erken ödeme)**. V1 kısmi ödeme şart değil; ödeme kuralları aynı her tur state-machine'de deterministik.
+
+**Vade / tasfiye:** A — yeterli para: 168 ₵ gibi toplam borç tek sefer tahsil, kredi kapanır, ipotek kalkar, eski ev/Pulse seviyeleri korunur, kira yeniden işler. B — yetersiz para: yalnız ilgili **teminat şehir** bankaya döner, beyaz/sahipsiz olur, ev/Pulse reset, kredi kapanır, ek nakit cezası veya diğer şehir gaspı yok. C — iflas: tüm krediler kapanır, ipotekli şehirler bankaya döner, geliştirmeler sıfırlanır, iflas alacaklısına ayrıca devredilmez; normal bankruptcy kuralı diğer varlıklarda korunur. Bankadan geri dönen şehir yeniden satın alınabilir.
+
+**Teknik / bağımlılıklar:** TurnManager'ın tamamlanan oyuncu turu hook'u, PlayerGameState cash, `BoardTile` owner state, PropertyDevelopmentManager, TradeManager, BankruptcyManager, TileResolutionManager, MatchResultManager. Host-only LoanId/TxnId/state machine; `loan_opened`, `repaid`, `matured`, `foreclosed` eylemlerinde **idempotency**, expected revision/authority epoch, tek economic commit, bir turda tek tahsilat. Aktif oyuncu offline, temporary bot veya permanent bot olsa da takvim durmaz. Host Migration tekrar tahsilat uygulamaz; game reset kredileri tamamen sıfırlar. XP/Gold wallet ile maç içi para karıştırılmaz.
+
+**Maç sonu net worth:** Ödünç alınan nakit sahte kar sayılmaz; outstanding principal+interest liabilities düşülür; mortgage/foreclosure status ve valuation hesabı açıkça test edilir, net worth negatif olabilir mi karar/saturasyon tasarımı gerekir. **Bot:** kişilik/reserve/foreclosure ihtimali ile kredi alır, süresinde öder, gereksiz ipoteğe gitmez; başka oyuncunun kredi durumunu hileli kullanmaz.
+
+**Kabul / QA:** %70 sınırı, 4. kredi, aynı teminat, 0/negatif/out-of-bounds tutar, anında nakit, kira/Build/trade blokları, A/B/C tasfiye, erken tam Repay, son tur geçişi, eşzamanlı iki istek, duplicate repayment/foreclosure ve restart, host handoff + reconnect + 3 maç reset, net worth ve Android/Steam ekranları. **Durum: PLANNED**.
+
+## Phase 18E — 3 bağımsız Civic Project hedefi / 32+3 konum
+
+**Onaylı topoloji:** Mevcut **32 normal BoardPath** yürüyüş tile'ı (zar, zar turu, Start, event index) korunur. Haritada köşelere yakın **3 ek Civic Project** görsel/hedef alanı olacak; **toplam 35 görünür konum**, ama Civic hedefleri **normal zar rota sırasına dahil değil**. Bunlara yalnız belirli **Event** veya **Travel** ile gidilir; normal oyuncu zar yürüyüşü otomatik Civic'e giremez. Ayrı `CivicProjectId` ve `destinationType`, normal tile index'leri kaymaz. UI/camera mini-map/board layout mevcut Tile davranışını kırmamalı.
+
+**İsimler (Türkiye haritasında kesin onay):** (A) **İstanbul Airport**, (B) **High-Speed Rail Network**, (C) **Alaşehir Technology Center — Alaşehir Teknoloji Merkezi** (Manisa/Alaşehir). **`National Technology Center` iptal; Türkiye'de kullanılmaz.** Colorado ve USA haritası isimleri ayrıca owner content onayına tabidir. Üç proje sahiplenilebilir, görsel owner markeri vardır, ulaşınca sahipsiz için purchase prompt açılır.
+
+**Önerilen, kesin olmayan başlangıç dengesi:** A **650 ₵**, B **800 ₵**, C **950 ₵**; Alaşehir için normal **Start'ı ileri yönde yürüyerek geçişte +100 ₵** ekstra sahip geliri ve sahibinin şehirlerinde **Prosperity +%5 ekonomik katkı** (nasıl %5 hesaplanacağı/80% tavana etkisi ekonometrik simülasyonda belirlenir). Tüm Civic alanların Start bonusları normal Start ödülüne **ek**; sahibi Start'ı normal ileri hareketle tamamlayıp geçtiğinde bir kez. Event/Travel doğrudan ışınlanma, geriye hareket veya replay, **Start bonusu üretmez**. Tek turda geçiş yakalama ve `passStartEventId` ile tekrarlı ödül engeli.
+
+**Teknik / bağımlılıklar:** BoardMapDefinition görsel Civic meta, BoardPath sadece normal 32, TurnManager normal hareket/tur flag'i, StartRewardManager authoritative passStart event, TileResolutionManager ayrı Civic prompt, EventCardManager target routing, TradeManager ownership politikası, MatchResultManager Civic valuation. Bot cash reserve/future Start passes/ROI değerlendirerek satın alır; offline ve RTDB aynı owner+bonus snapshot'ı. Mortgage/loan için Civic teminatı **v1'de uygun değil** (yalnız şehirler); Civic trade/iflas davranışı ayrı kural kapısı ile tanımlanıp test edilir.
+
+**Kabul / QA:** 32 yürüyüş indeksi tam aynı kalır, 35 görsel hedef, yalnız Event/Travel erişimi, projelerin 3 fiyatı/owner rengi, normal Start→tek bonus, teleport→sıfır bonus, backward→sıfır, simultaneous trade/purchase CAS, duplicate profit önlemi, bot pathing, region/map varyantı, host transfer/rematch ve mobile camera. **Durum: PLANNED**.
+
+## Phase 18F — Event kartı hareket genişletmesi
+
+**Onaylı kart etkileri:** `move_forward(N)`, `move_backward(N)`, `random_forward(1..6)`, `random_backward(2..5)`, `travel_random_civic`. Örnek kart adları **Unexpected Detour** (3 geri), **Express Connection** (6 ileri), **Wrong Turn** (2–5 geri), **Lucky Shortcut** (1–6 ileri), **Civic Project Invitation** (rastgele Civic hedef). Var olan Event deck/UX ve özel tile kuralları kaldırılmaz.
+
+**Teknik / bağımlılıklar:** EventCardManager'ın **tek yetkili** çözüm akışı → TurnManager/PlayerPawnMover hareket router → TileResolutionManager terminal çözümü. Deterministik RNG seed/roll authoritative snapshot ile replike; follower kendi RNG'sini çalıştırmaz. Event chaining en fazla kuralla tanımlanan depth (v1 hedef **no recursive Event follow-up**) ile sınırlı; Civic gelişi önce 18E kurallarıyla çözülür, hareketten çıkan normal şehir satın alma/kira mevcut ile aynı çalışır. Backward movement Start ödülü üretmez; Event/Travel tetikleyen teleport Start ödülü üretmez. Animation+fast-forward/reconnect aynı hedefe gelir.
+
+**Bot / offline:** Botların event seçenekleri/continue aynı event outcome contract'ından gider; offline seed de tekrarlanabilir ve host ile sonucu aynı. **Kabul / QA:** ileri/geri grid wrap, 32 normal tile üzerinde sınırlar, 1–6 ve 2–5 dağılım; event→city/purchase/rent, event→Civic purchase/owned, Event→Event infinite loop engeli, backwards Start=0, teleport Start=0, duplicate outcome CAS, host migration sırasında yarım hareket, 3-match state leak. **Durum: PLANNED**.
+
+## Phase 18G — Economic Memory (bounded, visible city history)
+
+**Kapsam:** Her şehir için maç-içi sınırlı tarihçe: owner değişimi, ev/Pulse yatırımı, ekonomik ziyaretler, mortgage/foreclosure ve event etkileri. 0–100 Demand/Prosperity/Traffic/Stability metriklerine kontrollü katkı; sınırsız event log veya frame başına RTDB yazımı yok. UI'de şehir geçmişinden oyuncuya anlamlı özet/ikon ve etki süresi görünür.
+
+**Speculative Market örneği — başlangıç kural önerisi:** **son 5 round içinde 3 owner değişimi** → Speculative Market; **Stability −20**, **Traffic +12** (0–100 clamp); tekrarlı trigger için explicit **cooldown/süre** ve birikimli etki tavanı gerekir. Bankaya foreclosure owner dönüşünün transfer olarak sayılıp sayılmaması ayrı owner balans kararına tabi. Owner değişimi legacy event'lerden yeniden oynatılabilir ama aynı transfer eventId iki kez sayılmaz.
+
+**Teknik / bağımlılıklar:** TradeManager ownership events, BankruptcyManager & 18D foreclosure, PropertyDevelopmentManager & 18B investment, TurnManager round index, TileResolutionManager visit; idempotent per-city ring buffer son N olayı ve finite state (`activeStatus`, expiry/cooldown). Botlar göstergelere göre risk/yatırım davranışını değiştirir. Offline deterministik ve RTDB aynı history ve status'u serialize eder; reconnect/migration, backfill, 3-match reset sorunsuz.
+
+**Kabul / QA:** 5-round sliding window, 2/3/4 changes, replay duplicate olay, expiry/cooldown, clamp 0–100, owner trade→bank foreclosure→purchase durumları, stale snapshot ve host migration, bot profile, Android lightweight UI/perf/network budget. **Durum: PLANNED**.
+
+## Phase 18H — Entegrasyon, ekonomi simülasyonu, bot, multiplayer ve tam QA
+
+**Ekonomi bileşenleri birlikte değerlendirilecek:** mevcut kira/ev grupları + Pulse etkisi + Civic Start getirileri + kredi faiz/teminat + vergiler + Event ödül/cezaları + banka/iflas tasfiyesi + maç sonu **borç düşülmüş net worth**. Balance testinde 20 round default ve farklı oyuncu sayılarında enflasyon, runaway compounding ve bot unfair advantage ölçülecek. Önerilen +80% Pulse tavanı simülasyon çıktısına göre kilitlenecek.
+
+**Bot kişilikleri korunur:** temkinli/agresif/dengeli vb. profil parametreleri ev+Pulse yatırım, loan/early repay, foreclose avoidance, Civic ROI, Economic Memory olay riskini etkiler. `remotehuman` temporary bot devraldığında aynı seat sahibi ekonomi state'ini sürdürebilmeli; final permanent bot ve post-expiry original UID reclaim engeli değişmez. Offline Human vs Bot ve Private 2–4 Human+Bot davranışı aynı.
+
+**Zorunlu negatif/güvenlik QA matrisi:** double spending, duplicate loan/repayment/Start bonus/foreclosure, nested trade vs mortgage, stale expected revision/authority epoch, ownerUid sahteciliği, inactive seat actions, disconnect/reconnect expiry, host A→B→C veya A→B→A chain, no parallel host, result injection/reward path boundary, idempotent CAS retry, offline/online deterministic parity, old snapshot version migration, 1→2→3 matches no carryover. Düşük bant genişliği/RTDB write ve Spark maliyet profili ölçülür; production güvenlik App Check/Steam/Android kanıtı Phase 15–17 kapsamındadır.
+
+**Onay matrisi:** (a) Unity local-no-network logic tests; (b) two real UID Live Spark Private/Public; (c) two/three-hop host; (d) 3 consecutive games Windows, real Android perf + FPS/UI, Steam Guest/Editor profile; (e) production security permission/abuse negative tests ve final game-result integrity. Bir WP ancak gerçek test kanıtı ve owner PASS sonrası COMPLETE yazılabilir. **Durum: PLANNED**.
+
+### Phase 18 uygulama / sürüm kapıları
+
+| WP | Ön koşul | Teslim | Gate |
+| --- | --- | --- | --- |
+| 18A | N4 multiplayer gate ve UI layout kontratı | Sol Developments/Bank drawer, mock read model | 7 dil/touch/input overlap + 3-match reset PASS |
+| 18B | 18A UI iskeleti, BoardEconomyProfile denge | Atlas Pulse 0–4, 0–100 göstergeler, kira hook'u | Economy determinism + idempotency PASS |
+| 18C | 18B + mevcut ev sistemi baseline PASS | Ev/Pulse rent/ownership entegrasyonu | Full-group vs single-city, trade/bankruptcy PASS |
+| 18D | 18C, TurnManager turn completion, bankruptcy/trade | 3 loan/mortgage, early repay, due auto collect | Due A/B/C, double-charge/reconnect/host PASS |
+| 18E | 18D tasarım sabit, 32 tile index freeze | 3 Civic Project special destinations | 32+3 topology ve Start bonus integrity PASS |
+| 18F | 18E target resolver | Event move forward/back/random/Civic | Event recursion/teleport vs Start PASS |
+| 18G | 18B–18F status/ownership event schema | Bounded city Economic Memory | window/cooldown/0–100 limits + migration PASS |
+| 18H | Tüm WP'ler ve P0 güvenlik performans | Cross-system, bots, RTDB, Android/Steam QA | Owner device acceptance + security/no regression |
+
+**Release/scope kilidi:** Bu onay, yeni kodu hemen yazma/deploy etme yetkisi değil; owner bu turda **yalnız roadmap güncellemesi** istedi. Teknik alt işlere başlarken gerçek kaynakları yeniden karşılaştır, duplicate yaratma, tam dosyalarla ilerle, Unity/Live QA'dan önce PASS iddiası yapma. Phase 18'in tamamı **OWNER-APPROVED FUTURE DESIGN / NOT IMPLEMENTED**.
+

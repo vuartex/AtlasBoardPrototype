@@ -597,6 +597,63 @@
           ".validate": false
         }
       }
+    },
+    "chatThrottle": {
+      "$kind": {
+        "$scopeId": {
+          "$uid": {
+            ".read": "auth != null && auth.uid === $uid",
+            ".write": "auth != null && (($kind === 'lobby' && root.child('roomMembers').child($scopeId).child(auth.uid).child('active').val() === true && root.child('roomMeta').child($scopeId).child('closed').val() === false) || ($kind === 'match' && root.child('matchState').child($scopeId).child('status').val() === 'active' && root.child('roomMeta').child(root.child('matchState').child($scopeId).child('lobbyId').val()).child('closed').val() === false && root.child('roomMembers').child(root.child('matchState').child($scopeId).child('lobbyId').val()).child(auth.uid).child('active').val() === true)) && auth.uid === $uid && newData.exists() && newData.hasChildren(['token','lastSentAt']) && newData.child('token').isString() && newData.child('token').val().length === 32 && newData.child('lastSentAt').isNumber() && newData.child('lastSentAt').val() >= now - 2000 && newData.child('lastSentAt').val() <= now + 2000 && (!data.exists() || (newData.child('lastSentAt').val() >= data.child('lastSentAt').val() + 10000 && newData.child('token').val() !== data.child('token').val()))",
+            "token": {
+              ".validate": "newData.isString() && newData.val().length === 32"
+            },
+            "lastSentAt": {
+              ".validate": "newData.isNumber() && newData.val() >= now - 2000 && newData.val() <= now + 2000"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        }
+      }
+    },
+    "chatMessages": {
+      "$kind": {
+        "$scopeId": {
+          ".indexOn": [
+            "createdAtEpochMs"
+          ],
+          ".read": "auth != null && (($kind === 'lobby' && root.child('roomMembers').child($scopeId).child(auth.uid).child('active').val() === true && root.child('roomMeta').child($scopeId).child('closed').val() === false) || ($kind === 'match' && root.child('matchState').child($scopeId).child('status').val() === 'active' && root.child('roomMeta').child(root.child('matchState').child($scopeId).child('lobbyId').val()).child('closed').val() === false && root.child('roomMembers').child(root.child('matchState').child($scopeId).child('lobbyId').val()).child(auth.uid).child('active').val() === true))",
+          "$messageId": {
+            ".write": "auth != null && (($kind === 'lobby' && root.child('roomMembers').child($scopeId).child(auth.uid).child('active').val() === true && root.child('roomMeta').child($scopeId).child('closed').val() === false) || ($kind === 'match' && root.child('matchState').child($scopeId).child('status').val() === 'active' && root.child('roomMeta').child(root.child('matchState').child($scopeId).child('lobbyId').val()).child('closed').val() === false && root.child('roomMembers').child(root.child('matchState').child($scopeId).child('lobbyId').val()).child(auth.uid).child('active').val() === true)) && !data.exists() && newData.exists() && auth.uid === newData.child('accountId').val() && newData.child('messageId').val() === $messageId && root.child('chatThrottle').child($kind).child($scopeId).child(auth.uid).child('token').val() === $messageId && root.child('chatThrottle').child($kind).child($scopeId).child(auth.uid).child('lastSentAt').val() >= now - 5000 && root.child('chatThrottle').child($kind).child($scopeId).child(auth.uid).child('lastSentAt').val() <= now + 1000 && newData.child('displayName').val() === root.child('roomMembers').child(($kind === 'lobby' ? $scopeId : root.child('matchState').child($scopeId).child('lobbyId').val())).child(auth.uid).child('displayName').val()",
+            ".validate": "newData.hasChildren(['messageId','accountId','displayName','body','createdAtEpochMs','senderUtcOffsetMinutes','schemaVersion']) && newData.child('body').isString() && newData.child('body').val().length > 0 && newData.child('body').val().length <= 120 && newData.child('createdAtEpochMs').isNumber() && newData.child('createdAtEpochMs').val() >= now - 2000 && newData.child('createdAtEpochMs').val() <= now + 2000 && newData.child('senderUtcOffsetMinutes').isNumber() && newData.child('senderUtcOffsetMinutes').val() >= -840 && newData.child('senderUtcOffsetMinutes').val() <= 840 && newData.child('schemaVersion').val() === 1",
+            "messageId": {
+              ".validate": "newData.isString() && newData.val().length === 32"
+            },
+            "accountId": {
+              ".validate": "newData.isString() && newData.val() === auth.uid"
+            },
+            "displayName": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 64"
+            },
+            "body": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
+            },
+            "createdAtEpochMs": {
+              ".validate": "newData.isNumber() && newData.val() >= now - 2000 && newData.val() <= now + 2000"
+            },
+            "senderUtcOffsetMinutes": {
+              ".validate": "newData.isNumber() && newData.val() >= -840 && newData.val() <= 840"
+            },
+            "schemaVersion": {
+              ".validate": "newData.val() === 1"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        }
+      }
     }
   }
 }

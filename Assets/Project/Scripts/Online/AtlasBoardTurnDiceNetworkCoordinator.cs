@@ -6835,12 +6835,21 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
         try
         {
+            // A locally cached roster is NOT sufficient authority to destroy a
+            // started RTDB room. Read the latest authenticated match and the
+            // roomMeta/matchState/roomState authority chain before closing.
+            // Unknown, concurrent or reconnectable Human state FAILS CLOSED.
+            bool verifiedHostOnlyClose =
+                await VerifyHostedRoomCloseEligibilityAsync();
+            if (!prepared || !localIsHost)
+                return;
+
             // In Live Spark RTDB, a connected eligible Human successor should
             // inherit via the existing checkpoint + authorityEpoch CAS.
             // Close the lobby only when no eligible Human can inherit.
             // v5.40.9 previously closed unconditionally, preventing migration.
             if (lobbyBridge != null && !lobbyBridge.UsingLocalEmulators &&
-                !HasOtherConnectedRemoteHumanSeat())
+                verifiedHostOnlyClose)
             {
                 bool quitAfterClose = hostMigrationQuitAfterHandoff;
                 Task<AtlasLobbyOperationResult> closing =
@@ -6852,7 +6861,7 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     Task winner = await Task.WhenAny(closing, Task.Delay(3500));
                     if (winner == closing)
                         await ObserveDetachedLobbyCloseAsync(closing,
-                            "live-spark-host-with-human");
+                            "live-spark-host-only");
                     else
                         Debug.LogWarning(
                             "ATB_RTDB_HOST_CLOSE timed_out=true " +
@@ -6863,7 +6872,7 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 DetachLocalClientFromActiveMatch();
                 if (!quitAfterClose)
                     _ = ObserveDetachedLobbyCloseAsync(closing,
-                        "live-spark-host-with-human");
+                        "live-spark-host-only");
                 Debug.Log("ATB_RTDB_HOST_GRACEFUL_EXIT mode=close_room " +
                     "reason=no_connected_human_successor", this);
                 if (quitAfterClose) QuitApplicationNow();
@@ -6871,7 +6880,7 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             }
 
 
-            if (!HasOtherConnectedRemoteHumanSeat())
+            if (verifiedHostOnlyClose)
             {
                 // Nobody can inherit this room. Closing the Host-owned lobby is
                 // the canonical cleanup path; a match-only Leave would strand
@@ -7117,65 +7126,149 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
 
 
-    private bool HasOtherConnectedRemoteHumanSeat()
+    // N4 closure gate: Unlike a normal lobby Close command, a Host's Leave
+    // must never destroy a started room using an old in-memory player list.
+    // This read is non-mutating. The actual leave/migration still uses the
+    // canonical MatchRuntimeBridge/RTDB CAS and authorityEpoch rules.
+    private async Task<bool> VerifyHostedRoomCloseEligibilityAsync()
     {
-        AtlasMatchNetworkSnapshot snapshot =
-            matchBridge != null
-                ? matchBridge.CurrentSnapshot
-                : null;
-
-
-
-
-        if (snapshot == null ||
-            snapshot.Seats == null)
+        if (matchBridge == null || !prepared || !localIsHost ||
+            string.IsNullOrWhiteSpace(preparedMatchId))
+            return false;
+        try
         {
-            // Conservative: if we do not know, use normal safe migration.
-            return true;
-        }
-
-
-
-
-        foreach (AtlasMatchNetworkSeat seat
-                 in snapshot.Seats)
-        {
-            if (seat == null ||
-                seat.IsHost ||
-                IsBotControllerWire(
-                    seat.ControllerKind) ||
-                seat.AfkLockedOut)
+            string matchId = preparedMatchId;
+            AtlasMatchNetworkResult latest =
+                await matchBridge.RefreshSnapshotNowAsync(matchId);
+            if (!prepared || !localIsHost ||
+                !string.Equals(matchId, preparedMatchId, StringComparison.Ordinal) ||
+                latest == null || !latest.Success || latest.Snapshot == null ||
+                !string.Equals(latest.Snapshot.MatchId, matchId, StringComparison.Ordinal) ||
+                !CanSafelyCloseHostOnlyRoom(latest.Snapshot,
+                    DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()))
             {
-                continue;
+                Debug.Log("ATB_RTDB_HOST_EXIT_DECISION close_room=false " +
+                    "reason=fresh_snapshot_unavailable_or_human_reclaimable " +
+                    "fallback=authority_handoff_or_recovery", this);
+                return false;
             }
 
-
-
-
-            if (!string.Equals(
-                    seat.ConnectionState,
-                    "connected",
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-
-
-
-            // Active remote Human seats are the only valid Host successors.
-            if (IsEligibleRemoteHumanSuccessorWire(seat))
-                return true;
+            AtlasMatchNetworkResult anchor =
+                await matchBridge.InspectAuthorityChainReadOnlyAsync(matchId);
+            bool accepted = prepared && localIsHost &&
+                string.Equals(matchId, preparedMatchId, StringComparison.Ordinal) &&
+                anchor != null && anchor.Success && anchor.Snapshot != null &&
+                anchor.Snapshot.LocalIsHost &&
+                anchor.Snapshot.AuthorityEpoch == latest.Snapshot.AuthorityEpoch &&
+                CanSafelyCloseHostOnlyRoom(anchor.Snapshot,
+                    DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            Debug.Log("ATB_RTDB_HOST_EXIT_DECISION close_room=" +
+                (accepted ? "true" : "false") +
+                " reason=" + (accepted ? "verified_host_only_fresh_authority" :
+                    "authority_chain_changed_or_human_reclaimable") +
+                " fallback=" + (accepted ? "close_owned_room" :
+                    "authority_handoff_or_recovery"), this);
+            return accepted;
         }
-
-
-
-
-        return false;
+        catch (Exception exception)
+        {
+            Debug.LogWarning("ATB_RTDB_HOST_EXIT_DECISION close_room=false " +
+                "reason=read_failed fallback=authority_handoff_or_recovery " +
+                "detail=" + exception.GetType().Name, this);
+            return false;
+        }
     }
 
+    private static bool CanSafelyCloseHostOnlyRoom(
+        AtlasMatchNetworkSnapshot snapshot, long nowMs)
+    {
+        if (snapshot == null || !snapshot.LocalIsHost ||
+            snapshot.AuthorityEpoch < 1 || snapshot.Seats == null ||
+            snapshot.Seats.Count == 0) return false;
+        int hosts = 0;
+        foreach (AtlasMatchNetworkSeat seat in snapshot.Seats)
+        {
+            if (seat == null) return false;
+            if (seat.IsHost)
+            {
+                hosts++;
+                if (!string.Equals(seat.ControllerKind, "human",
+                        StringComparison.OrdinalIgnoreCase) ||
+                    !string.Equals(seat.ConnectionState, "connected",
+                        StringComparison.OrdinalIgnoreCase))
+                    return false;
+                continue;
+            }
+            // Bots created as bots do not participate in host succession.
+            if (string.Equals(seat.SeatMode, "bot",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                if (!IsBotControllerWire(seat.ControllerKind)) return false;
+                continue;
+            }
+            bool remote = string.Equals(seat.SeatMode, "remotehuman",
+                              StringComparison.OrdinalIgnoreCase) ||
+                          string.Equals(seat.SeatMode, "remote_human",
+                              StringComparison.OrdinalIgnoreCase);
+            // Unknown wire modes are NOT proof that a connected person left.
+            if (!remote) return false;
+            // Only an explicitly expired permanent bot is non-reclaimable.
+            // Human/temporary bot/unknown states stay protected, even if
+            // the UI's last presence sample happens to be stale.
+            if (!string.Equals(seat.ControllerKind, "permanent_bot",
+                    StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(seat.ConnectionState, "reconnect_expired",
+                    StringComparison.OrdinalIgnoreCase) ||
+                seat.ReconnectExpiresAtEpochMs > nowMs) return false;
+        }
+        return hosts == 1;
+    }
 
-
+    public static bool ValidateHostOnlyCloseGuardContract()
+    {
+        const long now = 2000000L;
+        AtlasMatchNetworkSnapshot snapshot = new AtlasMatchNetworkSnapshot {
+            MatchId = "n4_match", AuthorityEpoch = 1, LocalIsHost = true
+        };
+        AtlasMatchNetworkSeat host = new AtlasMatchNetworkSeat {
+            SeatMode = "hostlocal", IsHost = true, ControllerKind = "human",
+            ConnectionState = "connected"
+        };
+        AtlasMatchNetworkSeat other = new AtlasMatchNetworkSeat {
+            SeatMode = "bot", IsHost = false, ControllerKind = "permanent_bot",
+            ConnectionState = "connected"
+        };
+        snapshot.Seats.Add(host);
+        snapshot.Seats.Add(other);
+        if (!CanSafelyCloseHostOnlyRoom(snapshot, now)) return false;
+        other.SeatMode = "remotehuman";
+        other.ControllerKind = "human";
+        if (CanSafelyCloseHostOnlyRoom(snapshot, now)) return false;
+        other.SeatMode = "remote_human";
+        if (CanSafelyCloseHostOnlyRoom(snapshot, now)) return false;
+        other.ControllerKind = "temporary_bot";
+        other.ConnectionState = "reconnecting";
+        other.ReconnectExpiresAtEpochMs = now + 300000L;
+        if (CanSafelyCloseHostOnlyRoom(snapshot, now)) return false;
+        other.ControllerKind = "permanent_bot";
+        other.ConnectionState = "reconnect_expired";
+        other.ReconnectExpiresAtEpochMs = 0;
+        if (!CanSafelyCloseHostOnlyRoom(snapshot, now)) return false;
+        snapshot.LocalIsHost = false;
+        if (CanSafelyCloseHostOnlyRoom(snapshot, now)) return false;
+        snapshot.LocalIsHost = true;
+        snapshot.AuthorityEpoch = 0;
+        if (CanSafelyCloseHostOnlyRoom(snapshot, now)) return false;
+        snapshot.AuthorityEpoch = 2;
+        snapshot.Seats.Add(new AtlasMatchNetworkSeat {
+            SeatMode = "hostlocal", IsHost = true, ControllerKind = "human",
+            ConnectionState = "connected"
+        });
+        if (CanSafelyCloseHostOnlyRoom(snapshot, now)) return false;
+        snapshot.Seats.RemoveAt(snapshot.Seats.Count - 1);
+        other.SeatMode = "unknown";
+        return !CanSafelyCloseHostOnlyRoom(snapshot, now);
+    }
 
     // RTDB serializes this seat mode as "remotehuman"; older client models
     // may spell it "remote_human". Never depend on a single spelling here.

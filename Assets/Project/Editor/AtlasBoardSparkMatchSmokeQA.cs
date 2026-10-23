@@ -89,6 +89,39 @@ public static class AtlasBoardSparkMatchSmokeQA
         else Debug.LogError("ATB_RTDB_HOST_SUCCESSOR_QA FAIL");
     }
 
+    [MenuItem("Atlas Board/QA & Diagnostics/RTDB/Verify Host-Only Close Guard (No Network)")]
+    private static void VerifyHostOnlyCloseGuard()
+    {
+        bool passed = AtlasBoardTurnDiceNetworkCoordinator
+            .ValidateHostOnlyCloseGuardContract();
+        if (passed) Debug.Log("ATB_RTDB_HOST_CLOSE_GUARD_QA PASS " +
+            "stages=fresh_host_only_bot_connected_human_legacy_remotehuman_" +
+            "reconnect_grace_expired_permanent_bot_unknown_wire_multi_host_epoch " +
+            "mode=local_no_network live_handoff=UNTESTED");
+        else Debug.LogError("ATB_RTDB_HOST_CLOSE_GUARD_QA FAIL");
+    }
+
+    [MenuItem("Atlas Board/QA & Diagnostics/RTDB/Run N4 Core Regression (No Network)")]
+    private static void RunN4CoreRegression()
+    {
+        bool pass =
+            AtlasBoardSparkRtdbMatchTransport.ValidateSeatWireContract() &&
+            AtlasBoardSparkRtdbMatchTransport.ValidatePresenceTransitionContract() &&
+            AtlasBoardSparkRtdbMatchTransport.ValidateHostMigrationElectionContract() &&
+            AtlasBoardSparkRtdbMatchTransport.ValidateMultiHopAuthorityContract() &&
+            AtlasBoardRtdbCasualLobbyTransport.ValidateRemoteReadyTransitionContract() &&
+            AtlasBoardRtdbCasualLobbyTransport.ValidateDormantCleanupGuardContract() &&
+            AtlasBoardRtdbCasualLobbyTransport.ValidateOwnerConsentCleanupContract() &&
+            AtlasBoardTurnDiceNetworkCoordinator.ValidateLiveHostSuccessorWireContract() &&
+            AtlasBoardTurnDiceNetworkCoordinator.ValidateHostOnlyCloseGuardContract();
+        if (pass) Debug.Log("ATB_RTDB_N4_CORE_QA PASS " +
+            "stages=bot_wire_presence_election_multi_hop_remote_ready_" +
+            "owner_orphan_consent_successor_host_close_guard " +
+            "mode=local_no_network live_migration=UNTESTED");
+        else Debug.LogError("ATB_RTDB_N4_CORE_QA FAIL " +
+            "reason=one_or_more_core_contracts_failed");
+    }
+
     [MenuItem("Atlas Board/QA & Diagnostics/RTDB/Verify Owner Cleanup Consent Guard (No Network)")]
     private static void VerifyOwnerCleanupConsentGuard()
     {
