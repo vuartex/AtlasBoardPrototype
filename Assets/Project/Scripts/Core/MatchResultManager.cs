@@ -135,10 +135,17 @@ public class MatchResultManager : MonoBehaviour
                     ? propertyDevelopmentManager
                         .GetTotalDevelopmentLevels(slot)
                     : 0;
-            int netWorth =
-                player.CurrentMoney +
-                propertyValue +
-                developmentValue;
+            AtlasBoardCivicProjectManager civic = FindAnyObjectByType<AtlasBoardCivicProjectManager>();
+            if (civic != null)
+            {
+                propertyValue += civic.GetOwnedValue(slot);
+                propertyCount += civic.GetOwnedCount(slot);
+            }
+            long grossWorth = (long)player.CurrentMoney + propertyValue + developmentValue;
+            long bankLiabilities = propertyDevelopmentManager != null
+                ? propertyDevelopmentManager.GetBankDebt(slot) : 0L;
+            int netWorth = (int)System.Math.Max(int.MinValue,
+                System.Math.Min(int.MaxValue, grossWorth - bankLiabilities));
 
             snapshot.participating[slot] = true;
             snapshot.bankrupt[slot] = player.IsBankrupt;

@@ -30,6 +30,8 @@ public class StartRewardManager : MonoBehaviour
         UnsubscribeFromPlayers();
     }
 
+    private readonly HashSet<string> rewardedMovementIds = new HashSet<string>();
+
     private void HandlePassedStart(
         PlayerPawnMover pawn)
     {
@@ -51,11 +53,14 @@ public class StartRewardManager : MonoBehaviour
             return;
         }
 
-        int reward =
-            ResolveEconomyProfile()
-                ?.StartPassReward ??
-            startPassReward;
-
+        // One Start payout per actual authoritative forward movement event.
+        // Civic/Travel visual arrivals never raise PassedStart.
+        string passStartEventId = player.PlayerSlotIndex + ":" + pawn.AuthoritativeMovementSequence;
+        if (!rewardedMovementIds.Add(passStartEventId)) return;
+        int standard = ResolveEconomyProfile()?.StartPassReward ?? startPassReward;
+        AtlasBoardCivicProjectManager civic = FindAnyObjectByType<AtlasBoardCivicProjectManager>();
+        int extra = civic != null ? civic.GetStartPassBonus(player) : 0;
+        int reward = standard + extra;
         player.AddMoney(reward);
 
         Debug.Log(
@@ -136,6 +141,8 @@ public class StartRewardManager : MonoBehaviour
 
         return true;
     }
+
+    public void ResetCivicStartRewardLedgerForNewMatch() => rewardedMovementIds.Clear();
 
     private void SubscribeToPlayers()
     {

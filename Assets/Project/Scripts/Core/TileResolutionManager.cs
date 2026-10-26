@@ -616,6 +616,10 @@ public class TileResolutionManager : MonoBehaviour
 
         if (tile.TileType == TileType.City)
         {
+            // Called by the authoritative landing resolver, not the follower UI.
+            // Pulse activity drifts only when a pawn actually visits this city.
+            if (propertyDevelopmentManager != null)
+                propertyDevelopmentManager.RecordPulseVisit(tile);
             ResolveCityTile(player, tile);
             return;
         }
@@ -764,6 +768,21 @@ public class TileResolutionManager : MonoBehaviour
             CompleteResolution);
     }
 
+    public bool TryChooseCivicTravel(PlayerGameState player, int projectId)
+    {
+        AtlasBoardCivicProjectManager civic = FindAnyObjectByType<AtlasBoardCivicProjectManager>();
+        if (civic == null || player == null || !HasPendingTravelFor(player) ||
+            !civic.CanArrive(player, projectId) || !player.TrySpend(pendingTravelFee))
+            return false;
+        int chargedFee = pendingTravelFee;
+        ClearPendingTravelState();
+        if (travelPanel != null) travelPanel.SetActive(false);
+        if (civic.BeginArrival(player, projectId, CompleteResolution)) return true;
+        player.AddMoney(chargedFee);
+        CompleteResolution();
+        return false;
+    }
+
     public bool TryResolveBotTravel(
         PlayerGameState player,
         bool shouldTravel)
@@ -776,6 +795,9 @@ public class TileResolutionManager : MonoBehaviour
 
         if (shouldTravel)
         {
+            AtlasBoardCivicProjectManager civic = FindAnyObjectByType<AtlasBoardCivicProjectManager>();
+            if (civic != null && civic.CanTravelBot(player, pendingTravelFee, out int civicDestination) &&
+                TryChooseCivicTravel(player, civicDestination)) return true;
             TravelToNextEvent();
         }
         else

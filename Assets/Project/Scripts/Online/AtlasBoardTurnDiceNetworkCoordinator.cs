@@ -15,12 +15,38 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
     MonoBehaviour, IAtlasBoardSessionExitHandler
 {
     [Serializable]
+    private sealed class PulseBuildIntentPayload
+    {
+        public int slotIndex;
+        public int tileIndex;
+        public int category;
+    }
+
+    [Serializable]
+    private sealed class CivicIntentPayload
+    {
+        public int slotIndex;
+        public int projectIndex;
+        public string action;
+    }
+
+    [Serializable]
+    private sealed class BankIntentPayload
+    {
+        public int slotIndex;
+        public int tileIndex;
+        public int amount;
+        public int termKind;
+        public string action;
+    }
+
+    [Serializable]
     private sealed class TurnDiceFrame
     {
         // Schema 2 extends the already-working Phase 5B Turn/Dice frame with
         // Phase 5C authoritative pawn movement state. Schema 1 remains readable
         // by the follower during a transient old snapshot.
-        public int schemaVersion = 9;
+        public int schemaVersion = 12;
         public string phase = "starting";
         public int activeSlotIndex = -1;
         public int currentRound = 1;
@@ -108,6 +134,15 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         // Phase 5F authoritative development checkpoint by stable tile index.
         public int[] tileDevelopmentLevels =
             Array.Empty<int>();
+
+        // Phase 18B: flat [tileIndex*4 + category]. Versioned additive
+        // snapshot fields; older frames are still accepted without Pulse.
+        public int[] pulseLevels = Array.Empty<int>();
+        public int[] pulseDrift = Array.Empty<int>();
+        // Phase 18D: tile-major mortgage state. Six integers per tile.
+        public int[] bankLoans = Array.Empty<int>();
+        // Phase 18E additive off-path Civic state: [owner0..2, pawnLocation0..3, pendingSlot, pendingProject].
+        public int[] civicState = Array.Empty<int>();
 
 
 
@@ -2221,6 +2256,18 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                         : $"Phase 12A Host rejected stale/invalid serialized remote Roll for P{slotIndex + 1}.",
                     this);
             }
+            else if (string.Equals(intent.IntentType, "pulse_build", StringComparison.Ordinal))
+            {
+                HandleHostPulseBuildIntent(intent);
+            }
+            else if (string.Equals(intent.IntentType, "bank_command", StringComparison.Ordinal))
+            {
+                HandleHostBankIntent(intent);
+            }
+            else if (string.Equals(intent.IntentType, "civic_command", StringComparison.Ordinal))
+            {
+                HandleHostCivicIntent(intent);
+            }
             else if (string.Equals(
                          intent.IntentType,
                          "submit_decision",
@@ -2258,6 +2305,192 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
 
 
+
+    private void HandleHostPulseBuildIntent(AtlasMatchIntent intent)
+    {
+        if (intent == null || string.IsNullOrWhiteSpace(intent.PayloadJson) ||
+            turnManager == null) return;
+        PulseBuildIntentPayload payload;
+        try { payload = JsonUtility.FromJson<PulseBuildIntentPayload>(intent.PayloadJson); }
+        catch { return; }
+        if (payload == null) return;
+        int slot = ResolveSlotIndex(intent.SeatId);
+        if (slot < 0 || slot != payload.slotIndex) return;
+        ResolvePropertyDevelopmentManager();
+        ResolveBoardPath();
+        if (propertyDevelopmentManager == null || boardPath == null ||
+            payload.tileIndex < 0 || payload.tileIndex >= boardPath.TileCount) return;
+        BoardTile tile = boardPath.GetTile(payload.tileIndex);
+        PlayerGameState player = turnManager.GetPlayerStateBySlotIndex(slot);
+        bool accepted = propertyDevelopmentManager.TryBuildPulse(
+            player, tile, payload.category, intent.IntentId);
+        Debug.Log("ATB_PULSE_HOST_INTENT " + (accepted ? "ACCEPT" : "REJECT") +
+                  " tile=" + payload.tileIndex + " category=" + payload.category, this);
+    }
+
+    public async Task<bool> RequestPulseBuildAsync(int tileIndex, int category)
+    {
+        if (!prepared || turnManager == null || category < 0 || category >= 4)
+            return false;
+        ResolveBoardPath();
+        ResolvePropertyDevelopmentManager();
+        if (boardPath == null || propertyDevelopmentManager == null ||
+            tileIndex < 0 || tileIndex >= boardPath.TileCount) return false;
+        BoardTile city = boardPath.GetTile(tileIndex);
+        if (city == null || !locallyControlledHumanSlots.Contains(city.OwnerPlayerIndex))
+            return false;
+        PlayerGameState player = turnManager.GetPlayerStateBySlotIndex(city.OwnerPlayerIndex);
+        if (!propertyDevelopmentManager.CanBuildPulse(player, city, category)) return false;
+        string commandId = "pulse-" + Guid.NewGuid().ToString("N");
+        if (localIsHost)
+        {
+            bool accepted = propertyDevelopmentManager.TryBuildPulse(player, city, category, commandId);
+            if (accepted) nextPublishCheckAt = 0f;
+            return accepted;
+        }
+        if (matchBridge == null) return false;
+        PulseBuildIntentPayload payload = new PulseBuildIntentPayload
+        {
+            slotIndex = player.PlayerSlotIndex,
+            tileIndex = tileIndex,
+            category = category
+        };
+        AtlasMatchNetworkResult result = await matchBridge.SubmitCriticalIntentAsync(
+            "pulse_build", JsonUtility.ToJson(payload), commandId);
+        return result.Success;
+    }
+
+    private AtlasBoardCivicProjectManager ResolveCivicManager() =>
+        UnityEngine.Object.FindAnyObjectByType<AtlasBoardCivicProjectManager>();
+
+    private bool TryPerformCivicAction(PlayerGameState player, string action, int projectIndex, string commandId)
+    {
+        AtlasBoardCivicProjectManager civic = ResolveCivicManager();
+        if (civic == null || player == null || projectIndex < 0 || projectIndex >= 3) return false;
+        if (string.Equals(action, "buy", StringComparison.Ordinal))
+            return civic.TryPurchase(player, projectIndex, commandId);
+        if (string.Equals(action, "skip", StringComparison.Ordinal))
+            return civic.TrySkip(player, projectIndex);
+        if (string.Equals(action, "travel", StringComparison.Ordinal))
+            return tileResolutionManager != null &&
+                   tileResolutionManager.TryChooseCivicTravel(player, projectIndex);
+        return false;
+    }
+
+    private void HandleHostCivicIntent(AtlasMatchIntent intent)
+    {
+        if (intent == null || string.IsNullOrWhiteSpace(intent.PayloadJson) || turnManager == null) return;
+        CivicIntentPayload payload;
+        try { payload = JsonUtility.FromJson<CivicIntentPayload>(intent.PayloadJson); }
+        catch { return; }
+        if (payload == null) return;
+        int slot = ResolveSlotIndex(intent.SeatId);
+        if (slot < 0 || slot != payload.slotIndex) return;
+        PlayerGameState player = turnManager.GetPlayerStateBySlotIndex(slot);
+        bool accepted = TryPerformCivicAction(player, payload.action, payload.projectIndex, intent.IntentId);
+        if (accepted) nextPublishCheckAt = 0f;
+        Debug.Log("ATB_CIVIC_HOST_INTENT " + (accepted ? "ACCEPT" : "REJECT") +
+            " slot=" + slot + " project=" + payload.projectIndex + " action=" + payload.action, this);
+    }
+
+    public async Task<bool> RequestCivicActionAsync(string action, int projectIndex)
+    {
+        if (!prepared || turnManager == null || projectIndex < 0 || projectIndex >= 3) return false;
+        AtlasBoardCivicProjectManager civic = ResolveCivicManager();
+        if (civic == null) return false;
+        int slot = -1;
+        for (int i = 0; i < 4; i++)
+        {
+            if (locallyControlledHumanSlots.Contains(i))
+            {
+                PlayerGameState candidate = turnManager.GetPlayerStateBySlotIndex(i);
+                if (candidate == null || candidate.IsBankrupt || !candidate.IsParticipating) continue;
+                if (string.Equals(action, "travel", StringComparison.Ordinal) &&
+                    tileResolutionManager != null && tileResolutionManager.HasPendingTravelFor(candidate))
+                { slot = i; break; }
+                if ((action == "buy" || action == "skip") && civic.PendingSlot == i && civic.PendingProject == projectIndex)
+                { slot = i; break; }
+            }
+        }
+        if (slot < 0) return false;
+        PlayerGameState player = turnManager.GetPlayerStateBySlotIndex(slot);
+        string id = "civic-" + Guid.NewGuid().ToString("N");
+        if (localIsHost)
+        {
+            bool accepted = TryPerformCivicAction(player, action, projectIndex, id);
+            if (accepted) nextPublishCheckAt = 0f;
+            return accepted;
+        }
+        if (matchBridge == null) return false;
+        CivicIntentPayload payload = new CivicIntentPayload
+        {
+            slotIndex = slot, projectIndex = projectIndex, action = action
+        };
+        AtlasMatchNetworkResult result = await matchBridge.SubmitCriticalIntentAsync(
+            "civic_command", JsonUtility.ToJson(payload), id);
+        return result.Success;
+    }
+
+    private void HandleHostBankIntent(AtlasMatchIntent intent)
+    {
+        if (intent == null || string.IsNullOrWhiteSpace(intent.PayloadJson) || turnManager == null) return;
+        BankIntentPayload payload;
+        try { payload = JsonUtility.FromJson<BankIntentPayload>(intent.PayloadJson); }
+        catch { return; }
+        if (payload == null) return;
+        int slot = ResolveSlotIndex(intent.SeatId);
+        if (slot < 0 || slot != payload.slotIndex) return;
+        ResolvePropertyDevelopmentManager();
+        ResolveBoardPath();
+        if (propertyDevelopmentManager == null || boardPath == null ||
+            payload.tileIndex < 0 || payload.tileIndex >= boardPath.TileCount) return;
+        BoardTile city = boardPath.GetTile(payload.tileIndex);
+        PlayerGameState player = turnManager.GetPlayerStateBySlotIndex(slot);
+        bool accepted = string.Equals(payload.action, "open", StringComparison.Ordinal)
+            ? propertyDevelopmentManager.TryOpenBankLoan(player, city, payload.amount,
+                payload.termKind, intent.IntentId)
+            : string.Equals(payload.action, "repay", StringComparison.Ordinal) &&
+              propertyDevelopmentManager.TryRepayBankLoan(player, city, intent.IntentId);
+        if (accepted) nextPublishCheckAt = 0f;
+        Debug.Log("ATB_BANK_HOST_INTENT " + (accepted ? "ACCEPT" : "REJECT") +
+                  " tile=" + payload.tileIndex + " action=" + payload.action, this);
+    }
+
+    public async Task<bool> RequestBankActionAsync(int tileIndex, int amount, int termKind, bool repay)
+    {
+        if (!prepared || turnManager == null) return false;
+        ResolveBoardPath();
+        ResolvePropertyDevelopmentManager();
+        if (boardPath == null || propertyDevelopmentManager == null ||
+            tileIndex < 0 || tileIndex >= boardPath.TileCount) return false;
+        BoardTile city = boardPath.GetTile(tileIndex);
+        if (city == null || !locallyControlledHumanSlots.Contains(city.OwnerPlayerIndex)) return false;
+        PlayerGameState player = turnManager.GetPlayerStateBySlotIndex(city.OwnerPlayerIndex);
+        if (player == null) return false;
+        if (repay)
+        {
+            if (propertyDevelopmentManager.GetBankLoan(city) == null) return false;
+        }
+        else if (!propertyDevelopmentManager.CanOpenBankLoan(player, city, amount, termKind)) return false;
+        string commandId = "bank-" + Guid.NewGuid().ToString("N");
+        if (localIsHost)
+        {
+            bool accepted = repay
+                ? propertyDevelopmentManager.TryRepayBankLoan(player, city, commandId)
+                : propertyDevelopmentManager.TryOpenBankLoan(player, city, amount, termKind, commandId);
+            if (accepted) nextPublishCheckAt = 0f;
+            return accepted;
+        }
+        if (matchBridge == null) return false;
+        BankIntentPayload payload = new BankIntentPayload
+        {
+            slotIndex = player.PlayerSlotIndex, tileIndex = tileIndex,
+            amount = amount, termKind = termKind, action = repay ? "repay" : "open"
+        };
+        AtlasMatchNetworkResult result = await matchBridge.SubmitCriticalIntentAsync(
+            "bank_command", JsonUtility.ToJson(payload), commandId);
+        return result.Success;
+    }
 
     private void HandleHostDecisionIntent(
         AtlasMatchIntent intent)
@@ -3289,6 +3522,11 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 BuildHostTileOwnerSlotIndices(),
             tileDevelopmentLevels =
                 BuildHostTileDevelopmentLevels(),
+            pulseLevels = BuildHostPulseValues(true),
+            pulseDrift = BuildHostPulseValues(false),
+            bankLoans = propertyDevelopmentManager != null && boardPath != null
+                ? propertyDevelopmentManager.CaptureBankSnapshot(boardPath.TileCount) : Array.Empty<int>(),
+            civicState = ResolveCivicManager() != null ? ResolveCivicManager().CaptureSnapshot() : Array.Empty<int>(),
             matchResult =
                 turnManager.IsMatchFinished &&
                 matchResultManager != null
@@ -3541,6 +3779,22 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
 
 
+
+    private int[] BuildHostPulseValues(bool levels)
+    {
+        ResolveBoardPath();
+        ResolvePropertyDevelopmentManager();
+        if (boardPath == null || propertyDevelopmentManager == null) return Array.Empty<int>();
+        int[] values = new int[boardPath.TileCount * 4];
+        for (int i = 0; i < boardPath.TileCount; i++)
+        {
+            BoardTile tile = boardPath.GetTile(i);
+            int[] data = levels ? propertyDevelopmentManager.CapturePulseLevels(tile)
+                                : propertyDevelopmentManager.CapturePulseDrift(tile);
+            for (int c = 0; c < 4; c++) values[i * 4 + c] = data[c];
+        }
+        return values;
+    }
 
     private int[] BuildHostTileDevelopmentLevels()
     {
@@ -3825,7 +4079,7 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
         if (frame == null ||
             frame.schemaVersion < 1 ||
-            frame.schemaVersion > 9)
+            frame.schemaVersion > 11)
         {
             return;
         }
@@ -3898,6 +4152,15 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         if (frame.schemaVersion >= 6)
         {
             ApplyFollowerDevelopmentFrame(frame);
+            if (frame.schemaVersion >= 12 && frame.civicState != null && frame.civicState.Length >= 9)
+            {
+                AtlasBoardCivicProjectManager civic = ResolveCivicManager();
+                if (civic != null)
+                {
+                    civic.ApplyAuthoritativeSnapshot(frame.civicState);
+                    civic.SyncPawnPresentationFromSnapshot();
+                }
+            }
             ApplyFollowerMatchResultFrame(frame);
         }
 
@@ -4808,7 +5071,24 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                     tile,
                     frame.tileDevelopmentLevels[index],
                     owner);
+            if (frame.schemaVersion >= 10 && frame.pulseLevels != null && frame.pulseDrift != null &&
+                frame.pulseLevels.Length >= (index + 1) * 4 && frame.pulseDrift.Length >= (index + 1) * 4)
+            {
+                int[] levels = new int[4];
+                int[] drift = new int[4];
+                for (int c = 0; c < 4; c++)
+                {
+                    levels[c] = frame.pulseLevels[index * 4 + c];
+                    drift[c] = frame.pulseDrift[index * 4 + c];
+                }
+                propertyDevelopmentManager.ApplyOnlinePulseState(tile, levels, drift);
+            }
         }
+        // Hydrate mortgage state before potential host handoff. Older frames
+        // (schema 10) lack this data and are not treated as zero mortgages.
+        if (frame.schemaVersion >= 11 && frame.bankLoans != null && boardPath != null &&
+            frame.bankLoans.Length >= boardPath.TileCount * 6)
+            propertyDevelopmentManager.ApplyBankSnapshot(frame.bankLoans, boardPath.TileCount);
     }
 
 

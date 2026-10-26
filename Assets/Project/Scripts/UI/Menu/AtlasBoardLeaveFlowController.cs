@@ -620,6 +620,8 @@ public class AtlasBoardLeaveFlowController : MonoBehaviour
             : mainMenuCanvas.activeInHierarchy;
     }
 
+    public bool IsModalOverlayVisible => IsPauseVisible() || IsConfirmationVisible();
+
     private bool IsPauseVisible()
     {
         return pauseRoot != null &&

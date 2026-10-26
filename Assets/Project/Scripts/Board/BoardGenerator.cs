@@ -51,6 +51,9 @@ public class BoardGenerator : MonoBehaviour
             ? activeMapDefinition.MapId
             : string.Empty;
 
+    // Civic visuals share the existing board shader/material; no extra tile assets.
+    public Material CivicVisualMaterial => normalTileMaterial;
+
     public BoardEconomyProfile ActiveEconomyProfile =>
         activeMapDefinition != null
             ? activeMapDefinition.EconomyProfile
@@ -163,6 +166,7 @@ public class BoardGenerator : MonoBehaviour
         }
 
         RefreshBoardPath();
+        EnsureCivicTargets();
 
         hasAppliedMapData = true;
         lastAppliedMapId =
@@ -207,6 +211,7 @@ public class BoardGenerator : MonoBehaviour
         }
 
         RefreshBoardPath();
+        EnsureCivicTargets();
 
         hasAppliedMapData = true;
         lastAppliedMapId =
@@ -261,6 +266,15 @@ public class BoardGenerator : MonoBehaviour
         }
 
         return true;
+    }
+
+    private void EnsureCivicTargets()
+    {
+        // Runtime project objects are siblings of "Tiles": never affect BoardPath.
+        if (!Application.isPlaying || activeMapDefinition == null) return;
+        AtlasBoardCivicProjectManager civic = GetComponent<AtlasBoardCivicProjectManager>();
+        if (civic == null) civic = gameObject.AddComponent<AtlasBoardCivicProjectManager>();
+        civic.ConfigureMap(activeMapDefinition);
     }
 
     private void FindOrCreateTilesParent()

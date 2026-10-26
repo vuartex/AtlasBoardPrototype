@@ -54,6 +54,10 @@ public class TabletUIManager : MonoBehaviour
     private GameObject[] gameplayPanels;
     private bool[] gameplayPanelWasActive;
 
+    public bool IsGameplayOverlayVisible =>
+        (tabletRoot != null && tabletRoot.activeInHierarchy) ||
+        (currentPanel != null && currentPanel.activeInHierarchy);
+
     private void Awake()
     {
         AtlasBoardLocalizationManager.LanguageChanged +=

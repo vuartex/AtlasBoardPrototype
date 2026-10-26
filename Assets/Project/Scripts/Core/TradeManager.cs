@@ -986,7 +986,9 @@ public class TradeManager : MonoBehaviour
                         .GetDevelopmentLevel(tile)
                     : 0;
 
-            if (developmentLevel > 0)
+            if (developmentLevel > 0 ||
+                (propertyDevelopmentManager != null &&
+                 propertyDevelopmentManager.HasLegacyHousesInGroup(tile)))
             {
                 continue;
             }
@@ -1017,11 +1019,11 @@ public class TradeManager : MonoBehaviour
             BoardTile tile =
                 properties[index];
 
-            options.Add(
-                tile == null
-                    ? noneLabel
-                    : $"{tile.DisplayName} " +
-                      $"({tile.PurchasePrice} ₵)");
+            int investment = tile != null && propertyDevelopmentManager != null
+                ? propertyDevelopmentManager.GetPulseInvestmentValue(tile) : 0;
+            options.Add(tile == null ? noneLabel :
+                $"{tile.DisplayName} ({tile.PurchasePrice} ₵" +
+                (investment > 0 ? $" + Pulse {investment} ₵" : string.Empty) + ")");
         }
 
         dropdown.AddOptions(options);
@@ -1337,23 +1339,37 @@ public class TradeManager : MonoBehaviour
             return false;
         }
 
+        if (propertyDevelopmentManager != null && propertyDevelopmentManager.IsMortgaged(tile))
+        {
+            message = AtlasBoardL.R("Mortgaged cities cannot be traded.", "İpotekli şehirler takas edilemez.",
+                "Las ciudades hipotecadas no se intercambian.", "Une ville hypothéquée ne peut être échangée.",
+                "Belastete Städte sind nicht handelbar.", "저당 잡힌 도시는 거래할 수 없습니다.",
+                "Город в залоге нельзя обменять.");
+            return false;
+        }
+
         int developmentLevel =
             propertyDevelopmentManager != null
                 ? propertyDevelopmentManager
                     .GetDevelopmentLevel(tile)
                 : 0;
 
-        if (developmentLevel > 0)
+        // 18C: a zero-house city is not tradeable if its OTHER two
+        // group members have legacy houses. Pulse projects alone are
+        // transferable investments, not a legacy group-house restriction.
+        bool anyLegacyHouses = propertyDevelopmentManager != null &&
+                               propertyDevelopmentManager.HasLegacyHousesInGroup(tile);
+        if (developmentLevel > 0 || anyLegacyHouses)
         {
             message =
                 AtlasBoardL.R(
-                    "{0} has development on it and cannot be traded in this version.",
-                    "{0} üzerinde geliştirme olduğu için bu sürümde takas edilemez.",
-                    "{0} tiene mejoras y no se puede intercambiar en esta versión.",
-                    "{0} possède des améliorations et ne peut pas être échangée dans cette version.",
-                    "{0} ist bebaut und kann in dieser Version nicht gehandelt werden.",
-                    "{0}에는 개발이 있어 현재 버전에서는 거래할 수 없습니다.",
-                    "На {0} есть улучшения, поэтому в этой версии объект нельзя обменять.",
+                    "The group containing {0} has houses, so this trade is blocked. Pulse-only cities may transfer.",
+                    "{0} şehrinin grubunda ev bulunduğu için takas engellendi. Yalnız Pulse bulunan şehirler devredilebilir.",
+                    "El grupo de {0} tiene casas; el intercambio está bloqueado. Las ciudades solo con Pulse pueden transferirse.",
+                    "Le groupe de {0} possède des maisons ; échange bloqué. Les villes avec Pulse seul sont transférables.",
+                    "Die Gruppe von {0} hat Häuser; Handel gesperrt. Reine Pulse-Städte sind übertragbar.",
+                    "{0} 그룹에 주택이 있어 거래가 차단됩니다. Pulse만 보유한 도시는 이전할 수 있습니다.",
+                    "В группе {0} есть дома, обмен заблокирован. Города только с Pulse можно передавать.",
                     tile.DisplayName);
 
             return false;
@@ -1474,6 +1490,15 @@ public class TradeManager : MonoBehaviour
             tile.ApplyOwnerMaterial(
                 toPlayer.OwnershipMaterial);
         }
+
+        // Pulse levels are intentionally keyed to BoardTile, not owner:
+        // a normal trade keeps them attached to the city. Bankruptcy is
+        // the separate liquidation path and MUST reset both investments.
+        int pulseValue = propertyDevelopmentManager != null
+            ? propertyDevelopmentManager.GetPulseInvestmentValue(tile) : 0;
+        Debug.Log($"ATB_PHASE18C_TRADE city={tile.PropertyId} from={fromPlayer.PlayerSlotIndex} " +
+                  $"to={toPlayer.PlayerSlotIndex} pulseInvestment={pulseValue} " +
+                  "policy=transfer_with_city", this);
 
         return true;
     }

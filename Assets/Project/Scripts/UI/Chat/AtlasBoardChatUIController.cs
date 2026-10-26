@@ -386,6 +386,8 @@ public sealed class AtlasBoardChatUIController : MonoBehaviour
         }
     }
 
+    public void CloseForExternalOverlay() => ClosePanel();
+
     private void ClosePanel()
     {
         if (panelRoot != null)

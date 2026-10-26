@@ -154,6 +154,29 @@ public class BoardEconomyProfile : ScriptableObject
             "group_08", 400, 425, 450, 34, 37, 40, 160)
     };
 
+    [Header("Phase 18B - Atlas Pulse (balance candidate)")]
+    [Tooltip("Level 1 through 4, independent for every Pulse category.")]
+    [SerializeField] private int[] pulseLevelCosts = { 100, 175, 250, 350 };
+    [SerializeField, Range(0, 20)] private int pulseRentBonusPerLevel = 5;
+    [SerializeField, Range(0, 80)] private int pulseMaximumRentBonusPercent = 80;
+    [SerializeField, Range(1, 94)] private int pulseMetricMaximum = 94;
+
+    public int GetPulseLevelCost(int currentLevel)
+    {
+        int index = Mathf.Clamp(currentLevel, 0, 3);
+        return pulseLevelCosts != null && pulseLevelCosts.Length >= 4
+            ? Mathf.Max(1, pulseLevelCosts[index])
+            : new[] { 100, 175, 250, 350 }[index];
+    }
+
+    public int GetPulseRentBonusPercent(int totalPulseLevels)
+    {
+        return Mathf.Clamp(Mathf.Max(0, totalPulseLevels) * pulseRentBonusPerLevel,
+            0, Mathf.Min(80, pulseMaximumRentBonusPercent));
+    }
+
+    public int PulseMetricMaximum => Mathf.Clamp(pulseMetricMaximum, 1, 94);
+
     [Header("Bot - Cash Management")]
     [SerializeField, Min(0)]
     private int botSafeCashReserve = 250;

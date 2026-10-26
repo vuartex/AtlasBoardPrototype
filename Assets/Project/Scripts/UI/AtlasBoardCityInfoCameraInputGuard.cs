@@ -12,6 +12,8 @@ public sealed class AtlasBoardCityInfoCameraInputGuard :
     private BoardCameraController boardCameraController;
 
     private bool cameraDisabledByGuard;
+    private AtlasBoardDevelopmentsBankUI managementPanel;
+    private AtlasBoardCivicProjectManager civicManager;
 
     [RuntimeInitializeOnLoadMethod(
         RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -40,6 +42,8 @@ public sealed class AtlasBoardCityInfoCameraInputGuard :
         ResolveReferences();
 
         bool shouldBlock =
+            (managementPanel != null && managementPanel.ShouldBlockWorldCameraInput()) ||
+            (civicManager != null && civicManager.ShouldBlockWorldCameraInput()) ||
             IsPointerOverCityInformation();
 
         if (shouldBlock)
@@ -70,6 +74,11 @@ public sealed class AtlasBoardCityInfoCameraInputGuard :
                 UnityEngine.Object.FindAnyObjectByType<
                     AtlasBoardCityInformationPanel>();
         }
+
+        if (managementPanel == null)
+            managementPanel = UnityEngine.Object.FindAnyObjectByType<AtlasBoardDevelopmentsBankUI>();
+        if (civicManager == null)
+            civicManager = UnityEngine.Object.FindAnyObjectByType<AtlasBoardCivicProjectManager>();
 
         if (boardCameraController == null)
         {

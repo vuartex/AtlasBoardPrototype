@@ -102,6 +102,7 @@ public class PlayerPawnMover : MonoBehaviour
     public bool LastMovementPassedStart { get; private set; }
 
     public bool LastMovementUsedSprint { get; private set; }
+    public int AuthoritativeMovementSequence { get; private set; }
 
     private void Awake()
     {
@@ -621,6 +622,8 @@ public class PlayerPawnMover : MonoBehaviour
             return;
         }
 
+        AuthoritativeMovementSequence++;
+        FindAnyObjectByType<AtlasBoardCivicProjectManager>()?.OnPawnStartedMoving(this);
         LastMovementStartTileIndex =
             WrapTileIndex(
                 currentTileIndex);

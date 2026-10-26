@@ -131,7 +131,253 @@ public class PropertyDevelopmentManager : MonoBehaviour
         markerRoots =
             new Dictionary<BoardTile, Transform>();
 
+    // Phase 18B Pulse is carried by the existing development authority.
+    // Each city has FOUR independent project levels and FOUR independent
+    // metrics. Neither represents the legacy completed-group house level.
+    private readonly Dictionary<BoardTile, int[]> pulseLevels = new Dictionary<BoardTile, int[]>();
+    private readonly Dictionary<BoardTile, int[]> pulseMetricDrift = new Dictionary<BoardTile, int[]>();
+    private readonly HashSet<string> pulseAppliedCommandIds = new HashSet<string>();
+    private BoardGenerator pulseMapGenerator;
+    private const int PulseMetricMaximum = 94;
+    private const int PulseCategoryCount = 4;
+    private static readonly int[] PulseLevelCosts = { 100, 175, 250, 350 };
+
     private bool initialized;
+
+    // Phase 18D: mortgage state belongs to the EXISTING development/economy authority.
+    // Loan terms are counted only when this player's own turn is completed.
+    [System.Serializable]
+    public sealed class BankLoan
+    {
+        public string loanId;
+        public int tileIndex;
+        public int ownerSlot;
+        public int principal;
+        public int outstanding;
+        public int turnsRemaining;
+        public int initialTerm;
+        public int ratePercent;
+    }
+
+    private readonly Dictionary<int, BankLoan> bankLoans = new Dictionary<int, BankLoan>();
+    private readonly HashSet<string> bankProcessedCommands = new HashSet<string>();
+    private static readonly int[] BankTerms = { 2, 3, 5 };
+    private static readonly int[] BankRates = { 8, 12, 20 };
+
+    public bool IsMortgaged(BoardTile city) => city != null && bankLoans.ContainsKey(city.TileIndex);
+    public int GetBankLimit(BoardTile city) => city != null && city.TileType == TileType.City
+        ? Mathf.Max(0, (int)((long)Mathf.Max(0, city.PurchasePrice) * 70L / 100L)) : 0;
+    public int GetBankLoanCount(int slot)
+    {
+        int count = 0;
+        foreach (BankLoan item in bankLoans.Values) if (item.ownerSlot == slot) count++;
+        return count;
+    }
+    public int GetBankDebt(int slot)
+    {
+        long total = 0;
+        foreach (BankLoan item in bankLoans.Values)
+            if (item.ownerSlot == slot) total += item.outstanding;
+        return (int)System.Math.Min(int.MaxValue, total);
+    }
+    public BankLoan GetBankLoan(BoardTile city)
+    {
+        if (city == null) return null;
+        bankLoans.TryGetValue(city.TileIndex, out BankLoan record);
+        return record;
+    }
+    public List<BankLoan> GetPlayerLoans(int slot)
+    {
+        var result = new List<BankLoan>();
+        foreach (BankLoan item in bankLoans.Values)
+            if (item.ownerSlot == slot) result.Add(item);
+        result.Sort((left, right) => left.tileIndex.CompareTo(right.tileIndex));
+        return result;
+    }
+    public bool CanOpenBankLoan(PlayerGameState player, BoardTile city, int amount, int termKind)
+    {
+        return player != null && player.IsParticipating && !player.IsBankrupt &&
+               city != null && city.TileType == TileType.City && city.IsOwned &&
+               city.OwnerPlayerIndex == player.PlayerSlotIndex && !IsMortgaged(city) &&
+               GetBankLoanCount(player.PlayerSlotIndex) < 3 &&
+               amount > 0 && amount <= GetBankLimit(city) && termKind >= 0 && termKind < 3;
+    }
+    public bool TryOpenBankLoan(PlayerGameState player, BoardTile city, int amount, int termKind, string commandId)
+    {
+        if (string.IsNullOrWhiteSpace(commandId) || bankProcessedCommands.Contains(commandId) ||
+            !CanOpenBankLoan(player, city, amount, termKind)) return false;
+        int interest = (int)(((long)amount * BankRates[termKind] + 99L) / 100L);
+        if (amount > int.MaxValue - player.CurrentMoney || amount > int.MaxValue - interest) return false;
+        BankLoan loan = new BankLoan
+        {
+            loanId = commandId, tileIndex = city.TileIndex, ownerSlot = player.PlayerSlotIndex,
+            principal = amount, outstanding = amount + interest,
+            turnsRemaining = BankTerms[termKind], initialTerm = BankTerms[termKind],
+            ratePercent = BankRates[termKind]
+        };
+        bankLoans.Add(city.TileIndex, loan);
+        bankProcessedCommands.Add(commandId);
+        player.AddMoney(amount);
+        Debug.Log($"ATB_BANK_LOAN_OPEN city={city.PropertyId} principal={amount} total={loan.outstanding} term={loan.initialTerm}", this);
+        return true;
+    }
+    public bool TryRepayBankLoan(PlayerGameState player, BoardTile city, string commandId)
+    {
+        if (player == null || city == null || string.IsNullOrWhiteSpace(commandId) ||
+            bankProcessedCommands.Contains(commandId) || !bankLoans.TryGetValue(city.TileIndex, out BankLoan loan) ||
+            player.IsBankrupt || loan.ownerSlot != player.PlayerSlotIndex ||
+            !city.IsOwned || city.OwnerPlayerIndex != loan.ownerSlot ||
+            !player.TrySpend(loan.outstanding)) return false;
+        bankLoans.Remove(city.TileIndex);
+        bankProcessedCommands.Add(commandId);
+        Debug.Log($"ATB_BANK_REPAY city={city.PropertyId} amount={loan.outstanding}", this);
+        return true;
+    }
+    // Host/offline only. Called once on completion of the BORROWER's turn.
+    public void AdvanceBankLoansForCompletedTurn(PlayerGameState player)
+    {
+        if (player == null || player.IsBankrupt) return;
+        List<BankLoan> due = new List<BankLoan>();
+        foreach (BankLoan loan in bankLoans.Values)
+        {
+            if (loan.ownerSlot != player.PlayerSlotIndex) continue;
+            loan.turnsRemaining = Mathf.Max(0, loan.turnsRemaining - 1);
+            if (loan.turnsRemaining == 0) due.Add(loan);
+        }
+        foreach (BankLoan loan in due)
+        {
+            if (!bankLoans.ContainsKey(loan.tileIndex)) continue;
+            BoardTile city = boardPath != null ? boardPath.GetTile(loan.tileIndex) : null;
+            if (city != null && city.IsOwned && city.OwnerPlayerIndex == player.PlayerSlotIndex &&
+                player.TrySpend(loan.outstanding))
+            {
+                bankLoans.Remove(loan.tileIndex);
+                Debug.Log($"ATB_BANK_MATURED_REPAID city={city.PropertyId} amount={loan.outstanding}", this);
+            }
+            else
+            {
+                ForecloseBankLoan(loan.tileIndex);
+            }
+        }
+    }
+    private void ForecloseBankLoan(int tileIndex)
+    {
+        if (!bankLoans.Remove(tileIndex)) return;
+        BoardTile city = boardPath != null ? boardPath.GetTile(tileIndex) : null;
+        if (city == null) return;
+        ResetDevelopment(city); // foreclosure explicitly liquidates BOTH houses and Pulse
+        city.ClearOwner();
+        Debug.Log($"ATB_BANK_FORECLOSED city={city.PropertyId}", this);
+    }
+    public void CloseBankLoansOnBankruptcy(PlayerGameState player)
+    {
+        if (player == null) return;
+        var seized = new List<int>();
+        foreach (BankLoan loan in bankLoans.Values)
+            if (loan.ownerSlot == player.PlayerSlotIndex) seized.Add(loan.tileIndex);
+        foreach (int tileIndex in seized) ForecloseBankLoan(tileIndex);
+    }
+    public void ClearBankLoansForNewMatch()
+    {
+        bankLoans.Clear();
+        bankProcessedCommands.Clear();
+    }
+    // Schema 11: slots indexed by tile; no fee or per-frame network writes.
+    public int[] CaptureBankSnapshot(int tileCount)
+    {
+        int[] values = new int[tileCount * 6];
+        for (int tileIndex = 0; tileIndex < tileCount; tileIndex++)
+        {
+            int o = tileIndex * 6;
+            values[o] = -1;
+            if (!bankLoans.TryGetValue(tileIndex, out BankLoan loan)) continue;
+            values[o] = loan.ownerSlot;
+            values[o+1] = loan.principal;
+            values[o+2] = loan.outstanding;
+            values[o+3] = loan.turnsRemaining;
+            values[o+4] = loan.initialTerm;
+            values[o+5] = loan.ratePercent;
+        }
+        return values;
+    }
+    public void ApplyBankSnapshot(int[] values, int tileCount)
+    {
+        if (values == null || tileCount < 0 || values.Length < tileCount * 6) return;
+        bankLoans.Clear();
+        for (int tileIndex = 0; tileIndex < tileCount; tileIndex++)
+        {
+            int o = tileIndex * 6;
+            if (values[o] < 0 || values[o] > 3 || values[o+2] <= 0) continue;
+            bankLoans[tileIndex] = new BankLoan
+            {
+                tileIndex = tileIndex, ownerSlot = values[o], principal = Mathf.Max(0, values[o+1]),
+                outstanding = Mathf.Max(0, values[o+2]), turnsRemaining = Mathf.Clamp(values[o+3], 0, 5),
+                initialTerm = Mathf.Clamp(values[o+4], 2, 5), ratePercent = Mathf.Clamp(values[o+5], 0, 20),
+                loanId = "snapshot-" + tileIndex
+            };
+        }
+    }
+    // Bots may rescue themselves with a small short loan, but never pledge
+    // a developed/encumbered city or borrow speculatively while healthy.
+    public bool TryBotBankLoanOnTurn(PlayerGameState player)
+    {
+        if (player == null || player.IsBankrupt || player.CurrentMoney >= 90 ||
+            GetBankLoanCount(player.PlayerSlotIndex) >= 3) return false;
+        EnsureInitialized();
+        if (boardPath == null) return false;
+        for (int i = 0; i < boardPath.TileCount; i++)
+        {
+            BoardTile city = boardPath.GetTile(i);
+            if (city == null || !city.IsOwned || city.OwnerPlayerIndex != player.PlayerSlotIndex ||
+                GetDevelopmentLevel(city) > 0 || GetPulseInvestmentValue(city) > 0) continue;
+            int amount = Mathf.Min(120, GetBankLimit(city));
+            if (amount < 75) continue;
+            return TryOpenBankLoan(player, city, amount, 0,
+                "bot-loan-" + System.Guid.NewGuid().ToString("N"));
+        }
+        return false;
+    }
+
+#if UNITY_EDITOR
+    [UnityEditor.MenuItem("Atlas Board/QA & Diagnostics/QA/Phase 18D - Bank Rules Smoke")]
+    private static void EditorPhase18DBankRulesSmoke()
+    {
+        // Read-only: verify cap, debt, owner integrity, slot limits, and term bounds.
+        PropertyDevelopmentManager manager = FindAnyObjectByType<PropertyDevelopmentManager>();
+        if (manager == null) { Debug.LogError("ATB_PHASE18D_QA NOT_RUN: active match required"); return; }
+        manager.EnsureInitialized();
+        int cities = 0;
+        int invalid = 0;
+        int loans = 0;
+        if (manager.boardPath != null)
+        {
+            for (int i = 0; i < manager.boardPath.TileCount; i++)
+            {
+                BoardTile city = manager.boardPath.GetTile(i);
+                if (city == null || city.TileType != TileType.City) continue;
+                cities++;
+                if (manager.GetBankLimit(city) != (int)((long)Mathf.Max(0, city.PurchasePrice) * 70 / 100)) invalid++;
+                BankLoan loan = manager.GetBankLoan(city);
+                if (loan == null) continue;
+                loans++;
+                if (!city.IsOwned || city.OwnerPlayerIndex != loan.ownerSlot || loan.turnsRemaining < 0 ||
+                    loan.turnsRemaining > 5 || loan.outstanding < loan.principal ||
+                    manager.GetEffectiveRent(city) != 0) invalid++;
+            }
+        }
+        for (int slot = 0; slot < 4; slot++)
+            if (manager.GetBankLoanCount(slot) > 3) invalid++;
+        Debug.Log($"ATB_PHASE18D_QA {(cities > 0 && invalid == 0 ? "PASS" : "FAIL")} read_only=true cities={cities} loans={loans} invalid={invalid}");
+    }
+#endif
+
+    public void ResetLegacyHousesForTransfer(BoardTile city)
+    {
+        if (city == null) return;
+        developmentLevels[city] = 0;
+        RemoveMarkerRoot(city);
+    }
+
 
     public int MaximumDevelopmentLevel =>
         maximumDevelopmentLevel;
@@ -164,7 +410,7 @@ public class PropertyDevelopmentManager : MonoBehaviour
             tile == null ||
             player.IsBankrupt ||
             tile.TileType != TileType.City ||
-            !tile.IsOwned ||
+            !tile.IsOwned || IsMortgaged(tile) ||
             tile.OwnerPlayerIndex !=
             player.PlayerSlotIndex)
         {
@@ -445,6 +691,170 @@ public class PropertyDevelopmentManager : MonoBehaviour
                    rawCost / 10f) * 10;
     }
 
+    public int GetPulseLevel(BoardTile tile, int category)
+    {
+        if (tile == null || category < 0 || category >= PulseCategoryCount ||
+            tile.TileType != TileType.City) return 0;
+        return pulseLevels.TryGetValue(tile, out int[] levels)
+            ? Mathf.Clamp(levels[category], 0, 4) : 0;
+    }
+
+    public int GetPulseBaseline(BoardTile tile, int category)
+    {
+        if (tile == null || category < 0 || category >= PulseCategoryCount ||
+            tile.TileType != TileType.City) return 0;
+        if (pulseMapGenerator == null)
+            pulseMapGenerator = UnityEngine.Object.FindAnyObjectByType<BoardGenerator>();
+        BoardMapDefinition map = pulseMapGenerator != null ? pulseMapGenerator.ActiveMapDefinition : null;
+        return Mathf.Clamp(map != null ? map.GetPulseBaseline(tile.PropertyId, category) : 50,
+            0, PulseMetricMaximum);
+    }
+
+    public int GetPulseMetric(BoardTile tile, int category)
+    {
+        if (tile == null || category < 0 || category >= PulseCategoryCount ||
+            tile.TileType != TileType.City) return 0;
+        int drift = pulseMetricDrift.TryGetValue(tile, out int[] data) ? data[category] : 0;
+        // Four upgrades cannot reach 100; visits/events also stay under 95.
+        BoardEconomyProfile activeEconomy = ResolveEconomyProfile();
+        int maxScore = activeEconomy != null ? activeEconomy.PulseMetricMaximum : PulseMetricMaximum;
+        int raw = GetPulseBaseline(tile, category) + GetPulseLevel(tile, category) * 2 + drift;
+        // Civic ownership modifiers are derived from the same authoritative
+        // Civic snapshot: Trade/Demand +2, Transit/Traffic +3, Tech/Prosperity +5%.
+        // They immediately follow ownership transfer, foreclosure and new-match reset.
+        if (tile.IsOwned)
+        {
+            AtlasBoardCivicProjectManager civic = UnityEngine.Object.FindAnyObjectByType<AtlasBoardCivicProjectManager>();
+            if (civic != null)
+                raw += civic.GetOwnedCityMetricBonus(tile.OwnerPlayerIndex, category, raw);
+        }
+        return Mathf.Clamp(raw, 0, Mathf.Min(maxScore, 94));
+    }
+
+    public int GetPulseBuildCost(BoardTile tile, int category)
+    {
+        int next = GetPulseLevel(tile, category);
+        if (tile == null || category < 0 || category >= PulseCategoryCount || next >= 4) return 0;
+        BoardEconomyProfile activeEconomy = ResolveEconomyProfile();
+        return activeEconomy != null ? activeEconomy.GetPulseLevelCost(next) : PulseLevelCosts[next];
+    }
+
+    public int GetPulseRentBonusPercent(BoardTile tile)
+    {
+        int sum = 0;
+        for (int category = 0; category < PulseCategoryCount; category++)
+            sum += GetPulseLevel(tile, category);
+        BoardEconomyProfile activeEconomy = ResolveEconomyProfile();
+        return activeEconomy != null ? activeEconomy.GetPulseRentBonusPercent(sum)
+            : Mathf.Clamp(sum * 5, 0, 80);
+    }
+
+    // Phase 18C: Pulse investment travels WITH the property on a normal
+    // ownership transfer. It is liquidated with houses on bankruptcy.
+    // Trade pricing and the player net-worth calculation read this same state.
+    public int GetPulseInvestmentValue(BoardTile tile)
+    {
+        if (tile == null || tile.TileType != TileType.City) return 0;
+        long total = 0;
+        for (int category = 0; category < PulseCategoryCount; category++)
+            for (int level = 0; level < GetPulseLevel(tile, category); level++)
+            {
+                BoardEconomyProfile active = ResolveEconomyProfile();
+                total += active != null ? active.GetPulseLevelCost(level) : PulseLevelCosts[level];
+            }
+        return (int)System.Math.Min(int.MaxValue, total);
+    }
+
+    // Do not let legacy houses be orphaned on *another* city of the same
+    // group when a zero-house city is traded. The Pulse levels of any member
+    // of this group are independent and do not trigger this restriction.
+    public bool HasLegacyHousesInGroup(BoardTile tile)
+    {
+        EnsureInitialized();
+        if (tile == null || boardPath == null || tile.TileType != TileType.City)
+            return false;
+        int groupIndex = GetGroupIndex(tile);
+        if (groupIndex < 0) return false;
+        for (int index = 0; index < boardPath.TileCount; index++)
+        {
+            BoardTile candidate = boardPath.GetTile(index);
+            if (candidate != null && candidate.TileType == TileType.City &&
+                GetGroupIndex(candidate) == groupIndex &&
+                GetDevelopmentLevel(candidate) > 0)
+                return true;
+        }
+        return false;
+    }
+
+    public bool CanBuildPulse(PlayerGameState player, BoardTile tile, int category)
+    {
+        return player != null && player.IsParticipating && !player.IsBankrupt &&
+               tile != null && tile.TileType == TileType.City && tile.IsOwned &&
+               tile.OwnerPlayerIndex == player.PlayerSlotIndex && !IsMortgaged(tile) &&
+               category >= 0 && category < PulseCategoryCount &&
+               GetPulseLevel(tile, category) < 4 &&
+               player.CurrentMoney >= GetPulseBuildCost(tile, category);
+    }
+
+    public bool TryBuildPulse(PlayerGameState player, BoardTile tile, int category, string commandId)
+    {
+        if (string.IsNullOrWhiteSpace(commandId) ||
+            pulseAppliedCommandIds.Contains(commandId) ||
+            !CanBuildPulse(player, tile, category)) return false;
+        int cost = GetPulseBuildCost(tile, category);
+        // The owner and host validate before the one and only cash deduction.
+        if (!player.TrySpend(cost)) return false;
+        if (!pulseLevels.TryGetValue(tile, out int[] levels))
+            pulseLevels[tile] = levels = new int[PulseCategoryCount];
+        levels[category] = Mathf.Clamp(levels[category] + 1, 0, 4);
+        pulseAppliedCommandIds.Add(commandId);
+        Debug.Log($"ATB_PULSE_BUILD city={tile.PropertyId} category={category} " +
+                  $"level={levels[category]} cost={cost} rentBonus={GetPulseRentBonusPercent(tile)}%", this);
+        return true;
+    }
+
+    // A completed authoritative landing changes city activity deterministically;
+    // the 18G bounded Economic Memory design remains separate and OPEN.
+    public void RecordPulseVisit(BoardTile tile)
+    {
+        if (tile == null || tile.TileType != TileType.City) return;
+        if (!pulseMetricDrift.TryGetValue(tile, out int[] drift))
+            pulseMetricDrift[tile] = drift = new int[PulseCategoryCount];
+        drift[0] = Mathf.Min(12, drift[0] + 1); // demand
+        drift[2] = Mathf.Min(12, drift[2] + 1); // traffic
+    }
+
+    public int[] CapturePulseLevels(BoardTile tile)
+    {
+        int[] values = new int[PulseCategoryCount];
+        for (int category = 0; category < PulseCategoryCount; category++)
+            values[category] = GetPulseLevel(tile, category);
+        return values;
+    }
+
+    public int[] CapturePulseDrift(BoardTile tile)
+    {
+        int[] values = new int[PulseCategoryCount];
+        if (tile != null && pulseMetricDrift.TryGetValue(tile, out int[] drift))
+            System.Array.Copy(drift, values, PulseCategoryCount);
+        return values;
+    }
+
+    public void ApplyOnlinePulseState(BoardTile tile, int[] levels, int[] drift)
+    {
+        if (tile == null || tile.TileType != TileType.City) return;
+        if (levels == null || drift == null || levels.Length < 4 || drift.Length < 4) return;
+        if (!pulseLevels.TryGetValue(tile, out int[] safeLevels))
+            pulseLevels[tile] = safeLevels = new int[PulseCategoryCount];
+        if (!pulseMetricDrift.TryGetValue(tile, out int[] safeDrift))
+            pulseMetricDrift[tile] = safeDrift = new int[PulseCategoryCount];
+        for (int i = 0; i < PulseCategoryCount; i++)
+        {
+            safeLevels[i] = Mathf.Clamp(levels[i], 0, 4);
+            safeDrift[i] = Mathf.Clamp(drift[i], -30, 12);
+        }
+    }
+
     public int GetEffectiveRent(
         BoardTile tile)
     {
@@ -453,6 +863,7 @@ public class PropertyDevelopmentManager : MonoBehaviour
             return 0;
         }
 
+        if (IsMortgaged(tile)) return 0;
         int level =
             Mathf.Clamp(
                 GetDevelopmentLevel(tile),
@@ -462,7 +873,12 @@ public class PropertyDevelopmentManager : MonoBehaviour
         int multiplier =
             GetRentMultiplier(level);
 
-        return tile.BaseRent * multiplier;
+        long legacyRent = (long)System.Math.Max(0, tile.BaseRent) * multiplier;
+        int bonus = Mathf.Clamp(GetPulseRentBonusPercent(tile), 0, 80);
+        // Exact integer path on offline host and RTDB followers; no float
+        // precision drift, no overflow, and the bonus is applied just once.
+        long result = legacyRent * (100L + bonus) / 100L;
+        return (int)System.Math.Min(int.MaxValue, result);
     }
 
     public int GetProjectedRentAtNextLevel(
@@ -473,14 +889,16 @@ public class PropertyDevelopmentManager : MonoBehaviour
             return 0;
         }
 
+        if (IsMortgaged(tile)) return 0;
         int nextLevel =
             Mathf.Clamp(
                 GetDevelopmentLevel(tile) + 1,
                 0,
                 maximumDevelopmentLevel);
 
-        return tile.BaseRent *
-               GetRentMultiplier(nextLevel);
+        long legacy = (long)System.Math.Max(0, tile.BaseRent) * GetRentMultiplier(nextLevel);
+        long result = legacy * (100L + Mathf.Clamp(GetPulseRentBonusPercent(tile), 0, 80)) / 100L;
+        return (int)System.Math.Min(int.MaxValue, result);
     }
 
     public int GetGroupIndex(
@@ -617,7 +1035,9 @@ public class PropertyDevelopmentManager : MonoBehaviour
             }
         }
 
-        return groupCityCount >= 2;
+        // Phase 18C: legacy housing requires the original three-city group.
+        // One or two owned cities still allow independent Pulse projects.
+        return groupCityCount >= 3;
     }
 
     public void ApplyOnlineAuthoritativeDevelopmentLevel(
@@ -705,6 +1125,9 @@ public class PropertyDevelopmentManager : MonoBehaviour
         EnsureInitialized();
 
         developmentLevels[tile] = 0;
+        pulseLevels.Remove(tile);
+        pulseMetricDrift.Remove(tile);
+        bankLoans.Remove(tile.TileIndex);
         RemoveMarkerRoot(tile);
     }
 
@@ -734,6 +1157,13 @@ public class PropertyDevelopmentManager : MonoBehaviour
                 level;
         }
 
+        foreach (KeyValuePair<BoardTile, int[]> entry in pulseLevels)
+        {
+            BoardTile tile = entry.Key;
+            if (tile == null || !tile.IsOwned || tile.OwnerPlayerIndex != playerSlotIndex) continue;
+            totalValue = (int)System.Math.Min(int.MaxValue,
+                (long)totalValue + GetPulseInvestmentValue(tile));
+        }
         return totalValue;
     }
 
@@ -1626,6 +2056,108 @@ public class PropertyDevelopmentManager : MonoBehaviour
             developmentLevels[tile] = 0;
             RemoveMarkerRoot(tile);
         }
+        pulseLevels.Clear();
+        pulseMetricDrift.Clear();
+        pulseAppliedCommandIds.Clear();
+        pulseMapGenerator = null;
     }
+
+
+#if UNITY_EDITOR
+    // Read-only. Works on active offline / host / follower scene without
+    // manipulating ownership, balances, investments or online membership.
+    [UnityEditor.MenuItem("Atlas Board/QA & Diagnostics/QA/Phase 18C - Houses + Pulse Smoke")]
+    private static void EditorPhase18CHousesPulseSmoke()
+    {
+        if (!Application.isPlaying)
+        {
+            Debug.LogWarning("ATB_PHASE18C_QA NOT_RUN: Play Mode match required.");
+            return;
+        }
+        PropertyDevelopmentManager manager = UnityEngine.Object.FindAnyObjectByType<PropertyDevelopmentManager>();
+        BoardPath path = UnityEngine.Object.FindAnyObjectByType<BoardPath>();
+        if (manager == null || path == null)
+        {
+            Debug.LogError("ATB_PHASE18C_QA FAIL: active property manager/board missing.");
+            return;
+        }
+        int cities = 0, owned = 0, pulseUpgrades = 0, orphanHouses = 0, badRent = 0;
+        int incompleteGroupWithHouses = 0, groupRestrictionChecks = 0;
+        for (int i = 0; i < path.TileCount; i++)
+        {
+            BoardTile tile = path.GetTile(i);
+            if (tile == null || tile.TileType != TileType.City) continue;
+            cities++;
+            if (tile.IsOwned) owned++;
+            int legacyLevel = manager.GetDevelopmentLevel(tile);
+            if (legacyLevel > 0 && !tile.IsOwned) orphanHouses++;
+            if (legacyLevel > 0 && !manager.HasCompleteGroup(tile.OwnerPlayerIndex,
+                manager.GetGroupIndex(tile))) incompleteGroupWithHouses++;
+            if (manager.HasLegacyHousesInGroup(tile)) groupRestrictionChecks++;
+            for (int c = 0; c < 4; c++)
+            {
+                int level = manager.GetPulseLevel(tile, c);
+                pulseUpgrades += level;
+                if (level < 0 || level > 4 || manager.GetPulseMetric(tile, c) > 94)
+                    badRent++;
+            }
+            int multiplier = manager.GetRentMultiplier(Mathf.Clamp(legacyLevel, 0, manager.MaximumDevelopmentLevel));
+            long baseline = (long)System.Math.Max(0, tile.BaseRent) * multiplier;
+            long expected = baseline * (100L + manager.GetPulseRentBonusPercent(tile)) / 100L;
+            int safeExpected = manager.IsMortgaged(tile) ? 0 : (int)System.Math.Min(int.MaxValue, expected);
+            if (manager.GetEffectiveRent(tile) != safeExpected) badRent++;
+        }
+        bool pass = cities == 24 && orphanHouses == 0 &&
+                    incompleteGroupWithHouses == 0 && badRent == 0;
+        string data = $"cities={cities} owned={owned} pulseLevels={pulseUpgrades} " +
+                      $"legacyGuardCities={groupRestrictionChecks} orphanHouses={orphanHouses} " +
+                      $"incompleteGroupHouses={incompleteGroupWithHouses} badRent={badRent}";
+        if (pass) Debug.Log("ATB_PHASE18C_QA PASS read-only " + data);
+        else Debug.LogError("ATB_PHASE18C_QA FAIL " + data);
+        // This smoke cannot assert a trade, money movement or host migration;
+        // those must be owner-tested with two clients and a real transaction.
+    }
+#endif
+
+#if UNITY_EDITOR
+    // This is a safe, read-only Edit Mode smoke test. It does not spend money,
+    // build a city, touch Firebase or change any map asset.
+    [UnityEditor.MenuItem("Atlas Board/QA & Diagnostics/QA/Phase 18B - Pulse Seed Smoke")]
+    private static void EditorPulseSeedSmoke()
+    {
+        int mapsChecked = 0;
+        int citiesChecked = 0;
+        bool ok = true;
+        string[] guids = UnityEditor.AssetDatabase.FindAssets("t:BoardMapDefinition");
+        foreach (string guid in guids)
+        {
+            string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
+            BoardMapDefinition map = UnityEditor.AssetDatabase.LoadAssetAtPath<BoardMapDefinition>(path);
+            if (map == null || (map.MapId != "map_turkey" && map.MapId != "map_colorado" && map.MapId != "map_usa"))
+                continue;
+            mapsChecked++;
+            int count = 0;
+            foreach (BoardTileDefinition tile in map.GetPropertyDefinitions())
+            {
+                count++;
+                for (int category = 0; category < 4; category++)
+                {
+                    int baseline = map.GetPulseBaseline(tile.PropertyId, category);
+                    // Conservative projected +8 from all four investments.
+                    if (baseline <= 0 || baseline > 90 || Mathf.Min(94, baseline + 8) >= 100)
+                        ok = false;
+                }
+            }
+            citiesChecked += count;
+            if (count != 24) ok = false;
+        }
+        if (mapsChecked != 3 || citiesChecked != 72) ok = false;
+        if (ok)
+            Debug.Log("ATB_PHASE18B_SEED_QA PASS maps=" + mapsChecked + " cities=" + citiesChecked +
+                      " metrics=288 cap=94 maxLevel=4 prices=100,175,250,350");
+        else
+            Debug.LogError("ATB_PHASE18B_SEED_QA FAIL maps=" + mapsChecked + " cities=" + citiesChecked);
+    }
+#endif
 
 }

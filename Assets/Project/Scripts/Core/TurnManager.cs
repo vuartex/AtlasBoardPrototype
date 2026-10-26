@@ -510,6 +510,9 @@ public class TurnManager : MonoBehaviour
             return false;
         }
 
+        FindAnyObjectByType<PropertyDevelopmentManager>()?.ClearBankLoansForNewMatch();
+        FindAnyObjectByType<AtlasBoardCivicProjectManager>()?.ResetForNewMatch();
+        FindAnyObjectByType<StartRewardManager>()?.ResetCivicStartRewardLedgerForNewMatch();
         isMatchStarted = true;
 
         if (onlineAuthorityConfigured &&
@@ -605,6 +608,9 @@ public class TurnManager : MonoBehaviour
         currentTurnOrderIndex = 0;
         orderRollPlayerIndex = 0;
         completedTurns = 0;
+        FindAnyObjectByType<PropertyDevelopmentManager>()?.ClearBankLoansForNewMatch();
+        FindAnyObjectByType<AtlasBoardCivicProjectManager>()?.ResetForNewMatch();
+        FindAnyObjectByType<StartRewardManager>()?.ResetCivicStartRewardLedgerForNewMatch();
         currentRound = 1;
         lastRoll = 0;
         lastDieOne = 0;
@@ -2853,6 +2859,7 @@ public class TurnManager : MonoBehaviour
         consecutiveDoublesThisTurn = 0;
         suppressExtraRollForCurrentTurn = false;
 
+        AdvanceBankTurnForCurrentPlayer();
         if (RegisterCompletedTurn())
         {
             return;
@@ -2867,6 +2874,13 @@ public class TurnManager : MonoBehaviour
         }
 
         BeginCurrentTurn();
+    }
+
+    private void AdvanceBankTurnForCurrentPlayer()
+    {
+        if (IsOnlineFollowerMode) return;
+        PropertyDevelopmentManager manager = FindAnyObjectByType<PropertyDevelopmentManager>();
+        manager?.AdvanceBankLoansForCompletedTurn(GetPlayerState(currentPlayerIndex));
     }
 
     private bool RegisterCompletedTurn()
@@ -3069,6 +3083,8 @@ public class TurnManager : MonoBehaviour
                 resolvingTurnStart = false;
                 beginTurnCoroutine = null;
 
+                if (!IsOnlineFollowerMode && IsPlayerBot(playerState))
+                    FindAnyObjectByType<PropertyDevelopmentManager>()?.TryBotBankLoanOnTurn(playerState);
                 UpdateTurnUI();
                 yield break;
             }
@@ -3097,6 +3113,7 @@ public class TurnManager : MonoBehaviour
                     skippedTurnMessageDuration);
             }
 
+            AdvanceBankTurnForCurrentPlayer();
             if (RegisterCompletedTurn())
             {
                 resolvingTurnStart = false;

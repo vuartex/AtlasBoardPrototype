@@ -13,6 +13,7 @@ public static class AtlasBoardChatRuntimeBootstrap
         if (existing != null)
         {
             EnsureSafetyComponents(existing.gameObject);
+            EnsureManagementPanel(existing.gameObject);
             return;
         }
 
@@ -29,6 +30,13 @@ public static class AtlasBoardChatRuntimeBootstrap
             AtlasBoardChatUIController>();
         runtime.AddComponent<
             AtlasBoardChatSafetyUIController>();
+        EnsureManagementPanel(runtime);
+    }
+
+    private static void EnsureManagementPanel(GameObject runtime)
+    {
+        if (runtime != null && runtime.GetComponent<AtlasBoardDevelopmentsBankUI>() == null)
+            runtime.AddComponent<AtlasBoardDevelopmentsBankUI>();
     }
 
     private static void EnsureSafetyComponents(GameObject runtime)

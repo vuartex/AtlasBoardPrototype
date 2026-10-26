@@ -139,6 +139,9 @@ public class BotPlayerController : MonoBehaviour
     private Coroutine decisionRoutine;
 
     private int lastOwnTradeAttemptCompletedTurns = -1;
+    private int lastPulseAttemptCompletedTurns = -1;
+    private AtlasBoardTurnDiceNetworkCoordinator pulseNetwork;
+
 
     public bool BotEnabled =>
         botEnabled;
@@ -302,7 +305,47 @@ public class BotPlayerController : MonoBehaviour
             return;
         }
 
+        TryInvestPulseOncePerTurn();
         TryStartRollDecision();
+    }
+
+    // Phase 18B conservative bot policy: at most one Pulse investment during
+    // its own actionable turn. Host only; follower never spends any cash.
+    private void TryInvestPulseOncePerTurn()
+    {
+        if (turnManager == null || playerState == null ||
+            propertyDevelopmentManager == null || boardPath == null ||
+            !turnManager.CanPlayerRequestRoll(playerState)) return;
+        if (pulseNetwork == null)
+            pulseNetwork = UnityEngine.Object.FindAnyObjectByType<AtlasBoardTurnDiceNetworkCoordinator>();
+        if (pulseNetwork != null && pulseNetwork.IsOnlineSessionActive && !pulseNetwork.LocalIsHost)
+            return;
+        int token = turnManager.CompletedTurns;
+        if (lastPulseAttemptCompletedTurns == token) return;
+        lastPulseAttemptCompletedTurns = token;
+        int reserve = Mathf.Max(400, GetDevelopmentCashReserve());
+        BoardTile chosen = null;
+        int chosenCategory = -1;
+        int bestScore = int.MinValue;
+        for (int i = 0; i < boardPath.TileCount; i++)
+        {
+            BoardTile tile = boardPath.GetTile(i);
+            if (tile == null || !tile.IsOwned || tile.OwnerPlayerIndex != playerState.PlayerSlotIndex)
+                continue;
+            for (int c = 0; c < 4; c++)
+            {
+                int cost = propertyDevelopmentManager.GetPulseBuildCost(tile, c);
+                if (!propertyDevelopmentManager.CanBuildPulse(playerState, tile, c) ||
+                    playerState.CurrentMoney - cost < reserve ||
+                    cost * 3 > playerState.CurrentMoney) continue;
+                int score = (4 - propertyDevelopmentManager.GetPulseLevel(tile, c)) * 20 +
+                            propertyDevelopmentManager.GetPulseMetric(tile, c) / 5 - cost / 25;
+                if (score > bestScore) { bestScore = score; chosen = tile; chosenCategory = c; }
+            }
+        }
+        if (chosen != null)
+            propertyDevelopmentManager.TryBuildPulse(playerState, chosen, chosenCategory,
+                "bot-pulse-" + playerState.PlayerSlotIndex + "-" + token);
     }
 
     private bool TryStartTradeResponse()
@@ -1170,10 +1213,11 @@ public class BotPlayerController : MonoBehaviour
                     GetOutgoingTradeOfferMultiplier(
                         completesGroup);
 
-                int offer =
-                    RoundCashOffer(
-                        property.PurchasePrice *
-                        offerMultiplier);
+                // Include the transferred investment value, otherwise
+                // bots can acquire fully-developed Pulse cities for bare land cost.
+                int investmentValue = propertyDevelopmentManager.GetPulseInvestmentValue(property);
+                int offer = RoundCashOffer(
+                    (property.PurchasePrice + (float)investmentValue) * offerMultiplier);
 
                 if (offer <= 0 ||
                     offer > availableCash)
@@ -1250,7 +1294,9 @@ public class BotPlayerController : MonoBehaviour
                     .GetDevelopmentLevel(property)
                 : 0;
 
-        return developmentLevel == 0;
+        return developmentLevel == 0 &&
+               (propertyDevelopmentManager == null ||
+                !propertyDevelopmentManager.HasLegacyHousesInGroup(property));
     }
 
     private bool OwnsAnotherPropertyInGroup(
@@ -1321,8 +1367,9 @@ public class BotPlayerController : MonoBehaviour
 
         if (property != null)
         {
-            float propertyValue =
-                property.PurchasePrice;
+            float propertyValue = property.PurchasePrice +
+                (propertyDevelopmentManager != null
+                    ? propertyDevelopmentManager.GetPulseInvestmentValue(property) : 0);
 
             if (WouldCompleteGroupWith(property))
             {
@@ -1366,8 +1413,9 @@ public class BotPlayerController : MonoBehaviour
 
         if (property != null)
         {
-            float propertyValue =
-                property.PurchasePrice;
+            float propertyValue = property.PurchasePrice +
+                (propertyDevelopmentManager != null
+                    ? propertyDevelopmentManager.GetPulseInvestmentValue(property) : 0);
 
             BoardEconomyProfile economy =
                 ResolveEconomyProfile();

@@ -480,10 +480,20 @@ public class EventCardManager : MonoBehaviour
                 break;
 
             case EventCardEffectType.MoveToNextTileType:
-                ApplyMoveToTileTypeEffect(
-                    card,
-                    player);
+                ApplyMoveToTileTypeEffect(card, player);
                 break;
+            case EventCardEffectType.CivicProjectArrival:
+            {
+                AtlasBoardCivicProjectManager civic = FindAnyObjectByType<AtlasBoardCivicProjectManager>();
+                int project = Mathf.Clamp(card.EffectAmount, 0, 2);
+                if (civic == null || !civic.BeginArrival(player, project, () =>
+                    {
+                        SetOnlineResultDescriptor("civic_arrival", project);
+                        FinishEffectExecution("Arrived at " + civic.GetProjectName(project));
+                    }))
+                    FinishEffectExecution("Civic destination unavailable.");
+                break;
+            }
 
             default:
                 SetOnlineResultDescriptor(
@@ -939,10 +949,15 @@ public class EventCardManager : MonoBehaviour
             return null;
         }
 
-        int randomValue =
-            UnityEngine.Random.Range(
-                0,
-                totalWeight);
+        // One authored-equivalent Civic invitation in roughly 12 event draws.
+        // Stable synthetic card IDs keep follower card lookup deterministic.
+        AtlasBoardCivicProjectManager civic = FindAnyObjectByType<AtlasBoardCivicProjectManager>();
+        if (civic != null && UnityEngine.Random.Range(0, 12) == 0)
+        {
+            int projectId = UnityEngine.Random.Range(0, 3);
+            return EventCardDefinition.CreateRuntimeCivicCard(projectId, civic.GetProjectName(projectId));
+        }
+        int randomValue = UnityEngine.Random.Range(0, totalWeight);
 
         int cumulativeWeight = 0;
 
@@ -1027,6 +1042,14 @@ public class EventCardManager : MonoBehaviour
     private EventCardDefinition FindCardById(
         string cardId)
     {
+        if (!string.IsNullOrEmpty(cardId) && cardId.StartsWith("civic_event_", StringComparison.Ordinal) &&
+            int.TryParse(cardId.Substring("civic_event_".Length), out int project) && project >= 0 && project < 3)
+        {
+            AtlasBoardCivicProjectManager civic = FindAnyObjectByType<AtlasBoardCivicProjectManager>();
+            return EventCardDefinition.CreateRuntimeCivicCard(project,
+                civic != null ? civic.GetProjectName(project) : "Civic Project " + (project + 1));
+        }
+
         if (string.IsNullOrWhiteSpace(cardId) ||
             eventDeck == null ||
             eventDeck.Cards == null)

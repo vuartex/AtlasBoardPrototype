@@ -12,7 +12,8 @@ public enum EventCardEffectType
     Money,
     SkipTurns,
     MoveForwardSpaces,
-    MoveToNextTileType
+    MoveToNextTileType,
+    CivicProjectArrival
 }
 
 [CreateAssetMenu(
@@ -62,19 +63,60 @@ public class EventCardDefinition : ScriptableObject
     [SerializeField]
     private TileType targetTileType = TileType.Bonus;
 
+    private static readonly System.Collections.Generic.Dictionary<string, EventCardDefinition>
+        RuntimeCivicCards = new System.Collections.Generic.Dictionary<string, EventCardDefinition>();
+
+    public static EventCardDefinition CreateRuntimeCivicCard(int projectId, string projectName)
+    {
+        if (projectId < 0 || projectId >= 3) return null;
+        string cacheKey = projectId + ":" + (projectName ?? string.Empty);
+        if (RuntimeCivicCards.TryGetValue(cacheKey, out EventCardDefinition existing) && existing != null)
+            return existing;
+        EventCardDefinition card = CreateInstance<EventCardDefinition>();
+        card.hideFlags = HideFlags.DontSave;
+        card.cardId = "civic_event_" + projectId;
+        card.category = EventCardCategory.Special;
+        card.enabledCard = true;
+        card.weight = 1;
+        card.title = "Civic Project Opportunity";
+        card.description = "Travel to " + projectName + " (outside the dice route).";
+        card.effectType = EventCardEffectType.CivicProjectArrival;
+        card.effectAmount = projectId;
+        RuntimeCivicCards[cacheKey] = card;
+        return card;
+    }
+
     public string CardId => cardId;
     public EventCardCategory Category => category;
     public bool EnabledCard => enabledCard;
     public int Weight => Mathf.Max(1, weight);
-    public string Title =>
-        GetLocalizedOrFallback(
-            TitleLocalizationKey,
-            title);
+    // Runtime Civic invitations do not have localization database assets.
+    // Translate their label and destination on demand in all seven languages,
+    // preserving the stable civic_event_# ID across locale switches.
+    public string Title => effectType == EventCardEffectType.CivicProjectArrival
+        ? AtlasBoardL.R("Civic Project Opportunity", "Kamu Projesi Fırsatı",
+            "Oportunidad de proyecto cívico", "Occasion de projet civique",
+            "Civic-Projektchance", "시민 프로젝트 기회", "Возможность общественного проекта")
+        : GetLocalizedOrFallback(TitleLocalizationKey, title);
 
-    public string Description =>
-        GetLocalizedOrFallback(
-            DescriptionLocalizationKey,
-            description);
+    public string Description
+    {
+        get
+        {
+            if (effectType != EventCardEffectType.CivicProjectArrival)
+                return GetLocalizedOrFallback(DescriptionLocalizationKey, description);
+            AtlasBoardCivicProjectManager civic = UnityEngine.Object.FindAnyObjectByType<AtlasBoardCivicProjectManager>();
+            string projectName = civic != null ? civic.GetProjectName(effectAmount) : string.Empty;
+            if (string.IsNullOrWhiteSpace(projectName)) return description;
+            return AtlasBoardL.R("Travel to {0} (outside the dice route).",
+                "{0} projesine seyahat et (zar rotasının dışında).",
+                "Viaja a {0} (fuera del recorrido de dados).",
+                "Voyagez vers {0} (hors du parcours des dés).",
+                "Reise nach {0} (außerhalb der Würfelroute).",
+                "{0}(으)로 이동하세요 (주사위 경로 외부).",
+                "Отправляйтесь в {0} (вне маршрута по кубику).", projectName);
+        }
+    }
 
     public string RawTitle =>
         title;

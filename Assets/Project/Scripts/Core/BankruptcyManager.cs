@@ -129,6 +129,9 @@ public class BankruptcyManager : MonoBehaviour
                 0,
                 amountDue - amountPaid);
 
+        EnsureDevelopmentManager();
+        propertyDevelopmentManager?.CloseBankLoansOnBankruptcy(debtor);
+
         LiquidateOwnedProperties(
             debtor,
             creditor,
@@ -137,6 +140,8 @@ public class BankruptcyManager : MonoBehaviour
             out int releasedPropertyCount,
             out int transferredPropertyValue);
 
+        // Civic property is off-path: transfer to a live creditor, otherwise release.
+        FindAnyObjectByType<AtlasBoardCivicProjectManager>()?.HandleBankruptcy(debtor, creditor);
         debtor.DeclareBankrupt();
 
         EnsureTurnManager();
@@ -243,8 +248,13 @@ public class BankruptcyManager : MonoBehaviour
         {
             EnsureDevelopmentManager();
 
-            propertyDevelopmentManager
-                ?.ResetDevelopment(tile);
+            // A creditor inherits the city's Pulse capital; legacy houses are
+            // liquidated so three-city group balance cannot be bypassed.
+            // Only bank-owned / unclaimed properties lose Pulse investment.
+            if (transferToCreditor && coveredValue < unpaidAmount)
+                propertyDevelopmentManager?.ResetLegacyHousesForTransfer(tile);
+            else
+                propertyDevelopmentManager?.ResetDevelopment(tile);
 
             tile.ClearOwner();
 
@@ -277,14 +287,13 @@ public class BankruptcyManager : MonoBehaviour
                             creditor.OwnershipMaterial);
                     }
 
-                    // Bankruptcy liquidates all development. Ownership may
-                    // transfer, but houses/hotels never transfer with it.
-                    propertyDevelopmentManager
-                        ?.ResetDevelopment(tile);
+                    // A creditor inherits Pulse investments, not legacy houses.
+                    // Bank foreclosure, unlike creditor transfer, resets both.
 
                     continue;
                 }
 
+                propertyDevelopmentManager?.ResetDevelopment(tile);
                 Debug.LogWarning(
                     $"Could not transfer {tile.DisplayName} " +
                     $"to {creditor.DisplayName}; property was released.",
