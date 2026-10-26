@@ -2858,7 +2858,14 @@ public class TurnManager : MonoBehaviour
             return;
         }
 
-        AdvanceToNextPlayer();
+        // Match snapshot or host migration may have lost the local turn order.
+        // Never report this completed turn twice or restart another player until
+        // the scheduler has a valid, deterministic next position.
+        if (!AdvanceToNextPlayer())
+        {
+            return;
+        }
+
         BeginCurrentTurn();
     }
 
@@ -2910,14 +2917,79 @@ public class TurnManager : MonoBehaviour
         return false;
     }
 
-    private void AdvanceToNextPlayer()
+    // A promoted RTDB Host may start from a checkpoint whose presentation has
+    // not restored the private turnOrder array. It is nulled by the EXISTING
+    // ResetForOnlineLobbySession path. Do not dereference the missing array or
+    // keep granting additional turns to the same player. Rebuild only the local
+    // scheduler from existing participating pawns, without changing RTDB UIDs,
+    // seat ownership, map state, or the authoritative economy snapshot.
+    private bool EnsureValidTurnOrder(string caller)
     {
+        if (turnOrder != null && turnOrder.Length >= 2)
+        {
+            int position = System.Array.IndexOf(
+                turnOrder, currentPlayerIndex);
+            if (position >= 0)
+            {
+                if (currentTurnOrderIndex != position)
+                {
+                    Debug.LogWarning(
+                        "ATB_TURN_ORDER_REPAIRED source=existing_order " +
+                        "reason=position_mismatch caller=" + caller, this);
+                    currentTurnOrderIndex = position;
+                }
+                return true;
+            }
+        }
+
+        int[] participating = GetParticipatingPlayerIndexes();
+        if (participating.Length < 2)
+        {
+            Debug.LogError(
+                "ATB_TURN_ORDER_UNAVAILABLE caller=" + caller +
+                " participating=" + participating.Length +
+                " matchStarted=" + isMatchStarted +
+                " onlineHost=" +
+                (onlineAuthorityConfigured && !onlineFollowerMode), this);
+            return false;
+        }
+
+        // Stable player-array/seat order is a deterministic emergency fallback
+        // when the original randomized order was not available in the saved
+        // scheduler. This is not a claim that host-migration order was verified.
+        turnOrder = participating;
+        int previousPosition = System.Array.IndexOf(
+            turnOrder, currentPlayerIndex);
+        currentTurnOrderIndex = previousPosition >= 0
+            ? previousPosition
+            : turnOrder.Length - 1;
+
+        Debug.LogWarning(
+            "ATB_TURN_ORDER_RECOVERED caller=" + caller +
+            " reason=missing_or_invalid_order" +
+            " participating=" + turnOrder.Length +
+            " currentPosition=" + currentTurnOrderIndex +
+            " onlineHost=" +
+            (onlineAuthorityConfigured && !onlineFollowerMode) +
+            " source=participating_player_array" +
+            " needs_owner_round_robin_retest=true", this);
+        return true;
+    }
+
+    private bool AdvanceToNextPlayer()
+    {
+        if (!EnsureValidTurnOrder("advance"))
+        {
+            return false;
+        }
+
         currentTurnOrderIndex =
             (currentTurnOrderIndex + 1) %
             turnOrder.Length;
 
         currentPlayerIndex =
             turnOrder[currentTurnOrderIndex];
+        return true;
     }
 
     private void BeginCurrentTurn()
@@ -2956,6 +3028,13 @@ public class TurnManager : MonoBehaviour
             yield break;
         }
 
+        if (!EnsureValidTurnOrder("begin_current_turn"))
+        {
+            resolvingTurnStart = false;
+            beginTurnCoroutine = null;
+            yield break;
+        }
+
         for (int checkedPlayers = 0;
              checkedPlayers < turnOrder.Length;
              checkedPlayers++)
@@ -2971,7 +3050,12 @@ public class TurnManager : MonoBehaviour
                 !playerState.IsParticipating ||
                 playerState.IsBankrupt)
             {
-                AdvanceToNextPlayer();
+                if (!AdvanceToNextPlayer())
+                {
+                    resolvingTurnStart = false;
+                    beginTurnCoroutine = null;
+                    yield break;
+                }
                 continue;
             }
 
@@ -3020,7 +3104,12 @@ public class TurnManager : MonoBehaviour
                 yield break;
             }
 
-            AdvanceToNextPlayer();
+            if (!AdvanceToNextPlayer())
+            {
+                resolvingTurnStart = false;
+                beginTurnCoroutine = null;
+                yield break;
+            }
         }
 
         resolvingTurnStart = false;

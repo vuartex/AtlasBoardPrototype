@@ -85,6 +85,36 @@ public static class AtlasBoardGuestIdentity
     {
         get
         {
+            if (Application.platform == RuntimePlatform.Android)
+            {
+                // Presentation only: this alias is not a credential and does
+                // not authorize room ownership or reconnect. The RTDB rules
+                // still require the same authenticated Firebase UID.
+                try
+                {
+                    Firebase.Auth.FirebaseUser user =
+                        Firebase.Auth.FirebaseAuth.DefaultInstance.CurrentUser;
+                    if (user != null && user.IsAnonymous &&
+                        !string.IsNullOrWhiteSpace(user.UserId))
+                        return NameForAuthenticatedUid(user.UserId);
+                }
+                catch { /* SDK can be initializing before the first scene. */ }
+
+                // Show the last VERIFIED UID-bound alias during SDK restore.
+                // Backed-up PlayerPrefs cannot recover the actual Firebase UID.
+                string previous = PlayerPrefs.GetString(
+                    "AtlasBoard.Android.CasualUidMarker.v1", string.Empty);
+                if (LooksLikeGuestName(previous) && previous.Length == 21)
+                    return previous;
+
+                // On a fresh Android install Firebase Anonymous Auth is
+                // intentionally opt-in at the first online action. The
+                // eventual UID-bound Guest name cannot be predicted until
+                // that action succeeds. Do NOT display an unrelated offline
+                // random Guest name as though it owned the future room seat.
+                // A neutral pending label avoids an apparent account rename.
+                return AtlasBoardL.T("menu.player");
+            }
             if (AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession &&
                 !string.IsNullOrWhiteSpace(liveDisplayName))
                 return liveDisplayName;

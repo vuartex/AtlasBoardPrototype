@@ -174,6 +174,27 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
             return false;
         }
 
+#if UNITY_ANDROID && !UNITY_EDITOR
+        // Firebase Anonymous proves an RTDB room UID, NOT a trusted
+        // XP/Gold/Steam reward. Server-side security acceptance stays OPEN.
+        try
+        {
+            FirebaseUser user = FirebaseAuth.DefaultInstance.CurrentUser;
+            if (user == null || user.IsAnonymous)
+            {
+                lastErrorKey = "progression.error.identity_unavailable";
+                lastTechnicalMessage =
+                    "Android Casual is not eligible for trusted progression.";
+                return false;
+            }
+        }
+        catch (Exception)
+        {
+            lastErrorKey = "progression.error.identity_unavailable";
+            lastTechnicalMessage = "Android identity validation unavailable.";
+            return false;
+        }
+#endif
         return true;
     }
 

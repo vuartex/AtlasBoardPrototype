@@ -108,8 +108,18 @@ public sealed class AtlasBoardCanonicalPlayerIdentity : MonoBehaviour
             try
             {
                 FirebaseUser user = FirebaseAuth.DefaultInstance.CurrentUser;
+                // An Android anonymous Firebase UID is the sole Casual Guest
+                // display-name source. A pre-existing Firebase displayName or
+                // stale menu cache must not impersonate an admitted room seat.
+                if (Application.platform == RuntimePlatform.Android &&
+                    user != null && user.IsAnonymous &&
+                    !string.IsNullOrWhiteSpace(user.UserId))
+                    return AtlasBoardGuestIdentity.NameForAuthenticatedUid(user.UserId);
                 if (user != null && !string.IsNullOrWhiteSpace(user.DisplayName))
                     return user.DisplayName.Trim();
+                if (user != null && user.IsAnonymous &&
+                    !string.IsNullOrWhiteSpace(user.UserId))
+                    return AtlasBoardGuestIdentity.NameForAuthenticatedUid(user.UserId);
             }
             catch { /* Firebase SDK may be initializing. */ }
             // A signed-in Firebase UID is not the Guest account.

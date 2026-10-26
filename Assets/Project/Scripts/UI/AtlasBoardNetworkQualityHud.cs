@@ -36,7 +36,7 @@ public sealed class AtlasBoardNetworkQualityHud :
     }
 
     private const string SnapshotFunctionName =
-        "matchGetSnapshot";
+        "matchRTDB";
 
     private const int MaximumSamples = 24;
     private const float LateSampleThresholdMs = 1500f;
@@ -325,6 +325,9 @@ public sealed class AtlasBoardNetworkQualityHud :
         {
             return;
         }
+
+        if (!sample.RequestWasSent)
+            return;
 
         lastAnySampleAt =
             sample.RealtimeAt;

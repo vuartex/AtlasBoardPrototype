@@ -64,6 +64,7 @@ public sealed class AtlasBoardAuctionPresentationPolish : MonoBehaviour
     private bool legacyPassWasActive;
 
     private float nextRefreshAt;
+    private int lastPresentedBid = int.MinValue;
 
     [RuntimeInitializeOnLoadMethod(
         RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -134,7 +135,8 @@ public sealed class AtlasBoardAuctionPresentationPolish : MonoBehaviour
 
         if (polishRoot != null)
         {
-            polishRoot.SetAsLastSibling();
+            if (polishRoot.GetSiblingIndex() != polishRoot.parent.childCount - 1)
+                polishRoot.SetAsLastSibling();
 
             if (!polishRoot.gameObject.activeSelf)
             {
@@ -144,6 +146,15 @@ public sealed class AtlasBoardAuctionPresentationPolish : MonoBehaviour
         }
 
         MirrorButtonState();
+
+        // A quick succession of remote bids can change the authoritative
+        // amount between regular presentation refreshes.
+        if (bidValueText != null && auctionManager != null &&
+            lastPresentedBid != auctionManager.CurrentBid)
+        {
+            lastPresentedBid = auctionManager.CurrentBid;
+            bidValueText.text = $"{lastPresentedBid:N0} ₵";
+        }
 
         if (Time.unscaledTime >=
             nextRefreshAt)

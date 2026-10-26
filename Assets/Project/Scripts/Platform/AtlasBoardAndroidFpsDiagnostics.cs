@@ -17,6 +17,45 @@ using UnityEngine.SceneManagement;
 [DefaultExecutionOrder(31000)]
 public sealed class AtlasBoardAndroidFpsDiagnostics : MonoBehaviour
 {
+    // Development-only, random app-install QA ID. This is NOT Android ID,
+    // Firebase UID, IMEI, serial, account identity or tracking telemetry.
+    private const string QaDeviceIdKey = "AtlasBoard.QA.InstallId.v1";
+    private static readonly string QaSessionId =
+        Guid.NewGuid().ToString("N").Substring(0, 12);
+    private static string cachedQaDeviceId;
+
+    public static string QaTraceSuffix
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(cachedQaDeviceId))
+            {
+                string saved = PlayerPrefs.GetString(QaDeviceIdKey, "");
+                if (saved.Length != 12 || !IsHexId(saved))
+                {
+                    saved = Guid.NewGuid().ToString("N").Substring(0, 12);
+                    PlayerPrefs.SetString(QaDeviceIdKey, saved);
+                    PlayerPrefs.Save();
+                }
+                cachedQaDeviceId = saved;
+            }
+            return " qaDeviceId=" + cachedQaDeviceId +
+                   " sessionId=" + QaSessionId;
+        }
+    }
+
+    private static bool IsHexId(string value)
+    {
+        for (int i = 0; i < value.Length; i++)
+        {
+            char c = value[i];
+            if (!((c >= '0' && c <= '9') ||
+                  (c >= 'a' && c <= 'f')))
+                return false;
+        }
+        return true;
+    }
+
     private const float WindowSeconds = 10f;
     private const int HistogramMaxMs = 200;
 
@@ -106,6 +145,7 @@ public sealed class AtlasBoardAndroidFpsDiagnostics : MonoBehaviour
                   " quality=" + QualitySettings.GetQualityLevel() +
                   " unity=" + Application.unityVersion +
                   " deviceTag=" + Sanitize(SystemInfo.deviceModel) +
+                  QaTraceSuffix +
                   " profilerCounters=" + (mainThreadRecorder.Valid ? "partial_available" : "main_thread_NA") +
                   " note=diagnostic_not_optimizer");
     }
@@ -196,6 +236,7 @@ public sealed class AtlasBoardAndroidFpsDiagnostics : MonoBehaviour
         // Every diagnostic line has its own device model; Android's existing
         // Share Logs tool can therefore provide comparable excerpts separately.
         Debug.Log("ATB_ANDROID_FPS_WINDOW model=" + Sanitize(SystemInfo.deviceModel) +
+                  QaTraceSuffix +
                   " window=" + (++windowIndex) +
                   " phase=" + phase +
                   " avgFps=" + avg.ToString("F1") +
@@ -239,6 +280,7 @@ public sealed class AtlasBoardAndroidFpsDiagnostics : MonoBehaviour
         if (avg < 45f && Application.targetFrameRate >= 45)
         {
             Debug.LogWarning("ATB_ANDROID_FPS_HINT model=" + Sanitize(SystemInfo.deviceModel) +
+                             QaTraceSuffix +
                              " phase=" + phase + " hypothesis=" + classification +
                              " advice=compare_offline_vs_online_and_profiler_timeline" +
                              " note=no_auto_optimization_from_this_probe");
@@ -252,21 +294,21 @@ public sealed class AtlasBoardAndroidFpsDiagnostics : MonoBehaviour
         if (frameCount > 2)
             EmitWindow();
         Debug.Log("ATB_ANDROID_FPS_SCENE previous=" + Sanitize(previous.name) +
-                  " next=" + Sanitize(next.name));
+                  " next=" + Sanitize(next.name) + QaTraceSuffix);
         ResetWindow();
     }
 
     private void OnApplicationPause(bool paused)
     {
         isPaused = paused;
-        Debug.Log("ATB_ANDROID_FPS_FOCUS paused=" + paused + " skip_background_frames=true");
+        Debug.Log("ATB_ANDROID_FPS_FOCUS paused=" + paused + " skip_background_frames=true" + QaTraceSuffix);
         ResetWindow();
     }
 
     private void OnApplicationFocus(bool focused)
     {
         hasFocus = focused;
-        Debug.Log("ATB_ANDROID_FPS_FOCUS focused=" + focused + " skip_background_frames=true");
+        Debug.Log("ATB_ANDROID_FPS_FOCUS focused=" + focused + " skip_background_frames=true" + QaTraceSuffix);
         ResetWindow();
     }
 

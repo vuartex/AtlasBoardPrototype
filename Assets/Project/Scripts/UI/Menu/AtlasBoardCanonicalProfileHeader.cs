@@ -301,6 +301,30 @@ public sealed class AtlasBoardCanonicalProfileHeader :
 
         try
         {
+            // Online Casual uses a UID-bound Guest name on the HOST and
+            // all followers. The account-profile read model can still contain
+            // an older device-local Guest alias: never let it overwrite the
+            // authenticated lobby identity in the visible profile header.
+            if (Application.platform == RuntimePlatform.Android)
+            {
+                Firebase.Auth.FirebaseUser user = null;
+                try { user = Firebase.Auth.FirebaseAuth.DefaultInstance.CurrentUser; }
+                catch { /* initialize safely; the normal path retries */ }
+                if (user != null && user.IsAnonymous &&
+                    string.Equals(user.UserId, requestedAccountId,
+                        StringComparison.Ordinal))
+                {
+                    string alias = AtlasBoardGuestIdentity.NameForAuthenticatedUid(
+                        requestedAccountId);
+                    observedAccountId = requestedAccountId;
+                    appliedDisplayName = alias;
+                    ApplyCanonicalIdentity(alias);
+                    Debug.Log("ATB_ANDROID_GUEST_PROFILE consistent=true " +
+                        "source=authenticated_uid account_linked=false");
+                    return;
+                }
+            }
+
             AtlasAccountSnapshot snapshot =
                 await accountService
                     .LoadCurrentAccountAsync();
@@ -444,9 +468,10 @@ public sealed class AtlasBoardCanonicalProfileHeader :
     {
         ResolveProfileUi();
 
-        string fallback =
-            AtlasBoardL.T(
-                "menu.player");
+        string fallback = Application.platform == RuntimePlatform.Android &&
+            PlayerPrefs.HasKey("AtlasBoard.Android.CasualUidMarker.v1")
+                ? AtlasBoardGuestIdentity.DisplayName
+                : AtlasBoardL.T("menu.player");
 
         if (profileNameText != null)
         {
@@ -461,8 +486,7 @@ public sealed class AtlasBoardCanonicalProfileHeader :
                     fallback);
         }
 
-        ApplyMainMenuControllerIdentity(
-            "PLAYER");
+        ApplyMainMenuControllerIdentity(fallback);
     }
 
     private void ApplyMainMenuControllerIdentity(

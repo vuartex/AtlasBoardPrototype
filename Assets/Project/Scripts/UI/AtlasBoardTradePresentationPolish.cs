@@ -140,7 +140,8 @@ public sealed class AtlasBoardTradePresentationPolish : MonoBehaviour
 
         if (polishRoot != null)
         {
-            polishRoot.SetAsLastSibling();
+            if (polishRoot.GetSiblingIndex() != polishRoot.parent.childCount - 1)
+                polishRoot.SetAsLastSibling();
 
             if (!polishRoot.gameObject.activeSelf)
             {

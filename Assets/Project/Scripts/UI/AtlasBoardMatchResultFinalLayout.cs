@@ -115,7 +115,8 @@ public sealed class AtlasBoardMatchResultFinalLayout : MonoBehaviour
 
         if (cardsRoot != null)
         {
-            cardsRoot.SetAsLastSibling();
+            if (cardsRoot.GetSiblingIndex() != cardsRoot.parent.childCount - 1)
+                cardsRoot.SetAsLastSibling();
 
             if (!cardsRoot.gameObject.activeSelf)
             {

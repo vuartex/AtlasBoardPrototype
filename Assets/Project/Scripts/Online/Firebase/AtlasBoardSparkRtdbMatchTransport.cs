@@ -56,6 +56,11 @@ public static class AtlasBoardSparkRtdbMatchTransport
     {
         public SeatWire[] seats;
     }
+    [Serializable] private sealed class RoomMemberWire
+    {
+        public string uid;
+        public bool active;
+    }
     [Serializable] private sealed class PresenceWire
     {
         public bool online;
@@ -545,7 +550,29 @@ public static class AtlasBoardSparkRtdbMatchTransport
         Response result = await Send("PUT", "matchPresence/" + PathKey(matchId) +
             "/" + PathKey(uid), token,
             "{\"online\":false,\"lastSeenAt\":" + Now + "}");
-        return result.Ok ? state : Failure("RTDB departure: " + FailReason(result));
+        if (!result.Ok)
+            return Failure("RTDB departure: " + FailReason(result));
+
+        // This is an EXPLICIT Leave Match, not a transient disconnect or a
+        // cold app restart. RTDB rules permit this UID to deactivate only
+        // its own existing roomMembers record (role/uid/owner unchanged).
+        // That persistent marker lets rematch release this seat consistently
+        // on every client without breaking a 5-minute reconnect reservation.
+        string lobbyId = state.Snapshot.LobbyId;
+        if (string.IsNullOrWhiteSpace(lobbyId))
+            return Failure("RTDB voluntary departure has no lobby identity.");
+        Response departed = await Send("PATCH", "roomMembers/" +
+            PathKey(lobbyId) + "/" + PathKey(uid), token,
+            "{\"active\":false}");
+        if (!departed.Ok)
+        {
+            Debug.LogWarning("ATB_RTDB_VOLUNTARY_LEAVE membership_ack=false http=" +
+                departed.Status + " retry=rematch_presence_reconciliation");
+            return Failure("RTDB departure membership: " + FailReason(departed));
+        }
+        Debug.Log("ATB_RTDB_VOLUNTARY_LEAVE membership_ack=true " +
+            "match_presence_offline=true");
+        return state;
     }
 
     private static async Task<AtlasMatchNetworkResult>
@@ -1437,6 +1464,13 @@ public static class AtlasBoardSparkRtdbMatchTransport
             string.IsNullOrEmpty(lobby.MatchId);
         if (lobby == null || (!retryCleanup && lobby.MatchId != matchId))
             return Failure("The room has already moved to a different match.");
+        List<string> rematchReleasedUids = new List<string>();
+        // Voluntary exits are stored in BOTH this room's authenticated
+        // member registry (active=false) and the old match presence. The
+        // completed match's seat frame can lag an explicit Leave Match.
+        // Read it before the canonical Waiting CAS; do not guess from names.
+        Dictionary<string, PresenceWire> rematchPresence =
+            await ReadPresenceAsync(matchId, token);
         if (!retryCleanup)
         {
             lobby.LifecycleState = AtlasRoomLifecycleState.Waiting;
@@ -1447,7 +1481,82 @@ public static class AtlasBoardSparkRtdbMatchTransport
             {
                 if (member == null || member.SeatMode != AtlasLobbySeatMode.RemoteHuman)
                     continue;
+                // The last completed match has definitive controller/connection
+                // states. Reconnectable temporary bots keep their reservations;
+                // permanently departed humans must not block the next Start.
+                AtlasMatchNetworkSeat completedSeat = current.Snapshot.Seats != null
+                    ? current.Snapshot.Seats.Find(s => s != null &&
+                        s.SlotIndex == member.SlotIndex) : null;
+                bool voluntaryPresenceOffline = false;
+                if (!string.IsNullOrWhiteSpace(member.AccountId) &&
+                    rematchPresence.TryGetValue(member.AccountId,
+                        out PresenceWire oldPresence) &&
+                    oldPresence != null && !oldPresence.online &&
+                    oldPresence.lastSeenAt > 0)
+                    voluntaryPresenceOffline = true;
+
+                // Check the exact authenticated member record, not a
+                // snapshot display name. A missing/inaccessible member read
+                // is not evidence that a player deliberately departed.
+                bool explicitlyInactive = false;
+                if (!string.IsNullOrWhiteSpace(member.AccountId))
+                {
+                    Response memberRead = await Send("GET", "roomMembers/" +
+                        PathKey(lobby.LobbyId) + "/" + PathKey(member.AccountId), token);
+                    if (!memberRead.Ok)
+                        return Failure("Rematch member reconciliation read failed: " +
+                            FailReason(memberRead));
+                    RoomMemberWire liveMember = Decode<RoomMemberWire>(memberRead.Body);
+                    explicitlyInactive = liveMember != null &&
+                        string.Equals(liveMember.uid, member.AccountId,
+                            StringComparison.Ordinal) && !liveMember.active;
+                }
+                bool permanentlyAbsent = explicitlyInactive ||
+                    voluntaryPresenceOffline || (completedSeat != null &&
+                    (completedSeat.AfkLockedOut ||
+                     string.Equals(completedSeat.ControllerKind, "permanent_bot",
+                         StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(completedSeat.ControllerKind, "temporary_bot",
+                         StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(completedSeat.ConnectionState, "reconnecting",
+                         StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(completedSeat.ConnectionState, "left",
+                         StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(completedSeat.ConnectionState, "left_voluntarily",
+                         StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(completedSeat.ConnectionState, "afk_removed",
+                         StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(completedSeat.ConnectionState, "kicked",
+                         StringComparison.OrdinalIgnoreCase)));
+                if (permanentlyAbsent)
+                {
+                    Debug.Log("ATB_RTDB_REMATCH seat_released=true slot=" +
+                        member.SlotIndex + " reason=" +
+                        (explicitlyInactive ? "voluntary_membership_inactive" :
+                         voluntaryPresenceOffline ? "voluntary_presence_offline" :
+                         "not_connected_at_rematch"));
+                    if (!string.IsNullOrWhiteSpace(member.AccountId))
+                        rematchReleasedUids.Add(member.AccountId);
+                    member.Active = false;
+                    member.SeatMode = AtlasLobbySeatMode.OpenOnline;
+                    member.IsHumanSeat = false;
+                    member.AccountId = string.Empty;
+                    member.LocalOwnerAccountId = string.Empty;
+                    member.DisplayName = string.Empty;
+                    member.ControllerKind = AtlasSeatControllerKind.None;
+                    member.ConnectionState = AtlasSeatConnectionState.Empty;
+                    member.RequiresReady = false;
+                }
                 member.ReadyForRevision = 0;
+            }
+            // Seat counts must reflect released seats before readiness check.
+            if (lobby.Settings != null)
+            {
+                lobby.Settings.RemoteHumanCount = lobby.Members.FindAll(s =>
+                    s != null && s.Active && s.SeatMode == AtlasLobbySeatMode.RemoteHuman).Count;
+                lobby.Settings.RemoteReadyRequiredCount = lobby.Settings.RemoteHumanCount;
+                lobby.Settings.OpenOnlineSeatCount = lobby.Members.FindAll(s =>
+                    s != null && !s.Active && s.SeatMode == AtlasLobbySeatMode.OpenOnline).Count;
             }
             state.revision = Math.Max(state.revision + 1, Now);
             state.eventSequence = Math.Max(state.eventSequence, state.revision);
@@ -1459,6 +1568,16 @@ public static class AtlasBoardSparkRtdbMatchTransport
             Response saved = await Send("PUT", "roomState/" + PathKey(lobby.LobbyId), token,
                 JsonUtility.ToJson(state), read.ETag);
             if (!saved.Ok) return Failure("RTDB rematch lobby reset: " + FailReason(saved));
+            // Membership ACLs must not outlive an explicitly released seat.
+            // Only the room host can remove the departed member record.
+            foreach (string droppedUid in rematchReleasedUids)
+            {
+                Response removed = await Send("DELETE", "roomMembers/" +
+                    PathKey(lobby.LobbyId) + "/" + PathKey(droppedUid), token);
+                if (!removed.Ok)
+                    Debug.LogWarning("ATB_RTDB_REMATCH membership_cleanup_failed=true http=" +
+                        removed.Status);
+            }
         }
         // On a partial cleanup failure the old completed match remains.
         // A retry can finish deleting its records without mutating the new

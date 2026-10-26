@@ -99,7 +99,13 @@ public sealed class AtlasBoardMatchRuntimeBridge : MonoBehaviour
         // the same full RTDB frame adds latency, bandwidth and HUD churn.
         // Explicit snapshot reads (bootstrap/reconnect/QA) still work.
         if (IsSoloHostMatch(match)) return;
-        nextPollAt = Time.unscaledTime + Mathf.Max(0.5f, snapshotPollSeconds);
+        // Three-device Android QA observed ~40-50 RTDB operations per 10s.
+        // Coalesce follower snapshot refreshes; direct intents/host authority
+        // and all Windows/Steam cadences remain unchanged.
+        float effectivePoll = Application.platform == RuntimePlatform.Android
+            ? Mathf.Max(1.25f, snapshotPollSeconds)
+            : Mathf.Max(0.5f, snapshotPollSeconds);
+        nextPollAt = Time.unscaledTime + effectivePoll;
         pollInFlight = true;
         try
         {

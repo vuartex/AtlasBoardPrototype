@@ -140,24 +140,55 @@ public sealed class AtlasBoardMobileGameplayUX : MonoBehaviour
 
         if (Time.unscaledTime >= nextResolveAt)
         {
-            nextResolveAt = Time.unscaledTime + 1.00f;
+            nextResolveAt = Time.unscaledTime + 2.50f;
+#if DEVELOPMENT_BUILD
+            UnityEngine.Profiling.Profiler.BeginSample("ATB.MobileUX.SceneSelfHeal");
+#endif
             EnsureModernScenePresentation();
+#if DEVELOPMENT_BUILD
+            UnityEngine.Profiling.Profiler.EndSample();
+            UnityEngine.Profiling.Profiler.BeginSample("ATB.MobileUX.ResolveReferences");
+#endif
             ResolveReferences();
-            ApplyCareerMobileAccent();
+#if DEVELOPMENT_BUILD
+            UnityEngine.Profiling.Profiler.EndSample();
+            UnityEngine.Profiling.Profiler.BeginSample("ATB.MobileUX.CareerSceneScan");
+#endif
+            if (turnManager == null || !turnManager.IsMatchStarted)
+                ApplyCareerMobileAccent();
+#if DEVELOPMENT_BUILD
+            UnityEngine.Profiling.Profiler.EndSample();
+#endif
         }
 
         if (Time.unscaledTime >= nextRenderReassertAt)
         {
-            nextRenderReassertAt = Time.unscaledTime + 8.0f;
+            // Only scene rebind, settings save and startup reapply
+            // hardware ceilings. No unconditional 8-second camera scan.
+            nextRenderReassertAt = float.PositiveInfinity;
             ApplyMobilePerformanceProfile(
                 emergencyProfileApplied,
-                "periodic_guard");
+                "settings_or_scene");
         }
 
         UpdateSafeArea();
+#if DEVELOPMENT_BUILD
+        UnityEngine.Profiling.Profiler.BeginSample("ATB.MobileUX.UpdateActions");
+#endif
         UpdateActionButtons();
+#if DEVELOPMENT_BUILD
+        UnityEngine.Profiling.Profiler.EndSample();
+        UnityEngine.Profiling.Profiler.BeginSample("ATB.MobileUX.TouchCamera");
+#endif
         HandleTouchCamera();
+#if DEVELOPMENT_BUILD
+        UnityEngine.Profiling.Profiler.EndSample();
+        UnityEngine.Profiling.Profiler.BeginSample("ATB.MobileUX.UpdatePanels");
+#endif
         UpdateMobilePanels();
+#if DEVELOPMENT_BUILD
+        UnityEngine.Profiling.Profiler.EndSample();
+#endif
         UpdatePerformanceTelemetry();
     }
 
@@ -374,12 +405,12 @@ public sealed class AtlasBoardMobileGameplayUX : MonoBehaviour
             : new Vector2(1f, 0f);
         rect.sizeDelta = new Vector2(230f, 76f);
 
-        // P1 Roll placement was accepted. Move Trade substantially farther
-        // left so it cannot overlap the lower-right P2 HUD on 20:9 phones.
+        // Preserve accepted P1 Roll placement. P2 Trade is moved toward
+        // its HUD; physical-device no-overlap QA remains required.
         rect.anchoredPosition =
             leftSide
                 ? new Vector2(300f, 28f)
-                : new Vector2(-610f, 28f);
+                : new Vector2(-400f, 28f);
 
         Image image = root.GetComponent<Image>();
         image.color = color;
@@ -970,6 +1001,12 @@ public sealed class AtlasBoardMobileGameplayUX : MonoBehaviour
 
     private void ApplyCareerMobileAccent()
     {
+        // ProgressionCard is menu presentation, never the live match HUD.
+        // Avoid a scene-wide Resources scan during active gameplay.
+        if (turnManager != null &&
+            turnManager.IsMatchStarted && !turnManager.IsMatchFinished)
+            return;
+
         GameObject card = FindSceneObject("ProgressionCard");
         if (card == null ||
             recoloredCareerCards.Contains(card))
@@ -1033,11 +1070,36 @@ public sealed class AtlasBoardMobileGameplayUX : MonoBehaviour
         QualitySettings.pixelLightCount =
             Mathf.Min(QualitySettings.pixelLightCount, 1);
 
+        // Preserve the user's Low/High selection under mobile-only limits.
+        // Low -> no MSAA; higher presets follow saved AA up to 2x.
+        AtlasBoardGraphicsSettingsValues savedGraphics =
+            AtlasBoardUserSettingsRuntime.Current.Graphics;
+        int requestedPreset = Mathf.Clamp(savedGraphics.QualityPreset, 0, 3);
+        int requestedAa = savedGraphics.AntiAliasing switch
+        {
+            1 => 2,
+            2 => 4,
+            3 => 8,
+            _ => 0
+        };
         QualitySettings.antiAliasing =
-            emergency
+            requestedPreset == 0
                 ? 0
-                : Mathf.Min(QualitySettings.antiAliasing, 2);
+                : Mathf.Min(requestedAa, 2);
 
+        // The prior mobile ceiling forced all presets to look identical.
+        // Keep realtime shadows disabled for CPU-bound Android (S20 FE),
+        // but map Low/Medium/High to actual quality differences.
+        QualitySettings.anisotropicFiltering = requestedPreset == 0
+            ? AnisotropicFiltering.Disable
+            : requestedPreset == 1
+                ? AnisotropicFiltering.Enable
+                : AnisotropicFiltering.Enable;
+        QualitySettings.globalTextureMipmapLimit = requestedPreset == 0
+            ? 2 : requestedPreset == 1 ? 1 : 0;
+        QualitySettings.lodBias = requestedPreset == 0
+            ? 0.60f : requestedPreset == 1 ? 0.80f
+            : requestedPreset == 2 ? 1.10f : 1.25f;
         QualitySettings.shadows = ShadowQuality.Disable;
 
         QualitySettings.shadowResolution =
@@ -1046,7 +1108,7 @@ public sealed class AtlasBoardMobileGameplayUX : MonoBehaviour
         QualitySettings.shadowDistance = 0f;
         QualitySettings.realtimeReflectionProbes = false;
         QualitySettings.softParticles = false;
-        QualitySettings.lodBias = Mathf.Min(QualitySettings.lodBias, 0.80f);
+        // LOD is selected above. Never clamp High to the Low preset.
 
         ApplyRenderScale(
             emergency
@@ -1079,10 +1141,17 @@ public sealed class AtlasBoardMobileGameplayUX : MonoBehaviour
         {
             Debug.Log(
                 "ATB_MOBILE_RENDER_PROFILE emergency=" + emergency +
+                " requestedPreset=" + requestedPreset +
+                " requestedAA=" + requestedAa +
+                " requestedShadows=" + savedGraphics.ShadowQuality +
+                " effectiveQuality=" + QualitySettings.GetQualityLevel() +
                 " reason=" + reason +
                 " targetFps=" + target +
                 " vsync=" + QualitySettings.vSyncCount +
                 " aa=" + QualitySettings.antiAliasing +
+                " mipLimit=" + QualitySettings.globalTextureMipmapLimit +
+                " lodBias=" + QualitySettings.lodBias.ToString("F2") +
+                " anisotropic=" + QualitySettings.anisotropicFiltering +
                 " shadows=" + QualitySettings.shadows +
                 " shadowDistance=" +
                 QualitySettings.shadowDistance.ToString("F1") +
@@ -1247,14 +1316,17 @@ public sealed class AtlasBoardMobileGameplayUX : MonoBehaviour
             " pixelLights=" + QualitySettings.pixelLightCount +
             " memoryMB=" + memoryMb +
             " resolution=" + Screen.width + "x" + Screen.height +
-            " devBuild=" + Debug.isDebugBuild);
+            " devBuild=" + Debug.isDebugBuild + AndroidQaContext());
 
         if (averageFps < 45f)
             consecutiveLowFpsWindows++;
         else
             consecutiveLowFpsWindows = 0;
 
+        // No validated built-in renderScale improvement: retain the
+        // player's Low/High choice until a real compatible pipeline exists.
         if (!emergencyProfileApplied &&
+            UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline != null &&
             consecutiveLowFpsWindows >= 2)
         {
             emergencyProfileApplied = true;
@@ -1268,11 +1340,23 @@ public sealed class AtlasBoardMobileGameplayUX : MonoBehaviour
                 "ATB_MOBILE_PERF_ADAPT action=emergency_mobile_profile " +
                 "renderScale=" + GetRenderScale().ToString("F2") +
                 " aa=" + QualitySettings.antiAliasing +
+                " mipLimit=" + QualitySettings.globalTextureMipmapLimit +
+                " lodBias=" + QualitySettings.lodBias.ToString("F2") +
+                " anisotropic=" + QualitySettings.anisotropicFiltering +
                 " shadows=" + QualitySettings.shadows +
-                " reason=sustained_low_fps");
+                " reason=sustained_low_fps" + AndroidQaContext());
         }
 
         ResetPerformanceWindow();
+    }
+
+    private static string AndroidQaContext()
+    {
+#if UNITY_ANDROID && !UNITY_EDITOR && DEVELOPMENT_BUILD
+        return AtlasBoardAndroidFpsDiagnostics.QaTraceSuffix;
+#else
+        return string.Empty;
+#endif
     }
 
     private void ResetPerformanceWindow()

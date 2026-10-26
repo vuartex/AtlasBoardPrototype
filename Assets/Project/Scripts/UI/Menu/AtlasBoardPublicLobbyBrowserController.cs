@@ -1370,18 +1370,19 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
     {
         if (busy)
         {
+            Debug.LogWarning("ATB_RTDB_CREATE_SKIPPED mode=public reason=busy");
             return;
         }
-
 
         ResolveReferences();
         if (runtimeBridge == null || mainMenuController == null || lobbyUiController == null)
         {
+            Debug.LogWarning("ATB_RTDB_CREATE_FAIL mode=public reason=missing_controller");
             SetText(statusText, T("public_browser.unavailable", "Public room service is unavailable."));
             return;
         }
 
-
+        Debug.Log("ATB_RTDB_CREATE_BEGIN mode=public auth_required=true");
         busy = true;
         SetControlsInteractable(false);
 
@@ -1394,23 +1395,33 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
                 await runtimeBridge.CreatePublicRoomAsync(selection);
 
 
-            if (!result.Success || result.Snapshot == null)
+            if (result == null || !result.Success || result.Snapshot == null)
             {
-                if (result.ErrorLocalizationKey == "lobby.error.owner_room_limit")
+                Debug.LogWarning("ATB_RTDB_CREATE_FAIL mode=public category=" +
+                    (result != null ? result.ErrorLocalizationKey : "null_result"));
+                if (result != null && result.ErrorLocalizationKey == "lobby.error.owner_room_limit")
                 {
                     lobbyUiController.ShowOwnedRoomLimitPopup();
                     return;
                 }
                 SetText(
                     statusText,
-                    TranslateError(result.ErrorLocalizationKey,
+                    TranslateError(result != null ? result.ErrorLocalizationKey :
+                        "lobby.error.service_unavailable",
                         "Could not create public room."));
                 return;
             }
 
 
+            Debug.Log("ATB_RTDB_CREATE_SUCCESS mode=public");
             SetActive(browserRoot, false);
             lobbyUiController.EnterHostedPublicRoom(result);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning("ATB_RTDB_CREATE_FAIL mode=public category=" +
+                ex.GetType().Name + " detail=sanitized_exception");
+            SetText(statusText, "Could not create public room. Please retry.");
         }
         finally
         {
@@ -1954,6 +1965,14 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
 
     private static string TranslateError(string key, string fallback)
     {
+        if (string.Equals(key, "lobby.error.room_full", StringComparison.Ordinal))
+        {
+            AtlasBoardFrontendErrorCodes.Report(
+                AtlasBoardFrontendErrorCodes.LobbyCapacityUnavailable,
+                "No available online seat", "public_join");
+            return T("lobby.online.room_full", "ROOM FULL — no available seat.") +
+                " Code: " + AtlasBoardFrontendErrorCodes.LobbyCapacityUnavailable;
+        }
         string value = AtlasBoardL.T(key);
         return string.IsNullOrWhiteSpace(value) || value == key ? fallback : value;
     }

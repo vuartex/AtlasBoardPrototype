@@ -47,14 +47,11 @@ public sealed class AtlasBoardMobilePerformanceProbe : MonoBehaviour
         nextLog = previousTime + 15f;
         // These graphics ceilings affect only the current mobile process;
         // do not call SetQualityLevel, Save, PlayerPrefs or Screen.SetResolution.
-        QualitySettings.anisotropicFiltering = AnisotropicFiltering.Disable;
-        QualitySettings.pixelLightCount = 0;
-        QualitySettings.lodBias = Mathf.Min(QualitySettings.lodBias, 0.65f);
-        QualitySettings.globalTextureMipmapLimit =
-            Mathf.Max(QualitySettings.globalTextureMipmapLimit, 1);
-        QualitySettings.vSyncCount = 0;
-        Application.targetFrameRate = 60;
-        ConfigureDynamicScale(requestedBufferScale);
+        // AtlasBoardMobileGameplayUX is the sole owner of applied user
+        // graphics settings. This diagnostics-only probe never overwrites
+        // Low/High, anti-aliasing, LOD, mipmaps or frame-rate selections.
+        if (GraphicsSettings.currentRenderPipeline != null)
+            ConfigureDynamicScale(requestedBufferScale);
         Debug.Log("ATB_MOBILE_PROBE_START gpu=" + SystemInfo.graphicsDeviceName +
             " graphicsApi=" + SystemInfo.graphicsDeviceType +
             " shader=" + SystemInfo.graphicsShaderLevel +
@@ -63,7 +60,16 @@ public sealed class AtlasBoardMobilePerformanceProbe : MonoBehaviour
             " renderPipeline=" +
             (GraphicsSettings.currentRenderPipeline != null
                 ? GraphicsSettings.currentRenderPipeline.GetType().Name
-                : "BUILTIN_OR_DEFAULT"));
+                : "BUILTIN_OR_DEFAULT") + AndroidQaContext());
+    }
+
+    private static string AndroidQaContext()
+    {
+#if UNITY_ANDROID && !UNITY_EDITOR && DEVELOPMENT_BUILD
+        return AtlasBoardAndroidFpsDiagnostics.QaTraceSuffix;
+#else
+        return string.Empty;
+#endif
     }
 
     private void OnDestroy()
@@ -79,7 +85,7 @@ public sealed class AtlasBoardMobilePerformanceProbe : MonoBehaviour
         frameMilliseconds += Time.unscaledDeltaTime * 1000f;
         if (Time.unscaledTime >= nextCameraCheck)
         {
-            nextCameraCheck = Time.unscaledTime + 8f;
+            nextCameraCheck = Time.unscaledTime + 30f;
             EnsureCameraBudgets();
         }
         if (Time.unscaledTime < nextLog) return;
@@ -102,13 +108,14 @@ public sealed class AtlasBoardMobilePerformanceProbe : MonoBehaviour
             " allocatedMemoryMB=" + allocated +
             " cameraCount=" + preparedCameras.Count +
             " textureMipmapLimit=" + QualitySettings.globalTextureMipmapLimit +
-            " note=reported_scaling_does_not_prove_backbuffer_downscale");
+            " note=reported_scaling_does_not_prove_backbuffer_downscale" + AndroidQaContext());
         if (averageFps > 0 && averageFps < 38f)
             consecutiveSlowWindows++;
         else consecutiveSlowWindows = 0;
         if (consecutiveSlowWindows >= 2 && requestedBufferScale > 0.71f)
         {
             requestedBufferScale = 0.70f;
+            if (GraphicsSettings.currentRenderPipeline != null)
             ConfigureDynamicScale(requestedBufferScale);
             Debug.LogWarning("ATB_MOBILE_RENDER_FALLBACK active=true " +
                 "dynamicScaleRequested=0.70 measuredImprovement=NOT_YET_VERIFIED");
@@ -119,8 +126,9 @@ public sealed class AtlasBoardMobilePerformanceProbe : MonoBehaviour
 
     private void EnsureCameraBudgets()
     {
-        Camera[] cameras = UnityEngine.Object.FindObjectsByType<Camera>(
-            FindObjectsInactive.Include, FindObjectsSortMode.None);
+        // Scheduled 8-second camera hygiene. Filter to loaded scenes;
+        // no obsolete sort-mode API and no new scan per frame.
+        Camera[] cameras = Resources.FindObjectsOfTypeAll<Camera>();
         for (int i = 0; i < cameras.Length; i++)
         {
             Camera camera = cameras[i];
@@ -128,7 +136,7 @@ public sealed class AtlasBoardMobilePerformanceProbe : MonoBehaviour
                 continue;
             if (!preparedCameras.Add(camera)) continue;
             camera.allowHDR = false;
-            camera.allowMSAA = false;
+            // AtlasBoardMobileGameplayUX owns MSAA per saved preset.
             camera.allowDynamicResolution = true;
         }
         preparedCameras.RemoveWhere(camera => camera == null);

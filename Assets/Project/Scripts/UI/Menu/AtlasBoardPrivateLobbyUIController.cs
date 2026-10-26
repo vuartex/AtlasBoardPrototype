@@ -1462,12 +1462,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
     {
         if (!privateMode || backendBusy)
         {
+            Debug.LogWarning("ATB_RTDB_CREATE_SKIPPED " +
+                "private_mode=" + privateMode + " busy=" + backendBusy);
+            return;
+        }
+        if (runtimeBridge == null)
+        {
+            Debug.LogWarning("ATB_RTDB_CREATE_FAIL reason=runtime_missing");
+            SetText(entryStatusText, "Online room service is not ready. Retry.");
             return;
         }
 
-
-
-
+        Debug.Log("ATB_RTDB_CREATE_BEGIN mode=private " +
+            "auth_required=true");
         backendBusy = true;
         SetEntryButtonsInteractable(false);
 
@@ -1501,7 +1508,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             if (!result.Success ||
                 result.Snapshot == null)
             {
-                if (result.ErrorLocalizationKey == "lobby.error.owner_room_limit")
+                Debug.LogWarning("ATB_RTDB_CREATE_FAIL reason=" +
+                    (result != null ? result.ErrorLocalizationKey : "null_result") +
+                    " snapshot=" + (result != null && result.Snapshot != null));
+                if (result != null && result.ErrorLocalizationKey == "lobby.error.owner_room_limit")
                     ShowOwnedRoomLimitPopup();
                 else
                     ShowEntryBackendError(result);
@@ -1556,11 +1566,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+            Debug.Log("ATB_RTDB_CREATE_SUCCESS mode=private");
             Debug.Log(
                 "AtlasBoard 3D.3B: real backend private room created. " +
                 $"Lobby={result.Snapshot.LobbyId}, Code={result.RoomCode}, " +
                 $"Account={runtimeBridge.CurrentAccountId}.",
                 this);
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning("ATB_RTDB_CREATE_FAIL mode=private category=" +
+                exception.GetType().Name + " detail=sanitized_exception");
+            SetText(entryStatusText, "Could not create room. Please retry.");
         }
         finally
         {
@@ -1634,10 +1651,22 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
-            if (!result.Success ||
-                result.Snapshot == null)
+            if (!result.Success || result.Snapshot == null)
             {
-                ShowEntryBackendError(result);
+                if (result != null &&
+                    string.Equals(result.ErrorLocalizationKey, "lobby.error.room_full",
+                        StringComparison.Ordinal))
+                {
+                    AtlasBoardFrontendErrorCodes.Report(
+                        AtlasBoardFrontendErrorCodes.LobbyCapacityUnavailable,
+                        "No available online seat", "private_entry");
+                    SetText(entryStatusText,
+                        T("lobby.online.room_full", "ROOM FULL — no available seat.") +
+                        " Code: " + AtlasBoardFrontendErrorCodes.LobbyCapacityUnavailable);
+                    Debug.LogWarning("ATB_RTDB_JOIN_UI result=room_full code=ATB213");
+                }
+                else
+                    ShowEntryBackendError(result);
                 return;
             }
 
@@ -2913,7 +2942,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             Canvas canvas = GetComponentInParent<Canvas>();
             if (canvas == null && mainMenuController != null)
                 canvas = mainMenuController.GetComponentInParent<Canvas>();
-            if (canvas == null) canvas = UnityEngine.Object.FindFirstObjectByType<Canvas>();
+            if (canvas == null) canvas = UnityEngine.Object.FindAnyObjectByType<Canvas>();
             if (canvas == null)
             {
                 Debug.LogWarning("ATB_RTDB_QUOTA_POPUP missing_canvas=true");

@@ -31,6 +31,9 @@ public sealed class AtlasBoardServerStatusUI : MonoBehaviour
         "account", "bots", "online", "shop", "rtdb", "career" };
     private long lastUserReadHttp;
     private long lastCareerReadHttp;
+    private double lastVerifiedMatchSampleAt = -1d;
+    private int verifiedMatchSampleCount;
+    private AtlasBoardMatchRuntimeBridge observedMatchBridge;
 
     private RectTransform settingsWindow;
     private Button tab;
@@ -85,13 +88,46 @@ public sealed class AtlasBoardServerStatusUI : MonoBehaviour
     private void OnEnable()
     {
         AtlasBoardFrontendErrorCodes.PublicCodeRaised += HandleNetworkFailure;
+        AtlasBoardNetworkTelemetry.SampleReported += HandleMatchNetworkSample;
         AtlasBoardLocalizationManager.LanguageChanged += HandleLanguageChanged;
     }
 
     private void OnDisable()
     {
         AtlasBoardFrontendErrorCodes.PublicCodeRaised -= HandleNetworkFailure;
+        AtlasBoardNetworkTelemetry.SampleReported -= HandleMatchNetworkSample;
         AtlasBoardLocalizationManager.LanguageChanged -= HandleLanguageChanged;
+    }
+
+    private void HandleMatchNetworkSample(AtlasBoardNetworkTelemetrySample sample)
+    {
+        if (!sample.RequestWasSent || !sample.Success ||
+            !string.Equals(sample.FunctionName, "matchRTDB", StringComparison.Ordinal))
+            return;
+        // A completed/closed match must not make the next lobby look green.
+        if (observedMatchBridge == null)
+            observedMatchBridge = UnityEngine.Object.FindAnyObjectByType<AtlasBoardMatchRuntimeBridge>();
+        var bridge = observedMatchBridge;
+        if (bridge == null || string.IsNullOrWhiteSpace(bridge.CurrentMatchId))
+            return;
+        lastVerifiedMatchSampleAt = sample.RealtimeAt;
+        verifiedMatchSampleCount = Math.Min(verifiedMatchSampleCount + 1, 20);
+        if (selected && states[2] == Health.Limited)
+        {
+            states[2] = Health.Online;
+            notes[2] = "online_verified_match";
+            RefreshLabels();
+        }
+    }
+
+    private bool HasRecentVerifiedMatch()
+    {
+        if (observedMatchBridge == null)
+            observedMatchBridge = UnityEngine.Object.FindAnyObjectByType<AtlasBoardMatchRuntimeBridge>();
+        var bridge = observedMatchBridge;
+        return bridge != null && !string.IsNullOrWhiteSpace(bridge.CurrentMatchId) &&
+            verifiedMatchSampleCount >= 2 && lastVerifiedMatchSampleAt >= 0d &&
+            Time.realtimeSinceStartupAsDouble - lastVerifiedMatchSampleAt < 12d;
     }
 
     private void HandleLanguageChanged()
@@ -387,12 +423,15 @@ public sealed class AtlasBoardServerStatusUI : MonoBehaviour
         {
             states[1] = Health.Online;
             states[3] = Health.Online;
-            states[2] = Health.Offline;
-            notes[2] = "online_missing";
+            // A missing Firebase user is not proof that Spark RTDB is down.
+            states[2] = Health.Unknown;
+            notes[2] = "online_sign_in_required";
             notes[3] = "shop_unverified";
             if (Application.internetReachability == NetworkReachability.NotReachable)
             {
                 states[0] = states[4] = states[5] = Health.Offline;
+                states[2] = Health.Offline;
+                notes[2] = "internet_unavailable";
                 notes[0] = "internet_unavailable";
                 notes[4] = "network_unavailable";
                 notes[5] = "career_offline";
@@ -448,8 +487,13 @@ public sealed class AtlasBoardServerStatusUI : MonoBehaviour
             long roomsCode = await SafeGetStatusAsync(
                 db + "/publicRoomDirectory.json" + query +
                 "&orderBy=%22updatedAt%22&limitToLast=1");
-            states[2] = roomsCode == 200 ? Health.Limited : Health.Offline;
-            notes[2] = roomsCode == 200 ? "online_lobby_only" : "online_rtdb_unavailable";
+            bool verifiedMatch = roomsCode == 200 && HasRecentVerifiedMatch();
+            states[2] = roomsCode == 200
+                ? (verifiedMatch ? Health.Online : Health.Limited)
+                : Health.Offline;
+            notes[2] = roomsCode == 200
+                ? (verifiedMatch ? "online_verified_match" : "online_lobby_only")
+                : "online_rtdb_unavailable";
             long careerCode = await SafeGetStatusAsync(db + "/careerProfiles/" + uid + ".json" + query);
             states[5] = careerCode == 200 ? Health.Limited : Health.Offline;
             lastCareerReadHttp = careerCode;
@@ -473,6 +517,9 @@ public sealed class AtlasBoardServerStatusUI : MonoBehaviour
         using (UnityWebRequest request = UnityWebRequest.Get(url))
         {
             request.timeout = 8;
+            // Same App Check path as room transport; never bypass
+            // enforcement or mislabel a missing header as RTDB outage.
+            await AtlasBoardAppCheckRequestSecurity.ApplyAsync(request);
             UnityWebRequestAsyncOperation op = request.SendWebRequest();
             while (!op.isDone) await Task.Yield();
             // Never log the URL because it contains an ephemeral Firebase ID token.
@@ -568,6 +615,14 @@ public sealed class AtlasBoardServerStatusUI : MonoBehaviour
                 "Offline-Bots verfügbar; kein Internet nötig",
                 "오프라인 봇 사용 가능",
                 "Боты доступны без интернета");
+            case "online_sign_in_required": return AtlasBoardL.R(
+                "Sign in or choose an online room to check RTDB",
+                "RTDB kontrolü için giriş yap veya çevrimiçi oda seç",
+                "Inicia sesión o elige una sala en línea para comprobar RTDB",
+                "Connectez-vous ou choisissez un salon pour tester RTDB",
+                "Zum Prüfen von RTDB anmelden oder Online-Raum wählen",
+                "RTDB 확인은 로그인 또는 온라인 방 선택 후 가능",
+                "Войдите или выберите онлайн-комнату для проверки RTDB");
             case "online_missing": return AtlasBoardL.R(
                 "Online match service unavailable (404)",
                 "Çevrimiçi maç servisi kullanılamıyor (404)",
@@ -576,6 +631,14 @@ public sealed class AtlasBoardServerStatusUI : MonoBehaviour
                 "Online-Partien nicht verfügbar (404)",
                 "온라인 경기 사용 불가 (404)",
                 "Онлайн-матчи недоступны (404)");
+            case "online_verified_match": return AtlasBoardL.R(
+                "Live match RTDB requests verified on this client",
+                "Bu cihazda canlı maç RTDB istekleri doğrulandı",
+                "Solicitudes RTDB de partida verificadas en este dispositivo",
+                "Requêtes RTDB du match vérifiées sur cet appareil",
+                "Live-Match-RTDB auf diesem Gerät bestätigt",
+                "이 기기의 실시간 매치 RTDB 요청 확인됨",
+                "RTDB-запросы матча проверены на устройстве");
             case "online_lobby_only": return AtlasBoardL.R(
                 "RTDB rooms reachable; synchronized matches not yet verified",
                 "RTDB odaları erişilebilir; eşzamanlı maçlar henüz doğrulanmadı",
