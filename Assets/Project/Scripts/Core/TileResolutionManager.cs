@@ -627,6 +627,30 @@ public class TileResolutionManager : MonoBehaviour
         ResolveSpecialTile(player, tile);
     }
 
+    /// <summary>
+    /// Phase 18F: resolve the destination of an Event movement using the
+    /// existing city/rent/special flow, without losing the original Event
+    /// tile's TurnManager completion callback. An Event destination is not
+    /// allowed to start another Event card (no recursive Event in v1).
+    /// </summary>
+    public void ResolveEventMovementLanding(
+        PlayerGameState player, BoardTile tile, Action afterDestination)
+    {
+        if (tile == null || tile.TileType == TileType.Event)
+        {
+            afterDestination?.Invoke();
+            return;
+        }
+        // ResolveTile replaces resolutionCompleted. Preserve the outer
+        // landing's callback and restore it before Event Continue finishes.
+        Action originalCompletion = resolutionCompleted;
+        ResolveTile(player, tile, () =>
+        {
+            resolutionCompleted = originalCompletion;
+            afterDestination?.Invoke();
+        });
+    }
+
     public bool TryResolveBotPurchase(
         PlayerGameState player,
         bool buyProperty)

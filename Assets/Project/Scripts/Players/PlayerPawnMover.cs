@@ -270,6 +270,22 @@ public class PlayerPawnMover : MonoBehaviour
     }
 
     /// <summary>
+    /// Phase 18F authoritative backwards movement. No PassedStart, and no
+    /// MovementCompleted (normal TurnManager landing) event: the Event manager
+    /// owns terminal landing resolution. Signed steps are mirrored to followers.
+    /// </summary>
+    public bool MoveBackwardForEvent(int spaces, Action<PlayerPawnMover> onCompleted)
+    {
+        if (isMoving || IsBankrupt() || spaces < 1 || spaces > 31) return false;
+        EnsureBoardPath();
+        if (boardPath == null || boardPath.TileCount < 2) return false;
+        CaptureAuthoritativeMovement(-spaces, useSprintAnimation: true);
+        StartCoroutine(MoveStepsRoutine(spaces, onCompleted, true,
+            raiseGameplayEvents: true, direction: -1));
+        return true;
+    }
+
+    /// <summary>
     /// Phase 5C Remote presentation path. Replays an authoritative forward
     /// movement without raising PassedStart, MovementStarted, MovementEnded,
     /// or MovementCompleted gameplay events on the follower.
@@ -282,7 +298,7 @@ public class PlayerPawnMover : MonoBehaviour
         Action<PlayerPawnMover> onCompleted = null)
     {
         if (isMoving ||
-            steps <= 0 ||
+            steps == 0 ||
             IsBankrupt())
         {
             return false;
@@ -314,7 +330,7 @@ public class PlayerPawnMover : MonoBehaviour
 
         StartCoroutine(
             MoveStepsRoutine(
-                steps,
+                Mathf.Abs(steps),
                 completedPawn =>
                 {
                     // Host state is authoritative. Correct any unexpected local
@@ -329,7 +345,7 @@ public class PlayerPawnMover : MonoBehaviour
                         completedPawn);
                 },
                 useSprintAnimation,
-                raiseGameplayEvents: false));
+                raiseGameplayEvents: false, direction: steps < 0 ? -1 : 1));
 
         return true;
     }
@@ -464,7 +480,7 @@ public class PlayerPawnMover : MonoBehaviour
         int steps,
         Action<PlayerPawnMover> onCompleted,
         bool useSprintAnimation,
-        bool raiseGameplayEvents)
+        bool raiseGameplayEvents, int direction = 1)
     {
         isMoving = true;
 
@@ -479,11 +495,10 @@ public class PlayerPawnMover : MonoBehaviour
              step++)
         {
             int nextTileIndex =
-                (currentTileIndex + 1) %
+                (currentTileIndex + (direction < 0 ? -1 : 1) + boardPath.TileCount) %
                 boardPath.TileCount;
 
-            bool passedStartThisStep =
-                nextTileIndex == 0;
+            bool passedStartThisStep = direction > 0 && nextTileIndex == 0;
 
             currentTileIndex =
                 nextTileIndex;
@@ -628,8 +643,7 @@ public class PlayerPawnMover : MonoBehaviour
             WrapTileIndex(
                 currentTileIndex);
 
-        LastMovementStepCount =
-            Mathf.Max(0, steps);
+        LastMovementStepCount = steps;
 
         LastMovementTargetTileIndex =
             WrapTileIndex(
@@ -637,7 +651,7 @@ public class PlayerPawnMover : MonoBehaviour
                 LastMovementStepCount);
 
         LastMovementPassedStart =
-            LastMovementStepCount > 0 &&
+            steps > 0 &&
             LastMovementStartTileIndex +
             LastMovementStepCount >=
                 boardPath.TileCount;

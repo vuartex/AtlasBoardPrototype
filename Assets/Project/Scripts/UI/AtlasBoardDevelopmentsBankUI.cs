@@ -342,6 +342,8 @@ public sealed class AtlasBoardDevelopmentsBankUI : MonoBehaviour
 
         BoardTile selected = owned[Mathf.Clamp(selectedIndex, 0, owned.Count - 1)];
         AddSummaryCard(selected);
+        if (development != null && development.GetSpeculativeRoundsRemaining(selected) > 0)
+            AddNotice(development.GetEconomicMemorySummary(selected));
         AddMetricGrid();
         UpdatePulseCards(selected);
         AddNotice(L("Pulse projects cost money and increase rent. Each category can reach Level 4; scores stay below 95.",

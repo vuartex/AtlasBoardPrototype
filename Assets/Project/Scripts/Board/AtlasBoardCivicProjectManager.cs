@@ -68,6 +68,10 @@ public sealed class AtlasBoardCivicProjectManager : MonoBehaviour
     private int lastShownMoney = int.MinValue;
     private string lastLanguage = string.Empty;
     private bool inFlight;
+    // A Travel target is never an implicit buy. A human BUY command is enabled
+    // only after the separate arrival confirmation panel was presented.
+    private bool purchasePromptPresented;
+    private int purchaseArrivalFrame = -1;
     private string activeMapId = string.Empty;
 
     public int PendingSlot => pendingSlot;
@@ -214,6 +218,8 @@ public sealed class AtlasBoardCivicProjectManager : MonoBehaviour
         for (int i = 0; i < 4; i++) pawnCivicLocations[i] = -1;
         processedCommands.Clear();
         hideTravelOffer = false;
+        purchasePromptPresented = false;
+        purchaseArrivalFrame = -1;
         CloseInfo();
         CancelPending();
         RefreshVisuals();
@@ -232,20 +238,27 @@ public sealed class AtlasBoardCivicProjectManager : MonoBehaviour
         pendingSlot = player.PlayerSlotIndex;
         pendingProject = project;
         completion = onCompleted;
+        purchasePromptPresented = false;
+        purchaseArrivalFrame = Time.frameCount;
+        lastShownState = -1; // Travel selection and purchase decision are separate UI steps.
         pawnCivicLocations[pendingSlot] = project;
         // Visual-only arrival. Stable dice tile index remains unchanged.
         SetPawnAtCivic(pendingSlot, project);
-        if (ownerSlots[project] >= 0 || player.CurrentMoney < Prices[project])
+        if (ownerSlots[project] >= 0)
         {
+            // Already-owned Civic assets cannot be auctioned or purchased here.
             FinishArrival();
             return true;
         }
         if (IsBot(player))
         {
+            // Bot AI may decide to buy. Human arrival NEVER auto-purchases.
             if (player.CurrentMoney >= Prices[project] + 180)
                 TryPurchase(player, project, "bot-civic-" + Guid.NewGuid().ToString("N"));
             else FinishArrival();
         }
+        // Human players always see BUY / DECLINE, even when short of money.
+        // An unaffordable BUY is disabled but DECLINE still completes the turn.
         return true;
     }
 
@@ -267,6 +280,9 @@ public sealed class AtlasBoardCivicProjectManager : MonoBehaviour
     {
         if (player == null || pendingSlot != player.PlayerSlotIndex || pendingProject != project)
             return false;
+        // Civic refusal leaves ownership intact; never invokes the ordinary
+        // BoardTile purchase decline -> AuctionManager branch.
+        Debug.Log("ATB_CIVIC_DECLINED project=" + project + " slot=" + player.PlayerSlotIndex + " auction=false", this);
         FinishArrival();
         return true;
     }
@@ -292,9 +308,20 @@ public sealed class AtlasBoardCivicProjectManager : MonoBehaviour
         if (values == null || values.Length < 9) return;
         for (int i = 0; i < 3; i++) ownerSlots[i] = Mathf.Clamp(values[i], -1, 3);
         for (int i = 0; i < 4; i++) pawnCivicLocations[i] = Mathf.Clamp(values[3 + i], -1, 2);
-        pendingSlot = Mathf.Clamp(values[7], -1, 3);
-        pendingProject = Mathf.Clamp(values[8], -1, 2);
-        if (pendingSlot < 0 || pendingProject < 0) { pendingSlot = -1; pendingProject = -1; }
+        int receivedSlot = Mathf.Clamp(values[7], -1, 3);
+        int receivedProject = Mathf.Clamp(values[8], -1, 2);
+        if (receivedSlot < 0 || receivedProject < 0)
+        { receivedSlot = -1; receivedProject = -1; }
+        if (receivedSlot != pendingSlot || receivedProject != pendingProject)
+        {
+            // A follower can receive a new Civic offer while the same panel is
+            // already onscreen. Never reuse an earlier arrival's confirmation.
+            purchasePromptPresented = false;
+            purchaseArrivalFrame = Time.frameCount;
+            lastShownState = -1;
+        }
+        pendingSlot = receivedSlot;
+        pendingProject = receivedProject;
         RefreshVisuals();
         RefreshInfoDisplay();
     }
@@ -325,6 +352,8 @@ public sealed class AtlasBoardCivicProjectManager : MonoBehaviour
         completion = null;
         pendingSlot = -1;
         pendingProject = -1;
+        purchasePromptPresented = false;
+        purchaseArrivalFrame = -1;
         inFlight = false;
         lastShownState = -1;
         if (overlay != null) overlay.SetActive(false);
@@ -335,6 +364,8 @@ public sealed class AtlasBoardCivicProjectManager : MonoBehaviour
         completion = null;
         pendingSlot = -1;
         pendingProject = -1;
+        purchasePromptPresented = false;
+        purchaseArrivalFrame = -1;
         inFlight = false;
         if (overlay != null) overlay.SetActive(false);
     }
@@ -382,6 +413,7 @@ public sealed class AtlasBoardCivicProjectManager : MonoBehaviour
         }
         if (mode == lastShownState && slot == lastShownSlot && pendingProject == lastShownProject &&
             money == lastShownMoney && language == lastLanguage) return;
+        if (mode != 2) purchasePromptPresented = false;
         lastShownState = mode;
         lastShownSlot = slot;
         lastShownProject = pendingProject;
@@ -391,34 +423,47 @@ public sealed class AtlasBoardCivicProjectManager : MonoBehaviour
         if (mode != 0) SetMarkerHitTargetsActive(false);
         if (mode == 0) return;
         heading.text = mode == 2
-            ? L("CIVIC PROJECT", "KAMU PROJESİ", "PROYECTO CÍVICO", "PROJET CIVIQUE", "BÜRGERPROJEKT", "시민 프로젝트", "ГОРОДСКОЙ ПРОЕКТ")
+            ? L("PURCHASE CIVIC PROJECT?", "KAMU PROJESİNİ SATIN AL?", "¿COMPRAR PROYECTO CÍVICO?",
+                "ACHETER CE PROJET ?", "BÜRGERPROJEKT KAUFEN?", "시민 프로젝트 구매?", "КУПИТЬ ПРОЕКТ?")
             : L("CIVIC DESTINATIONS", "KAMU PROJESİ HEDEFLERİ", "DESTINOS CÍVICOS", "DESTINATIONS CIVIQUES", "PROJEKTZIELE", "시민 프로젝트 목적지", "ЦЕЛИ ПРОЕКТОВ");
-        message.text = mode == 2 ? GetProjectName(pendingProject) + "  |  " + GetPrice(pendingProject) + " ₵" :
-            L("Optional Travel destination. Normal Travel remains available.",
-              "İsteğe bağlı seyahat. Normal Seyahat hâlâ kullanılabilir.",
-              "Viaje opcional. El viaje normal sigue disponible.",
-              "Voyage optionnel. Le voyage normal reste disponible.",
-              "Optionale Reise. Die normale Reise bleibt verfügbar.",
-              "선택 이동입니다. 일반 이동도 이용할 수 있습니다.",
-              "Дополнительный маршрут. Обычное путешествие доступно.");
+        message.text = mode == 2
+            ? GetProjectName(pendingProject) + "  |  " + GetPrice(pendingProject) + " ₵\n" +
+              L("Buy this project? Declining will NOT start an auction.",
+                "Bu projeyi almak istiyor musun? Vazgeçersen açık artırma OLMAZ.",
+                "¿Quieres comprarlo? Rechazar NO inicia una subasta.",
+                "Acheter ce projet ? Refuser ne lance PAS d'enchères.",
+                "Projekt kaufen? Ablehnen startet KEINE Auktion.",
+                "이 프로젝트를 구매하시겠습니까? 거절해도 경매는 없습니다.",
+                "Купить проект? При отказе аукцион НЕ начнётся.")
+            : L("Choose a Civic destination. Travel does not purchase it.",
+                "Civic hedefi seç. Seyahat etmek projeyi satın almaz.",
+                "Elige un destino. Viajar no implica comprarlo.",
+                "Choisissez une destination. Le voyage n'achète rien.",
+                "Ziel wählen. Reisen kauft das Projekt nicht.",
+                "목적지를 선택하세요. 이동만으로 구매되지 않습니다.",
+                "Выберите цель. Путешествие не означает покупку.");
         for (int i = 0; i < 3; i++)
         {
             bool shown = mode == 1 || i == pendingProject;
             optionButtons[i].gameObject.SetActive(shown);
             if (shown && mode == 2)
-                (optionButtons[i].transform as RectTransform).anchoredPosition = new Vector2(0f, -145f);
+                (optionButtons[i].transform as RectTransform).anchoredPosition = new Vector2(0f, -151f);
             else
                 (optionButtons[i].transform as RectTransform).anchoredPosition = new Vector2(0f, -144f - i * 44f);
             optionLabels[i].text = mode == 2
-                ? L("PURCHASE", "SATIN AL", "COMPRAR", "ACHETER", "KAUFEN", "구매", "КУПИТЬ") + "  |  " + GetPrice(i) + " ₵"
+                ? L("YES — BUY PROJECT", "EVET — SATIN AL", "SÍ — COMPRAR", "OUI — ACHETER", "JA — KAUFEN", "예 — 구매", "ДА — КУПИТЬ") + "  |  " + GetPrice(i) + " ₵"
                 : GetProjectName(i) + "  |  " + Prices[i] + " ₵";
             optionButtons[i].interactable = !inFlight &&
                 (mode == 1 || (ownerSlots[i] < 0 && local.CurrentMoney >= Prices[i]));
         }
         declineLabel.text = mode == 2
-            ? L("SKIP PURCHASE", "SATIN ALMA", "OMITIR COMPRA", "NE PAS ACHETER", "NICHT KAUFEN", "구매 건너뛰기", "НЕ ПОКУПАТЬ")
+            ? L("NO — LEAVE UNOWNED", "HAYIR — SAHİPSİZ KALSIN", "NO — SIN DUEÑO",
+                "NON — SANS PROPRIÉTAIRE", "NEIN — UNVERKAUFT", "아니요 — 미소유 유지", "НЕТ — БЕЗ ВЛАДЕЛЬЦА")
             : L("USE NORMAL TRAVEL", "NORMAL SEYAHATE DEVAM", "VIAJE NORMAL", "VOYAGE NORMAL", "NORMALE REISE", "일반 이동", "ОБЫЧНЫЙ МАРШРУТ");
+        (declineButton.transform as RectTransform).anchoredPosition =
+            new Vector2(0f, mode == 2 ? -207f : -279f);
         declineButton.gameObject.SetActive(true);
+        if (mode == 2) purchasePromptPresented = true;
     }
 
     // The Hub has no physical Collider by design: its three invisible UGUI
@@ -652,6 +697,8 @@ public sealed class AtlasBoardCivicProjectManager : MonoBehaviour
         PlayerGameState player = ResolveLocalPlayer();
         if (player == null) return;
         bool purchase = HasPendingArrival && pendingSlot == player.PlayerSlotIndex;
+        if (purchase && (!purchasePromptPresented || Time.frameCount <= purchaseArrivalFrame ||
+                         id != pendingProject)) return;
         if (!purchase && (resolution == null || !resolution.HasPendingTravelFor(player))) return;
         inFlight = true;
         try
@@ -672,6 +719,7 @@ public sealed class AtlasBoardCivicProjectManager : MonoBehaviour
         if (player == null) return;
         if (HasPendingArrival && pendingSlot == player.PlayerSlotIndex)
         {
+            if (!purchasePromptPresented || Time.frameCount <= purchaseArrivalFrame) return;
             inFlight = true;
             try
             {
@@ -902,7 +950,8 @@ public sealed class AtlasBoardCivicProjectManager : MonoBehaviour
         accentRect.sizeDelta = new Vector2(0f,4f);
         accentLine.GetComponent<Image>().color = new Color(.14f,.66f,.73f,1f);
         heading = Text(overlay.transform,"Heading",new Vector2(0,-25),new Vector2(385,36),21f);
-        message = Text(overlay.transform,"Message",new Vector2(0,-76),new Vector2(385,50),14f);
+        message = Text(overlay.transform,"Message",new Vector2(0,-78),new Vector2(385,65),14f);
+        message.fontSizeMin = 10f;
         for(int i=0;i<3;i++)
         {
             int captured=i;
@@ -1014,6 +1063,39 @@ public sealed class AtlasBoardCivicProjectManager : MonoBehaviour
     }
 
 #if UNITY_EDITOR
+    [UnityEditor.MenuItem("Atlas Board/QA & Diagnostics/QA/Phase 18F - Civic Optional Purchase Smoke")]
+    private static void EditorOptionalPurchaseSmoke()
+    {
+        AtlasBoardCivicProjectManager manager = FindAnyObjectByType<AtlasBoardCivicProjectManager>();
+        if (!Application.isPlaying || manager == null || manager.turnManager == null ||
+            !manager.turnManager.IsMatchStarted || !manager.HasPendingArrival)
+        {
+            Debug.LogWarning("ATB_CIVIC_CHOICE_QA NOT_RUN: Play Mode and active Civic human purchase prompt required.");
+            return;
+        }
+        PlayerGameState local = manager.ResolveLocalPlayer();
+        if (local == null || local.PlayerSlotIndex != manager.pendingSlot ||
+            manager.ownerSlots[manager.pendingProject] >= 0 ||
+            manager.overlay == null || !manager.overlay.activeSelf)
+        {
+            Debug.LogWarning("ATB_CIVIC_CHOICE_QA NOT_RUN: open a human Civic arrival confirmation first.");
+            return;
+        }
+        int[] before = manager.CaptureSnapshot();
+        int cashBefore = local.CurrentMoney;
+        int civicId = manager.pendingProject;
+        manager.Update(); // Read-only UI rebuild: never attempts to purchase or auction.
+        bool pass = manager.purchasePromptPresented && manager.HasPendingArrival &&
+            manager.pendingProject == civicId && manager.ownerSlots[civicId] == -1 &&
+            local.CurrentMoney == cashBefore && manager.optionButtons[civicId] != null &&
+            manager.optionButtons[civicId].gameObject.activeSelf &&
+            manager.declineButton != null && manager.declineButton.gameObject.activeSelf &&
+            manager.CaptureSnapshot().Length == before.Length;
+        Debug.Log(pass
+            ? "ATB_CIVIC_CHOICE_QA PASS confirmation_visible=true no_auto_buy=true skip_available=true auction_not_called=true (read-only UI smoke)"
+            : "ATB_CIVIC_CHOICE_QA FAIL: Civic confirmation/ownership/cash invariant.");
+    }
+
     [UnityEditor.MenuItem("Atlas Board/QA & Diagnostics/QA/Phase 18E - Civic Marker Info Click Smoke")]
     private static void EditorCivicInfoClickSmoke()
     {

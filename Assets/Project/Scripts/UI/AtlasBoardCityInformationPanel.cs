@@ -624,6 +624,11 @@ public class AtlasBoardCityInformationPanel : MonoBehaviour
             L("Development level", "Geliştirme seviyesi", "Nivel de desarrollo", "Niveau de développement", "Ausbaustufe", "개발 레벨", "Уровень развития"),
             $"{developmentLevel} / {maximumLevel}");
 
+        if (developmentManager != null)
+            AppendSection(builder,
+                L("ECONOMIC MEMORY", "EKONOMİK HAFIZA", "MEMORIA ECONÓMICA", "MÉMOIRE ÉCONOMIQUE", "WIRTSCHAFTSVERLAUF", "경제 기록", "ЭКОНОМИЧЕСКАЯ ИСТОРИЯ"),
+                developmentManager.GetEconomicMemorySummary(tile));
+
         return builder.ToString();
     }
 

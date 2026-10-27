@@ -142,6 +142,31 @@ public class PropertyDevelopmentManager : MonoBehaviour
     private const int PulseCategoryCount = 4;
     private static readonly int[] PulseLevelCosts = { 100, 175, 250, 350 };
 
+    // Phase 18G: fixed, bounded memory owned by the EXISTING economy authority.
+    // History is gameplay-scoped; no PlayerPrefs, second economy manager or RTDB log.
+    private const int CityMemoryMaxEvents = 6;
+    private const int CityMemoryMaxTransfers = 5;
+    private const int CityMemoryWindowRounds = 5;
+    private const int CityMemoryDurationRounds = 3;
+    private const int CityMemoryCooldownRounds = 6;
+    private sealed class CityMemoryEvent
+    {
+        public int kind; // 1 owner, 2 house, 3 Pulse, 4 visit, 5 loan, 6 repay, 7 seizure, 8 Event arrival
+        public int round;
+        public int detail;
+    }
+    private sealed class CityMemory
+    {
+        public int lastOwner;
+        public int activeUntil; // exclusive round; effect not permanent
+        public int cooldownUntil; // exclusive round
+        public readonly List<int> transfers = new List<int>();
+        public readonly List<CityMemoryEvent> events = new List<CityMemoryEvent>();
+    }
+    private readonly Dictionary<int, CityMemory> cityMemories = new Dictionary<int, CityMemory>();
+    private TurnManager memoryTurns;
+    private AtlasBoardTurnDiceNetworkCoordinator memoryNetwork;
+    private float nextCityMemoryScan;
     private bool initialized;
 
     // Phase 18D: mortgage state belongs to the EXISTING development/economy authority.
@@ -218,6 +243,7 @@ public class PropertyDevelopmentManager : MonoBehaviour
         bankLoans.Add(city.TileIndex, loan);
         bankProcessedCommands.Add(commandId);
         player.AddMoney(amount);
+        RecordCityMemoryEvent(city, 5, amount);
         Debug.Log($"ATB_BANK_LOAN_OPEN city={city.PropertyId} principal={amount} total={loan.outstanding} term={loan.initialTerm}", this);
         return true;
     }
@@ -230,6 +256,7 @@ public class PropertyDevelopmentManager : MonoBehaviour
             !player.TrySpend(loan.outstanding)) return false;
         bankLoans.Remove(city.TileIndex);
         bankProcessedCommands.Add(commandId);
+        RecordCityMemoryEvent(city, 6, loan.outstanding);
         Debug.Log($"ATB_BANK_REPAY city={city.PropertyId} amount={loan.outstanding}", this);
         return true;
     }
@@ -252,6 +279,7 @@ public class PropertyDevelopmentManager : MonoBehaviour
                 player.TrySpend(loan.outstanding))
             {
                 bankLoans.Remove(loan.tileIndex);
+                RecordCityMemoryEvent(city, 6, loan.outstanding);
                 Debug.Log($"ATB_BANK_MATURED_REPAID city={city.PropertyId} amount={loan.outstanding}", this);
             }
             else
@@ -265,8 +293,10 @@ public class PropertyDevelopmentManager : MonoBehaviour
         if (!bankLoans.Remove(tileIndex)) return;
         BoardTile city = boardPath != null ? boardPath.GetTile(tileIndex) : null;
         if (city == null) return;
+        RecordCityMemoryEvent(city, 7);
         ResetDevelopment(city); // foreclosure explicitly liquidates BOTH houses and Pulse
         city.ClearOwner();
+        if (CanWriteCityMemory()) ObserveCityMemoryOwnership(city, CityMemoryRound());
         Debug.Log($"ATB_BANK_FORECLOSED city={city.PropertyId}", this);
     }
     public void CloseBankLoansOnBankruptcy(PlayerGameState player)
@@ -636,6 +666,8 @@ public class PropertyDevelopmentManager : MonoBehaviour
         developmentLevels[tile] =
             newLevel;
 
+        RecordCityMemoryEvent(tile, 2, newLevel);
+
         RebuildDevelopmentVisual(
             tile,
             player.OwnershipMaterial);
@@ -691,6 +723,291 @@ public class PropertyDevelopmentManager : MonoBehaviour
                    rawCost / 10f) * 10;
     }
 
+    private bool CanWriteCityMemory()
+    {
+        if (!Application.isPlaying) return false;
+        if (memoryNetwork == null)
+            memoryNetwork = UnityEngine.Object.FindAnyObjectByType<AtlasBoardTurnDiceNetworkCoordinator>();
+        return memoryNetwork == null || !memoryNetwork.IsOnlineSessionActive || memoryNetwork.LocalIsHost;
+    }
+
+    private int CityMemoryRound()
+    {
+        if (memoryTurns == null) memoryTurns = UnityEngine.Object.FindAnyObjectByType<TurnManager>();
+        return memoryTurns != null ? Mathf.Max(1, memoryTurns.CurrentRound) : 1;
+    }
+
+    private CityMemory GetOrCreateCityMemory(BoardTile city)
+    {
+        if (city == null || city.TileType != TileType.City) return null;
+        if (!cityMemories.TryGetValue(city.TileIndex, out CityMemory memory))
+        {
+            memory = new CityMemory { lastOwner = city.IsOwned ? city.OwnerPlayerIndex : -1 };
+            cityMemories.Add(city.TileIndex, memory);
+        }
+        return memory;
+    }
+
+    private static int RecentTransferCount(List<int> rounds, int currentRound)
+    {
+        int count = 0;
+        foreach (int r in rounds)
+            if (r <= currentRound && r > currentRound - CityMemoryWindowRounds) count++;
+        return count;
+    }
+
+    // Ownership observation is independent from purchase/trade/bank transfer APIs;
+    // it sees final authoritative state without adding another BoardTile owner writer.
+    private void ObserveCityMemoryOwnership(BoardTile city, int round)
+    {
+        CityMemory memory = GetOrCreateCityMemory(city);
+        if (memory == null) return;
+        int owner = city.IsOwned ? city.OwnerPlayerIndex : -1;
+        if (owner == memory.lastOwner) return;
+        memory.lastOwner = owner;
+        memory.transfers.Add(round);
+        while (memory.transfers.Count > CityMemoryMaxTransfers)
+            memory.transfers.RemoveAt(0);
+        AddCityMemoryEvent(memory, 1, round, owner);
+        TryActivateSpeculativeMarket(memory, round);
+    }
+
+    private static bool TryActivateSpeculativeMarket(CityMemory memory, int round)
+    {
+        if (round < memory.cooldownUntil ||
+            RecentTransferCount(memory.transfers, round) < 3)
+            return false;
+        memory.activeUntil = round + CityMemoryDurationRounds;
+        memory.cooldownUntil = round + CityMemoryCooldownRounds;
+        return true;
+    }
+
+    private static void AddCityMemoryEvent(CityMemory memory, int kind, int round, int detail)
+    {
+        memory.events.Add(new CityMemoryEvent { kind = kind, round = round, detail = detail });
+        while (memory.events.Count > CityMemoryMaxEvents)
+            memory.events.RemoveAt(0);
+    }
+
+    private void ScanCityOwnershipForMemory()
+    {
+        if (!CanWriteCityMemory()) return;
+        if (memoryTurns == null) memoryTurns = UnityEngine.Object.FindAnyObjectByType<TurnManager>();
+        if (memoryTurns == null || !memoryTurns.IsMatchStarted || memoryTurns.IsMatchFinished) return;
+        EnsureInitialized();
+        if (boardPath == null) return;
+        int round = CityMemoryRound();
+        for (int i = 0; i < boardPath.TileCount; i++)
+            ObserveCityMemoryOwnership(boardPath.GetTile(i), round);
+    }
+
+    private void Update()
+    {
+        // Local 0.35-s check; does not perform a network write or use RNG.
+        if (Time.unscaledTime < nextCityMemoryScan) return;
+        nextCityMemoryScan = Time.unscaledTime + 0.35f;
+        ScanCityOwnershipForMemory();
+    }
+
+    private void RecordCityMemoryEvent(BoardTile city, int kind, int detail = 0)
+    {
+        if (!CanWriteCityMemory()) return;
+        CityMemory memory = GetOrCreateCityMemory(city);
+        if (memory == null) return;
+        int round = CityMemoryRound();
+        ObserveCityMemoryOwnership(city, round);
+        // Multiple visits in one round are legitimate economically, but one
+        // summary entry suffices, and avoids spam on repeated result rendering.
+        if (kind == 4 && memory.events.Count > 0)
+        {
+            CityMemoryEvent recent = memory.events[memory.events.Count - 1];
+            if (recent.kind == 4 && recent.round == round) return;
+        }
+        AddCityMemoryEvent(memory, kind, round, detail);
+    }
+
+    // Phase 18F arrival is a distinct history event; normal landing already
+    // records its economic visit through TileResolutionManager.
+    public void RecordEconomicEventLanding(BoardTile city)
+    {
+        RecordCityMemoryEvent(city, 8);
+    }
+
+    public bool IsSpeculativeMarketActive(BoardTile city)
+    {
+        return city != null && cityMemories.TryGetValue(city.TileIndex, out CityMemory memory) &&
+               CityMemoryRound() < memory.activeUntil;
+    }
+
+    public int GetSpeculativeRoundsRemaining(BoardTile city)
+    {
+        return city != null && cityMemories.TryGetValue(city.TileIndex, out CityMemory memory)
+            ? Mathf.Max(0, memory.activeUntil - CityMemoryRound()) : 0;
+    }
+
+    // Never mutate Pulse drift for a temporary market effect: it would leak
+    // past expiry and be double-counted after a follower snapshot replay.
+    private int GetCityMemoryMetricModifier(BoardTile city, int category)
+    {
+        if (!IsSpeculativeMarketActive(city)) return 0;
+        return category == 2 ? 12 : category == 3 ? -20 : 0;
+    }
+
+    public string GetEconomicMemorySummary(BoardTile city)
+    {
+        if (city == null || city.TileType != TileType.City) return string.Empty;
+        if (!cityMemories.TryGetValue(city.TileIndex, out CityMemory memory) || memory.events.Count == 0)
+            return AtlasBoardL.R("No history this match", "Bu maçta henüz geçmiş yok", "Sin historial en esta partida", "Aucun historique pour cette partie", "Noch kein Verlauf in diesem Spiel", "이 경기의 기록 없음", "В этом матче истории пока нет");
+
+        System.Text.StringBuilder result = new System.Text.StringBuilder();
+        if (IsSpeculativeMarketActive(city))
+        {
+            result.Append(AtlasBoardL.R("Speculative Market", "Spekülatif Piyasa", "Mercado especulativo", "Marché spéculatif", "Spekulativer Markt", "투기 시장", "Спекулятивный рынок"));
+            result.Append(" (" + GetSpeculativeRoundsRemaining(city) + " ");
+            result.Append(AtlasBoardL.R("rounds left", "tur kaldı", "rondas restantes", "tours restants", "Runden übrig", "라운드 남음", "раундов осталось"));
+            result.Append(")  Stability -20  Traffic +12");
+            result.AppendLine();
+        }
+        int start = Mathf.Max(0, memory.events.Count - 4);
+        for (int i = memory.events.Count - 1; i >= start; i--)
+        {
+            CityMemoryEvent entry = memory.events[i];
+            string label;
+            switch (entry.kind)
+            {
+                case 1: label = AtlasBoardL.R("Ownership changed", "Sahiplik değişti", "Cambio de propietario", "Changement de propriétaire", "Besitzerwechsel", "소유권 변경", "Смена владельца"); break;
+                case 2: label = AtlasBoardL.R("House improved", "Ev geliştirildi", "Casa mejorada", "Maison améliorée", "Haus verbessert", "주택 개발", "Развитие дома"); break;
+                case 3: label = AtlasBoardL.R("Pulse invested", "Pulse yatırımı", "Inversión Pulse", "Investissement Pulse", "Pulse-Investition", "Pulse 투자", "Инвестиция Pulse"); break;
+                case 4: label = AtlasBoardL.R("City visit", "Şehir ziyareti", "Visita", "Visite", "Stadtbesuch", "도시 방문", "Посещение города"); break;
+                case 5: label = AtlasBoardL.R("Mortgage opened", "İpotek açıldı", "Hipoteca abierta", "Hypothèque créée", "Hypothek aufgenommen", "담보 대출", "Открыта ипотека"); break;
+                case 6: label = AtlasBoardL.R("Loan repaid", "Kredi ödendi", "Préstamo pagado", "Prêt remboursé", "Kredit getilgt", "대출 상환", "Кредит погашен"); break;
+                case 7: label = AtlasBoardL.R("Bank foreclosure", "Bankaya haciz", "Ejecución hipotecaria", "Saisie bancaire", "Zwangsvollstreckung", "은행 압류", "Банковское взыскание"); break;
+                case 8: label = AtlasBoardL.R("Event arrival", "Etkinlikle varış", "Llegada por evento", "Arrivée par événement", "Ankunft durch Ereignis", "이벤트로 도착", "Прибытие по событию"); break;
+                default: continue;
+            }
+            result.Append("R").Append(entry.round).Append("  ·  ").Append(label);
+            if (i > start) result.AppendLine();
+        }
+        return result.ToString();
+    }
+
+    // Compact additive v13 payload: only cities with economic activity are
+    // serialized, at most 5 transfer rounds and 6 history entries per city.
+    // Format: [1, cityCount, tileIndex, lastOwner, activeUntil, cooldownUntil,
+    //          transferCount, transferRounds..., eventCount, (kind,round,detail)...].
+    public int[] CaptureCityMemorySnapshot()
+    {
+        ScanCityOwnershipForMemory();
+        List<int> values = new List<int> { 1, 0 };
+        List<int> keys = new List<int>(cityMemories.Keys);
+        keys.Sort();
+        int count = 0;
+        foreach (int tileIndex in keys)
+        {
+            CityMemory memory = cityMemories[tileIndex];
+            if (memory.events.Count == 0 && memory.transfers.Count == 0 && memory.activeUntil == 0) continue;
+            values.Add(tileIndex);
+            values.Add(memory.lastOwner);
+            values.Add(memory.activeUntil);
+            values.Add(memory.cooldownUntil);
+            values.Add(memory.transfers.Count);
+            values.AddRange(memory.transfers);
+            values.Add(memory.events.Count);
+            foreach (CityMemoryEvent evt in memory.events)
+            {
+                values.Add(evt.kind);
+                values.Add(evt.round);
+                values.Add(evt.detail);
+            }
+            count++;
+        }
+        values[1] = count;
+        return values.ToArray();
+    }
+
+    public void ApplyCityMemorySnapshot(int[] values)
+    {
+        if (values == null || values.Length < 2 || values[0] != 1) return;
+        EnsureInitialized();
+        if (boardPath == null || values[1] < 0 || values[1] > boardPath.TileCount) return;
+        Dictionary<int, CityMemory> hydrated = new Dictionary<int, CityMemory>();
+        int cursor = 2;
+        for (int n = 0; n < values[1]; n++)
+        {
+            if (cursor + 5 > values.Length) return;
+            int tileIndex = values[cursor++];
+            int owner = values[cursor++];
+            int activeUntil = values[cursor++];
+            int cooldownUntil = values[cursor++];
+            int transferCount = values[cursor++];
+            BoardTile city = tileIndex >= 0 && tileIndex < boardPath.TileCount ? boardPath.GetTile(tileIndex) : null;
+            if (city == null || city.TileType != TileType.City || hydrated.ContainsKey(tileIndex) ||
+                owner < -1 || owner > 3 || activeUntil < 0 || cooldownUntil < 0 ||
+                transferCount < 0 || transferCount > CityMemoryMaxTransfers || cursor + transferCount >= values.Length) return;
+            CityMemory memory = new CityMemory
+            {
+                lastOwner = owner,
+                activeUntil = activeUntil,
+                cooldownUntil = cooldownUntil
+            };
+            for (int t = 0; t < transferCount; t++) memory.transfers.Add(Mathf.Max(1, values[cursor++]));
+            int eventCount = values[cursor++];
+            if (eventCount < 0 || eventCount > CityMemoryMaxEvents || cursor + eventCount * 3 > values.Length) return;
+            for (int e = 0; e < eventCount; e++)
+            {
+                int kind = values[cursor++];
+                int round = values[cursor++];
+                int detail = values[cursor++];
+                if (kind < 1 || kind > 8 || round < 1) return;
+                memory.events.Add(new CityMemoryEvent { kind = kind, round = round, detail = detail });
+            }
+            hydrated.Add(tileIndex, memory);
+        }
+        if (cursor != values.Length) return;
+        cityMemories.Clear();
+        foreach (KeyValuePair<int, CityMemory> pair in hydrated) cityMemories.Add(pair.Key, pair.Value);
+        // Snapshot revision and authority epoch are already checked by the
+        // existing coordinator before calling this method.
+    }
+
+#if UNITY_EDITOR
+    [UnityEditor.MenuItem("Atlas Board/QA & Diagnostics/QA/Phase 18G - Economic Memory Smoke")]
+    private static void EditorEconomicMemorySmoke()
+    {
+        PropertyDevelopmentManager manager = FindAnyObjectByType<PropertyDevelopmentManager>();
+        if (manager == null) { Debug.LogWarning("ATB_PHASE18G_QA NOT_RUN: active match required"); return; }
+        List<int> two = new List<int> { 4, 6 };
+        List<int> three = new List<int> { 4, 6, 8 };
+        List<int> four = new List<int> { 5, 6, 8, 9 };
+        bool window = RecentTransferCount(two, 8) == 2 && RecentTransferCount(three, 8) == 3 &&
+                      RecentTransferCount(four, 9) == 4 && RecentTransferCount(three, 11) == 2;
+        int[] snapshot = manager.CaptureCityMemorySnapshot();
+        bool bounded = snapshot != null && snapshot.Length >= 2 && snapshot[0] == 1;
+        CityMemory sample = new CityMemory();
+        sample.transfers.AddRange(new[] { 5, 6, 8 });
+        bool triggered = TryActivateSpeculativeMarket(sample, 8);
+        bool noDoubleTrigger = !TryActivateSpeculativeMarket(sample, 9);
+        bool expiryCooldown = triggered && noDoubleTrigger &&
+                              sample.activeUntil == 11 && sample.cooldownUntil == 14 &&
+                              10 < sample.activeUntil && 11 >= sample.activeUntil &&
+                              12 < sample.cooldownUntil && 14 >= sample.cooldownUntil;
+        bounded = bounded && expiryCooldown;
+        int cities = 0; int bad = 0;
+        manager.EnsureInitialized();
+        if (manager.boardPath != null)
+            for (int i = 0; i < manager.boardPath.TileCount; i++)
+            {
+                BoardTile tile = manager.boardPath.GetTile(i);
+                if (tile == null || tile.TileType != TileType.City) continue;
+                cities++;
+                for (int c = 0; c < 4; c++)
+                    if (manager.GetPulseMetric(tile, c) < 0 || manager.GetPulseMetric(tile, c) > 94) bad++;
+                if (manager.GetSpeculativeRoundsRemaining(tile) > CityMemoryDurationRounds) bad++;
+            }
+        Debug.Log($"ATB_PHASE18G_QA {(window && bounded && cities > 0 && bad == 0 ? "PASS" : "FAIL")} non_spending_seed=true cities={cities} historyInts={snapshot.Length} window={window} bad={bad} cap=94 duration=3 cooldown=6");
+    }
+#endif
+
     public int GetPulseLevel(BoardTile tile, int category)
     {
         if (tile == null || category < 0 || category >= PulseCategoryCount ||
@@ -719,6 +1036,7 @@ public class PropertyDevelopmentManager : MonoBehaviour
         BoardEconomyProfile activeEconomy = ResolveEconomyProfile();
         int maxScore = activeEconomy != null ? activeEconomy.PulseMetricMaximum : PulseMetricMaximum;
         int raw = GetPulseBaseline(tile, category) + GetPulseLevel(tile, category) * 2 + drift;
+        raw += GetCityMemoryMetricModifier(tile, category);
         // Civic ownership modifiers are derived from the same authoritative
         // Civic snapshot: Trade/Demand +2, Transit/Traffic +3, Tech/Prosperity +5%.
         // They immediately follow ownership transfer, foreclosure and new-match reset.
@@ -808,6 +1126,7 @@ public class PropertyDevelopmentManager : MonoBehaviour
             pulseLevels[tile] = levels = new int[PulseCategoryCount];
         levels[category] = Mathf.Clamp(levels[category] + 1, 0, 4);
         pulseAppliedCommandIds.Add(commandId);
+        RecordCityMemoryEvent(tile, 3, category);
         Debug.Log($"ATB_PULSE_BUILD city={tile.PropertyId} category={category} " +
                   $"level={levels[category]} cost={cost} rentBonus={GetPulseRentBonusPercent(tile)}%", this);
         return true;
@@ -822,6 +1141,7 @@ public class PropertyDevelopmentManager : MonoBehaviour
             pulseMetricDrift[tile] = drift = new int[PulseCategoryCount];
         drift[0] = Mathf.Min(12, drift[0] + 1); // demand
         drift[2] = Mathf.Min(12, drift[2] + 1); // traffic
+        RecordCityMemoryEvent(tile, 4);
     }
 
     public int[] CapturePulseLevels(BoardTile tile)
@@ -1317,6 +1637,8 @@ public class PropertyDevelopmentManager : MonoBehaviour
             }
 
             developmentLevels[tile] = 0;
+            // Observe purchases even if they occur before the first periodic scan.
+            GetOrCreateCityMemory(tile);
 
             Transform existingRoot =
                 tile.transform.Find(
@@ -2060,6 +2382,15 @@ public class PropertyDevelopmentManager : MonoBehaviour
         pulseMetricDrift.Clear();
         pulseAppliedCommandIds.Clear();
         pulseMapGenerator = null;
+        cityMemories.Clear();
+        if (boardPath != null)
+            for (int i = 0; i < boardPath.TileCount; i++)
+            {
+                BoardTile city = boardPath.GetTile(i);
+                if (city != null && city.TileType == TileType.City)
+                    cityMemories[city.TileIndex] = new CityMemory { lastOwner = -1 };
+            }
+        nextCityMemoryScan = 0f;
     }
 
 

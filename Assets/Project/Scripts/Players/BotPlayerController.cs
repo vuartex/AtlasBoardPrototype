@@ -141,6 +141,8 @@ public class BotPlayerController : MonoBehaviour
     private int lastOwnTradeAttemptCompletedTurns = -1;
     private int lastPulseAttemptCompletedTurns = -1;
     private AtlasBoardTurnDiceNetworkCoordinator pulseNetwork;
+    // Phase 18H: cache the existing Civic owner read-model; never own Civic state here.
+    private AtlasBoardCivicProjectManager civicEconomy;
 
 
     public bool BotEnabled =>
@@ -340,6 +342,8 @@ public class BotPlayerController : MonoBehaviour
                     cost * 3 > playerState.CurrentMoney) continue;
                 int score = (4 - propertyDevelopmentManager.GetPulseLevel(tile, c)) * 20 +
                             propertyDevelopmentManager.GetPulseMetric(tile, c) / 5 - cost / 25;
+                // Avoid speculative, volatile city investments unless strongly worthwhile.
+                if (propertyDevelopmentManager.IsSpeculativeMarketActive(tile)) score -= 25;
                 if (score > bestScore) { bestScore = score; chosen = tile; chosenCategory = c; }
             }
         }
@@ -1698,6 +1702,19 @@ public class BotPlayerController : MonoBehaviour
                 propertyDevelopmentManager
                     .GetDevelopmentInvestmentValue(
                         player.PlayerSlotIndex);
+            // Borrowed cash is NOT profit. Use the same outstanding debt that
+            // the authoritative MatchResultManager subtracts at match end.
+            total -= propertyDevelopmentManager.GetBankDebt(player.PlayerSlotIndex);
+        }
+
+        if (civicEconomy == null)
+        {
+            civicEconomy = UnityEngine.Object.FindAnyObjectByType<AtlasBoardCivicProjectManager>();
+        }
+        if (civicEconomy != null)
+        {
+            // This is a strategic estimate; no market value is minted here.
+            total += civicEconomy.GetOwnedValue(player.PlayerSlotIndex);
         }
 
         return total;

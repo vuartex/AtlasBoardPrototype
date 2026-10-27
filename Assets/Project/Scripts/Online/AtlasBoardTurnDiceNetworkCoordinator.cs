@@ -46,7 +46,7 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         // Schema 2 extends the already-working Phase 5B Turn/Dice frame with
         // Phase 5C authoritative pawn movement state. Schema 1 remains readable
         // by the follower during a transient old snapshot.
-        public int schemaVersion = 12;
+        public int schemaVersion = 13;
         public string phase = "starting";
         public int activeSlotIndex = -1;
         public int currentRound = 1;
@@ -143,6 +143,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         public int[] bankLoans = Array.Empty<int>();
         // Phase 18E additive off-path Civic state: [owner0..2, pawnLocation0..3, pendingSlot, pendingProject].
         public int[] civicState = Array.Empty<int>();
+        // Phase 18G: bounded, per-city match-only economic history.
+        public int[] cityMemory = Array.Empty<int>();
 
 
 
@@ -3527,6 +3529,7 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             bankLoans = propertyDevelopmentManager != null && boardPath != null
                 ? propertyDevelopmentManager.CaptureBankSnapshot(boardPath.TileCount) : Array.Empty<int>(),
             civicState = ResolveCivicManager() != null ? ResolveCivicManager().CaptureSnapshot() : Array.Empty<int>(),
+            cityMemory = propertyDevelopmentManager != null ? propertyDevelopmentManager.CaptureCityMemorySnapshot() : Array.Empty<int>(),
             matchResult =
                 turnManager.IsMatchFinished &&
                 matchResultManager != null
@@ -4079,7 +4082,7 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
         if (frame == null ||
             frame.schemaVersion < 1 ||
-            frame.schemaVersion > 11)
+            frame.schemaVersion > 13)
         {
             return;
         }
@@ -4152,6 +4155,9 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         if (frame.schemaVersion >= 6)
         {
             ApplyFollowerDevelopmentFrame(frame);
+            if (frame.schemaVersion >= 13 && frame.cityMemory != null &&
+                propertyDevelopmentManager != null)
+                propertyDevelopmentManager.ApplyCityMemorySnapshot(frame.cityMemory);
             if (frame.schemaVersion >= 12 && frame.civicState != null && frame.civicState.Length >= 9)
             {
                 AtlasBoardCivicProjectManager civic = ResolveCivicManager();
@@ -5431,7 +5437,7 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         if (frame.movementSequence <=
                 lastQueuedFollowerMovementSequence ||
             frame.movementPlayerSlotIndex < 0 ||
-            frame.movementSteps <= 0 ||
+            frame.movementSteps == 0 ||
             frame.movementStartTileIndex < 0 ||
             frame.movementTargetTileIndex < 0)
         {

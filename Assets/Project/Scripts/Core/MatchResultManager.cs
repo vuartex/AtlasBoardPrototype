@@ -101,6 +101,9 @@ public class MatchResultManager : MonoBehaviour
             new List<int>();
         int highestNetWorth = int.MinValue;
 
+        // One read-only Civic lookup per result, not one per player/slot.
+        AtlasBoardCivicProjectManager civicForResult = FindAnyObjectByType<AtlasBoardCivicProjectManager>();
+
         for (int index = 0;
              index < playerStates.Length;
              index++)
@@ -135,17 +138,16 @@ public class MatchResultManager : MonoBehaviour
                     ? propertyDevelopmentManager
                         .GetTotalDevelopmentLevels(slot)
                     : 0;
-            AtlasBoardCivicProjectManager civic = FindAnyObjectByType<AtlasBoardCivicProjectManager>();
-            if (civic != null)
+            if (civicForResult != null)
             {
-                propertyValue += civic.GetOwnedValue(slot);
-                propertyCount += civic.GetOwnedCount(slot);
+                propertyValue = (int)System.Math.Min(int.MaxValue,
+                    (long)propertyValue + civicForResult.GetOwnedValue(slot));
+                propertyCount += civicForResult.GetOwnedCount(slot);
             }
-            long grossWorth = (long)player.CurrentMoney + propertyValue + developmentValue;
             long bankLiabilities = propertyDevelopmentManager != null
                 ? propertyDevelopmentManager.GetBankDebt(slot) : 0L;
-            int netWorth = (int)System.Math.Max(int.MinValue,
-                System.Math.Min(int.MaxValue, grossWorth - bankLiabilities));
+            int netWorth = CalculateDebtAdjustedNetWorth(player.CurrentMoney,
+                propertyValue, developmentValue, bankLiabilities);
 
             snapshot.participating[slot] = true;
             snapshot.bankrupt[slot] = player.IsBankrupt;
@@ -192,6 +194,15 @@ public class MatchResultManager : MonoBehaviour
         snapshot.winnerSlots = winnerSlots.ToArray();
         snapshot.valid = true;
         return snapshot;
+    }
+
+    // Phase 18H: single overflow-safe financial identity shared with
+    // read-only QA. A loan adds cash and debt; it does not mint net worth.
+    public static int CalculateDebtAdjustedNetWorth(long cash, long properties,
+        long developmentInvestment, long outstandingLoanDebt)
+    {
+        long result = cash + properties + developmentInvestment - outstandingLoanDebt;
+        return (int)System.Math.Max(int.MinValue, System.Math.Min(int.MaxValue, result));
     }
 
     public void ShowOnlineMatchResult(
