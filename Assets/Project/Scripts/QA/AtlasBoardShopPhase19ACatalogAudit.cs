@@ -34,11 +34,13 @@ public static class AtlasBoardShopPhase19ACatalogAudit
         invalid += GetCount(categories, "board_theme") != 3 ? 1 : 0;
         invalid += GetCount(categories, "dice_skin") != 6 ? 1 : 0;
         invalid += GetCount(categories, "pawn") != 4 ? 1 : 0;
-        invalid += GetCount(categories, "profile_frame") != 4 ? 1 : 0;
+        invalid += GetCount(categories, "profile_frame") != 10 ? 1 : 0;
         invalid += GetCount(categories, "emote") != 4 ? 1 : 0;
         invalid += categories.ContainsKey("animation_pack") ? 1 : 0;
         foreach (string id in new [] {
-            "frame_halloween", "frame_new_year", "frame_turkiye", "frame_usa" })
+            "frame_halloween", "frame_new_year", "frame_turkiye", "frame_usa",
+            "frame_neon_circuit", "frame_royal_crown", "frame_ocean_tide",
+            "frame_sakura_blossom", "frame_cosmic_nova", "frame_forest_spirit" })
             if (!AtlasBoardShopProfileFrameArt.IsSupported(id)) invalid++;
         // Existing server product must suppress only its matching local draft.
         AtlasBoardStorefrontItem trusted = new AtlasBoardStorefrontItem {
@@ -47,12 +49,12 @@ public static class AtlasBoardShopPhase19ACatalogAudit
             PreviewOnly = false, GoldPrice = 999 };
         List<AtlasBoardStorefrontItem> merged =
             AtlasBoardShopContentDraft.MergeForDisplay(new [] { trusted });
-        invalid += merged.Count != 21 ? 1 : 0;
+        invalid += merged.Count != 27 ? 1 : 0;
         invalid += !object.ReferenceEquals(merged[0], trusted) ? 1 : 0;
         invalid += merged.FindAll(x => x.ItemId == "frame_halloween").Count != 1 ? 1 : 0;
-        invalid += merged.FindAll(x => x.PreviewOnly).Count != 20 ? 1 : 0;
-        if (invalid == 0 && rows.Count == 21)
-            Debug.Log("ATB_PHASE19A_CATALOG_QA PASS items=21 boards=3 dice=6 pawns=4 frames=4 emotes=4 languages=7 currency=gold previewOnly=true backendPurchase=OPEN profileArt=4 mergedCatalog=true");
+        invalid += merged.FindAll(x => x.PreviewOnly).Count != 26 ? 1 : 0;
+        if (invalid == 0 && rows.Count == 27)
+            Debug.Log("ATB_PHASE19I_CATALOG_QA PASS items=27 boards=3 dice=6 pawns=4 frames=10 emotes=4 languages=7 currency=gold profileArt=10 mergedCatalog=true");
         else
             Debug.LogError("ATB_PHASE19A_CATALOG_QA FAIL invalid=" + invalid + " items=" + rows.Count);
     }

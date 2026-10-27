@@ -17,6 +17,7 @@ public class AtlasLobbySettings
 {
     public string MapId = "Turkey";
     public string ThemeId = "classic_table";
+    public string BoardThemeId = "default_board";
     public int RoundLimit = 20;
     public int MaxPlayers = 4;
     public int RequiredHumanPlayers = 1;

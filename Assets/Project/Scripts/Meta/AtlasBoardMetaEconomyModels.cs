@@ -46,6 +46,7 @@ public sealed class AtlasBoardMetaEconomySnapshot
     public bool IsSteamAccount;
     public bool IsDeveloperTester;
     public string EquippedFrameId;
+    public string EquippedBoardId;
     public long DailyClaimedAtMs;
     public string ErrorKey;
     public string TechnicalMessage;

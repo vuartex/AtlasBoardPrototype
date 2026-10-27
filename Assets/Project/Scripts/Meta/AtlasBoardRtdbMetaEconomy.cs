@@ -26,6 +26,9 @@ public static class AtlasBoardRtdbMetaEconomy
     private const string NewYear = "frame_new_year";
     private const string Turkiye = "frame_turkiye";
     private const string Usa = "frame_usa";
+    private const string Midnight = "board_midnight_azure";
+    private const string Maple = "board_ember_maple";
+    private const string Aurora = "board_arctic_aurora";
 
     [Serializable]
     private sealed class Wallet
@@ -42,6 +45,12 @@ public static class AtlasBoardRtdbMetaEconomy
         public bool frame_new_year;
         public bool frame_turkiye;
         public bool frame_usa;
+        public bool frame_neon_circuit;
+        public bool frame_royal_crown;
+        public bool frame_ocean_tide;
+        public bool frame_sakura_blossom;
+        public bool frame_cosmic_nova;
+        public bool frame_forest_spirit;
 
         public bool IsOwned(string id)
         {
@@ -51,6 +60,12 @@ public static class AtlasBoardRtdbMetaEconomy
                 case NewYear: return frame_new_year;
                 case Turkiye: return frame_turkiye;
                 case Usa: return frame_usa;
+                case "frame_neon_circuit": return frame_neon_circuit;
+                case "frame_royal_crown": return frame_royal_crown;
+                case "frame_ocean_tide": return frame_ocean_tide;
+                case "frame_sakura_blossom": return frame_sakura_blossom;
+                case "frame_cosmic_nova": return frame_cosmic_nova;
+                case "frame_forest_spirit": return frame_forest_spirit;
                 default: return false;
             }
         }
@@ -63,6 +78,12 @@ public static class AtlasBoardRtdbMetaEconomy
                 case NewYear: frame_new_year = owned; break;
                 case Turkiye: frame_turkiye = owned; break;
                 case Usa: frame_usa = owned; break;
+                case "frame_neon_circuit": frame_neon_circuit = owned; break;
+                case "frame_royal_crown": frame_royal_crown = owned; break;
+                case "frame_ocean_tide": frame_ocean_tide = owned; break;
+                case "frame_sakura_blossom": frame_sakura_blossom = owned; break;
+                case "frame_cosmic_nova": frame_cosmic_nova = owned; break;
+                case "frame_forest_spirit": frame_forest_spirit = owned; break;
             }
         }
 
@@ -71,15 +92,47 @@ public static class AtlasBoardRtdbMetaEconomy
             return (frame_halloween ? 350 : 0) +
                    (frame_new_year ? 350 : 0) +
                    (frame_turkiye ? 400 : 0) +
-                   (frame_usa ? 400 : 0);
+                   (frame_usa ? 400 : 0) +
+                   (frame_neon_circuit ? 450 : 0) +
+                   (frame_royal_crown ? 500 : 0) +
+                   (frame_ocean_tide ? 450 : 0) +
+                   (frame_sakura_blossom ? 475 : 0) +
+                   (frame_cosmic_nova ? 550 : 0) +
+                   (frame_forest_spirit ? 475 : 0);
         }
     }
 
     [Serializable]
-    private sealed class Inventory { public Frames profile_frames = new Frames(); }
+    private sealed class Boards
+    {
+        public bool board_midnight_azure;
+        public bool board_ember_maple;
+        public bool board_arctic_aurora;
+        public bool IsOwned(string id) =>
+            id == Midnight && board_midnight_azure ||
+            id == Maple && board_ember_maple ||
+            id == Aurora && board_arctic_aurora;
+        public void SetOwned(string id, bool value)
+        {
+            if (id == Midnight) board_midnight_azure = value;
+            if (id == Maple) board_ember_maple = value;
+            if (id == Aurora) board_arctic_aurora = value;
+        }
+        public int RefundAmount() =>
+            (board_midnight_azure ? 1200 : 0) +
+            (board_ember_maple ? 1500 : 0) +
+            (board_arctic_aurora ? 1700 : 0);
+    }
 
     [Serializable]
-    private sealed class Equipped { public string profileFrameId = ""; }
+    private sealed class Inventory
+    {
+        public Frames profile_frames = new Frames();
+        public Boards boards = new Boards();
+    }
+
+    [Serializable]
+    private sealed class Equipped { public string profileFrameId = ""; public string boardId = ""; }
 
     [Serializable]
     private sealed class DailyReward { public long lastClaimAt; }
@@ -179,6 +232,15 @@ public static class AtlasBoardRtdbMetaEconomy
             case NewYear: return 350;
             case Turkiye:
             case Usa: return 400;
+            case "frame_neon_circuit": return 450;
+            case "frame_royal_crown": return 500;
+            case "frame_ocean_tide": return 450;
+            case "frame_sakura_blossom": return 475;
+            case "frame_cosmic_nova": return 550;
+            case "frame_forest_spirit": return 475;
+            case Midnight: return 1200;
+            case Maple: return 1500;
+            case Aurora: return 1700;
             default: return 0;
         }
     }
@@ -226,11 +288,14 @@ public static class AtlasBoardRtdbMetaEconomy
             snapshot.Gold = document.wallet.gold;
             snapshot.AtlasCoin = document.wallet.atlasCoin;
             snapshot.EquippedFrameId = document.equipped.profileFrameId ?? "";
+            snapshot.EquippedBoardId = document.equipped.boardId ?? "";
             snapshot.DailyClaimedAtMs = document.dailyReward.lastClaimAt;
 
             foreach (AtlasBoardStorefrontItem item in snapshot.Items)
             {
-                item.Owned = document.inventory.profile_frames.IsOwned(item.ItemId);
+                item.Owned = IsBoard(item.ItemId)
+                    ? document.inventory.boards.IsOwned(item.ItemId)
+                    : document.inventory.profile_frames.IsOwned(item.ItemId);
             }
 
             Debug.Log("ATB_PHASE19E_RTDB_WALLET ready=true guest=" +
@@ -261,6 +326,9 @@ public static class AtlasBoardRtdbMetaEconomy
         return await MutateAsync("DAILY", "", false);
     }
 
+    public static bool IsBoard(string itemId) =>
+        itemId == Midnight || itemId == Maple || itemId == Aurora;
+
     public static async Task<AtlasBoardMetaEconomyOperationResult> BuyAsync(
         string itemId, string paymentMethod)
     {
@@ -275,6 +343,13 @@ public static class AtlasBoardRtdbMetaEconomy
         if (!string.IsNullOrEmpty(itemId) && Price(itemId) <= 0)
             return Failure("meta.error.invalid_purchase");
         return await MutateAsync("EQUIP", itemId ?? "", false);
+    }
+
+    public static async Task<AtlasBoardMetaEconomyOperationResult> EquipBoardAsync(string itemId)
+    {
+        if (!string.IsNullOrEmpty(itemId) && !IsBoard(itemId))
+            return Failure("meta.error.invalid_purchase");
+        return await MutateAsync("EQUIP_BOARD", itemId ?? "", false);
     }
 
     public static async Task<AtlasBoardMetaEconomyOperationResult> ResetDevAsync()
@@ -331,12 +406,13 @@ public static class AtlasBoardRtdbMetaEconomy
                         }
                         break;
                     case "PURCHASE":
-                        if (doc.inventory.profile_frames.IsOwned(itemId))
+                        if (IsBoard(itemId) ? doc.inventory.boards.IsOwned(itemId) : doc.inventory.profile_frames.IsOwned(itemId))
                             return Failure("meta.error.already_owned");
                         if (doc.wallet.gold < Price(itemId))
                             return Failure("meta.error.insufficient_funds");
                         doc.wallet.gold -= Price(itemId);
-                        doc.inventory.profile_frames.SetOwned(itemId, true);
+                        if (IsBoard(itemId)) doc.inventory.boards.SetOwned(itemId, true);
+                        else doc.inventory.profile_frames.SetOwned(itemId, true);
                         break;
                     case "EQUIP":
                         if (!string.IsNullOrEmpty(itemId) &&
@@ -350,9 +426,20 @@ public static class AtlasBoardRtdbMetaEconomy
                             };
                         doc.equipped.profileFrameId = itemId;
                         break;
+                    case "EQUIP_BOARD":
+                        if (!string.IsNullOrEmpty(itemId) && !doc.inventory.boards.IsOwned(itemId))
+                            return Failure("meta.error.not_owned");
+                        if (doc.equipped.boardId == itemId)
+                            return new AtlasBoardMetaEconomyOperationResult
+                            { Success = true, IdempotentReplay = true,
+                              ItemId = itemId, Type = "EQUIP_BOARD" };
+                        doc.equipped.boardId = itemId;
+                        break;
                     case "RESET_PURCHASES":
-                        doc.wallet.gold += doc.inventory.profile_frames.RefundAmount();
+                        doc.wallet.gold += doc.inventory.profile_frames.RefundAmount() + doc.inventory.boards.RefundAmount();
                         doc.inventory.profile_frames = new Frames();
+                        doc.inventory.boards = new Boards();
+                        doc.equipped.boardId = "";
                         doc.equipped.profileFrameId = "";
                         doc.dev.resetCount++;
                         break;
@@ -428,12 +515,15 @@ public static class AtlasBoardRtdbMetaEconomy
     {
         AtlasBoardMetaEconomySnapshot result = new AtlasBoardMetaEconomySnapshot();
         result.DisplayName = AtlasBoardCanonicalPlayerIdentity.CurrentDisplayName;
-        string[] ids = { Halloween, NewYear, Turkiye, Usa };
+        string[] ids = { Halloween, NewYear, Turkiye, Usa,
+            "frame_neon_circuit", "frame_royal_crown", "frame_ocean_tide",
+            "frame_sakura_blossom", "frame_cosmic_nova", "frame_forest_spirit",
+            Midnight, Maple, Aurora };
         foreach (string id in ids)
         {
             result.Items.Add(new AtlasBoardStorefrontItem
             {
-                ItemId = id, ItemType = "profile_frame",
+                ItemId = id, ItemType = IsBoard(id) ? "board_theme" : "profile_frame",
                 DisplayName = AtlasBoardShopContentDraft.LocalizedName(id, "en"),
                 GoldPrice = Price(id), AtlasCoinPrice = 0,
                 SortOrder = 200, CatalogVersion = 19,
@@ -477,12 +567,26 @@ public static class AtlasBoardRtdbMetaEconomy
             EconomyPath(identity.Uid), null, null, true);
         if (response.Status != 200)
             throw new InvalidOperationException("RTDB_HTTP_" + response.Status);
+        Economy doc = string.IsNullOrWhiteSpace(response.Body) ||
+                      response.Body.Trim() == "null"
+            ? null : JsonUtility.FromJson<Economy>(response.Body);
+        // In-place schema-1 extension. Existing v5.49.10 profile purchases
+        // remain intact; legacy wallets without boards are upgraded only on
+        // their next otherwise-authorized ETag-protected transaction.
+        if (doc != null)
+        {
+            if (doc.inventory == null) doc.inventory = new Inventory();
+            if (doc.inventory.profile_frames == null)
+                doc.inventory.profile_frames = new Frames();
+            if (doc.inventory.boards == null) doc.inventory.boards = new Boards();
+            if (doc.equipped == null) doc.equipped = new Equipped();
+            if (doc.equipped.boardId == null) doc.equipped.boardId = "";
+            if (doc.equipped.profileFrameId == null) doc.equipped.profileFrameId = "";
+        }
         return new ReadState
         {
             ETag = string.IsNullOrEmpty(response.ETag) ? "null_etag" : response.ETag,
-            Document = string.IsNullOrWhiteSpace(response.Body) ||
-                       response.Body.Trim() == "null"
-                ? null : JsonUtility.FromJson<Economy>(response.Body)
+            Document = doc
         };
     }
 

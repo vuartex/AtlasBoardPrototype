@@ -17,8 +17,8 @@ public static class AtlasBoardPhase19BProfileCommerceAudit
         bool gated = rows.All(x => x.PreviewOnly && !x.Owned);
         bool methods = typeof(AtlasBoardMetaEconomyBridge).GetMethod("PurchaseAsync") != null &&
                        typeof(AtlasBoardAccountService).GetMethod("UpdatePublicProfileAsync") != null;
-        bool pass = frames == 4 && dice == 6 && distinct && gated &&
-                    rows.Count == 21 && AtlasBoardShopContentDraft.HasCompleteLanguages() && methods;
+        bool pass = frames == 10 && dice == 6 && distinct && gated &&
+                    rows.Count == 27 && AtlasBoardShopContentDraft.HasCompleteLanguages() && methods;
         string text = "ATB_PHASE19B_PROFILE_QA " + (pass ? "PASS" : "FAIL") +
             " items=" + rows.Count + " frames=" + frames + " diceDrafts=" + dice +
             " unique=" + distinct + " previewGated=" + gated +

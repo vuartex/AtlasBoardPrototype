@@ -17,10 +17,6 @@ public static class AtlasBoardRtdbCasualLobbyTransport
     private const string Database =
         "https://atlasboard-usa-default-rtdb.europe-west1.firebasedatabase.app";
     private static readonly System.Random CodeRandom = new System.Random();
-    // RTDB joinCodes.expiresAt must be <= Firebase server now + 2h.
-    // Device UTC may be ahead of Firebase server time: never write the
-    // exact 2h ceiling. Existing 30-minute live-room renewal is retained.
-    private const long InviteCodeValidityMs = 115L * 60L * 1000L;
     // Room codes are also persisted at /roomMeta/{roomId}/inviteCode.
     // These caches only avoid redundant REST reads; they are never the authority.
     private static readonly Dictionary<string, string> ActiveCode =
@@ -35,7 +31,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
 
     [Serializable] private sealed class Request
     {
-        public string lobbyId, roomCode, password, mapId, themeId, pawnCosmeticId;
+        public string lobbyId, roomCode, password, mapId, themeId, boardThemeId, pawnCosmeticId;
         public string[] seatPolicies;
         public int slotIndex, maxPlayers, roundLimit, expectedSettingsRevision;
         public bool balancedDevelopment, doublesEnabled, tripleDoublePenaltyEnabled, ready;
@@ -1036,7 +1032,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             {
                 roomId = room,
                 hostUid = uid,
-                expiresAt = now + InviteCodeValidityMs
+                expiresAt = now + 7200000L
             };
             Response reserved = await Send(
                 "PUT", "joinCodes/" + candidate, token,
@@ -1061,8 +1057,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
                         ? "permission_denied_or_token_invalid"
                         : reserved.Code == 0 ? "network_unavailable"
                         : "unexpected_response") +
-                    " check=deployed_joinCodes_rules_or_client_clock " +
-                    "expiry_margin_minutes=5");
+                    " check=deployed_joinCodes_rules");
                 return Failure(
                     "lobby.error.service_unavailable",
                     "RTDB invite code reservation failed (HTTP " +
@@ -1156,7 +1151,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
     {
         AtlasLobbySettings settings = new AtlasLobbySettings
         {
-            MapId=meta.mapId,ThemeId=meta.themeId, RoundLimit=meta.roundLimit,
+            MapId=meta.mapId,ThemeId=meta.themeId, BoardThemeId="default_board", RoundLimit=meta.roundLimit,
             MaxPlayers=meta.maxPlayers,RequiredHumanPlayers=1,LocalHumanCount=1,
             RemoteHumanCount=0,RemoteReadyRequiredCount=0, OpenOnlineSeatCount=meta.maxPlayers-1,
             BotCount=0
@@ -1192,51 +1187,6 @@ public static class AtlasBoardRtdbCasualLobbyTransport
     {
         if (string.IsNullOrWhiteSpace(room))
             return Failure("lobby.error.not_joinable","Missing room ID.");
-
-        // A cold app restart discards CurrentLobbyId but should not discard
-        // an already-admitted Firebase UID's room membership. A fresh JOIN
-        // request cannot be accepted during InMatch (only Waiting polls join
-        // requests). Read the OWNER-ONLY membership node first and, ONLY when
-        // it is still active and the canonical snapshot contains this exact
-        // UID, return the snapshot to the existing active-match reconnect UI.
-        // Name equality is deliberately NOT an authorization mechanism.
-        Response existingResponse = await Send("GET", "roomMembers/" +
-            Safe(room) + "/" + Safe(uid), token);
-        Member existingMember = existingResponse.Ok
-            ? Parse<Member>(existingResponse.Body) : null;
-        if (existingMember != null && existingMember.active &&
-            string.Equals(existingMember.uid, uid, StringComparison.Ordinal))
-        {
-            Response stateResponse = await Send("GET", "roomState/" +
-                Safe(room), token);
-            State state = stateResponse.Ok
-                ? Parse<State>(stateResponse.Body) : null;
-            AtlasLobbySnapshot previous = state != null
-                ? Parse<AtlasLobbySnapshot>(state.snapshotJson) : null;
-            if (previous != null && previous.Members != null &&
-                previous.Members.Exists(seat => seat != null && seat.Active &&
-                    string.Equals(seat.AccountId, uid, StringComparison.Ordinal)))
-            {
-                Response roomResponse = await Send("GET", "roomMeta/" +
-                    Safe(room), token);
-                Meta m = roomResponse.Ok ? Parse<Meta>(roomResponse.Body) : null;
-                if (m != null && !m.closed)
-                {
-                    previous.TransportRevision = Math.Max(
-                        previous.TransportRevision, state.revision);
-                    Debug.Log("ATB_RTDB_REJOIN mode=existing_member " +
-                        "uid_verified=true match_active=" +
-                        (previous.LifecycleState == AtlasRoomLifecycleState.InMatch ||
-                         previous.LifecycleState == AtlasRoomLifecycleState.Starting) +
-                        " fresh_join=false");
-                    return AtlasLobbyOperationResult.Ok(previous,
-                        m.inviteCode ?? "", true);
-                }
-                return Failure("lobby.error.closed", "This room has closed.");
-            }
-            Debug.LogWarning("ATB_RTDB_REJOIN mode=existing_member " +
-                "snapshot_not_authoritative=true action=normal_join");
-        }
         // Private members may not read roomMeta until admitted. Join using a code
         // whose RTDB rule limits code reads to authenticated players.
         Join request=new Join {uid=uid,displayName=CleanName(name),
@@ -1252,13 +1202,6 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             await Task.Delay(600);
             Response memberResponse=await Send("GET","roomMembers/"+Safe(room)+"/"+Safe(uid),token);
             Member member=Parse<Member>(memberResponse.Body);
-            if(memberResponse.Ok && member != null && !member.active &&
-               member.joinedAt == request.requestedAt &&
-               string.Equals(member.displayName, "ROOM_FULL", StringComparison.Ordinal))
-            {
-                Debug.Log("ATB_RTDB_JOIN_REJECTED reason=room_full source=host");
-                return Failure("lobby.error.room_full", "Room is full. No online seat available.");
-            }
             if(!memberResponse.Ok || member==null || !member.active) continue;
             Response stateResponse=await Send("GET","roomState/"+Safe(room),token);
             State state=Parse<State>(stateResponse.Body);
@@ -1421,24 +1364,6 @@ public static class AtlasBoardRtdbCasualLobbyTransport
                 await Send("DELETE", "joinRequests/" + Safe(room) + "/" + Safe(join.uid), token);
                 continue;
             }
-            // A prior full-room denial is an inactive, owner-writable member
-            // marker. Clear ONLY that marker before processing a fresh request;
-            // RTDB joinedAt is immutable across overwrites, and a stale marker
-            // must never block a later legitimate admission.
-            Response oldMembership = await Send("GET", "roomMembers/" + Safe(room) +
-                "/" + Safe(join.uid), token);
-            Member priorMember = oldMembership.Ok ? Parse<Member>(oldMembership.Body) : null;
-            if (priorMember != null && !priorMember.active &&
-                string.Equals(priorMember.displayName, "ROOM_FULL", StringComparison.Ordinal))
-            {
-                Response removed = await Send("DELETE", "roomMembers/" + Safe(room) +
-                    "/" + Safe(join.uid), token);
-                if (!removed.Ok)
-                {
-                    Debug.LogWarning("ATB_RTDB_JOIN stale_full_cleanup_failed=true");
-                    continue;
-                }
-            }
             // The request is authenticated by RTDB rules as its own UID.
             AtlasLobbyMemberSnapshot seat=null;
             foreach(var member in snap.Members)if(member!=null && member.Active && member.AccountId==join.uid){seat=member;break;}
@@ -1453,23 +1378,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             foreach(var member in snap.Members)
                 if(member!=null && !member.Active && member.SeatMode==AtlasLobbySeatMode.OpenOnline)
                 { seat=member; break; }
-            if(seat==null)
-            {
-                // Explicit host rejection uses an existing host-writable
-                // inactive membership record; caller may read only its own UID.
-                // No RTDB security-rule changes or global room disclosure.
-                Member full = new Member {
-                    uid=join.uid,role="remoteHuman",displayName="ROOM_FULL",
-                    active=false,joinedAt=join.requestedAt
-                };
-                if(await Write("PUT","roomMembers/"+Safe(room)+"/"+Safe(join.uid),
-                    token,JsonUtility.ToJson(full)))
-                {
-                    await Send("DELETE","joinRequests/"+Safe(room)+"/"+Safe(join.uid),token);
-                    Debug.Log("ATB_RTDB_JOIN rejected=true reason=room_full");
-                }
-                continue;
-            }
+            if(seat==null)continue;
             // Never accept a bare client-provided Guest nickname as proof of
             // identity. Bind Guest display names to the authenticated UID in
             // the host's admission path and reject a room-local name conflict.
@@ -1602,10 +1511,28 @@ public static class AtlasBoardRtdbCasualLobbyTransport
 
         if(operation=="lobbyUpdateSettings")
         {
+            // The authenticated host cannot select a cosmetic they do not
+            // own. The room member may view it but only the owner can apply.
+            string boardId = string.IsNullOrEmpty(req.boardThemeId)
+                ? "default_board" : req.boardThemeId;
+            if (!AtlasBoardBoardThemeVisuals.IsValid(boardId))
+                return Failure("lobby.error.invalid_settings", "Unknown BoardThemeId.");
+            if (boardId != "default_board")
+            {
+                Response entitlement = await Send("GET",
+                    "users/" + Safe(uid) + "/metaEconomy/inventory/boards/" + Safe(boardId), token);
+                if (!entitlement.Ok || entitlement.Body == null ||
+                    entitlement.Body.Trim() != "true")
+                    return Failure("lobby.error.access_denied",
+                        "Board theme is not owned by the authenticated host.");
+            }
             // Idempotent host settings saves avoid consuming Spark writes or
             // incrementing SettingsRevision just because the UI re-opened.
             if (string.Equals(snap.Settings.MapId, req.mapId, StringComparison.Ordinal) &&
                 string.Equals(snap.Settings.ThemeId, req.themeId, StringComparison.Ordinal) &&
+                string.Equals(snap.Settings.BoardThemeId ?? "default_board",
+                    string.IsNullOrEmpty(req.boardThemeId) ? "default_board" : req.boardThemeId,
+                    StringComparison.Ordinal) &&
                 snap.Settings.RoundLimit == Mathf.Clamp(req.roundLimit,1,100) &&
                 snap.Settings.BalancedDevelopment == req.balancedDevelopment &&
                 snap.Settings.DoublesEnabled == req.doublesEnabled &&
@@ -1615,6 +1542,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             }
             snap.Settings.MapId=req.mapId;
             snap.Settings.ThemeId=req.themeId;
+            snap.Settings.BoardThemeId=string.IsNullOrEmpty(req.boardThemeId) ? "default_board" : req.boardThemeId;
             snap.Settings.RoundLimit=Mathf.Clamp(req.roundLimit,1,100);
             snap.Settings.BalancedDevelopment=req.balancedDevelopment;
             snap.Settings.DoublesEnabled=req.doublesEnabled;
@@ -2332,7 +2260,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             index.expiresAt <= now + 45L * 60L * 1000L)
         {
             Code updated = new Code { roomId = room, hostUid = uid,
-                expiresAt = now + InviteCodeValidityMs };
+                expiresAt = now + 7200000L };
             await Write("PUT", "joinCodes/" + Safe(code), token,
                 JsonUtility.ToJson(updated));
         }

@@ -95,10 +95,10 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         idToken;
 
 
-    public async Task<bool> EnsureOnlineIdentityAsync(bool allowAndroidGuestSignIn = false)
+    public async Task<bool> EnsureOnlineIdentityAsync()
     {
         AtlasLobbyOperationResult result =
-            await EnsureIdentityAsync(allowAndroidGuestSignIn);
+            await EnsureIdentityAsync();
 
 
         return result.Success;
@@ -378,7 +378,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         AtlasBoardLobbySelection selection)
     {
         AtlasLobbyOperationResult init =
-            await EnsureIdentityAsync(allowAndroidGuestSignIn: true);
+            await EnsureIdentityAsync();
 
 
         if (!init.Success)
@@ -425,7 +425,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         float listStartedAt = Time.realtimeSinceStartup;
 #endif
         AtlasLobbyOperationResult init =
-            await EnsureIdentityAsync(allowAndroidGuestSignIn: true);
+            await EnsureIdentityAsync();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         float identityMilliseconds =
             (Time.realtimeSinceStartup - listStartedAt) * 1000f;
@@ -645,7 +645,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         AtlasBoardLobbySelection selection)
     {
         AtlasLobbyOperationResult init =
-            await EnsureIdentityAsync(allowAndroidGuestSignIn: true);
+            await EnsureIdentityAsync();
 
 
         if (!init.Success)
@@ -689,7 +689,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         string password = "")
     {
         AtlasLobbyOperationResult init =
-            await EnsureIdentityAsync(allowAndroidGuestSignIn: true);
+            await EnsureIdentityAsync();
 
 
         if (!init.Success)
@@ -749,7 +749,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         string password = "")
     {
         AtlasLobbyOperationResult init =
-            await EnsureIdentityAsync(allowAndroidGuestSignIn: true);
+            await EnsureIdentityAsync();
         if (!init.Success) return init;
 
 
@@ -888,6 +888,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 snapshot.Settings.ThemeId,
                 selection.ThemeId,
                 StringComparison.Ordinal) ||
+            !string.Equals(snapshot.Settings.BoardThemeId ?? "default_board",
+                selection.BoardThemeId ?? "default_board", StringComparison.Ordinal) ||
             snapshot.Settings.RoundLimit != selection.RoundLimit ||
             snapshot.Settings.BalancedDevelopment != selection.BalancedDevelopment ||
             snapshot.Settings.DoublesEnabled != selection.DoublesEnabled ||
@@ -907,6 +909,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                     expectedSettingsRevision = snapshot.SettingsRevision,
                     mapId = selection.MapId,
                     themeId = selection.ThemeId,
+                    boardThemeId = selection.BoardThemeId ?? "default_board",
                     roundLimit = selection.RoundLimit,
                     balancedDevelopment = selection.BalancedDevelopment,
                     doublesEnabled = selection.DoublesEnabled,
@@ -1241,6 +1244,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         return before != null && after != null &&
             string.Equals(before.MapId, after.MapId, StringComparison.Ordinal) &&
             string.Equals(before.ThemeId, after.ThemeId, StringComparison.Ordinal) &&
+            string.Equals(before.BoardThemeId ?? "default_board", after.BoardThemeId ?? "default_board", StringComparison.Ordinal) &&
             before.RoundLimit == after.RoundLimit &&
             before.MaxPlayers == after.MaxPlayers &&
             before.BalancedDevelopment == after.BalancedDevelopment &&
@@ -1334,16 +1338,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
-    private static string AndroidQaContext()
-    {
-#if UNITY_ANDROID && !UNITY_EDITOR && DEVELOPMENT_BUILD
-        return AtlasBoardAndroidFpsDiagnostics.QaTraceSuffix;
-#else
-        return string.Empty;
-#endif
-    }
-
-    private async Task<AtlasLobbyOperationResult> EnsureIdentityAsync(bool allowAndroidGuestSignIn = false)
+    private async Task<AtlasLobbyOperationResult> EnsureIdentityAsync()
     {
         // Never keep using an old Firebase UID/token after account switching.
         // The offline Guest is not a production RTDB authentication principal.
@@ -1428,18 +1423,6 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             await accountService.EnsureInitializedAsync();
 
 
-            // On Android, Firebase may restore its cached anonymous principal
-            // after the app's very first scene starts. Do not race restoration
-            // with a second SignInAnonymouslyAsync that would strand the seat.
-            if (Application.platform == RuntimePlatform.Android &&
-                allowAndroidGuestSignIn && !accountService.IsSignedIn)
-            {
-                await Task.Delay(1200);
-                if (accountService.IsSignedIn)
-                    Debug.Log("ATB_ANDROID_GUEST_RESTORE existing_principal=true" +
-                        AndroidQaContext());
-            }
-
             // Distinguish an absent email/Steam Firebase session from an
             // Anonymous provider error instead of losing the actual cause.
             string anonymousAuthFailure = string.Empty;
@@ -1455,33 +1438,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 bool actualSteamSession = steam != null &&
                     steam.IsSteamProviderActive &&
                     steam.SteamInitialized && steam.SteamId != 0;
-                // Android Casual gets an RTDB-only Firebase identity solely
-                // after the player explicitly requests an online room action.
-                // The passive boot/loading identity check remains opt-out.
-                bool androidCasualRequested =
-                    Application.platform == RuntimePlatform.Android &&
-                    allowAndroidGuestSignIn;
-                if (androidCasualRequested &&
-                    PlayerPrefs.HasKey("AtlasBoard.Android.CasualUidMarker.v1"))
-                {
-                    Debug.LogWarning("ATB_ANDROID_GUEST_RESTORE result=missing_persisted_auth " +
-                        "new_uid_blocked=true" + AndroidQaContext());
-                    return AtlasLobbyOperationResult.Fail(
-                        "account.error.authentication_required",
-                        "Previous Android Guest session could not be restored. " +
-                        "A new anonymous UID was NOT created; reconnect needs original Firebase Auth identity.");
-                }
-                if ((actualSteamSession || androidCasualRequested) &&
-                    accountService.IsInitialized)
+                if (actualSteamSession && accountService.IsInitialized)
                 {
                     try
                     {
                         await FirebaseAuth.DefaultInstance.SignInAnonymouslyAsync();
                         Debug.Log("ATB_RTDB_CASUAL_AUTH provider=firebase_anonymous " +
-                                  "steam_session=" + actualSteamSession +
-                                  " android_guest=" + androidCasualRequested +
-                                  " steam_link_verified=false rewards=false" +
-                                  AndroidQaContext());
+                                  "steam_session=true steam_link_verified=false " +
+                                  "rewards=false");
                     }
                     catch (Exception error)
                     {
@@ -1501,7 +1465,6 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                             "check=Authentication_Sign-in_method_Anonymous " +
                             "mode=" +
                             (UsingLocalEmulators ? "emulators" : "live_spark") +
-                            AndroidQaContext() +
                             " detail=" + AtlasBoardFrontendErrorCodes.SanitizeForLog(error.Message));
                     }
                 }
@@ -1515,7 +1478,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                     "Online Private Rooms require Firebase Auth. " +
                     (string.IsNullOrWhiteSpace(anonymousAuthFailure)
                         ? "Sign in with an existing Firebase account, or enable " +
-                          "Anonymous Auth for Casual rooms."
+                          "Anonymous Auth for Steam Casual rooms."
                         : anonymousAuthFailure +
                           " Check Firebase Console > Authentication > " +
                           "Sign-in method > Anonymous, and verify network access.") +
@@ -1535,32 +1498,6 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 !string.IsNullOrWhiteSpace(idToken) &&
                 !string.IsNullOrWhiteSpace(currentAccountId);
             if (initialized) nextIdentityRefreshAt = Time.unscaledTime + 1200f;
-            if (initialized && Application.platform == RuntimePlatform.Android &&
-                FirebaseAuth.DefaultInstance.CurrentUser != null &&
-                FirebaseAuth.DefaultInstance.CurrentUser.IsAnonymous)
-            {
-                // Local continuity marker only; NOT a credential. Do not log UID.
-                string marker = AtlasBoardGuestIdentity.NameForAuthenticatedUid(currentAccountId);
-                string prior = PlayerPrefs.GetString("AtlasBoard.Android.CasualUidMarker.v1", "");
-                if (!string.IsNullOrEmpty(prior) && prior != marker)
-                {
-                    initialized = false;
-                    idToken = currentAccountId = string.Empty;
-                    Debug.LogWarning("ATB_ANDROID_GUEST_RESTORE result=uid_changed " +
-                        "reconnect_blocked=true" + AndroidQaContext());
-                    return AtlasLobbyOperationResult.Fail(
-                        "account.error.authentication_required",
-                        "Android Guest UID changed; original online seat was preserved rather than reassigned.");
-                }
-                if (string.IsNullOrEmpty(prior))
-                {
-                    PlayerPrefs.SetString("AtlasBoard.Android.CasualUidMarker.v1", marker);
-                    PlayerPrefs.Save();
-                }
-                Debug.Log("ATB_ANDROID_GUEST_RESTORE result=stable_uid_marker" +
-                    " profile_name_source=authenticated_uid" +
-                    " reconnect_requires_matching_uid=true" + AndroidQaContext());
-            }
 
 
             return initialized
@@ -2092,6 +2029,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         {
             mapId = selection.MapId,
             themeId = selection.ThemeId,
+            boardThemeId = selection.BoardThemeId ?? "default_board",
             roundLimit = selection.RoundLimit,
             maxPlayers = selection.PlayerCount,
             balancedDevelopment = selection.BalancedDevelopment,
@@ -2132,11 +2070,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 idToken, currentLobbyId, currentSnapshot,
                 AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession
                     ? AtlasBoardGuestIdentity.DisplayName
-                    : Application.platform == RuntimePlatform.Android &&
-                      FirebaseAuth.DefaultInstance.CurrentUser != null &&
-                      FirebaseAuth.DefaultInstance.CurrentUser.IsAnonymous
-                        ? AtlasBoardGuestIdentity.NameForAuthenticatedUid(currentAccountId)
-                        : AtlasBoardCanonicalPlayerIdentity.CurrentDisplayName);
+                    : AtlasBoardCanonicalPlayerIdentity.CurrentDisplayName);
         }
 
 
@@ -2609,6 +2543,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 {
                     MapId = wire.mapId ?? "Turkey",
                     ThemeId = wire.themeId ?? "classic_table",
+                    BoardThemeId = string.IsNullOrEmpty(wire.boardThemeId) ? "default_board" : wire.boardThemeId,
                     RoundLimit = wire.roundLimit,
                     MaxPlayers = wire.maxPlayers,
                     RequiredHumanPlayers = wire.requiredHumanPlayers,
@@ -3097,6 +3032,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         public string hostDisplayName;
         public string mapId;
         public string themeId;
+        public string boardThemeId;
         public int roundLimit;
         public int maxPlayers;
         public int occupiedPlayers;
@@ -3132,6 +3068,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     {
         public string mapId;
         public string themeId;
+        public string boardThemeId;
         public int roundLimit;
         public int maxPlayers;
         public bool balancedDevelopment;
@@ -3203,6 +3140,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         public int expectedSettingsRevision;
         public string mapId;
         public string themeId;
+        public string boardThemeId;
         public int roundLimit;
         public bool balancedDevelopment;
         public bool doublesEnabled;
@@ -3338,6 +3276,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         public int settingsRevision;
         public string mapId;
         public string themeId;
+        public string boardThemeId;
         public int roundLimit;
         public int maxPlayers;
         public int requiredHumanPlayers;

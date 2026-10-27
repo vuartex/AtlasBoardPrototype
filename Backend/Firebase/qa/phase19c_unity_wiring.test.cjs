@@ -19,6 +19,10 @@ const mirror = read('Assets/Project/Scripts/Online/Firebase/AtlasBoardRtdbUserPr
 const editor = read('Assets/Project/Editor/AtlasBoardPhase19CRtdbMetaAudit.cs');
 const header = read('Assets/Project/Scripts/UI/Menu/AtlasBoardCanonicalProfileHeader.cs');
 const roadmap = read('Assets/Project/Documentation/MASTER_ROADMAP.md');
+const frameArt = read('Assets/Project/Scripts/UI/Meta/AtlasBoardShopProfileFrameArt.cs');
+const boardArt = read('Assets/Project/Scripts/UI/Meta/AtlasBoardShopBoardPreviewArt.cs');
+const draft = read('Assets/Project/Scripts/Meta/AtlasBoardShopContentDraft.cs');
+const catalogAudit = read('Assets/Project/Scripts/QA/AtlasBoardShopPhase19ACatalogAudit.cs');
 // Complete owner project has this scene; slim ZIP QA can run before overlay.
 const sceneFile = path.join(root, 'Assets/Board_Prototype.unity');
 const scene = fs.existsSync(sceneFile) ? fs.readFileSync(sceneFile, 'utf8') : null;
@@ -80,4 +84,24 @@ check(header.includes('if (defaultAvatar != null) defaultAvatar.enabled = false;
 check(header.includes('if (defaultAvatar != null) defaultAvatar.enabled = true;') && header.includes('text.enabled = true;'), 'Default/reset restores original avatar image and V text');
 check(header.includes('RemoveTextAnchoredLegacyOverlays(text.rectTransform)') && header.includes('graphic.raycastTarget = false'), 'Legacy inset art is removed and full-size art never blocks input');
 check(roadmap.includes('v5.49.9') && roadmap.includes('tam avatar'), 'Roadmap records full-tile default-avatar replacement and owner acceptance');
-process.stdout.write(`ATB_PHASE19H_UNITY_WIRING_QA PASS assertions=${assertions} compile=UNITY_EDITOR_REQUIRED\n`);
+const sixNewProfiles = [
+  ['frame_neon_circuit', 450], ['frame_royal_crown', 500],
+  ['frame_ocean_tide', 450], ['frame_sakura_blossom', 475],
+  ['frame_cosmic_nova', 550], ['frame_forest_spirit', 475]
+];
+const economyWrite = rules.rules.users.$uid.metaEconomy['.write'];
+const inventoryRules = rules.rules.users.$uid.metaEconomy.inventory.profile_frames;
+for (const [id, gold] of sixNewProfiles) {
+  check(draft.includes(`new DraftRow("${id}", "profile_frame", ${gold},`), `${id}: seven-language draft and price`);
+  check(frameArt.includes(`itemId == "${id}"`) && frameArt.includes(`case "${id}":`), `${id}: original artwork and rendering branch`);
+  check(live.includes(`"${id}"`) && live.includes(`? ${gold} : 0`), `${id}: trusted C# catalog and refund price`);
+  check(Object.hasOwn(inventoryRules, id) && inventoryRules[id]['.validate'] === 'newData.isBoolean()', `${id}: RTDB owned flag is boolean-only`);
+  check(economyWrite.includes(`=== '${id}' ? ${gold} : 0`) && economyWrite.includes(`inventory/profile_frames/${id}`), `${id}: server-validated checkout price and entitlement transition`);
+}
+check(catalogAudit.includes('"profile_frame") != 10'), 'Catalog QA expects original four plus six frames');
+check(economyWrite.includes("!data.child('inventory/profile_frames/frame_neon_circuit').exists()"), 'Old four-frame wallet can add missing false flags without forging ownership');
+check(roadmap.includes('v5.49.10'), 'Roadmap records new live frame catalog and board handoff');
+check(boardArt.includes('NorthTile_') && boardArt.includes('SouthTile_') && boardArt.includes('WestTile_') && boardArt.includes('EastTile_'), 'Three boards have original 32-perimeter-tile preview art');
+check(ui.includes('PreviewBoard_') && ui.includes('AtlasBoardShopBoardPreviewArt.Create('), 'Boards render clickable previews through the existing Store UI');
+check(ui.includes('bool isBoard = AtlasBoardShopBoardPreviewArt.IsSupported(itemId);') && ui.includes('ShowFramePreview(item.ItemId)'), 'Boards share the existing inspect modal, never an extra manager');
+process.stdout.write(`ATB_PHASE19I_UNITY_WIRING_QA PASS assertions=${assertions} compile=UNITY_EDITOR_REQUIRED\n`);

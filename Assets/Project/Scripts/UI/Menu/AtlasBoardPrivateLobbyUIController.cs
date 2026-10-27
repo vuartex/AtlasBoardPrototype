@@ -190,6 +190,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
     private bool codeVisible;
     private bool lobbyPasswordVisible;
     private string lastKnownLobbyPassword = string.Empty;
+    // Canonical lobby BoardThemeId: one persistent dropdown in the existing
+    // More Settings panel. Never replicate Environment Theme or room creation.
+    private string selectedBoardThemeId = "default_board";
+    private AtlasBoardLobbyBoardThemePicker boardThemePicker;
     private bool backendBusy;
 
 
@@ -1109,6 +1113,59 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+    private void EnsureBoardThemePicker()
+    {
+        if (gameSettingsOverlay == null) return;
+        if (boardThemePicker == null)
+        {
+            boardThemePicker = gameSettingsOverlay.GetComponent<AtlasBoardLobbyBoardThemePicker>();
+            if (boardThemePicker == null)
+                boardThemePicker = gameSettingsOverlay.AddComponent<AtlasBoardLobbyBoardThemePicker>();
+            boardThemePicker.Initialize(gameSettingsOverlay.transform,
+                lobbyPasswordInput != null ? lobbyPasswordInput.transform : null,
+                gameSettingsCloseButton, OnBoardThemeSelected);
+        }
+        boardThemePicker.SelectWithoutNotify(selectedBoardThemeId);
+    }
+
+    private async System.Threading.Tasks.Task RefreshBoardThemeOwnershipAsync()
+    {
+        string beforeUid = AtlasBoardRtdbMetaEconomy.CurrentUid;
+        AtlasBoardMetaEconomySnapshot wallet = await AtlasBoardRtdbMetaEconomy.LoadAsync();
+        if (boardThemePicker == null || gameSettingsOverlay == null ||
+            !gameSettingsOverlay.activeInHierarchy ||
+            beforeUid != AtlasBoardRtdbMetaEconomy.CurrentUid) return;
+        bool ownAzure = false, ownMaple = false, ownAurora = false;
+        if (wallet != null && wallet.WalletVerified)
+            foreach (AtlasBoardStorefrontItem item in wallet.Items)
+            {
+                if (item.ItemType != "board_theme" || !item.Owned || item.PreviewOnly) continue;
+                if (item.ItemId == "board_midnight_azure") ownAzure = true;
+                if (item.ItemId == "board_ember_maple") ownMaple = true;
+                if (item.ItemId == "board_arctic_aurora") ownAurora = true;
+            }
+        if (wallet != null && wallet.WalletVerified && localIsHost &&
+            selectedBoardThemeId != "default_board" &&
+            !(selectedBoardThemeId == "board_midnight_azure" && ownAzure) &&
+            !(selectedBoardThemeId == "board_ember_maple" && ownMaple) &&
+            !(selectedBoardThemeId == "board_arctic_aurora" && ownAurora))
+        {
+            selectedBoardThemeId = "default_board";
+            AtlasBoardBoardThemeVisuals.ApplySelection(selectedBoardThemeId);
+            QueueHostConfigurationSync();
+        }
+        boardThemePicker.Configure(localIsHost && wallet != null && wallet.WalletVerified,
+            ownAzure, ownMaple, ownAurora, selectedBoardThemeId);
+    }
+
+    private void OnBoardThemeSelected(string requestedId)
+    {
+        if (!localIsHost || backendBusy || requestedId == selectedBoardThemeId) return;
+        selectedBoardThemeId = requestedId;
+        AtlasBoardBoardThemeVisuals.ApplySelection(requestedId);
+        QueueHostConfigurationSync();
+    }
+
     private void OpenLobbyGameSettings()
     {
         ResolveExtendedOnlineUiReferences();
@@ -1155,6 +1212,8 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         SetText(lobbyPasswordStatusText, string.Empty);
         RefreshGameSettingsAccessUi();
         gameSettingsOverlay.SetActive(true);
+        EnsureBoardThemePicker();
+        _ = RefreshBoardThemeOwnershipAsync();
     }
 
 
@@ -1462,19 +1521,12 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
     {
         if (!privateMode || backendBusy)
         {
-            Debug.LogWarning("ATB_RTDB_CREATE_SKIPPED " +
-                "private_mode=" + privateMode + " busy=" + backendBusy);
-            return;
-        }
-        if (runtimeBridge == null)
-        {
-            Debug.LogWarning("ATB_RTDB_CREATE_FAIL reason=runtime_missing");
-            SetText(entryStatusText, "Online room service is not ready. Retry.");
             return;
         }
 
-        Debug.Log("ATB_RTDB_CREATE_BEGIN mode=private " +
-            "auth_required=true");
+
+
+
         backendBusy = true;
         SetEntryButtonsInteractable(false);
 
@@ -1508,10 +1560,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             if (!result.Success ||
                 result.Snapshot == null)
             {
-                Debug.LogWarning("ATB_RTDB_CREATE_FAIL reason=" +
-                    (result != null ? result.ErrorLocalizationKey : "null_result") +
-                    " snapshot=" + (result != null && result.Snapshot != null));
-                if (result != null && result.ErrorLocalizationKey == "lobby.error.owner_room_limit")
+                if (result.ErrorLocalizationKey == "lobby.error.owner_room_limit")
                     ShowOwnedRoomLimitPopup();
                 else
                     ShowEntryBackendError(result);
@@ -1566,18 +1615,11 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
-            Debug.Log("ATB_RTDB_CREATE_SUCCESS mode=private");
             Debug.Log(
                 "AtlasBoard 3D.3B: real backend private room created. " +
                 $"Lobby={result.Snapshot.LobbyId}, Code={result.RoomCode}, " +
                 $"Account={runtimeBridge.CurrentAccountId}.",
                 this);
-        }
-        catch (Exception exception)
-        {
-            Debug.LogWarning("ATB_RTDB_CREATE_FAIL mode=private category=" +
-                exception.GetType().Name + " detail=sanitized_exception");
-            SetText(entryStatusText, "Could not create room. Please retry.");
         }
         finally
         {
@@ -1651,22 +1693,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
-            if (!result.Success || result.Snapshot == null)
+            if (!result.Success ||
+                result.Snapshot == null)
             {
-                if (result != null &&
-                    string.Equals(result.ErrorLocalizationKey, "lobby.error.room_full",
-                        StringComparison.Ordinal))
-                {
-                    AtlasBoardFrontendErrorCodes.Report(
-                        AtlasBoardFrontendErrorCodes.LobbyCapacityUnavailable,
-                        "No available online seat", "private_entry");
-                    SetText(entryStatusText,
-                        T("lobby.online.room_full", "ROOM FULL — no available seat.") +
-                        " Code: " + AtlasBoardFrontendErrorCodes.LobbyCapacityUnavailable);
-                    Debug.LogWarning("ATB_RTDB_JOIN_UI result=room_full code=ATB213");
-                }
-                else
-                    ShowEntryBackendError(result);
+                ShowEntryBackendError(result);
                 return;
             }
 
@@ -2712,6 +2742,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         // the UI every second. If nothing visible/authoritative changed, keep
         // the current local controls exactly as they are (including open
         // dropdowns and the + seat action menu).
+        if (snapshot.Settings != null &&
+            !string.Equals(selectedBoardThemeId,
+                snapshot.Settings.BoardThemeId ?? "default_board", StringComparison.Ordinal))
+        {
+            selectedBoardThemeId = string.IsNullOrEmpty(snapshot.Settings.BoardThemeId)
+                ? "default_board" : snapshot.Settings.BoardThemeId;
+            AtlasBoardBoardThemeVisuals.ApplySelection(selectedBoardThemeId);
+            if (boardThemePicker != null)
+                boardThemePicker.SelectWithoutNotify(selectedBoardThemeId);
+        }
+
         if (BackendSnapshotUiEquivalent(
                 backendSnapshot,
                 snapshot))
@@ -2835,9 +2876,9 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+        selection.BoardThemeId = selectedBoardThemeId;
         return selection;
     }
-
 
 
 
@@ -4857,6 +4898,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
         privateMode = true;
         roomActive = true;
+        if (snapshot != null && snapshot.Settings != null &&
+            !(localIsHost && hostConfigurationDirty))
+        {
+            selectedBoardThemeId = string.IsNullOrEmpty(snapshot.Settings.BoardThemeId)
+                ? "default_board" : snapshot.Settings.BoardThemeId;
+            if (boardThemePicker != null)
+                boardThemePicker.SelectWithoutNotify(selectedBoardThemeId);
+            AtlasBoardBoardThemeVisuals.ApplySelection(selectedBoardThemeId);
+        }
+
         backendSnapshot = snapshot;
         backendLocalAccountId =
             localAccountId ?? string.Empty;
@@ -5885,6 +5936,8 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         localIsHost = false;
         backendSnapshot = null;
         backendLocalAccountId = string.Empty;
+        selectedBoardThemeId = "default_board";
+        AtlasBoardBoardThemeVisuals.ApplySelection("default_board");
         hostConfigurationDirty = false;
         hostConfigurationSyncQueued = false;
         hostConfigurationSyncAt = 0f;

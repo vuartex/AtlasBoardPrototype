@@ -449,6 +449,12 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
 
     private bool InventoryIsEquipped(string id)
     {
+        if (inventoryCategory == "board_theme")
+        {
+            string boardId = inventoryServer != null && inventoryServer.WalletVerified
+                ? inventoryServer.EquippedBoardId : "";
+            return id == "default_board" ? string.IsNullOrEmpty(boardId) : boardId == id;
+        }
         if (inventoryCategory != "profile_frame") return id == InventoryDefaultFor(inventoryCategory);
         string current = inventoryServer != null && inventoryServer.WalletVerified
             ? inventoryServer.EquippedFrameId
@@ -538,6 +544,11 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
 
     private async void ApplyInventorySelection()
     {
+        if (inventoryCategory == "board_theme")
+        {
+            await ApplyOwnedBoardAsync();
+            return;
+        }
         if (inventoryWriting || inventoryLoading || inventoryAccount == null ||
             inventoryCategory != "profile_frame" ||
             InventoryIsEquipped(inventorySelectedId)) return;
@@ -627,6 +638,38 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         finally { inventoryWriting = false; if (currentPage == ProgressionPage.Inventory) RebuildCurrentPage(); }
     }
 
+    private async Task ApplyOwnedBoardAsync()
+    {
+        if (inventoryLoading || inventoryWriting || inventoryServer == null ||
+            !inventoryServer.WalletVerified || InventoryIsEquipped(inventorySelectedId)) return;
+        string uid = inventoryAccountUid;
+        if (uid != AtlasBoardRtdbMetaEconomy.CurrentUid || string.IsNullOrEmpty(uid)) return;
+        string id = inventorySelectedId == "default_board" ? "" : inventorySelectedId;
+        bool owned = id == "";
+        foreach (AtlasBoardStorefrontItem item in inventoryServer.Items)
+            if (item.ItemId == id && item.ItemType == "board_theme" && item.Owned &&
+                !item.PreviewOnly) owned = true;
+        if (!owned) return;
+        inventoryWriting = true;
+        RebuildCurrentPage();
+        try
+        {
+            AtlasBoardMetaEconomyOperationResult result =
+                await AtlasBoardRtdbMetaEconomy.EquipBoardAsync(id);
+            if (result != null && result.Success && uid == AtlasBoardRtdbMetaEconomy.CurrentUid)
+            {
+                inventoryServer.EquippedBoardId = id;
+                inventoryMessage = InventoryWord("Board saved. Lobby host must select it under More Settings.",
+                    "Tahta kaydedildi. Oda sahibi More Settings içinden seçmeli.",
+                    "Tablero guardado.", "Plateau enregistré.",
+                    "Spielbrett gespeichert.", "보드 저장됨.", "Поле сохранено.");
+            }
+            else inventoryMessage = "Could not save board selection to RTDB.";
+        }
+        catch (Exception exception) { inventoryMessage = exception.GetType().Name; }
+        finally { inventoryWriting = false; RebuildCurrentPage(); }
+    }
+
     private void BuildInventoryPage()
     {
         CreateSectionTitle(contentRoot, InventoryWord("MY INVENTORY", "ENVANTERİM",
@@ -676,7 +719,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         TMP_Text info = CreateText(preview.transform, 15f,
             FontStyles.Normal, TextAlignmentOptions.Center, TextDark);
         SetAnchored(info.rectTransform, new Vector2(0f, -120f), new Vector2(492f, 64f));
-        info.enableWordWrapping = true;
+        info.textWrappingMode = TextWrappingModes.Normal;
         info.text = InventoryIsEquipped(inventorySelectedId)
             ? InventoryWord("Currently equipped on this account.", "Bu hesapta şu anda kullanılıyor.",
                 "Actualmente equipado.", "Actuellement équipé.", "Derzeit angelegt.",
@@ -693,9 +736,9 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         Button apply = CreateButton(preview.transform, buttonText, Green,
             new Vector2(0f, -183f), new Vector2(250f, 56f));
         apply.interactable = !inventoryLoading && !inventoryWriting &&
-            inventoryCategory == "profile_frame" && inventoryAccount != null &&
+            (inventoryCategory == "profile_frame" || inventoryCategory == "board_theme") && inventoryAccount != null &&
             !InventoryIsEquipped(inventorySelectedId) &&
-            (inventorySelectedId == "default_profile_frame" ||
+            (inventorySelectedId == InventoryDefaultFor(inventoryCategory) ||
              ownedItems.Contains(inventorySelectedId) && inventoryServer != null);
         apply.onClick.AddListener(ApplyInventorySelection);
 
@@ -721,7 +764,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         SetAnchored(status.rectTransform, new Vector2(0f, -326f),
             new Vector2(1100f, 43f));
         status.text = inventoryMessage;
-        status.enableWordWrapping = true;
+        status.textWrappingMode = TextWrappingModes.Normal;
     }
 
     private void BuildOverviewPage()

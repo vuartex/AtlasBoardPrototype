@@ -1011,6 +1011,7 @@ public class AtlasBoardLobbySelection
     public int PlayerCount;
     public int RoundLimit;
     public string ThemeId;
+    public string BoardThemeId = "default_board";
 
     public bool BalancedDevelopment;
     public bool DoublesEnabled;

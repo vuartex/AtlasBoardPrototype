@@ -11,8 +11,12 @@ const authHost = "http://127.0.0.1:9099";
 const namespace = "demo-atlasboard-default-rtdb";
 let counter = 0, passed = 0;
 const id = () => (++counter).toString(16).padStart(32, "0");
+const newFrames = ["frame_neon_circuit", "frame_royal_crown",
+  "frame_ocean_tide", "frame_sakura_blossom", "frame_cosmic_nova",
+  "frame_forest_spirit"];
 const frames = () => ({frame_halloween: false, frame_new_year: false,
-  frame_turkiye: false, frame_usa: false});
+  frame_turkiye: false, frame_usa: false,
+  ...Object.fromEntries(newFrames.map(key => [key, false]))});
 const init = () => ({schemaVersion: 1,
   wallet: {gold: 0, atlasCoin: 0, starterGrantClaimed: false},
   inventory: {profile_frames: frames()}, equipped: {profileFrameId: ""},
@@ -176,6 +180,92 @@ function profile(user) {
   expect("deny", await db("PUT", wallet, user.token, repeatReset),
     "double refund");
 
+  // Phase 19I: six additional paid frames. Each must be server-priced,
+  // individually owned, equip-authorized and refundable without replay.
+  const neonBuy = next(reset, "PURCHASE", "frame_neon_circuit");
+  neonBuy.wallet.gold -= 450;
+  neonBuy.inventory.profile_frames.frame_neon_circuit = true;
+  expect("allow", await db("PUT", wallet, user.token, neonBuy),
+    "neon circuit purchase exact 450 Gold");
+  const cheapRoyal = next(neonBuy, "PURCHASE", "frame_royal_crown");
+  cheapRoyal.wallet.gold -= 1;
+  cheapRoyal.inventory.profile_frames.frame_royal_crown = true;
+  expect("deny", await db("PUT", wallet, user.token, cheapRoyal),
+    "royal crown undercharge blocked");
+  const newReplay = next(neonBuy, "PURCHASE", "frame_neon_circuit");
+  newReplay.wallet.gold -= 450;
+  expect("deny", await db("PUT", wallet, user.token, newReplay),
+    "new frame purchase replay blocked");
+  const dualNew = next(neonBuy, "PURCHASE", "frame_royal_crown");
+  dualNew.wallet.gold -= 500;
+  dualNew.inventory.profile_frames.frame_royal_crown = true;
+  dualNew.inventory.profile_frames.frame_forest_spirit = true;
+  expect("deny", await db("PUT", wallet, user.token, dualNew),
+    "two new entitlements for one payment blocked");
+
+  let completeNewCatalog = neonBuy;
+  for (const [newId, goldPrice] of [
+    ["frame_royal_crown", 500], ["frame_ocean_tide", 450],
+    ["frame_sakura_blossom", 475], ["frame_cosmic_nova", 550],
+    ["frame_forest_spirit", 475]]) {
+    const underpaid = next(completeNewCatalog, "PURCHASE", newId);
+    underpaid.wallet.gold -= goldPrice - 1;
+    underpaid.inventory.profile_frames[newId] = true;
+    expect("deny", await db("PUT", wallet, user.token, underpaid),
+      "cannot underpay " + newId);
+    const fullPrice = next(completeNewCatalog, "PURCHASE", newId);
+    fullPrice.wallet.gold -= goldPrice;
+    fullPrice.inventory.profile_frames[newId] = true;
+    expect("allow", await db("PUT", wallet, user.token, fullPrice),
+      "exact server-verified price for " + newId);
+    completeNewCatalog = fullPrice;
+  }
+  const neonEquip = next(completeNewCatalog, "EQUIP", "frame_neon_circuit");
+  neonEquip.equipped.profileFrameId = "frame_neon_circuit";
+  expect("allow", await db("PUT", wallet, user.token, neonEquip),
+    "equipping owned new frame");
+  expect("allow", await db("PUT", "publicProfiles/" + user.uid,
+    user.token, publicProfile("frame_neon_circuit")),
+    "new frame visible in verified public profile");
+  const neonReset = next(neonEquip, "RESET_PURCHASES");
+  neonReset.wallet.gold += 2900;
+  neonReset.inventory.profile_frames = frames();
+  neonReset.equipped.profileFrameId = "";
+  neonReset.dev.resetCount++;
+  expect("allow", await db("PUT", wallet, user.token, neonReset),
+    "all six new frames reset refunds exact 2900 Gold");
+
+  // Owner wallets created in v5.49.9 had four fields, not ten. A legitimate
+  // DAILY / PURCHASE must be able to add six missing false flags atomically;
+  // this must not allow another entitlement to change in the same operation.
+  const legacy = await signup("legacy-phase19i");
+  expect("allow", await db("PUT", "users/" + legacy.uid,
+    "owner", profile(legacy)), "seed legacy profile");
+  const legacyWallet = "users/" + legacy.uid + "/metaEconomy";
+  const legacyStart = init();
+  legacyStart.wallet.gold = 1000; // Admin-only fixture funding.
+  legacyStart.inventory.profile_frames.frame_halloween = true;
+  legacyStart.equipped.profileFrameId = "frame_halloween";
+  for (const key of newFrames) delete legacyStart.inventory.profile_frames[key];
+  expect("allow", await db("PUT", legacyWallet, "owner", legacyStart),
+    "admin seeds old-schema player wallet");
+  const migratedDaily = next(legacyStart, "DAILY");
+  migratedDaily.wallet.gold += 50;
+  migratedDaily.dailyReward.lastClaimAt = migratedDaily.operation.atMs;
+  for (const key of newFrames) migratedDaily.inventory.profile_frames[key] = false;
+  expect("allow", await db("PUT", legacyWallet, legacy.token, migratedDaily),
+    "existing 4-frame wallet upgrades during normal daily without loss");
+  const legacyBuy = next(migratedDaily, "PURCHASE", "frame_ocean_tide");
+  legacyBuy.wallet.gold -= 450;
+  legacyBuy.inventory.profile_frames.frame_ocean_tide = true;
+  expect("allow", await db("PUT", legacyWallet, legacy.token, legacyBuy),
+    "migrated owner buys Ocean Tide without losing Halloween ownership");
+  const legacyTamper = next(legacyBuy, "EQUIP", "frame_ocean_tide");
+  legacyTamper.equipped.profileFrameId = "frame_ocean_tide";
+  legacyTamper.inventory.profile_frames.frame_cosmic_nova = true;
+  expect("deny", await db("PUT", legacyWallet, legacy.token, legacyTamper),
+    "migration cannot invent another owned new cosmetic");
+
   // Admin-approved anonymous UID: same permission used by the owner Steam
   // QA account. No Steam client flag can self-authorize this server state.
   expect("allow", await db("PUT", "devWalletTesters/" + guest.uid,
@@ -221,7 +311,7 @@ function profile(user) {
   expect("deny", await db("PUT", otherWallet, stranger.token, notDev),
     "unallowlisted dev");
 
-  process.stdout.write("ATB_PHASE19F_SECURITY_QA PASS assertions=" +
+  process.stdout.write("ATB_PHASE19I_SECURITY_QA PASS assertions=" +
     passed + " guestDenied=true tamperDenied=true purchaseReplayDenied=true\n");
 })().catch(error => {
   process.stderr.write("ATB_PHASE19C_SECURITY_QA FAIL " + error.message + "\n");

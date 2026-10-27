@@ -55,7 +55,7 @@ public static class AtlasBoardPublicLobbyPagingClient
         if(runtimeBridge == null)
             return AtlasPublicLobbyPageResult.Fail("lobby.error.service_unavailable",
                 "RTDB runtime bridge missing.");
-        bool ready=await runtimeBridge.EnsureOnlineIdentityAsync(allowAndroidGuestSignIn: true);
+        bool ready=await runtimeBridge.EnsureOnlineIdentityAsync();
         if(!ready)
             return AtlasPublicLobbyPageResult.Fail("account.error.authentication_required",
                 "Sign in to browse online rooms.");

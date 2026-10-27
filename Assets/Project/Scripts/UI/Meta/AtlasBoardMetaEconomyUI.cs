@@ -994,6 +994,19 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
                 GetProfileInitial(snapshot != null ? snapshot.DisplayName : null));
             inspect.onClick.AddListener(() => ShowFramePreview(item.ItemId));
         }
+        else if (item.ItemType == "board_theme" &&
+                 AtlasBoardShopBoardPreviewArt.IsSupported(item.ItemId))
+        {
+            // Board cosmetics are still PREVIEW ONLY. Use the existing
+            // Store inspect popup; no second modal or fake Buy/Equip action.
+            Button inspect = CreateSmallButton(
+                row.transform, string.Empty, DarkBlue,
+                new Vector2(100f, 0f), new Vector2(88f, 88f));
+            inspect.gameObject.name = "PreviewBoard_" + item.ItemId;
+            AtlasBoardShopBoardPreviewArt.Create(
+                inspect.transform, item.ItemId, 78f);
+            inspect.onClick.AddListener(() => ShowFramePreview(item.ItemId));
+        }
 
         if (item.PreviewOnly)
         {
@@ -1780,16 +1793,22 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
 
     private void ShowFramePreview(string itemId)
     {
-        if (!AtlasBoardShopProfileFrameArt.IsSupported(itemId) ||
+        bool isProfile = AtlasBoardShopProfileFrameArt.IsSupported(itemId);
+        bool isBoard = AtlasBoardShopBoardPreviewArt.IsSupported(itemId);
+        if ((!isProfile && !isBoard) ||
             framePreviewRoot == null || framePreviewArtSlot == null)
             return;
         framePreviewItemId = itemId;
         // The artwork is created only on explicit user interaction.
         for (int i = framePreviewArtSlot.childCount - 1; i >= 0; --i)
             Destroy(framePreviewArtSlot.GetChild(i).gameObject);
-        AtlasBoardShopProfileFrameArt.Create(framePreviewArtSlot,
-            itemId, 250f,
-            GetProfileInitial(snapshot != null ? snapshot.DisplayName : null));
+        if (isProfile)
+            AtlasBoardShopProfileFrameArt.Create(framePreviewArtSlot,
+                itemId, 250f,
+                GetProfileInitial(snapshot != null ? snapshot.DisplayName : null));
+        else
+            AtlasBoardShopBoardPreviewArt.Create(framePreviewArtSlot,
+                itemId, 250f);
         RefreshFramePreviewLanguage();
         framePreviewRoot.SetActive(true);
         framePreviewRoot.transform.SetAsLastSibling();
