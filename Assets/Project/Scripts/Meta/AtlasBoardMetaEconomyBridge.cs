@@ -45,6 +45,9 @@ public sealed class AtlasBoardMetaEconomyBridge : MonoBehaviour
 
     public async Task<AtlasBoardMetaEconomySnapshot> RefreshAsync()
     {
+        if (!IsLocalEmulatorMode)
+            return await AtlasBoardRtdbMetaEconomy.LoadAsync();
+
         if (!await EnsureDevIdentityAsync())
         {
             return FailSnapshot();
@@ -93,12 +96,18 @@ public sealed class AtlasBoardMetaEconomyBridge : MonoBehaviour
     public async Task<AtlasBoardMetaEconomyOperationResult>
         SeedDevelopmentWalletAsync()
     {
+        if (!IsLocalEmulatorMode)
+            return await AtlasBoardRtdbMetaEconomy.GrantDevAsync();
+
         if (!await EnsureDevIdentityAsync())
         {
             return FailOperation();
         }
 
         string uid = lobbyBridge.CurrentAccountId;
+        // Each deliberate DEV button press is a distinct audited emulator grant.
+        // A retry within this operation uses the same key; no release/Live path.
+        string grantId = Guid.NewGuid().ToString("N");
 
         WalletMutationEnvelope gold =
             await CallFunctionAsync<WalletMutationRequest, WalletMutationEnvelope>(
@@ -108,8 +117,8 @@ public sealed class AtlasBoardMetaEconomyBridge : MonoBehaviour
                     currencyId = "gold",
                     delta = 5000,
                     reason = "phase9_dev_seed",
-                    transactionId = "phase9-dev-wallet-gold-v2",
-                    idempotencyKey = $"phase9-dev-wallet-gold-v2-{uid}"
+                    transactionId = "phase19-emulator-gold-" + grantId,
+                    idempotencyKey = $"phase19-emulator-gold-{uid}-{grantId}"
                 });
 
         if (gold == null || gold.result == null || !gold.result.ok)
@@ -125,8 +134,8 @@ public sealed class AtlasBoardMetaEconomyBridge : MonoBehaviour
                     currencyId = "atlas_coin",
                     delta = 500,
                     reason = "phase9_dev_seed",
-                    transactionId = "phase9-dev-wallet-coin-v2",
-                    idempotencyKey = $"phase9-dev-wallet-coin-v2-{uid}"
+                    transactionId = "phase19-emulator-coin-" + grantId,
+                    idempotencyKey = $"phase19-emulator-coin-{uid}-{grantId}"
                 });
 
         if (coin == null || coin.result == null || !coin.result.ok)
@@ -138,7 +147,7 @@ public sealed class AtlasBoardMetaEconomyBridge : MonoBehaviour
         {
             Success = true,
             Type = "DEV_WALLET",
-            TransactionId = "phase9-dev-wallet-v2",
+            TransactionId = "phase19-emulator-wallet-" + grantId,
             Gold = gold.result.balanceAfter,
             AtlasCoin = coin.result.balanceAfter
         };
@@ -147,6 +156,9 @@ public sealed class AtlasBoardMetaEconomyBridge : MonoBehaviour
     public async Task<AtlasBoardMetaEconomyOperationResult>
         ClaimDailyDevelopmentRewardAsync()
     {
+        if (!IsLocalEmulatorMode)
+            return await AtlasBoardRtdbMetaEconomy.ClaimDailyAsync();
+
         if (!await EnsureDevIdentityAsync())
         {
             return FailOperation();
@@ -181,6 +193,9 @@ public sealed class AtlasBoardMetaEconomyBridge : MonoBehaviour
         string paymentMethod,
         string idempotencyKey)
     {
+        if (!IsLocalEmulatorMode)
+            return await AtlasBoardRtdbMetaEconomy.BuyAsync(itemId, paymentMethod);
+
         if (!await EnsureDevIdentityAsync())
         {
             return FailOperation();
@@ -519,6 +534,9 @@ public sealed class AtlasBoardMetaEconomyBridge : MonoBehaviour
     public async Task<AtlasBoardMetaEconomyOperationResult>
         ResetDevelopmentPurchasesAsync()
     {
+        if (!IsLocalEmulatorMode)
+            return await AtlasBoardRtdbMetaEconomy.ResetDevAsync();
+
         if (!await EnsureDevIdentityAsync())
         {
             return FailOperation();

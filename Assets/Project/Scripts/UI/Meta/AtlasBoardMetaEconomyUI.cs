@@ -43,6 +43,12 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
     private GameObject storeRoot;
     private GameObject confirmRoot;
     private GameObject resultRoot;
+    private GameObject framePreviewRoot;
+    private RectTransform framePreviewArtSlot;
+    private TMP_Text framePreviewTitle;
+    private TMP_Text framePreviewPrice;
+    private Button framePreviewClose;
+    private string framePreviewItemId = string.Empty;
     private RectTransform contentRoot;
     private TMP_Text titleText;
     private TMP_Text storeProfileNameText;
@@ -74,6 +80,9 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
     private float nextOperationAllowedAt;
     private bool shopCardBound;
     private float nextBindAttemptAt;
+    private bool liveWalletPolling;
+    private string lastLiveWalletUid = string.Empty;
+    private float nextLiveWalletPollAt;
 
     private void Awake()
     {
@@ -82,6 +91,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         storeRoot.SetActive(false);
         confirmRoot.SetActive(false);
         resultRoot.SetActive(false);
+        framePreviewRoot.SetActive(false);
         AtlasBoardLocalizationManager.LanguageChanged += HandleLanguageChanged;
     }
 
@@ -92,14 +102,11 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return;
         }
 
-        AtlasBoardMetaEconomySnapshot initial =
-            await bridge.RefreshAsync();
-
-        if (initial != null && initial.Success)
-        {
-            snapshot = initial;
-            UpdateWalletText();
-        }
+        AtlasBoardMetaEconomySnapshot initial = await bridge.RefreshAsync();
+        snapshot = initial != null && initial.Success ? initial : null;
+        lastLiveWalletUid = AtlasBoardRtdbMetaEconomy.CurrentUid;
+        nextLiveWalletPollAt = Time.unscaledTime + 15f;
+        UpdateWalletText();
     }
 
     private void OnDestroy()
@@ -109,6 +116,12 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
 
     private void Update()
     {
+        if (bridge != null && !bridge.IsLocalEmulatorMode && !busy &&
+            !liveWalletPolling &&
+            (lastLiveWalletUid != AtlasBoardRtdbMetaEconomy.CurrentUid ||
+             Time.unscaledTime >= nextLiveWalletPollAt))
+            PollLiveWalletAsync();
+
         if (!shopCardBound && Time.unscaledTime >= nextBindAttemptAt)
         {
             nextBindAttemptAt = Time.unscaledTime + 1f;
@@ -119,6 +132,36 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         {
             CloseLegacyShopModal();
         }
+    }
+
+    private async void PollLiveWalletAsync()
+    {
+        liveWalletPolling = true;
+        string uid = AtlasBoardRtdbMetaEconomy.CurrentUid;
+        if (uid != lastLiveWalletUid)
+        {
+            snapshot = null;
+            UpdateWalletText();
+        }
+        lastLiveWalletUid = uid;
+        nextLiveWalletPollAt = Time.unscaledTime + 15f;
+        try
+        {
+            AtlasBoardMetaEconomySnapshot fresh = await bridge.RefreshAsync();
+            if (uid == AtlasBoardRtdbMetaEconomy.CurrentUid)
+            {
+                snapshot = fresh != null && fresh.Success ? fresh : null;
+                UpdateWalletText();
+                if (storeRoot != null && storeRoot.activeSelf) RebuildCurrentPage();
+            }
+        }
+        catch (Exception exception)
+        {
+            snapshot = null;
+            Debug.LogWarning("ATB_PHASE19C_LIVE_POLL " + exception.GetType().Name);
+            UpdateWalletText();
+        }
+        finally { liveWalletPolling = false; }
     }
 
     private void TryBindExistingShopCard()
@@ -152,6 +195,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         storeRoot.SetActive(true);
         confirmRoot.SetActive(false);
         resultRoot.SetActive(false);
+        framePreviewRoot.SetActive(false);
         currentPage = StorePage.Home;
         RefreshLanguageAndPage();
         RefreshAsync();
@@ -169,6 +213,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
 
         confirmRoot.SetActive(false);
         resultRoot.SetActive(false);
+        framePreviewRoot.SetActive(false);
         storeRoot.SetActive(false);
     }
 
@@ -210,6 +255,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             resultOkText.text = T("store.purchase.result_ok");
         }
 
+        RefreshFramePreviewLanguage();
         ApplyResolvedStoreFonts();
     }
 
@@ -277,19 +323,21 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         {
             return;
         }
-
         BeginOperation("store.response.loading");
         AtlasBoardMetaEconomySnapshot result = await bridge.RefreshAsync();
-        AtlasBoardSeasonalOverview seasonal = result.Success
+        AtlasBoardSeasonalOverview seasonal = result != null && result.Success &&
+            bridge.IsLocalEmulatorMode
             ? await bridge.GetSeasonalOverviewAsync()
             : null;
         EndOperation();
 
-        if (!result.Success)
+        if (result == null || !result.Success)
         {
-            ShowMessagePopup(
-                "store.popup.error_title",
-                LocalizeError(result.ErrorKey));
+            snapshot = null;
+            UpdateWalletText();
+            RebuildCurrentPage();
+            ShowMessagePopup("store.popup.error_title",
+                LocalizeError(result != null ? result.ErrorKey : "meta.error.refresh_failed"));
             return;
         }
 
@@ -302,8 +350,45 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         RebuildCurrentPage();
     }
 
+    private bool RequireEmulatorForDevelopmentEconomy()
+    {
+        if (bridge != null && bridge.IsLocalEmulatorMode) return true;
+        if (AtlasBoardRtdbMetaEconomy.IsRegistered) return true;
+        if (AtlasBoardRtdbMetaEconomy.IsSteamSession &&
+            snapshot != null && snapshot.WalletVerified &&
+            snapshot.IsDeveloperTester) return true;
+        if (AtlasBoardRtdbMetaEconomy.IsSteamSession)
+        {
+            ShowMessagePopup("store.popup.info_title", StoreAccountText(
+                "Steam is connected. Cloud rewards need verified Steam identity; an administrator-approved test UID can use this RTDB test wallet.",
+                "Steam bağlı. Bulut ödülleri için doğrulanmış Steam kimliği gerekir; yönetici onaylı UID test cüzdanını kullanabilir.",
+                "Steam conectado. Recompensas tras verificación.",
+                "Steam connecté. Récompenses après vérification.",
+                "Steam verbunden. Belohnungen nach Verifizierung.",
+                "Steam 연결됨. 보상은 인증 후 이용할 수 있습니다.",
+                "Steam подключён. Награды после подтверждения."));
+            return false;
+        }
+        string lang = AtlasBoardLocalizationManager.Instance != null
+            ? AtlasBoardLocalizationManager.Instance.CurrentLanguageCode : "en";
+        string message;
+        switch (AtlasBoardLocalizationLanguages.Normalize(lang))
+        {
+            case "tr": message = "Bu işlem yalnızca kayıtlı hesaplarda kullanılabilir. Guest hesabıyla günlük ödül veya Gold alınamaz."; break;
+            case "es": message = "Se necesita una cuenta registrada. Los invitados no pueden obtener recompensas."; break;
+            case "fr": message = "Un compte enregistré est nécessaire. Les invités ne peuvent pas obtenir de récompenses."; break;
+            case "de": message = "Ein registriertes Konto ist erforderlich. Gäste erhalten keine Belohnungen."; break;
+            case "ko": message = "등록된 계정이 필요합니다. 게스트는 보상을 받을 수 없습니다."; break;
+            case "ru": message = "Требуется зарегистрированная учётная запись. Гостям награды недоступны."; break;
+            default: message = "Sign in with a registered account. Guests cannot claim rewards or spend Gold."; break;
+        }
+        ShowMessagePopup("store.popup.info_title", message);
+        return false;
+    }
+
     private async void SeedWalletAsync()
     {
+        if (!RequireEmulatorForDevelopmentEconomy()) return;
         if (!CanStartOperation() || bridge == null)
         {
             return;
@@ -330,6 +415,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
 
     private async void ResetDevelopmentPurchasesAsync()
     {
+        if (!RequireEmulatorForDevelopmentEconomy()) return;
         if (!CanStartOperation() || bridge == null)
         {
             return;
@@ -358,6 +444,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
 
     private async void ClaimDailyAsync()
     {
+        if (!RequireEmulatorForDevelopmentEconomy()) return;
         if (!CanStartOperation() || bridge == null)
         {
             return;
@@ -394,6 +481,8 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         AtlasBoardStorefrontItem item,
         string currency)
     {
+        if (!RequireEmulatorForDevelopmentEconomy()) return;
+        if (item == null || item.PreviewOnly) return;
         if (!CanStartOperation() || item == null || item.Owned)
         {
             return;
@@ -598,13 +687,66 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
                 new Vector2(500f, 225f),
                 Cream);
         AddCardTitle(daily.transform, T("store.home.daily_title"), Green);
-        AddCardBody(daily.transform, T("store.home.daily_body"));
+        bool steamAccount = AtlasBoardRtdbMetaEconomy.IsSteamSession;
+        bool steamTester = steamAccount && snapshot != null &&
+            snapshot.IsDeveloperTester && snapshot.WalletVerified;
+        bool guestAccount = bridge != null && !bridge.IsLocalEmulatorMode &&
+            !steamAccount && !AtlasBoardRtdbMetaEconomy.IsRegistered;
+        AddCardBody(daily.transform,
+            steamAccount && !AtlasBoardRtdbMetaEconomy.IsRegistered
+                ? steamTester
+                    ? StoreAccountText(
+                        "Approved Steam test account: claim 50 Gold every 24 hours.",
+                        "Steam test hesabın onaylı: 24 saatte bir 50 Gold al.",
+                        "Steam aprobado: 50 Gold cada 24 horas.",
+                        "Steam approuvé : 50 Gold par 24 heures.",
+                        "Steam Testkonto genehmigt: 50 Gold pro Tag.",
+                        "Steam 테스트 계정 승인됨: 24시간마다 50 Gold.",
+                        "Тестовый Steam аккаунт одобрен: 50 Gold за 24 часа.")
+                    : StoreAccountText(
+                        "Steam connected. Cloud rewards require verified Steam identity.",
+                        "Steam bağlı. Bulut ödülleri için Steam kimliğinin doğrulanması gerekiyor.",
+                        "Steam conectado. Es necesaria la verificación.",
+                        "Steam connecté. Vérification nécessaire.",
+                        "Steam verbunden. Verifizierung erforderlich.",
+                        "Steam 연결됨. 보상을 받으려면 인증이 필요합니다.",
+                        "Steam подключён. Нужна проверка для наград.")
+                : guestAccount
+                ? StoreAccountText(
+                    "Guest mode: sign in or register for 50 Gold every 24 hours.",
+                    "Guest modu: 24 saatte bir 50 Gold için giriş yap veya kayıt ol.",
+                    "Modo invitado: inicia sesión para recibir 50 Gold cada 24 horas.",
+                    "Mode invité : connectez-vous pour obtenir 50 Gold toutes les 24 h.",
+                    "Gastmodus: Für 50 Gold alle 24 Std. anmelden.",
+                    "게스트 모드: 로그인하면 24시간마다 50 Gold를 받을 수 있습니다.",
+                    "Гостевой режим: войдите для 50 Gold каждые 24 часа.")
+                : StoreAccountText(
+                    "Registered account: claim 50 Gold every 24 hours.",
+                    "Kayıtlı hesap: 24 saatte bir 50 Gold kazan.",
+                    "Cuenta registrada: 50 Gold cada 24 horas.",
+                    "Compte enregistré : 50 Gold toutes les 24 heures.",
+                    "Registriert: 50 Gold alle 24 Stunden.",
+                    "등록 계정: 24시간마다 50 Gold를 받으세요.",
+                    "Зарегистрированный аккаунт: 50 Gold каждые 24 часа."));
         Button claim = CreateWideButton(
             daily.transform,
-            T("store.home.daily_claim"),
+            guestAccount
+                ? StoreAccountText("SIGN IN / REGISTER", "GİRİŞ / KAYIT",
+                    "INICIAR SESIÓN", "SE CONNECTER", "ANMELDEN",
+                    "로그인 / 가입", "ВОЙТИ / РЕГИСТРАЦИЯ")
+                : T("store.home.daily_claim"),
             Green,
             new Vector2(0f, -62f));
-        claim.onClick.AddListener(ClaimDailyAsync);
+        if (guestAccount) claim.onClick.AddListener(OpenStoreSignIn);
+        else claim.onClick.AddListener(ClaimDailyAsync);
+        claim.interactable = guestAccount || bridge != null &&
+            (bridge.IsLocalEmulatorMode ||
+             snapshot != null && snapshot.WalletVerified &&
+             (!snapshot.IsGuest || snapshot.IsDeveloperTester) &&
+             (!steamAccount || AtlasBoardRtdbMetaEconomy.IsRegistered || steamTester) &&
+             (snapshot.DailyClaimedAtMs <= 0 ||
+              DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() -
+              snapshot.DailyClaimedAtMs >= 86400000L));
 
         GameObject featured =
             CreateCard(
@@ -652,7 +794,18 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
                 new Vector2(500f, 225f),
                 PanelBlue);
         AddCardTitle(dev.transform, T("store.home.dev_title"), DarkBlue);
-        AddCardBody(dev.transform, T("store.home.dev_body"));
+        AddCardBody(dev.transform,
+            bridge != null && (bridge.IsLocalEmulatorMode ||
+                snapshot != null && snapshot.IsDeveloperTester)
+                ? T("store.home.dev_body")
+                : StoreAccountText(
+                    "Only a registered, administrator-approved developer test account can use this wallet.",
+                    "Dev Wallet yalnızca yönetici tarafından onaylanan kayıtlı test hesaplarında açılır.",
+                    "Solo para cuentas de prueba registradas y autorizadas.",
+                    "Réservé aux comptes de test enregistrés et autorisés.",
+                    "Nur für registrierte und freigegebene Testkonten.",
+                    "관리자가 승인한 등록된 테스트 계정에서만 사용할 수 있습니다.",
+                    "Только для зарегистрированных и разрешённых тестовых аккаунтов."));
         Button devWallet = CreateSmallButton(
             dev.transform,
             T("store.home.dev_wallet"),
@@ -660,6 +813,8 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             new Vector2(-120f, -62f),
             new Vector2(220f, 52f));
         devWallet.onClick.AddListener(SeedWalletAsync);
+        devWallet.interactable = bridge != null &&
+            (bridge.IsLocalEmulatorMode || snapshot != null && snapshot.IsDeveloperTester);
 
         Button resetPurchases = CreateSmallButton(
             dev.transform,
@@ -669,7 +824,46 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             new Vector2(220f, 52f));
         resetPurchases.onClick.AddListener(
             ResetDevelopmentPurchasesAsync);
+        resetPurchases.interactable = devWallet.interactable;
 
+    }
+
+    private static string StoreAccountText(
+        string en, string tr, string es, string fr,
+        string de, string ko, string ru)
+    {
+        AtlasBoardLocalizationManager localization = AtlasBoardLocalizationManager.Instance;
+        string language = AtlasBoardLocalizationLanguages.Normalize(
+            localization != null ? localization.CurrentLanguageCode : "en");
+        switch (language)
+        {
+            case "tr": return tr;
+            case "es": return es;
+            case "fr": return fr;
+            case "de": return de;
+            case "ko": return ko;
+            case "ru": return ru;
+            default: return en;
+        }
+    }
+
+    private void OpenStoreSignIn()
+    {
+        if (!AtlasBoardAccountAccessUI.OpenLoginForStore())
+        {
+            ShowMessagePopup("store.popup.info_title", StoreAccountText(
+                "Use Settings or Career to sign in or create an account.",
+                "Giriş yapmak veya hesap oluşturmak için Ayarlar ya da Kariyer'i aç.",
+                "Usa Configuración o Carrera para iniciar sesión.",
+                "Utilisez Paramètres ou Carrière pour vous connecter.",
+                "Melde dich über Einstellungen oder Karriere an.",
+                "설정 또는 커리어에서 로그인하세요.",
+                "Войдите через Настройки или Карьеру."));
+            return;
+        }
+        confirmRoot.SetActive(false);
+        framePreviewRoot.SetActive(false);
+        storeRoot.SetActive(false);
     }
 
     private void RebuildItemsPage()
@@ -711,13 +905,16 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             new Vector2(1110f, 390f),
             new Color32(235, 240, 243, 245));
 
-        if (snapshot == null)
-        {
-            AddInfoRow(itemContent, T("store.response.loading"));
-            return;
-        }
+        // Never hide unshipped drafts merely because an unrelated backend
+        // catalog entry exists. The backend wins each identical ItemId.
+        List<AtlasBoardStorefrontItem> combined =
+            AtlasBoardShopContentDraft.MergeForDisplay(
+                snapshot != null ? snapshot.Items : null);
+        IEnumerable<AtlasBoardStorefrontItem> items = combined;
+        // Rows already identify preview-only draft cosmetics individually.
+        // A page-wide "Purchases disabled" banner is misleading whenever
+        // verified profile frames can be purchased in the same list.
 
-        IEnumerable<AtlasBoardStorefrontItem> items = snapshot.Items;
         if (activeCategory != "all")
         {
             items = items.Where(item =>
@@ -782,6 +979,74 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             T(ItemTypeKey(item.ItemType)) +
             $"  •  catalog v{Mathf.Max(1, item.CatalogVersion)}";
 
+        // Profile art remains a dedicated inspect action; purchasing uses a
+        // separate visible button on the same row.
+        if (AtlasBoardShopProfileFrameArt.IsSupported(item.ItemId) &&
+            string.Equals(item.ItemType, "profile_frame",
+                StringComparison.Ordinal))
+        {
+            Button inspect = CreateSmallButton(
+                row.transform, string.Empty, DarkBlue,
+                new Vector2(100f, 0f), new Vector2(88f, 88f));
+            inspect.gameObject.name = "PreviewFrame_" + item.ItemId;
+            AtlasBoardShopProfileFrameArt.Create(
+                inspect.transform, item.ItemId, 78f,
+                GetProfileInitial(snapshot != null ? snapshot.DisplayName : null));
+            inspect.onClick.AddListener(() => ShowFramePreview(item.ItemId));
+        }
+
+        if (item.PreviewOnly)
+        {
+            bool isFrame = item.ItemType == "profile_frame" &&
+                AtlasBoardShopProfileFrameArt.IsSupported(item.ItemId);
+            if (isFrame)
+            {
+                // Show a single Gold Buy beside inspect. Preview-only frames
+                // never reach the checkout; Guest opens canonical login.
+                Button frameBuy = CreateSmallButton(
+                    row.transform, T("store.items.buy_gold", item.GoldPrice),
+                    Green, new Vector2(360f, 0f), new Vector2(258f, 54f));
+                frameBuy.gameObject.name = "ProfileBuy_" + item.ItemId;
+                frameBuy.onClick.AddListener(() =>
+                {
+                    if (!AtlasBoardRtdbMetaEconomy.IsRegistered)
+                    {
+                        if (!AtlasBoardRtdbMetaEconomy.IsSteamSession)
+                            OpenStoreSignIn();
+                        else ShowMessagePopup("store.popup.info_title", StoreAccountText(
+                            "Steam connected: verified commerce or admin test approval required.",
+                            "Steam bağlı: satın alma için doğrulama veya yönetici test onayı gerekli.",
+                            "Steam conectado. Se necesita aprobación.",
+                            "Steam connecté. Autorisation requise.",
+                            "Steam verbunden. Freigabe erforderlich.",
+                            "Steam 연결됨. 승인 후 구매 가능합니다.",
+                            "Steam подключён. Требуется разрешение."));
+                        return;
+                    }
+                    ShowMessagePopup("store.popup.info_title", StoreAccountText(
+                        "Wallet is not verified yet. Please retry after sign-in.",
+                        "Cüzdan henüz doğrulanmadı. Giriş yaptıktan sonra yeniden dene.",
+                        "La cartera no está verificada. Inténtalo tras iniciar sesión.",
+                        "Portefeuille non vérifié. Réessayez après connexion.",
+                        "Wallet nicht bestätigt. Nach Anmeldung erneut versuchen.",
+                        "지갑을 확인할 수 없습니다. 로그인 후 다시 시도하세요.",
+                        "Кошелёк не проверен. Повторите после входа."));
+                });
+                return;
+            }
+            // Unimplemented 3D cosmetics remain visual-only draft items.
+            TMP_Text previewLabel = CreateText(
+                row.transform, 14f, FontStyles.Bold,
+                TextAlignmentOptions.Center, DarkBlue);
+            SetAnchored(previewLabel.rectTransform,
+                new Vector2(355f, 0f), new Vector2(300f, 66f));
+            string language = AtlasBoardLocalizationManager.Instance != null
+                ? AtlasBoardLocalizationManager.Instance.CurrentLanguageCode
+                : "en";
+            previewLabel.text = AtlasBoardShopContentDraft.PreviewLabel(language);
+            return;
+        }
+
         if (item.Owned)
         {
             GameObject ownedPlate = CreatePanel(
@@ -802,23 +1067,23 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return;
         }
 
-        Button gold = CreateSmallButton(
-            row.transform,
-            T("store.items.buy_gold", item.GoldPrice),
-            Green,
-            new Vector2(225f, 0f),
-            new Vector2(190f, 54f));
-        gold.interactable = item.GoldPrice > 0;
-        gold.onClick.AddListener(() => AskPurchase(item, "gold"));
-
-        Button coin = CreateSmallButton(
-            row.transform,
-            T("store.items.buy_coin", item.AtlasCoinPrice),
-            Orange,
-            new Vector2(430f, 0f),
-            new Vector2(190f, 54f));
-        coin.interactable = item.AtlasCoinPrice > 0;
-        coin.onClick.AddListener(() => AskPurchase(item, "atlas_coin"));
+        // One checkout button per row. Prefer the Gold price when available;
+        // Atlas Coin is used only for catalog entries that have no Gold price.
+        // An absent/zero price is never presented as a free purchase.
+        bool payWithGold = item.GoldPrice > 0;
+        bool payWithCoin = !payWithGold && item.AtlasCoinPrice > 0;
+        if (payWithGold || payWithCoin)
+        {
+            string currencyId = payWithGold ? "gold" : "atlas_coin";
+            string label = payWithGold
+                ? T("store.items.buy_gold", item.GoldPrice)
+                : T("store.items.buy_coin", item.AtlasCoinPrice);
+            Button buy = CreateSmallButton(
+                row.transform, label, payWithGold ? Green : Orange,
+                new Vector2(360f, 0f), new Vector2(258f, 54f));
+            buy.gameObject.name = "ItemBuy_" + item.ItemId;
+            buy.onClick.AddListener(() => AskPurchase(item, currencyId));
+        }
     }
 
     private async void ClaimSeasonalChallengeAsync(string challengeId)
@@ -1373,6 +1638,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
 
         BuildConfirmation(storeRoot.transform);
         BuildResultPopup(storeRoot.transform);
+        BuildFramePreview(storeRoot.transform);
         ApplyResolvedStoreFonts();
     }
 
@@ -1471,6 +1737,87 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             new Vector2(220f, 58f));
         confirmCancelText = cancel.GetComponentInChildren<TMP_Text>();
         cancel.onClick.AddListener(() => confirmRoot.SetActive(false));
+    }
+
+    private void BuildFramePreview(Transform parent)
+    {
+        framePreviewRoot = CreatePanel(
+            parent, "ProfileFramePreviewOverlay", Vector2.zero,
+            new Vector2(1920f, 1080f),
+            new Color(0.04f, 0.10f, 0.17f, 0.88f));
+        // The overlay is modal: block clicks to underlying shop controls.
+        GameObject card = CreateCard(framePreviewRoot.transform,
+            "FramePreviewCard", Vector2.zero,
+            new Vector2(640f, 630f), Cream);
+        framePreviewTitle = CreateText(card.transform,
+            26f, FontStyles.Bold, TextAlignmentOptions.Center, TextDark);
+        SetAnchored(framePreviewTitle.rectTransform,
+            new Vector2(0f, 255f), new Vector2(570f, 70f));
+        framePreviewTitle.enableAutoSizing = true;
+        framePreviewTitle.fontSizeMin = 17f;
+        framePreviewTitle.fontSizeMax = 26f;
+
+        GameObject previewWell = CreatePanel(card.transform,
+            "FramePreviewWell", new Vector2(0f, 16f),
+            new Vector2(290f, 290f), PanelBlue);
+        framePreviewArtSlot =
+            previewWell.GetComponent<RectTransform>();
+
+        framePreviewPrice = CreateText(card.transform,
+            16f, FontStyles.Bold, TextAlignmentOptions.Center, DarkBlue);
+        SetAnchored(framePreviewPrice.rectTransform,
+            new Vector2(0f, -184f), new Vector2(550f, 52f));
+        framePreviewPrice.enableAutoSizing = true;
+        framePreviewPrice.fontSizeMin = 11f;
+        framePreviewPrice.fontSizeMax = 16f;
+
+        framePreviewClose = CreateSmallButton(card.transform,
+            T("store.common.cancel"), Blue,
+            new Vector2(0f, -255f), new Vector2(255f, 55f));
+        framePreviewClose.onClick.AddListener(() =>
+            framePreviewRoot.SetActive(false));
+    }
+
+    private void ShowFramePreview(string itemId)
+    {
+        if (!AtlasBoardShopProfileFrameArt.IsSupported(itemId) ||
+            framePreviewRoot == null || framePreviewArtSlot == null)
+            return;
+        framePreviewItemId = itemId;
+        // The artwork is created only on explicit user interaction.
+        for (int i = framePreviewArtSlot.childCount - 1; i >= 0; --i)
+            Destroy(framePreviewArtSlot.GetChild(i).gameObject);
+        AtlasBoardShopProfileFrameArt.Create(framePreviewArtSlot,
+            itemId, 250f,
+            GetProfileInitial(snapshot != null ? snapshot.DisplayName : null));
+        RefreshFramePreviewLanguage();
+        framePreviewRoot.SetActive(true);
+        framePreviewRoot.transform.SetAsLastSibling();
+    }
+
+    private void RefreshFramePreviewLanguage()
+    {
+        if (framePreviewRoot == null ||
+            string.IsNullOrWhiteSpace(framePreviewItemId)) return;
+        string lang = AtlasBoardLocalizationManager.Instance != null
+            ? AtlasBoardLocalizationManager.Instance.CurrentLanguageCode
+            : "en";
+        if (framePreviewTitle != null)
+            framePreviewTitle.text =
+                AtlasBoardShopContentDraft.LocalizedName(framePreviewItemId, lang);
+        AtlasBoardStorefrontItem item =
+            AtlasBoardShopContentDraft.CreatePreview()
+                .FirstOrDefault(x => x.ItemId == framePreviewItemId);
+        if (framePreviewPrice != null)
+            framePreviewPrice.text = item != null
+                ? item.GoldPrice.ToString("N0") + " Gold  •  " +
+                  AtlasBoardShopContentDraft.PreviewLabel(lang)
+                : AtlasBoardShopContentDraft.PreviewLabel(lang);
+        if (framePreviewClose != null)
+        {
+            TMP_Text label = framePreviewClose.GetComponentInChildren<TMP_Text>();
+            if (label != null) label.text = T("store.common.cancel");
+        }
     }
 
     private void BuildResultPopup(Transform parent)
@@ -1584,8 +1931,10 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
                 ? snapshot.DisplayName.Trim()
                 : T("menu.player");
 
-        int gold = snapshot != null ? snapshot.Gold : 0;
-        int coin = snapshot != null ? snapshot.AtlasCoin : 0;
+        bool walletVerified = snapshot != null && snapshot.Success &&
+            ((bridge != null && bridge.IsLocalEmulatorMode) || snapshot.WalletVerified);
+        int gold = walletVerified ? snapshot.Gold : 0;
+        int coin = walletVerified ? snapshot.AtlasCoin : 0;
         string initial = GetProfileInitial(displayName);
 
         if (storeProfileNameText != null)
@@ -1595,14 +1944,12 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
 
         if (storeGoldText != null)
         {
-            storeGoldText.text =
-                $"{T("store.wallet.gold")}: {gold:N0}";
+            storeGoldText.text = $"{T("store.wallet.gold")}: {gold:N0}";
         }
 
         if (storeCoinText != null)
         {
-            storeCoinText.text =
-                $"{T("store.wallet.coin")}: {coin:N0}";
+            storeCoinText.text = $"{T("store.wallet.coin")}: {coin:N0}";
         }
 
         if (storeAvatarInitialText != null)
@@ -1610,6 +1957,9 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             storeAvatarInitialText.text = initial;
         }
 
+        // Verified balances are shared immediately. During auth/network
+        // readiness, every menu uses the neutral initial zero display.
+        // Purchases still require snapshot.WalletVerified.
         SyncSharedProfileCards(
             displayName,
             gold,
@@ -1636,10 +1986,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             Type controllerType = menuController.GetType();
             controllerType.GetField("profileName", flags)
                 ?.SetValue(menuController, displayName);
-            controllerType.GetField("profileCash", flags)
-                ?.SetValue(menuController, gold);
-            controllerType.GetField("profileGold", flags)
-                ?.SetValue(menuController, coin);
+            menuController.ApplyVerifiedMetaWallet(gold, coin);
         }
 
         TMP_Text[] texts =
@@ -1714,6 +2061,15 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         if (item == null)
         {
             return string.Empty;
+        }
+
+        if (item.PreviewOnly)
+        {
+            string language = AtlasBoardLocalizationManager.Instance != null
+                ? AtlasBoardLocalizationManager.Instance.CurrentLanguageCode
+                : "en";
+            return AtlasBoardShopContentDraft.LocalizedName(
+                item.ItemId, language);
         }
 
         string key = "store.item." + item.ItemId;

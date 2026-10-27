@@ -53,13 +53,34 @@ public class AtlasBoardMainMenuController : MonoBehaviour
 
     [Header("Temporary Local Profile")]
     [SerializeField] private string profileName = "PLAYER";
-    [SerializeField] private int profileCash = 1500;
-    [SerializeField] private int profileGold = 100;
+    // Meta wallet values must only come from an authenticated RTDB read.
+    // Render zero during loading; only a verified RTDB wallet can replace it.
+    [SerializeField] private int profileCash = 0;
+    [SerializeField] private int profileGold = 0;
 
     private string currentLobbyMode = "PLAY";
 
+    public void ApplyVerifiedMetaWallet(int gold, int atlasCoin)
+    {
+        if (gold < 0 || atlasCoin < 0) return;
+        profileCash = gold;
+        profileGold = atlasCoin;
+        RefreshProfile();
+    }
+
+    public void ClearMetaWallet()
+    {
+        profileCash = 0;
+        profileGold = 0;
+        RefreshProfile();
+    }
+
     private void Awake()
     {
+        // Serialized scenes may still contain the old 1500/100 placeholders.
+        // Explicitly discard them before the first profile render.
+        profileCash = 0;
+        profileGold = 0;
         AtlasBoardLocalizationManager.LanguageChanged +=
             HandleLanguageChanged;
 
@@ -250,8 +271,8 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             AtlasBoardL.T(
                 "menu.profile_body",
                 visibleProfileName,
-                profileCash,
-                profileGold));
+                Mathf.Max(0, profileCash).ToString("N0"),
+                Mathf.Max(0, profileGold).ToString("N0")));
     }
 
     public void QuitGame()
@@ -585,14 +606,12 @@ public class AtlasBoardMainMenuController : MonoBehaviour
 
         if (profileCashText != null)
         {
-            profileCashText.text =
-                $"$ {profileCash:N0}";
+            profileCashText.text = $"Gold: {Mathf.Max(0, profileCash):N0}";
         }
 
         if (profileGoldText != null)
         {
-            profileGoldText.text =
-                $"G {profileGold:N0}";
+            profileGoldText.text = $"Atlas Coin: {Mathf.Max(0, profileGold):N0}";
         }
     }
 

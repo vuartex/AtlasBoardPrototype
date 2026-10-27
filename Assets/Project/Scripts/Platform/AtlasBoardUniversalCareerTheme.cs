@@ -572,25 +572,25 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
             return;
         RectTransform nav = root.Find("Navigation") as RectTransform;
         if (nav == null) return;
-        // Reserve four equal slots in the SAME visible navigation banner.
-        if (nav.sizeDelta.x != 1120f)
-            nav.sizeDelta = new Vector2(1120f, nav.sizeDelta.y);
+        // Reserve five equal slots in the SAME visible navigation banner.
+        if (nav.sizeDelta.x != 1145f)
+            nav.sizeDelta = new Vector2(1145f, nav.sizeDelta.y);
         // RebuildNavigation replaces its children using deferred Destroy.
-        // The LAST three children are the freshly built page buttons.
+        // The LAST four children are the freshly built page buttons.
         int count = nav.childCount;
-        if (count < 3) return;
+        if (count < 4) return;
         RectTransform achievementTab = null;
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 4; i++)
         {
-            RectTransform tab = nav.GetChild(count - 3 + i) as RectTransform;
+            RectTransform tab = nav.GetChild(count - 4 + i) as RectTransform;
             if (tab == null || tab.GetComponent<Button>() == null) return;
-            Vector2 position = new Vector2(-390f + i * 260f, 0f);
+            Vector2 position = new Vector2(-429f + i * 217f, 0f);
             if (tab.anchoredPosition != position) tab.anchoredPosition = position;
-            if (tab.sizeDelta != new Vector2(235f, 50f))
-                tab.sizeDelta = new Vector2(235f, 50f);
+            if (tab.sizeDelta != new Vector2(196f, 50f))
+                tab.sizeDelta = new Vector2(196f, 50f);
             if (i == 2) achievementTab = tab;
         }
-        // The legacy ProgressionUI destroys/rebuilds the three nav buttons on
+        // ProgressionUI destroys/rebuilds the four nav buttons on
         // every page change. Keep Account under ROOT (not Navigation) so it
         // survives, but position it INSIDE the Navigation banner visually.
         if (careerAccountTab == null || careerAccountTab.transform.parent != root)
@@ -616,10 +616,10 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
             rect.anchorMax = new Vector2(0.5f, 0.5f);
         if (rect.pivot != new Vector2(0.5f, 0.5f))
             rect.pivot = new Vector2(0.5f, 0.5f);
-        if (rect.anchoredPosition != new Vector2(390f, 345f))
-            rect.anchoredPosition = new Vector2(390f, 345f);
-        if (rect.sizeDelta != new Vector2(235f, 50f))
-            rect.sizeDelta = new Vector2(235f, 50f);
+        if (rect.anchoredPosition != new Vector2(438f, 345f))
+            rect.anchoredPosition = new Vector2(438f, 345f);
+        if (rect.sizeDelta != new Vector2(196f, 50f))
+            rect.sizeDelta = new Vector2(196f, 50f);
         TMP_Text label = careerAccountTab.GetComponentInChildren<TMP_Text>(true);
         if (label != null)
         {

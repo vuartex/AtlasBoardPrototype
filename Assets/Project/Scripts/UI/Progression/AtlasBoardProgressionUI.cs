@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -13,7 +14,8 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
     {
         Overview,
         History,
-        Achievements
+        Achievements,
+        Inventory
     }
 
     private static readonly Color BackgroundBlue =
@@ -59,6 +61,16 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
     private float nextBindAt;
     private float nextProfileRefreshAt;
     private float nextLevelSyncAt;
+    // Phase 19A2: account-specific, fail-closed inventory. Preview-only
+    // catalog proposals never become entitlements or equipped cosmetics.
+    private string inventoryCategory = "profile_frame";
+    private string inventorySelectedId = "default_profile_frame";
+    private AtlasAccountSnapshot inventoryAccount;
+    private AtlasBoardMetaEconomySnapshot inventoryServer;
+    private bool inventoryLoading;
+    private bool inventoryWriting;
+    private string inventoryMessage = string.Empty;
+    private string inventoryAccountUid = string.Empty;
 
     private void Awake()
     {
@@ -282,6 +294,8 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         currentPage = page;
         RebuildNavigation();
         RebuildCurrentPage();
+        if (page == ProgressionPage.Inventory)
+            _ = RefreshInventoryAsync();
     }
 
     private void RefreshUiLocalization()
@@ -312,13 +326,15 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         {
             ProgressionPage.Overview,
             ProgressionPage.History,
-            ProgressionPage.Achievements
+            ProgressionPage.Achievements,
+            ProgressionPage.Inventory
         };
         string[] keys =
         {
             "progression.tab.overview",
             "progression.tab.history",
-            "progression.tab.achievements"
+            "progression.tab.achievements",
+            "inventory"
         };
 
         for (int index = 0; index < pages.Length; index++)
@@ -326,10 +342,12 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             ProgressionPage captured = pages[index];
             Button button = CreateButton(
                 nav,
-                T(keys[index]),
+                pages[index] == ProgressionPage.Inventory
+                    ? InventoryWord("INVENTORY", "ENVANTER", "INVENTARIO", "INVENTAIRE", "INVENTAR", "인벤토리", "ИНВЕНТАРЬ")
+                    : T(keys[index]),
                 pages[index] == currentPage ? DarkBlue : Blue,
-                new Vector2(-260f + index * 260f, 0f),
-                new Vector2(235f, 50f));
+                new Vector2(-429f + index * 217f, 0f),
+                new Vector2(196f, 50f));
             button.onClick.AddListener(() => ChangePage(captured));
         }
     }
@@ -350,12 +368,360 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             case ProgressionPage.Achievements:
                 BuildAchievementsPage();
                 break;
+            case ProgressionPage.Inventory:
+                BuildInventoryPage();
+                break;
             default:
                 BuildOverviewPage();
                 break;
         }
 
         ApplyResolvedFonts();
+    }
+
+    // Stable item identifiers, never translated display names, are used in
+    // cloud records. Only server-verified entitlements may enable Apply.
+    private static readonly string[] InventoryCategories =
+    { "profile_frame", "board_theme", "dice_skin", "pawn", "emote" };
+    private static readonly string[] InventoryDefaults =
+    { "default_profile_frame", "default_board", "default_dice", "default_pawn", "default_emote" };
+
+    private static string InventoryDefaultFor(string category)
+    {
+        for (int i = 0; i < InventoryCategories.Length; i++)
+            if (category == InventoryCategories[i]) return InventoryDefaults[i];
+        return InventoryDefaults[0];
+    }
+
+    private static string InventoryCategoryFor(string itemId)
+    {
+        for (int i = 0; i < InventoryDefaults.Length; i++)
+            if (itemId == InventoryDefaults[i]) return InventoryCategories[i];
+        foreach (AtlasBoardStorefrontItem draft in AtlasBoardShopContentDraft.CreatePreview())
+            if (draft.ItemId == itemId) return draft.ItemType;
+        return "";
+    }
+
+    private static string InventoryCategoryLabel(string category)
+    {
+        switch (category)
+        {
+            case "profile_frame": return "PROFILE";
+            case "board_theme": return "BOARDS";
+            case "dice_skin": return "DICE";
+            case "pawn": return "PAWNS";
+            case "emote": return "EMOTES";
+            default: return category;
+        }
+    }
+
+    private static string InventoryWord(params string[] words)
+    {
+        AtlasBoardLocalizationManager localization = AtlasBoardLocalizationManager.Instance;
+        int index = AtlasBoardLocalizationLanguages.IndexOf(
+            localization != null ? localization.CurrentLanguageCode : "en");
+        return words[Mathf.Clamp(index, 0, words.Length - 1)];
+    }
+
+    private static string InventoryItemName(string id)
+    {
+        if (id.StartsWith("default_", StringComparison.Ordinal))
+            return InventoryWord("Classic / Default", "Klasik / Varsayılan",
+                "Clásico / Predeterminado", "Classique / Par défaut",
+                "Klassisch / Standard", "기본", "Классический / По умолчанию");
+        AtlasBoardLocalizationManager localization = AtlasBoardLocalizationManager.Instance;
+        return AtlasBoardShopContentDraft.LocalizedName(
+            id, localization != null ? localization.CurrentLanguageCode : "en");
+    }
+
+    private List<string> InventoryOwnedItems()
+    {
+        List<string> result = new List<string> { InventoryDefaultFor(inventoryCategory) };
+        // The preview rows are display-only. A successful trusted inventory
+        // read must explicitly mark an item Owned before it is selectable.
+        if (inventoryServer != null && inventoryServer.Success)
+            foreach (AtlasBoardStorefrontItem item in inventoryServer.Items)
+                if (item != null && item.Owned && !item.PreviewOnly &&
+                    item.ItemType == inventoryCategory &&
+                    !result.Contains(item.ItemId)) result.Add(item.ItemId);
+        return result;
+    }
+
+    private bool InventoryIsEquipped(string id)
+    {
+        if (inventoryCategory != "profile_frame") return id == InventoryDefaultFor(inventoryCategory);
+        string current = inventoryServer != null && inventoryServer.WalletVerified
+            ? inventoryServer.EquippedFrameId
+            : inventoryAccount != null ? inventoryAccount.ProfileFrameId : "";
+        return id == "default_profile_frame"
+            ? string.IsNullOrEmpty(current) : current == id;
+    }
+
+    private async Task RefreshInventoryAsync()
+    {
+        if (inventoryLoading) return;
+        inventoryLoading = true;
+        inventoryMessage = InventoryWord("Loading account inventory...", "Hesap envanteri yükleniyor...",
+            "Cargando inventario...", "Chargement de l'inventaire...",
+            "Inventar wird geladen...", "인벤토리 불러오는 중...", "Загрузка инвентаря...");
+        if (currentPage == ProgressionPage.Inventory) RebuildCurrentPage();
+        try
+        {
+            AtlasBoardAccountService account = AtlasBoardAccountService.Instance;
+            if (account == null || !account.IsSignedIn)
+            {
+                inventoryAccount = null;
+                inventoryServer = null;
+                inventoryAccountUid = "";
+                inventoryMessage = InventoryWord("Sign in to load cloud inventory.", "Bulut envanteri için giriş yap.",
+                    "Inicia sesión para ver el inventario.", "Connectez-vous pour l'inventaire.",
+                    "Zum Inventar anmelden.", "로그인 후 이용해 주세요.", "Войдите для загрузки инвентаря.");
+                return;
+            }
+            string uid = account.CurrentAccountId;
+            if (inventoryAccountUid != uid)
+            {
+                inventoryAccount = null;
+                inventoryServer = null;
+                inventoryAccountUid = uid;
+            }
+            inventoryAccount = await account.LoadCurrentAccountAsync();
+            inventoryServer = null;
+            // The RTDB wallet is canonical for both registered Firebase users
+            // and administrator-approved Steam QA users whose Firebase Auth
+            // transport is anonymous. Do not gate ownership on IsRegistered:
+            // LoadAsync itself verifies the UID, wallet and item eligibility.
+            AtlasBoardMetaEconomyBridge economy = FindAnyObjectByType<AtlasBoardMetaEconomyBridge>();
+            if (economy != null &&
+                (economy.IsLocalEmulatorMode && economy.LocalAccountId == uid ||
+                 !economy.IsLocalEmulatorMode &&
+                 AtlasBoardRtdbMetaEconomy.CurrentUid == uid))
+            {
+                AtlasBoardMetaEconomySnapshot read = await economy.RefreshAsync();
+                if (read != null && read.Success &&
+                    (economy.IsLocalEmulatorMode || read.WalletVerified) &&
+                    (economy.IsLocalEmulatorMode ||
+                     AtlasBoardRtdbMetaEconomy.CurrentUid == uid))
+                    inventoryServer = read;
+            }
+            inventoryMessage = inventoryServer == null
+                ? InventoryWord("Default cosmetics available. Server ownership could not be verified.",
+                    "Varsayılanlar kullanılabilir. Sunucu sahiplik doğrulaması yapılamadı.",
+                    "Elementos básicos disponibles; las compras aún no están verificadas.",
+                    "Objets de base disponibles ; achats non vérifiés.",
+                    "Standardartikel verfügbar; Käufe noch nicht verifiziert.",
+                    "기본 아이템 사용 가능, 구매 검증 준비 중.",
+                    "Доступны стандартные предметы; покупки ещё не проверяются.")
+                : InventoryWord("Server inventory loaded.", "Sunucu envanteri yüklendi.",
+                    "Inventario del servidor cargado.", "Inventaire serveur chargé.",
+                    "Serverinventar geladen.", "서버 인벤토리 불러옴.", "Инвентарь сервера загружен.");
+        }
+        catch (Exception exception)
+        {
+            inventoryServer = null;
+            inventoryMessage = "Inventory unavailable: " + exception.GetType().Name;
+        }
+        finally
+        {
+            inventoryLoading = false;
+            if (currentPage == ProgressionPage.Inventory && root != null && root.activeSelf)
+                RebuildCurrentPage();
+        }
+    }
+
+    private void SelectInventoryCategory(string category)
+    {
+        inventoryCategory = category;
+        inventorySelectedId = InventoryDefaultFor(category);
+        RebuildCurrentPage();
+    }
+
+    private async void ApplyInventorySelection()
+    {
+        if (inventoryWriting || inventoryLoading || inventoryAccount == null ||
+            inventoryCategory != "profile_frame" ||
+            InventoryIsEquipped(inventorySelectedId)) return;
+
+        AtlasBoardAccountService account = AtlasBoardAccountService.Instance;
+        string uid = inventoryAccountUid;
+        if (account == null || !account.IsSignedIn ||
+            !string.Equals(uid, account.CurrentAccountId, StringComparison.Ordinal) ||
+            !string.Equals(uid, inventoryAccount.AccountId, StringComparison.Ordinal))
+        {
+            inventoryMessage = InventoryWord("Account changed. Reload inventory.",
+                "Hesap değişti. Envanteri yeniden yükle.", "La cuenta cambió.",
+                "Le compte a changé.", "Konto gewechselt.", "계정이 변경됐습니다.", "Учётная запись изменилась.");
+            RebuildCurrentPage();
+            return;
+        }
+
+        string chosenId = inventorySelectedId;
+        bool isDefault = chosenId == "default_profile_frame";
+        bool verifiedOwnership = isDefault;
+        if (!isDefault && AtlasBoardShopProfileFrameArt.IsSupported(chosenId) &&
+            inventoryServer != null && inventoryServer.Success)
+        {
+            foreach (AtlasBoardStorefrontItem item in inventoryServer.Items)
+                if (item != null && item.ItemId == chosenId &&
+                    item.ItemType == "profile_frame" && item.Owned &&
+                    !item.PreviewOnly) { verifiedOwnership = true; break; }
+        }
+        // A preview is not proof of purchase; never write unchecked frame IDs.
+        if (!verifiedOwnership)
+        {
+            inventoryMessage = InventoryWord("Ownership verification required.",
+                "Uygulamak için doğrulanmış sahiplik gerekli.",
+                "Se requiere verificar la propiedad.",
+                "Vérification de propriété requise.",
+                "Besitznachweis erforderlich.", "소유권 확인이 필요합니다.",
+                "Требуется проверка владения.");
+            RebuildCurrentPage();
+            return;
+        }
+
+        inventoryWriting = true;
+        RebuildCurrentPage();
+        try
+        {
+            bool liveRtdb = inventoryServer != null && inventoryServer.WalletVerified;
+            if (liveRtdb)
+            {
+                AtlasBoardMetaEconomyOperationResult equipped =
+                    await AtlasBoardRtdbMetaEconomy.EquipAsync(isDefault ? "" : chosenId);
+                if (equipped == null || !equipped.Success)
+                {
+                    inventoryMessage = InventoryWord("Server could not equip the frame.",
+                        "Sunucuda çerçeve kuşanılamadı.", "No se pudo equipar.",
+                        "Impossible d'équiper le cadre.", "Rahmen konnte nicht angelegt werden.",
+                        "프레임을 장착할 수 없습니다.", "Не удалось применить рамку.");
+                    return;
+                }
+                inventoryServer.EquippedFrameId = isDefault ? "" : chosenId;
+            }
+            AtlasAccountOperationResult write = await account.UpdatePublicProfileAsync(
+                inventoryAccount.DisplayName, inventoryAccount.AvatarId,
+                isDefault ? "" : chosenId);
+            bool stillSame = account.IsSignedIn &&
+                string.Equals(uid, account.CurrentAccountId, StringComparison.Ordinal);
+            if (write != null && write.Success && stillSame)
+            {
+                inventoryAccount.ProfileFrameId = isDefault ? "" : chosenId;
+                inventoryMessage = InventoryWord("Profile frame saved to account.",
+                    "Profil çerçevesi hesaba kaydedildi.",
+                    "Marco guardado en la cuenta.", "Cadre enregistré dans le compte.",
+                    "Profilrahmen im Konto gespeichert.", "프로필 프레임을 저장했습니다.",
+                    "Рамка сохранена в профиле.");
+                AtlasBoardCanonicalProfileHeader header =
+                    UnityEngine.Object.FindAnyObjectByType<AtlasBoardCanonicalProfileHeader>();
+                if (header != null)
+                    header.NotifyVerifiedProfileFrameEquipped(
+                        uid, isDefault ? "" : chosenId);
+            }
+            else
+                inventoryMessage = InventoryWord("Save failed. Try again.",
+                    "Kaydedilemedi. Yeniden dene.", "Error al guardar.",
+                    "Échec de l'enregistrement.", "Speichern fehlgeschlagen.",
+                    "저장에 실패했습니다.", "Не удалось сохранить.");
+        }
+        catch (Exception exception) { inventoryMessage = "Save failed: " + exception.GetType().Name; }
+        finally { inventoryWriting = false; if (currentPage == ProgressionPage.Inventory) RebuildCurrentPage(); }
+    }
+
+    private void BuildInventoryPage()
+    {
+        CreateSectionTitle(contentRoot, InventoryWord("MY INVENTORY", "ENVANTERİM",
+            "MI INVENTARIO", "MON INVENTAIRE", "MEIN INVENTAR", "내 인벤토리", "МОЙ ИНВЕНТАРЬ"));
+        for (int i = 0; i < InventoryCategories.Length; i++)
+        {
+            string category = InventoryCategories[i];
+            Button tab = CreateButton(contentRoot, InventoryCategoryLabel(category),
+                inventoryCategory == category ? DarkBlue : Blue,
+                new Vector2(-420f + i * 210f, 207f), new Vector2(192f, 44f));
+            tab.onClick.AddListener(() => SelectInventoryCategory(category));
+        }
+
+        GameObject preview = CreateCard(contentRoot, "InventoryPreview",
+            new Vector2(-292f, -74f), new Vector2(566f, 490f), Cream);
+        GameObject owned = CreateCard(contentRoot, "InventoryOwned",
+            new Vector2(292f, -74f), new Vector2(566f, 490f), Cream);
+        AddCardHeader(preview.transform, InventoryWord("PREVIEW & APPLY", "ÖNİZLEME VE UYGULA",
+            "VISTA Y APLICAR", "APERÇU ET APPLIQUER", "VORSCHAU UND ANWENDEN",
+            "미리보기 및 적용", "ПРОСМОТР И ПРИМЕНЕНИЕ"), DarkBlue, 203f);
+        AddCardHeader(owned.transform, InventoryWord("OWNED ITEMS", "SAHİP OLDUĞUM ÜRÜNLER",
+            "MIS ARTÍCULOS", "OBJETS POSSÉDÉS", "MEINE GEGENSTÄNDE", "보유 아이템", "МОИ ПРЕДМЕТЫ"), Blue, 203f);
+
+        List<string> ownedItems = InventoryOwnedItems();
+        if (!ownedItems.Contains(inventorySelectedId))
+            inventorySelectedId = ownedItems[0];
+        string title = InventoryItemName(inventorySelectedId);
+        TMP_Text titleTextLocal = CreateText(preview.transform, 27f,
+            FontStyles.Bold, TextAlignmentOptions.Center, TextDark);
+        SetAnchored(titleTextLocal.rectTransform, new Vector2(0f, 137f), new Vector2(490f, 42f));
+        titleTextLocal.text = title;
+
+        if (inventoryCategory == "profile_frame" &&
+            AtlasBoardShopProfileFrameArt.IsSupported(inventorySelectedId))
+            AtlasBoardShopProfileFrameArt.Create(preview.transform,
+                inventorySelectedId, 138f, inventoryAccount != null ? inventoryAccount.DisplayName : "A");
+        else
+        {
+            GameObject previewSquare = CreatePanel(preview.transform, "InventorySample",
+                new Vector2(0f, 11f), new Vector2(220f, 166f), PanelBlue);
+            TMP_Text sample = CreateText(previewSquare.transform, 28f,
+                FontStyles.Bold, TextAlignmentOptions.Center, DarkBlue);
+            Stretch(sample.rectTransform, 10f);
+            sample.text = inventoryCategory == "profile_frame" ? "A" : InventoryCategoryLabel(inventoryCategory);
+        }
+
+        TMP_Text info = CreateText(preview.transform, 15f,
+            FontStyles.Normal, TextAlignmentOptions.Center, TextDark);
+        SetAnchored(info.rectTransform, new Vector2(0f, -120f), new Vector2(492f, 64f));
+        info.enableWordWrapping = true;
+        info.text = InventoryIsEquipped(inventorySelectedId)
+            ? InventoryWord("Currently equipped on this account.", "Bu hesapta şu anda kullanılıyor.",
+                "Actualmente equipado.", "Actuellement équipé.", "Derzeit angelegt.",
+                "현재 장착 중.", "Сейчас используется.")
+            : InventoryWord("Select an owned item and apply it to your account.",
+                "Sahip olduğun ürünü seçip hesabına uygulayabilirsin.",
+                "Selecciona un artículo de tu inventario.", "Sélectionnez un objet possédé.",
+                "Wähle einen eigenen Gegenstand.", "보유 아이템을 선택하세요.",
+                "Выберите доступный предмет.");
+
+        string buttonText = InventoryIsEquipped(inventorySelectedId)
+            ? InventoryWord("EQUIPPED", "KUŞANILDI", "EQUIPADO", "ÉQUIPÉ", "AUSGERÜSTET", "장착 중", "ВЫБРАНО")
+            : InventoryWord("APPLY", "UYGULA", "APLICAR", "APPLIQUER", "ANWENDEN", "적용", "ПРИМЕНИТЬ");
+        Button apply = CreateButton(preview.transform, buttonText, Green,
+            new Vector2(0f, -183f), new Vector2(250f, 56f));
+        apply.interactable = !inventoryLoading && !inventoryWriting &&
+            inventoryCategory == "profile_frame" && inventoryAccount != null &&
+            !InventoryIsEquipped(inventorySelectedId) &&
+            (inventorySelectedId == "default_profile_frame" ||
+             ownedItems.Contains(inventorySelectedId) && inventoryServer != null);
+        apply.onClick.AddListener(ApplyInventorySelection);
+
+        RectTransform list = BuildScrollList(owned.transform,
+            "InventoryOwnedList", new Vector2(0f, -20f),
+            new Vector2(490f, 362f), PanelBlue);
+        foreach (string itemId in ownedItems)
+        {
+            string captured = itemId;
+            GameObject itemRow = CreateListRow(list, 68f,
+                captured == inventorySelectedId ? new Color32(215, 236, 247, 255) : Cream);
+            Button button = itemRow.AddComponent<Button>();
+            button.targetGraphic = itemRow.GetComponent<Image>();
+            button.onClick.AddListener(() => { inventorySelectedId = captured; RebuildCurrentPage(); });
+            TMP_Text label = CreateText(itemRow.transform, 18f,
+                FontStyles.Bold, TextAlignmentOptions.Left, TextDark);
+            Stretch(label.rectTransform, 14f);
+            label.text = InventoryItemName(itemId) +
+                (InventoryIsEquipped(itemId) ? "  [ON]" : "");
+        }
+        TMP_Text status = CreateText(contentRoot, 15f, FontStyles.Normal,
+            TextAlignmentOptions.Center, Muted);
+        SetAnchored(status.rectTransform, new Vector2(0f, -326f),
+            new Vector2(1100f, 43f));
+        status.text = inventoryMessage;
+        status.enableWordWrapping = true;
     }
 
     private void BuildOverviewPage()
@@ -1340,7 +1706,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             root.transform,
             "Navigation",
             new Vector2(0f, 345f),
-            new Vector2(850f, 72f),
+            new Vector2(1145f, 72f),
             new Color32(233, 233, 239, 245));
         RebuildNavigation();
 

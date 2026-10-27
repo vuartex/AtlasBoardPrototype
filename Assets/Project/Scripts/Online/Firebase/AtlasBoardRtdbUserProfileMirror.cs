@@ -244,7 +244,7 @@ public static class AtlasBoardRtdbUserProfileMirror
                 general = new GeneralDto
                 {
                     schemaVersion = 1,
-                    accountType = "registered",
+                    accountType = user.IsAnonymous ? "guest" : "registered",
                     language = languageCode,
                     countryCode = countryCode,
                     lastSeenAt = now

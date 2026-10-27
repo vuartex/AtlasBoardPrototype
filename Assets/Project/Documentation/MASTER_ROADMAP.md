@@ -1,3 +1,212 @@
+## v5.49.9 — Phase 19H Full-Size Avatar Replacement (2026-10-27; OWNER RETEST OPEN)
+
+Owner screenshot acceptance after v5.49.8: equipped Halloween Night **now appears across the profile banners** in Main Menu, Store/Career and lobby (cross-screen propagation **OWNER PASS**). Remaining visual defect: custom art sits *inside* the original light-blue default avatar box, producing a double/nested border instead of replacing the default V tile. The original background and initial are still visible; the cosmetic is too small.
+
+Root cause verified against the actual `Assets/Board_Prototype.unity` scene hierarchy: scene `ProfileCard` has **sibling** `Avatar` (Image, **118×118**) and `AvatarInitial` (TMP, **95×95**). Phase 19G used the narrower text anchor and capped art at **88**. Runtime Store instead nests `AvatarInitial` inside `Avatar` (Image, 88×88); Career nests `CareerHudInitial` inside `CareerHudAvatar` (Image, 96×96). A single fixed size cannot fit all of them.
+
+Phase 19H changes ONLY existing `AtlasBoardCanonicalProfileHeader`: `ResolveAvatarTile` chooses the **actual Image rectangle**: scene sibling `Avatar`, runtime nested `Avatar`, or nested `CareerHudAvatar`. Procedural frame art is parented/centered directly inside that actual tile and receives the tile's **full measured side**, without the legacy 88-unit cap or -2px inset. After successful creation, only the tile's default blue `Image` and its original TMP initial are disabled so the frame's own dark background/V/border is the single visible avatar. Switching frame updates the decoration; equipping `Classic / Default` or signing out clears decoration and restores blue Image+V. Old text-anchored overlays are explicitly disabled/destroyed; frame graphics remain non-clickable. No new manager, prefab, database writes, nodes, Firebase rules, gameplay map settings or backend code.
+
+Acceptance: Main Menu, Career Overview, Career Inventory, Store, Public/Private/Local lobby, re-open/re-entry and default reset show **one frame exactly the same footprint as their original avatar square**; no blue outer box, inset V, Gold/name overlap, duplicated image or blocked clicks. Custom artwork for all equipped frame IDs must be visually inspected in Unity; static/source QA does not count as Unity rendering PASS. Live gameplay HUD and multi-device rejoin remain OPEN until observed. Auth/RTDB balances, ownership and purchases from v5.49.7 remain untouched. Firebase deploy **NOT REQUIRED**; no GitHub push.
+
+---
+
+## v5.49.8 — Phase 19G Canonical Profile Frame Anchor + Cross-Screen Sync (2026-10-26; PARTIAL OWNER PASS)
+
+Owner v5.49.7 live screenshots: Store now shows exactly ONE Buy button (PASS); previously purchased Halloween Night and New Year Lights both appear in Career > Inventory > Profile (PASS); player can select Halloween Night and it reads `Currently equipped` / `EQUIPPED` (PASS). Owner reports the equipped frame **incorrectly appears over the Main Menu name/balance text instead of inside the blue `V` avatar square**, and remains absent from Career's top-left account banner, Store banner and Private/Public lobby banner (FAIL). Balance remains correct at 4,350 Gold / 500 Atlas Coin.
+
+Root cause: existing `AtlasBoardCanonicalProfileHeader.ApplyProfileFrame()` parented one procedural frame to `avatarInitialText.transform.parent`, which is a whole `ProfileCard` on the Main Menu, not the precise avatar square. It also stored only one runtime frame object and never reconciled sibling UI profile banners instantiated after sign-in. Career's own account avatar uses `CareerHudInitial` nested in `CareerProfileHeader`, not the default `AvatarInitial`/`ProfileCard` names. The existing `AtlasBoardUniversalCareerTheme`, `AtlasBoardUnifiedProfilePresentation` and store controllers are kept in place; no extra controller is created.
+
+Phase 19G changes to the EXISTING `AtlasBoardCanonicalProfileHeader` singleton: one account-owned `appliedProfileFrameId` reconciles procedural art with each `AvatarInitial` under `ProfileCard` (Main Menu, Store, Public/Private lobby and applicable runtime banners), plus `CareerHudInitial` under `CareerProfileHeader`. The frame is now a centered child of the avatar **text RectTransform**, never the name/currency/ProfileCard root. Each target has at most one named frame decoration; old ID decorations are immediately hidden/destroyed on a switch, account switch or default reset. Art graphics do not intercept clicks; later-created profile canvases are reconciled on a bounded 0.75-second scan. The existing Career `ApplyInventorySelection` triggers immediate on-screen refresh ONLY after both server EQUIP and public-profile persistence succeed, then the same canonical source re-reads RTDB. This is visual state synchronization; no client grants currency or ownership.
+
+### Kalıcı AtlasBoard proje kuralları / owner acceptance contract
+
+1. **Önce kanonik roadmap ve gerçek kaynak:** Her değişiklikten önce en son `Assets/Project/Documentation/MASTER_ROADMAP.md` okunur; ilgili tüm tüketiciler (Main Menu, Settings, Store, Career, Inventory, Private/Public/Local Lobby, game HUD/match UI, mobile/Steam) aranır. Bir ekranda çalışan bir özellik diğer ekranlarda eksik kalamaz. Tek dosyaya bakarak PASS denemez.
+2. **Tek otorite, tekrar yok:** Ekonomi/Gold/Atlas Coin/envanter/kuşanılan kozmetikler mevcut UID'ye bağlı doğrulanmış **Firebase RTDB** kaynağından gelir. Firebase Auth anonim ≠ Steamworks hesabı sahte registered değildir. Ürün sahipliği ve ödül sunucu kurallarıyla korunur; istemci sahte para/ürün yazamaz. Mevcut manager/UI/component genişletilir; ikinci cüzdan, kopya profil, paralel dropdown veya yeni Tools/patch-only yardımcı sistemi yaratılmaz.
+3. **Her yerde aynı konum / tam avatar değiştirme:** Takılı özel profil çerçevesi mavi default avatarın **tam avatar Image dikdörtgeninin yerini almalı**, iç içe ikinci mavi kutu veya iki ayrı `V` olmamalı; `AvatarInitial` text alanı avatar görselinden küçük olabilir. Profil adı, Gold, Atlas Coin veya kartın ortasına çizilemez. Equip, Default reset, account switch, Store/Inventory/Lobby açma-kapama, Private/Public/Offline ekranı ve oyun içi profil banner'ı tutarlı görünür; ilk yüklemede ve maçlar arasında eski çerçeve kalmaz. Ayrı ekranların geometrileri gerçekten doğrulanır.
+4. **Board Theme — More Settings (OPEN / tasarım onaylı, henüz işlevsel değil):** Game Lobby > More Settings içinde Environment Theme'den bağımsız bir **Board Theme** seçimi gereklidir. `Classic / Default` herkese açık; ileride yalnız gerçekten RTDB'de sahip olunan board_theme itemId'leri seçenek olur. Local/Private/Public host seçimi, aktif room/match ID'ye bağlı otoriter ayar olarak tüm katılımcılara aktarılır; non-host read-only görür; host migration aktif maçın board'unu korur; yeni maç önceki host'un board'unu sızdırmaz. Board materyali/3D kozmetik ve server entitlement tamamlanmadan sahte çalışan bir Buy/Apply/Dropdown teslim edilmez. Fiziksel 32-tile topology, tıklama/collider ve Environment Theme'in skybox/prop etkisi bozulmaz. Eski Phase 19C `Board cosmetics` OPEN ile aynı iş kalemidir, yeni paralel özellik değildir.
+5. **Ekran/dil/platform bütünlüğü:** Yedi dilde tekil metin, aynı Profile header ve satın alma durumu; Windows/Steam + Android UI, küçük ekran/dokunma, ekran aç/kapat, 1→2→3 maç, gerçek lobby ve oyun içi HUD regresyonu korunur. Seçim server'a uygulanmadan başarılı UI diye işaretlenmez.
+6. **Teslim ve yetki sınırı:** Fark/patch betiği yerine kanonik path içinde **tam düzenlenmiş kaynak dosyaları ZIP** ve aynı `MASTER_ROADMAP.md` teslim edilir. Firebase Rules veya node değişmediyse **deploy gerekmez** denir, gereksiz PowerShell komutu verilmez. Production deploy/Config/RTDB silme veya GitHub commit/push yalnız açık owner izniyle yapılır. Unity compile, source/static QA, Firebase emulator security ve owner Play Mode sonuçları ayrı PASS/OPEN olarak kaydedilir; test edilmemiş özellik COMPLETE yazılmaz.
+
+Phase 19G code scope: existing `AtlasBoardCanonicalProfileHeader.cs` + existing `AtlasBoardProgressionUI.cs`, QA and roadmap only. Profile-frame art helper, runtime commerce, player name and economy APIs, Firebase Rules, backend nodes, scene, Steam integration and board theme implementations remain unchanged. Unity compilation, exact per-screen placement, immediate equip/reset, restart/rejoin and live multiplayer/gameplay header regression **OWNER RETEST OPEN**. No Firebase deploy and no GitHub push.
+
+---
+
+## v5.49.7 — Phase 19F Single Buy + Verified Steam QA Career Inventory (2026-10-26; OWNER RETEST OPEN)
+
+Owner live RTDB/Unity evidence from v5.49.6: initial Gold/Atlas Coin are both 0 (PASS), no `-1` or dash (PASS), Daily Reward +50 and Dev Wallet +5000 Gold / +500 Coin (PASS), Halloween Night purchased for 350 Gold (PASS), New Year Lights purchased for 350 Gold (PASS), owned markers persist after restarting the application (PASS), both balances persist after restart (PASS), and Main Menu/Store/Career header balances agree (PASS). User's masked operation log confirms `DAILY`, `DEV_GRANT` and `PURCHASE` returned success for the same RTDB UID; wallet `ready=true guest=False steam=True tester=True`.
+
+Two OWNER FAIL items found: (1) Store showed simultaneous Gold Buy and `BUY 0 AC` for Gold-only frames despite AtlasCoinPrice=0. (2) Career > Inventory > Profile displayed only Classic/Default, no purchased frames, with `Server ownership could not be verified` although Store proved purchases and persistent ownership. Root cause (2): `AtlasBoardProgressionUI.RefreshInventoryAsync()` still had a FirebaseAuth `IsRegistered` requirement, rejecting the owner Steam QA identity because its Firebase transport is anonymous; Phase 19E properly allowed that UID's server-verified wallet via admin allowlist. This was a cross-screen integration bug, not a missing RTDB purchase record.
+
+Phase 19F source fixes: In existing `AtlasBoardMetaEconomyUI`, each purchasable item row has exactly ONE Buy action. Prefer catalog Gold price when nonzero; only choose Atlas Coin when Gold price is unavailable AND AtlasCoinPrice is positive. Never render a free `BUY 0 AC` button. Remove the misleading page-wide preview-only/purchases-disabled banner; actual unshipped draft cosmetic rows remain individual preview-only. Keep image-to-preview behavior, distinct Buy confirmation, idempotent server purchase, RTDB pricing, persisted ownership and existing UI layout. In existing `AtlasBoardProgressionUI`, read verified inventory by exact authenticated UID, without an unnecessary Firebase `IsRegistered` prerequisite; only `read.Success && read.WalletVerified` enables live-owned items. `Owned && !PreviewOnly` and current UID gate remain authoritative, and `EquipAsync()` remains server-enforced. No parallel inventory, duplicate wallet or new RTDB path.
+
+Safety and change scope: only two C# UI integrations, QA static and emulator test scripts, and roadmap/instructions updated. No `database.rules.json` changes, no Firebase deploy, no new node, Cloud Functions/Firestore usage or GitHub push. New Phase 19F source integration smoke **36/36 PASS** (Unity Editor compile still OPEN); local Auth+RTDB security emulator **36/36 PASS**, including an administrator-approved anonymous UID purchasing and equipping its own frame and syncing a public profile, without modifying production. Prior Phase 19E owner live PASS remains valid; actual Unity compilation and purchased-item Career Inventory Apply/equip visual persistence on owner's Steam UID are OPEN until new package is installed and manually tested. Preview art can be clicked to inspect; OWNED cosmetics must appear in Career > Inventory > Profile and selection must be applied explicitly by the player. Prices remain 350 Gold each for Halloween/New Year, 400 for flags; Atlas Coin remains unused on Gold-priced frames.
+
+---
+
+## v5.49.6 — Phase 19E Steam/Guest RTDB Currency Identity (2026-10-26; SOURCE AND EMULATOR TEST REQUIRED, UNITY RETEST OPEN)
+
+Evidence: Steamworks provider shows Vuartex in Settings/Career, but FirebaseAuth UID 5CXqXPXlG7Ow4qj99SUxRYq0jsr1 is anonymous. This exact UID appears in production RTDB users and has an ADMIN-owned devWalletTesters=true grant. Existing AtlasBoardLobbyRuntimeBridge explicitly creates a Steam Casual Firebase anonymous session without verifying Steam ownership on Firebase. Steam persona/session and Firebase authentication are distinct, and UI must accurately report both.
+
+Single canonical wallet: Existing /users/{uid}/metaEconomy (wallet, inventory, equipped, dailyReward, dev, operation) remains the ONLY stored currency authority. All menu/store/career/lobby/Universal HUD currency text derives from the same existing MetaEconomyUI wallet refresh and MainMenu display method. No duplicate manager, account object, RTDB path, local currency grant or Cloud Functions introduced. Every player initially sees 0/0 (no raw -1 or dashes); when Auth+network verifies the wallet, the current UID balance replaces zero. Local offline guest without a Firebase principal uses zero UI without claiming remote storage. Anonymous authenticated Guest and Steam Casual can atomically initialize a strictly zero wallet in RTDB.
+
+Security: Existing server-validating RTDB full-node ETag/operation transition rules remain authoritative. For anonymous UIDs, only ZERO INIT is permitted without further authority. Admin-controlled devWalletTesters permission additionally allows the deliberately approved owner Steam QA anonymous UID to exercise DEV_GRANT, DAILY, PURCHASE, EQUIP and RESET operations; no client self-allowlist or arbitrary balance write permitted. Nonapproved anonymous accounts still cannot earn, grant or spend. Registered Firebase accounts preserve their original daily/checkout access. Profile mirror general/accountType now accurately distinguishes guest vs registered Firebase Auth; old Steam UID stored registered incorrectly.
+
+Steam UI: Steamworks connected never triggers misleading Sign In/Register just because FirebaseAuth.IsAnonymous. Editor log reports account=steam, firebaseAuth=anonymous and steamLinkVerified=false separately. This is NOT a fake Steam credential verification; the real Steam ticket/trusted Firebase custom-token path remains OPEN for all standard Steam accounts because no verified backend was authorized. Admin test allowlist enables this owner UID only. Steam/Android/Windows guest multiplayer sign-in timing unchanged.
+
+QA: Complete Unity source test, Auth+Database emulator tests (anonymous INIT zero, unauthorized change denial, admin tester grant/daily/purchase, 24h replay, registered purchase, concurrency) and production dry-run must pass before owner manually deploys changed database rules. Unity actual build, device, Steam UID continuity, lobby/match Universal HUD and cross-device acceptance OPEN. GitHub push only with explicit owner consent.
+
+---
+
+## v5.49.5 — Phase 19D Guest Account Gate / Profile Checkout Visibility (2026-10-26; SOURCE TEST PASS, UNITY RETEST OPEN)
+
+Owner Play Mode evidence: RTDB and Auth emulators 25 PASS, source wiring 16 PASS, and owner deployed atlasboard-usa RTDB rules successfully. However Unity Editor UID log was **account=guest** for UID 5CXqXPXlG7Ow4qj99SUxRYq0jsr1. Owner allowlisted this UID under devWalletTesters, but anonymous Firebase Auth is intentionally not eligible for Dev Wallet, Daily Reward or purchases; a display name of Vuartex is NOT registration proof. The current RTDB rules remain unchanged and must not be relaxed to let anonymous players mint Gold.
+
+Fixes (full C# files): MainMenu Settings/Profile modal converts unverified currency -1 to an em dash; existing main header likewise remains an em dash for Guest. Store Items → Profile shows a Gold-price BUY button adjacent to each of the four procedural frame previews; thumbnail still opens inspect-only preview. When Guest clicks BUY, the canonical account login/register modal opens; when registered and server wallet is verified, BUY uses existing secure RTDB checkout and ownership guard. Registered but unverified wallets do not spend funds. The redundant PREVIEW ONLY row/band is removed from the Profile category, other draft cosmetics remain preview-only. Store Home Guest daily card now offers SIGN IN / REGISTER; registered accounts still claim 50 Gold/24h only after server verification. Dev Wallet remains disabled for nonallowlisted or Guest users with a visible localized explanation, never by writing owner UID locally. Accounts use existing account UI; no extra auth provider/duplicate form.
+
+New QA: node qa/phase19c_unity_wiring.test.cjs now expects ATB_PHASE19D_UNITY_WIRING_QA PASS assertions=21 compile=UNITY_EDITOR_REQUIRED; RTDB security emulator remains 25 PASS. New Unity Play Mode test: first guest menu Gold/AtlasCoin —, Profile modal — instead of -1, Store → Profile four BUY buttons, Guest BUY opens login, sign into actual registered account, Print UID must say account=registered, then allowlist that UID in RTDB, verify Dev +5000/500, Halloween purchase 350 and owned/equip, Daily +50 once/24h. Unity Editor compilation and live end-to-end purchase still OPEN; no GitHub push and no new database rules deploy needed after owner's successful 19C deploy.
+
+---
+
+## v5.49.3 — Phase 19B0 Profile Checkout Test Contracts (2026-10-26; SOURCE CANDIDATE, EDITOR RETEST OPEN)
+
+Owner requirements: shop profiles to be purchased with Gold and equipped from Career Inventory; D6 from PBR Little Games Pack – 4K, ghost and cartoon vehicle pawn options to be imported only from owner-licensed assets; improve Dev Wallet/Daily Reward UX; do NOT compromise Spark/free, existing Steam/Android/RTDB multiplayer, or security for client-created balances. Motion remains deferred. End-match Gold remains **zero**.
+
+- Phase 19A2 Inventory screenshot layout owner-positive; earlier two compiler errors addressed. Source this time adds purchased-profile-frame Apply for **server-verified Firestore emulator** entitlements only; verify UID and account before RTDB public profile update, persist stable `frame_*` ID, disable Apply when equipped, reload UI header on success. Existing default frame reset retained.
+- Header displays selected cosmetic frame after reading account profile from RTDB, no duplicate header or local PlayerPrefs copy. 7-language items unchanged.
+- Store Live Spark cannot legitimately call Phase 9 emulator-only Cloud Functions and Firestore-backed economy. Opening Shop no longer shows misleading transaction-failed popup or verified wallet `0`; dev/daily/reset provide clear seven-language emulator-only notice and make no currency changes. `SyncSharedProfileCards` no longer propagates invented zero balance when backend unverified.
+- Local emulator Dev Wallet top-up: intentional presses produce unique audited idempotency keys, correcting the old fixed-key non-repeatability. For local emulator only, NOT production. Seed helper `Backend/Firebase/functions/scripts/seed-phase19-emulator-catalog.cjs` refuses running without `FIRESTORE_EMULATOR_HOST` and explicit `ATLASBOARD_PHASE19_EMULATOR_SEED=YES`. Provides 4 priced frames and 4 D6 color prototype rows; server decides price/ownership; Unity does not grant entitlements by itself. Backend `commerceTestPurchase` idempotent transaction unchanged. Dev Reset still revokes entitlements but intentionally retains money/purchase/ledger history: full economic rewind NOT implemented.
+- Shop draft grows from 17 to 21 preview items (adds red, blue, black, graphite dice palette). Six dice preview products total incl. earlier Obsidian Gold/Polar Ice. The 3D meshes **have NOT been imported**: screenshots of Asset Store packages are not Unity source assets. Owner must import only D6 meshes/materials from licensed PBR pack; face mapping 1–6, orientation, camera and Android FPS OPEN. Little Ghost and Cartoon Vehicles remain candidates, not included in ZIP. Credits updated with pending license tracking.
+- **Live Gold checkout + Daily Reward remain BLOCKED:** existing Spark-only project does not have trusted deployed commerce authority; do NOT enable client-side balance writes. Production purchase, one-time Guest starter Gold/Atlas Coin, permanent entitlement/equip validation, Dev Reset full rollback, XP award and host-board protocol are separate open Phase19 milestones. Existing game server security preserved.
+- Smoke menu: `Atlas Board → QA & Diagnostics → QA → Phase 19B - Profile Commerce Contract Smoke`: source contracts only; expect `ATB_PHASE19B_PROFILE_QA PASS`. Real Unity compiler, emulator seeded purchase, real RTDB equip, Live Spark and device tests still **OPEN**; no claims of PASS or Firebase deploy.
+
+## v5.49.2 — Phase 19A2 Career Inventory groundwork (2026-10-26)
+
+OWNER REQUEST: Career now gains an Inventory tab beside Overview, History, Achievements, and Account. Inventory shows categorized **account-owned items only**, a selection/preview left panel, an owned-items right list and state-aware Apply/Equipped button. Item storage identities use invariant catalog item IDs (never translated display names). Seven-language inventory UI added.
+
+Implementation gates and honest limitations:
+- Default/Classic choices appear without purchase; staged Phase19A draft rows remain **preview-only**, never auto-owned.
+- Emulator-backed inventory ownership may be read from existing Phase9 commerce backend, with matching authenticated UID required. **Live Spark commerce entitlement backend not yet available**; fail closed, no unsafe UI-only grants.
+- RTDB `public_profile.profileFrameId` is read into the Career account snapshot. Resetting to the default frame uses the existing account API, only when logged in; the button is disabled for an already-equipped selection and during the write.
+- Paid profile frames / boards / dice / pawns / emotes cannot yet be applied: trustworthy **server-side entitlement verification** and category-specific RTDB loadout persistence need implementation. No fake sync or ownership was added.
+- All 17 draft items still await real storefront and 3D content. Room-wide board selection by host + host migration/relaunch Classic reset is **OPEN** until owned-board IDs and room snapshot authority are designed/tested. No current room rules altered.
+- Existing Player.log exhibits TMP LiberationSans SDF missing star/crescent U+2726/U+263E/U+2605 in procedural profile frame previews: ASCII fallback in frame art suppresses missing-glyph boxes; future Unity-drawn flag artwork still open.
+- Gold/Atlas Coin UI shows 0 while profile RTDB initialization succeeds. Not evidence of balance loss: wallet backend and refresh pathway remain OPEN for separate root-cause QA.
+- Unity Asset Store two-factor security token failure: external account recovery issue; no bypass or removal of 2FA attempted.
+
+Read-only source smoke menu: `Atlas Board → QA & Diagnostics → QA → Phase 19A2 - Career Inventory Smoke` (Inventory enum/tab, four art IDs, 17×7 catalog, RTDB profile update API); this is NOT a server purchase test.
+
+Tests required: Windows compilation, Inventory navigation on all seven languages, owned/unowned isolation, missing/wrong UID fail-closed, same-item repeat click, default-frame reset across app restart, Steam/Android display, RTDB permission check. **Status: SOURCE CANDIDATE / RETEST OPEN**. Phase19B Live Spark purchases, server wallet + loadout and Phase19C board selection remain separate; Phase18 end security regression stays OPEN.
+
+---
+
+## 26 Ekim 2026 — v5.49.1a Phase 19A1 Catalog QA Compiler Fix (SOURCE CANDIDATE — UNITY RETEST OPEN)
+
+**Owner-reported Unity compiler error:** `Assets/Project/Scripts/QA/AtlasBoardShopPhase19ACatalogAudit.cs(51,21): CS0104 Object ambiguous between UnityEngine.Object and object`. The audit imports `System` and `UnityEngine`, so its unqualified static call `Object.ReferenceEquals` was ambiguous. Replaced with `object.ReferenceEquals` (standard C# reference equality), preserving the exact merge/duplicate assertion. The same QA file was inspected for other unqualified `Object` uses; no others found.
+
+**Scope:** QA test compile fix only; no shop purchase, preview, profile frame, wallet, Firebase, localization, economy or gameplay behavior change. Existing v5.49.1 files retained byte-for-byte except this one QA line and this canonical roadmap section. Expected menu `Atlas Board → QA & Diagnostics → QA → Phase 19A - Shop Draft Catalog Smoke`, log `ATB_PHASE19A_CATALOG_QA PASS ... profileArt=4 mergedCatalog=true`. Unity Editor compile and visual inspection still **OPEN**, not claimed PASS.
+
+---
+
+## 26 Ekim 2026 — v5.49.1 Phase 19A1 Profile Frames / Compile Correction (SOURCE CANDIDATE — UNITY RETEST OPEN)
+
+**Owner report:** v5.49.0 Unity compiler CS1061 in `AtlasBoardMetaEconomyUI.cs:1054`: `AtlasBoardSeasonalLimitedItem` has no `PreviewOnly`. Root cause: a preview-only branch from storefront model was mistakenly inserted into seasonal item-name formatter. **Removed that branch**. Seasonal item model / purchase flow unchanged; this fix must be validated by actual Unity compile.
+
+**19A1 implementation:**
+- Four distinct **AtlasBoard-original, procedural uGUI profile frame previews** for Halloween, New Year, Türkiye and USA, in Store → Items → Profile. Clicking a frame thumbnail opens a large inspect-only modal, with localized item name (7 languages), Gold preview price, and Cancel; no fake purchase/grant/equip. Art created at runtime with Unity primitives and TMP, no third-party asset binaries or new backend manager.
+- Fixed `LocalizeItemName` for `PreviewOnly` storefront items; previously missing localization keys caused staged item names to fall back to English despite seven local translations existing in the draft catalog.
+- Fixed preview visibility: 19A showed staged items only when `snapshot.Items.Count==0`, hiding all draft categories if even one server catalog item existed. New `AtlasBoardShopContentDraft.MergeForDisplay` merges trusted server items plus unmatched visual drafts. Server item with same ID has priority; owned/price is never overwritten. No purchase listener for preview-only rows.
+- `AtlasBoardShopPhase19ACatalogAudit` expanded with four frame identity tests, 17 total items, 7-language coverage and server-collision/duplicate suppression. Expected `ATB_PHASE19A_CATALOG_QA PASS ... profileArt=4 mergedCatalog=true` (Unity execution OPEN). Manual tests: Editor compile, Shop → Profile, open/close each preview, language switch, store preview Gold unchanged; Seasonal Event tab unaffected.
+- Package candidates: owner showed **SR Studios Kerala — Little Ghost lowpoly(FREE)** in Unity My Assets. Suitable candidate for Halloween pawn, but screenshot does not verify its prefab imports or animation. The existing pawn transform movement does not require bundled animation. Imported prefab integration is **NOT DONE**. License: Standard Unity Asset Store EULA, not copyright-free. Asset credits ledger updated as candidate-only. Dice search candidate: Armor and Rum D6 (free; full dice bundle heavy) and Daniel Riches Board Game Essentials (lighter); face calibration must be revalidated.
+- **Status:** 19A1 static source candidate, Unity compile / actual click QA OPEN; Gold purchases, profile equip, cross-user profile frames, backend profile persistence and dev reset cycle remain in 19B/19E/19F. No Gold/AtlasCoin grants or Firebase/Steam changes. Existing Phase18H gates remain OPEN.
+
+**Delivery:** complete updated `Scripts/UI/Meta/AtlasBoardMetaEconomyUI.cs`, `Scripts/Meta/AtlasBoardShopContentDraft.cs`, `Scripts/QA/AtlasBoardShopPhase19ACatalogAudit.cs`, new `Scripts/UI/Meta/AtlasBoardShopProfileFrameArt.cs` + `.meta`, asset credits ledger and single canonical `Documentation/MASTER_ROADMAP.md`. No diff/patch/PS1 and no third-party models. No GitHub push or Unity compile claimed.
+
+---
+
+## 26 Ekim 2026 — v5.49.0 Phase 19A Shop Content Foundation (DRAFT PREVIEW / UNITY RETEST OPEN)
+
+**Owner approved direction:** Phase 18H editor 9/9 balance model + live read-only checks PASSED, owner mobile basic operation reported, but 18H security/host migration, 3-device sustained FPS, final reward verification and Steam release checks stay OPEN. User explicitly defers final security regression until cosmetic/shop work is frozen. This does not authorize bypassing server authority on purchases or money.
+
+### Phase 19 program — preserve current owners, no duplicate managers
+
+| Stage | Planned outcome | Evidence / status |
+| --- | --- | --- |
+| **19A Shop Content** | 3 boards, 2 dice, 4 pawns, 4 frames (Halloween, New Year, Türkiye, USA), 4 emotes; seven languages; Gold-only draft prices; Motion unchanged | **SOURCE CANDIDATE / UNITY RETEST OPEN**: preview entries are NOT inventory or purchasable products, no external 3D assets shipped |
+| **19B Wallet + trusted catalog** | Account-scoped backend catalog and Gold-only purchases, idempotent ledger, Live Spark/Steam account split, guest welcome grant exactly once with robust Firestore transaction and no duplicate RTDB balance authority | OPEN; requires verified live server/deployment, no speculative client grants |
+| **19C Board cosmetics** | Three distinct real visual materials/procedural boards, lobby host choice synchronized to all clients and fixed to the active match ID; fresh selection each rematch; migration host must not inherit stale prior host board | OPEN |
+| **19D Dice + pawns** | At least 2 styles, calibrated 1–6 upper-face orientation unchanged, available pawn assets inventoried before importing duplicates, ownership-equip verification | OPEN |
+| **19E Frames + emotes** | Seasonal/flag profile frames and cosmetic emote displays; profile equipment persists under authenticated account and is visible remotely; seven-language UI; credits/licensing records | OPEN |
+| **19F Rewards + Dev QA** | Result XP and earned reward rules, Gold-on-match-completion=0 (owner decision), AtlasCoin policy explicit, one-time Guest introductory wallet, migrate signed-in profile authority, account switching; Dev Wallet and reset cycle restores QA baseline including equipped cosmetics without altering historical production ledgers | OPEN |
+| **19G Final release gates** | 2/3/4 player reconnect/host migration, active loans/Civic, three Android sustained FPS, Steam and App Check/RTDB/security negative tests | OPEN, do LAST after feature freeze |
+
+### v5.49.0 content contract and known backend gaps
+
+- New **`AtlasBoardShopContentDraft`** is a read-only local visual proposal, not a second economy, not an entitlement authority and not a hidden grant path. 17 localized product names (7 languages) and preliminary Gold prices. Existing store categories and `animation_pack` preserved; Motion intentionally empty.
+- `AtlasBoardMetaEconomyUI` displays this preview **only if no active trusted server `item_catalog` items were loaded**, and displays a localized PREVIEW notice; each preview item is **non-purchasable**, no `AskPurchase` listener. Server-sourced items continue existing path unchanged. Missing developer/emulator token does not turn previews into Gold purchases. Unity client must not mint entitlement/currency, and `SeedDevelopmentWalletAsync` remains emulator-only.
+- **Confirmed source finding:** `AtlasBoardMetaEconomyBridge.EnsureDevIdentityAsync()` refuses Live Spark (local emulator only); `PurchaseAsync` calls server `commerceTestPurchase`. Enabling live purchases requires approved server endpoint, server-owned item price, transactional debit+grant, per UID idempotency and validated credentials. Simply removing the guard would be insecure, and is NOT done.
+- **Confirmed source finding:** `Backend/Firebase/functions/src/economy/meta-dev.ts` emulator reset revokes only commerce-backed owned items (`owned=false`), and preserves purchase/ledger history. It neither refunds Gold nor resets equipped cosmetic references. Dedicated test-reset semantics need isolated QA currency/entitlement scope and audit, not destructive live-wallet mutation.
+- **Confirmed source finding:** `AtlasBoardProgressionMatchRecorder` records completed online matches through `progressionRecordCompletedMatch`, but `AtlasBoardProgressionBridge` refuses permanent progression from Android anonymous Firebase Auth. Do not mint XP, career, Gold or AtlasCoin from guest/local/offline/QA matches without independent server-owned result proof. Match Gold rewards stay **zero** until owner changes decision.
+- Owner observed occasional initial `~1500 AtlasCoin / 250 Gold` appearing then reverting: no confirmed exact code path yet. Treat as **OPEN P0 ledger/render-source reconciliation**. Never blindly re-grant credits, never mix AtlasCoin/Gold fields or copy guest snapshot into signed-in profile; prove uid + account/source/timestamp + subscription order before fixing.
+- Board choice semantics: creator/host sets board for CURRENT match; all participants see same applied theme. Host migration mid-match preserves match theme; **new match** must select that match's host's board, not the previous host's theme. Store catalog item `board_theme` alone does not implement this: 19C binds to lobby authoritative settings/match ID and transitions.
+- Asset sourcing: use own procedural art or license-reviewed free Unity packages; **FREE does not mean public-domain/copyright-free**. Document package, author, asset URL, license, version, modification, credit requirement in an asset credits register before imports. No third-party asset binaries included with 19A. `Documentation/ASSET_CREDITS_REGISTER.md` starts a candidate-only license ledger.
+- Phase 19A QA menu: `Atlas Board → QA & Diagnostics → QA → Phase 19A - Shop Draft Catalog Smoke` expects `ATB_PHASE19A_CATALOG_QA PASS items=17 boards=3 dice=2 pawns=4 frames=4 emotes=4 languages=7 currency=gold previewOnly=true backendPurchase=OPEN`. Real Unity compile and click QA NOT EXECUTED in this environment.
+
+**Delivery files:** full `Scripts/Meta/AtlasBoardMetaEconomyModels.cs`, full `Scripts/Meta/AtlasBoardShopContentDraft.cs` and meta, full `Scripts/UI/Meta/AtlasBoardMetaEconomyUI.cs`, new `Scripts/QA/AtlasBoardShopPhase19ACatalogAudit.cs` and meta, asset credits candidate ledger, single canonical `Documentation/MASTER_ROADMAP.md`. No full project ZIP, no Firebase rules deploy, no GitHub push, no actual licensed cosmetic models/prefabs/texture files. All earlier roadmap history intact.
+
+---
+
+## 26 Ekim 2026 — v5.48.1 Phase 18H Owner QA Evidence / Live Guest Identity Incident (ROADMAP-ONLY UPDATE)
+
+**Sürüm / teslim sınırı:** En son kod kaynak paketi **v5.48.0 Phase 18H** olarak kalır; **v5.48.1 sadece tek kanonik `Assets/Project/Documentation/MASTER_ROADMAP.md` güncellemesidir**. Bu kayıt yeni C# değişikliği, Firebase Rules güncellemesi, GitHub push, Windows/Android yeniden build, sunucu deploy veya Steam release yapıldığı anlamına gelmez. Tarihsel roadmap başlıkları değiştirilmemiştir; aşağıdaki güncel kanıt ve durum tablosu, eski 'SOURCE READY / QA OPEN' zaman damgalı açıklamalarının üzerinde geçerlidir.
+
+### Owner tarafından 26 Ekim 2026'da bildirilen yeni test kanıtları
+
+| Kontrol | Gerçek owner çıktısı / gözlemi | Kapsam ve durum |
+| --- | --- | --- |
+| Phase 18H deterministik denge modeli | `ATB_PHASE18H_BALANCE_QA PASS scenarios=9/9 invalid=0 20rounds=true deterministicAnalyticalModel=true actualGameplayOrDeviceQA=false loanNetWorth=True overflowClamp=True` | **PASS — yalnız 3 harita × 2/3/4 oyuncu × 20 tur analitik model bütünlüğü.** Gerçek maç, gerçek RTDB veya gerçek cihaz kabulü değildir. |
+| Phase 18H canlı maç salt-okunur denetim | `ATB_PHASE18H_LIVE_QA PASS readOnly=true boardTiles=32 activeLoans=0 civicOwned=0 invalid=0 networkSecurityAndDeviceQA=OPEN` | **PASS — denetlendiği andaki canlı Editor/maç state bütünlüğü.** Aktif kredi **0**, sahipli Civic **0** olduğundan kredi/Civic ile ilgili gerçek durumlar bu testte kapsanmadı. |
+| Phase 18G şehir Economic Memory görünürlüğü | Owner şehir geçmişinin görüntülendiğini, sorun olmadığını ve sonraki aşamaya geçilebileceğini bildirdi. | **OWNER MANUAL PASS — geçmişin görüntülenmesi.** 5 tur/3 transfer trigger, 3 tur expiry, 6 tur cooldown, migration testlerinin tamamı bundan çıkarılamaz. |
+| Phase 18F Event seed smoke | Önceden raporlanan `ATB_PHASE18F_QA PASS cards=5 mapTiles=32 forward=1..6 backward=2..5 signedMotion=true recursiveEventLanding=blocked` | **PASS — read-only seed test**; gerçek tüm Event kartları/online hareket regresyonu OPEN. |
+| Phase 18F Civic satın alma onayı | Owner `v5.46.1` Travel/Event sonrası **satın al / vazgeç** davranışının çalıştığını bildirdi. | **OWNER MANUAL PASS — Civic satın alma onayı.** `Hayır` yolunda açık artırma başlatılmaması kabul edilen tasarım olarak korunur; tüm iki-client/reconnect matrisi OPEN. |
+| Phase 18E Civic Hub işaretleri | Owner üç proje işaretine tıklayınca bilginin açıldığını, tasarımın uygun olduğunu bildirdi. Önceki `ATB_PHASE18E_QA PASS boardTiles=32 civicTargets=3 ...` logu mevcut. | **OWNER MANUAL PASS — Civic info click** ve **PASS — 32+3 seed topoloji**; real online + Start bonus suistimal testleri OPEN. |
+| Windows özel Guest build / Live Spark başlatma | Owner **Build Two-Client Guest Test v1** ile özel build aldığını ve **Launch Live Spark Guest QA (No Steam)** ile başlattığını bildirdi. Guest programında başlangıç `ATB110` üretildi. | **BUILD BAŞLATILDI / IDENTITY BLOCKER OBSERVED**; build almak tek başına gerçek iki-UID online maçı PASS yapmaz. |
+| Android telefon kontrolü | Owner `telefonda da çalışıyor şu an denedim` diye bildirdi. | **OWNER MANUAL PASS — telefonda açılma/çalışma gözlemi**. Telefon modeli, kaç oyunculu maç, FPS süresi, reconnect, mortgage/Civic ve RTDB negatif test kanıtı belirtilmedi; geniş Android regresyonu **OPEN**. |
+
+### ATB110 Live Spark Guest olayı — incelenen log ve güvenli toparlama yolu
+
+Owner'ın Windows Guest `Player.log` çıktısı (26 Ekim):
+
+```text
+ATB_LIVE_GUEST_QA appcheck=native_steam_not_started emulator_placeholder=false rewards=false release_unchanged=true
+ATB_BOOTSTRAP event=startup_begin
+ATB_LIVE_GUEST_QA auth_refresh=failed http=400
+ATB_BOOTSTRAP phase=identity durationMs=53 success=false code=ATB110 note=identity_ready_false
+ATB_FRONTEND_CODE code=ATB110 category=Startup severity=Blocking phase=startup detail=identity_ready_false
+ATB_BOOTSTRAP event=startup_failed totalMs=55 code=ATB110
+```
+
+**Kanıtlanmış olgu:** Firebase anonim Guest oturumu **refresh HTTP 400** döndüğü için identity bootstrap başarısız, hata **ATB110**. `native_steam_not_started` satırı, No-Steam QA modu kullanıldığını gösterir; **Steam'in açık olması bu logdan kök neden olarak çıkarılamaz**. Owner Firebase'deki eski Guest/anonim kullanıcıları silmiş olduğunu bildirdi; buna bağlı eski Windows refresh token'ının geçersiz kalması **kuvvetli açıklamadır**, fakat HTTP 400'ün yanıt gövdesi kaydedilmediğinden kesin backend alt-hata kodu bilinmiyor.
+
+**Önerilen / konuşulan recovery (kaynak değişikliği değil):** Guest istemcisini kapat; `%USERPROFILE%\AppData\LocalLow\AtlasBoard\Atlas Board\live_spark_guest_v1.dpapi` dosyasını silmeden zaman damgalı `.backup` adına taşı; ardından `Launch Live Spark Guest QA (No Steam)` ile yeni Firebase Anonymous identity akışını dene. Eski UID erişimi geri gelmez; yeni Guest ayrı UID alabilir. Oturum dosyası yedeklenmeden silinmemeli. Recovery sonrası `auth=ready` ve iki ayrı gerçek UID ile oda oluştur/katıl testi için **yeni başarılı log paylaşılmadı**; bunu otomatik PASS olarak işaretleme. Yeni hesap oluşturma tekrar başarısız olursa Firebase Auth izinleri, istek hata gövdesi ve Live Spark yapılandırması incelenecek; sırf ATB110 için Steam'i değiştirme veya Firebase Rules deploy etme.
+
+### Güncel release / QA durum matrisi
+
+| Alan | Durum | Hâlâ doğrulanması gerekenler |
+| --- | --- | --- |
+| Phase 18A–18G özellikleri | **Kısmi owner manual ve smoke PASS (önceki başlıklara bak)** | Özellik başına belirtilmiş gerçek ekonomi, RTDB, reconnect ve abuse sınır testleri farklı kanıt ister. |
+| Phase 18H 20-round analitik model | **PASS 9/9** | Gerçek offline 20 tur 2/3/4 oyuncu, bot ve üç harita kabulü. |
+| Phase 18H read-only live audit | **PASS invalid=0** | `activeLoans>0`, `civicOwned>0` iken yeniden QA; mortgage, Start/Civic ve net worth oynanış senaryoları. |
+| Telefon üzerinde açılma/çalışma | **Owner observation PASS** | 3 ayrı Android cihaz 1→2→3 maç, touch/camera/room/rejoin/rematch, S20 FE sustained FPS ≥30 hedefi (önceki 14–16 FPS riski açık). |
+| Windows Live Spark iki gerçek UID | **OPEN / ATB110 teşhisi yapıldı** | Guest `auth=ready`, Editor ve standalone Guest aynı odada, iki yönde host/join, private/public, 1→2→3 maç, reconnect ve kimlik geri kazanımı. |
+| Host migration & RTDB güvenliği | **OPEN** | A→B→C, replay/duplicate intent, authority epoch/CAS, App Check, Rules adversarial ve economy double-credit negatif testleri. |
+| Steam / Windows release regresyonu | **OPEN** | Normal Steam girişinin Guest QA bayraklarından etkilenmemesi, no-Steam guest izolasyonu ve üretim build'i. |
+
+**Kapanış kararı:** **Phase 18H OWNER QA PARTIAL PASS / RELEASE GATES OPEN; PHASE 18 NOT COMPLETE**. Kaydedilen iki 18H otomatik PASS ile temel telefon çalıştırma gözlemi olumlu; ancak bunlar 3 cihaz performans, Steam, banka/Civic aktif-state ve iki gerçek UID güvenlik/host migration kapılarını kapatmaz. Sıradaki çalışma sırası: (1) iki gerçek UID Live Spark private oda + Guest token recovery kanıtı, (2) aktif kredi/Civic ile live audit ve host migration, (3) 3 cihaz FPS/3 maç Android, (4) Steam ve App Check/RTDB saldırı-regresyon matrisi. Owner ayrıca onaylamadıkça eski kaynakları yeniden yazma, Phase 18 COMPLETE etiketi koyma.
+
+**GitHub yedeği yönergesi:** Bu dosya repo içinde **yalnız** `Assets/Project/Documentation/MASTER_ROADMAP.md` yolundaki mevcut kanonik dosyanın **tam içeriğinin üzerine** yazılmalı. Ayrı `MASTER_ROADMAP_v5.48.1.md` veya ikinci canonical kopya oluşturma. Kod yedeği yapılacaksa en güncel implementasyon dosyaları v5.48.0 paketinden ve daha önce entegre edilmiş 18A–18G kurulumundan alınmalı; bu v5.48.1 paketinde kaynak kod güncellemesi YOK. Bu kaydı hazırlamak GitHub'a otomatik push anlamına gelmez.
+
+---
+
 ## 26 Ekim 2026 — v5.48.0 Phase 18H Cross-System Integration / Balance & QA (SOURCE CANDIDATE; RELEASE GATES OPEN)
 
 **Owner geçiş izni / 18G:** Kullanıcı 18G'de şehir geçmişini gördüğünü, şimdilik sorun olmadığını ve **bir sonraki aşamaya geçilebileceğini** bildirdi. 18G **şehir geçmişi görüntüleme OWNER MANUAL PASS**; daha önceki 18G otomatik memory/cooldown/online migration, iki gerçek istemci ve fiziksel Android kabulü ayrıca kanıtlanmadığından bunlar **OPEN**. Civic EVET/HAYIR ve 18F read-only smoke önceki owner PASS kayıtları korunur.
@@ -3189,4 +3398,5 @@ Known non-blocking warnings still OPEN and must be cleaned from their canonical 
 | 18H | Tüm WP'ler ve P0 güvenlik performans | Cross-system, bots, RTDB, Android/Steam QA | Owner device acceptance + security/no regression |
 
 **Release/scope kilidi:** Bu onay, yeni kodu hemen yazma/deploy etme yetkisi değil; owner bu turda **yalnız roadmap güncellemesi** istedi. Teknik alt işlere başlarken gerçek kaynakları yeniden karşılaştır, duplicate yaratma, tam dosyalarla ilerle, Unity/Live QA'dan önce PASS iddiası yapma. Phase 18'in tamamı **OWNER-APPROVED FUTURE DESIGN / NOT IMPLEMENTED**.
+
 

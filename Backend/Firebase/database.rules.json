@@ -5,36 +5,141 @@
     "users": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid",
+        ".write": false,
+        "metaEconomy": {
+          ".write": "auth != null && auth.uid === $uid && auth.token.firebase.sign_in_provider != null && (auth.token.firebase.sign_in_provider !== 'anonymous' || !data.exists() && newData.child('operation/type').val() === 'INIT' || root.child('devWalletTesters').child($uid).val() === true) && newData.exists() && newData.child('schemaVersion').val() === 1 && newData.child('wallet/starterGrantClaimed').val() === false && newData.child('operation/id').isString() && newData.child('operation/id').val().length === 32 && newData.child('operation/atMs').val() >= now - 30000 && newData.child('operation/atMs').val() <= now + 30000 && ((!data.exists() && newData.child('wallet/gold').val() === 0 && newData.child('wallet/atlasCoin').val() === 0 && newData.child('wallet/starterGrantClaimed').val() === false && newData.child('dailyReward/lastClaimAt').val() === 0 && newData.child('dev/grantCount').val() === 0 && newData.child('dev/resetCount').val() === 0 && newData.child('equipped/profileFrameId').val() === '' && newData.child('operation/type').val() === 'INIT' && newData.child('operation/itemId').val() === '' && newData.child('inventory/profile_frames/frame_halloween').val() === false && newData.child('inventory/profile_frames/frame_new_year').val() === false && newData.child('inventory/profile_frames/frame_turkiye').val() === false && newData.child('inventory/profile_frames/frame_usa').val() === false) || (data.exists() && newData.child('operation/id').val() !== data.child('operation/id').val() && newData.child('operation/atMs').val() > data.child('operation/atMs').val() && newData.child('operation/type').val() === 'DEV_GRANT' && newData.child('schemaVersion').val() === data.child('schemaVersion').val() && newData.child('wallet/starterGrantClaimed').val() === data.child('wallet/starterGrantClaimed').val() && root.child('devWalletTesters').child($uid).val() === true && newData.child('wallet/gold').val() === data.child('wallet/gold').val() + 5000 && newData.child('wallet/atlasCoin').val() === data.child('wallet/atlasCoin').val() + 500 && newData.child('dailyReward/lastClaimAt').val() === data.child('dailyReward/lastClaimAt').val() && newData.child('dev/resetCount').val() === data.child('dev/resetCount').val() && newData.child('dev/grantCount').val() === data.child('dev/grantCount').val() + 1 && newData.child('equipped/profileFrameId').val() === data.child('equipped/profileFrameId').val() && newData.child('operation/itemId').val() === '' && newData.child('inventory/profile_frames/frame_halloween').val() === data.child('inventory/profile_frames/frame_halloween').val() && newData.child('inventory/profile_frames/frame_new_year').val() === data.child('inventory/profile_frames/frame_new_year').val() && newData.child('inventory/profile_frames/frame_turkiye').val() === data.child('inventory/profile_frames/frame_turkiye').val() && newData.child('inventory/profile_frames/frame_usa').val() === data.child('inventory/profile_frames/frame_usa').val()) || (data.exists() && newData.child('operation/id').val() !== data.child('operation/id').val() && newData.child('operation/atMs').val() > data.child('operation/atMs').val() && newData.child('operation/type').val() === 'DAILY' && newData.child('schemaVersion').val() === data.child('schemaVersion').val() && newData.child('wallet/starterGrantClaimed').val() === data.child('wallet/starterGrantClaimed').val() && data.child('dailyReward/lastClaimAt').val() <= now - 86400000 && newData.child('dailyReward/lastClaimAt').val() === newData.child('operation/atMs').val() && newData.child('wallet/gold').val() === data.child('wallet/gold').val() + 50 && newData.child('wallet/atlasCoin').val() === data.child('wallet/atlasCoin').val() && newData.child('dev/grantCount').val() === data.child('dev/grantCount').val() && newData.child('dev/resetCount').val() === data.child('dev/resetCount').val() && newData.child('equipped/profileFrameId').val() === data.child('equipped/profileFrameId').val() && newData.child('operation/itemId').val() === '' && newData.child('inventory/profile_frames/frame_halloween').val() === data.child('inventory/profile_frames/frame_halloween').val() && newData.child('inventory/profile_frames/frame_new_year').val() === data.child('inventory/profile_frames/frame_new_year').val() && newData.child('inventory/profile_frames/frame_turkiye').val() === data.child('inventory/profile_frames/frame_turkiye').val() && newData.child('inventory/profile_frames/frame_usa').val() === data.child('inventory/profile_frames/frame_usa').val()) || (data.exists() && newData.child('operation/id').val() !== data.child('operation/id').val() && newData.child('operation/atMs').val() > data.child('operation/atMs').val() && newData.child('operation/type').val() === 'PURCHASE' && newData.child('schemaVersion').val() === data.child('schemaVersion').val() && newData.child('wallet/starterGrantClaimed').val() === data.child('wallet/starterGrantClaimed').val() && (newData.child('operation/itemId').val() === 'frame_halloween' || newData.child('operation/itemId').val() === 'frame_new_year' || newData.child('operation/itemId').val() === 'frame_turkiye' || newData.child('operation/itemId').val() === 'frame_usa') && newData.child('wallet/gold').val() === data.child('wallet/gold').val() - ((newData.child('operation/itemId').val() === 'frame_halloween' ? 350 : 0) + (newData.child('operation/itemId').val() === 'frame_new_year' ? 350 : 0) + (newData.child('operation/itemId').val() === 'frame_turkiye' ? 400 : 0) + (newData.child('operation/itemId').val() === 'frame_usa' ? 400 : 0)) && newData.child('wallet/atlasCoin').val() === data.child('wallet/atlasCoin').val() && newData.child('dailyReward/lastClaimAt').val() === data.child('dailyReward/lastClaimAt').val() && newData.child('dev/grantCount').val() === data.child('dev/grantCount').val() && newData.child('dev/resetCount').val() === data.child('dev/resetCount').val() && newData.child('equipped/profileFrameId').val() === data.child('equipped/profileFrameId').val() && (newData.child('operation/itemId').val() === 'frame_halloween' ? (data.child('inventory/profile_frames/frame_halloween').val() === false && newData.child('inventory/profile_frames/frame_halloween').val() === true) : newData.child('inventory/profile_frames/frame_halloween').val() === data.child('inventory/profile_frames/frame_halloween').val()) && (newData.child('operation/itemId').val() === 'frame_new_year' ? (data.child('inventory/profile_frames/frame_new_year').val() === false && newData.child('inventory/profile_frames/frame_new_year').val() === true) : newData.child('inventory/profile_frames/frame_new_year').val() === data.child('inventory/profile_frames/frame_new_year').val()) && (newData.child('operation/itemId').val() === 'frame_turkiye' ? (data.child('inventory/profile_frames/frame_turkiye').val() === false && newData.child('inventory/profile_frames/frame_turkiye').val() === true) : newData.child('inventory/profile_frames/frame_turkiye').val() === data.child('inventory/profile_frames/frame_turkiye').val()) && (newData.child('operation/itemId').val() === 'frame_usa' ? (data.child('inventory/profile_frames/frame_usa').val() === false && newData.child('inventory/profile_frames/frame_usa').val() === true) : newData.child('inventory/profile_frames/frame_usa').val() === data.child('inventory/profile_frames/frame_usa').val())) || (data.exists() && newData.child('operation/id').val() !== data.child('operation/id').val() && newData.child('operation/atMs').val() > data.child('operation/atMs').val() && newData.child('operation/type').val() === 'EQUIP' && newData.child('schemaVersion').val() === data.child('schemaVersion').val() && newData.child('wallet/starterGrantClaimed').val() === data.child('wallet/starterGrantClaimed').val() && newData.child('wallet/gold').val() === data.child('wallet/gold').val() && newData.child('wallet/atlasCoin').val() === data.child('wallet/atlasCoin').val() && newData.child('dailyReward/lastClaimAt').val() === data.child('dailyReward/lastClaimAt').val() && newData.child('dev/grantCount').val() === data.child('dev/grantCount').val() && newData.child('dev/resetCount').val() === data.child('dev/resetCount').val() && newData.child('inventory/profile_frames/frame_halloween').val() === data.child('inventory/profile_frames/frame_halloween').val() && newData.child('inventory/profile_frames/frame_new_year').val() === data.child('inventory/profile_frames/frame_new_year').val() && newData.child('inventory/profile_frames/frame_turkiye').val() === data.child('inventory/profile_frames/frame_turkiye').val() && newData.child('inventory/profile_frames/frame_usa').val() === data.child('inventory/profile_frames/frame_usa').val() && newData.child('equipped/profileFrameId').val() === newData.child('operation/itemId').val() && newData.child('equipped/profileFrameId').val() !== data.child('equipped/profileFrameId').val() && (newData.child('operation/itemId').val() === '' || newData.child('inventory/profile_frames').child(newData.child('operation/itemId').val()).val() === true)) || (data.exists() && newData.child('operation/id').val() !== data.child('operation/id').val() && newData.child('operation/atMs').val() > data.child('operation/atMs').val() && newData.child('operation/type').val() === 'RESET_PURCHASES' && newData.child('schemaVersion').val() === data.child('schemaVersion').val() && newData.child('wallet/starterGrantClaimed').val() === data.child('wallet/starterGrantClaimed').val() && root.child('devWalletTesters').child($uid).val() === true && newData.child('wallet/gold').val() === data.child('wallet/gold').val() + (data.child('inventory/profile_frames/frame_halloween').val() === true ? 350 : 0) + (data.child('inventory/profile_frames/frame_new_year').val() === true ? 350 : 0) + (data.child('inventory/profile_frames/frame_turkiye').val() === true ? 400 : 0) + (data.child('inventory/profile_frames/frame_usa').val() === true ? 400 : 0) && newData.child('wallet/atlasCoin').val() === data.child('wallet/atlasCoin').val() && newData.child('dailyReward/lastClaimAt').val() === data.child('dailyReward/lastClaimAt').val() && newData.child('dev/grantCount').val() === data.child('dev/grantCount').val() && newData.child('dev/resetCount').val() === data.child('dev/resetCount').val() + 1 && newData.child('equipped/profileFrameId').val() === '' && newData.child('operation/itemId').val() === '' && newData.child('inventory/profile_frames/frame_halloween').val() === false && newData.child('inventory/profile_frames/frame_new_year').val() === false && newData.child('inventory/profile_frames/frame_turkiye').val() === false && newData.child('inventory/profile_frames/frame_usa').val() === false))",
+          ".validate": "newData.hasChildren(['schemaVersion','wallet','inventory','equipped','dailyReward','dev','operation'])",
+          "schemaVersion": {
+            ".validate": "newData.val() === 1"
+          },
+          "wallet": {
+            ".validate": "newData.hasChildren(['gold','atlasCoin','starterGrantClaimed'])",
+            "gold": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10000000"
+            },
+            "atlasCoin": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000"
+            },
+            "starterGrantClaimed": {
+              ".validate": "newData.val() === false"
+            },
+            "$other": {
+              ".validate": false
+            }
+          },
+          "inventory": {
+            ".validate": "newData.hasChildren(['profile_frames'])",
+            "profile_frames": {
+              ".validate": "newData.hasChildren(['frame_halloween','frame_new_year','frame_turkiye','frame_usa'])",
+              "frame_halloween": {
+                ".validate": "newData.isBoolean()"
+              },
+              "frame_new_year": {
+                ".validate": "newData.isBoolean()"
+              },
+              "frame_turkiye": {
+                ".validate": "newData.isBoolean()"
+              },
+              "frame_usa": {
+                ".validate": "newData.isBoolean()"
+              },
+              "$other": {
+                ".validate": false
+              }
+            },
+            "$other": {
+              ".validate": false
+            }
+          },
+          "equipped": {
+            ".validate": "newData.hasChildren(['profileFrameId'])",
+            "profileFrameId": {
+              ".validate": "newData.isString() && (newData.val() === '' || newData.parent().parent().child('inventory/profile_frames').child(newData.val()).val() === true)"
+            },
+            "$other": {
+              ".validate": false
+            }
+          },
+          "dailyReward": {
+            ".validate": "newData.hasChildren(['lastClaimAt'])",
+            "lastClaimAt": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= now + 30000"
+            },
+            "$other": {
+              ".validate": false
+            }
+          },
+          "dev": {
+            ".validate": "newData.hasChildren(['grantCount','resetCount'])",
+            "grantCount": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000"
+            },
+            "resetCount": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000"
+            },
+            "$other": {
+              ".validate": false
+            }
+          },
+          "operation": {
+            ".validate": "newData.hasChildren(['id','type','itemId','atMs'])",
+            "id": {
+              ".validate": "newData.isString() && newData.val().matches(/^[0-9a-f]{32}$/)"
+            },
+            "type": {
+              ".validate": "newData.isString() && (newData.val() === 'INIT' || newData.val() === 'DEV_GRANT' || newData.val() === 'DAILY' || newData.val() === 'PURCHASE' || newData.val() === 'EQUIP' || newData.val() === 'RESET_PURCHASES')"
+            },
+            "itemId": {
+              ".validate": "newData.isString() && newData.val().length <= 64"
+            },
+            "atMs": {
+              ".validate": "newData.isNumber() && newData.val() >= now - 30000 && newData.val() <= now + 30000"
+            },
+            "$other": {
+              ".validate": false
+            }
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
         ".validate": "newData.exists() && (newData.hasChildren(['userId','playerId','email','displayName','createdAt','updatedAt','lastDisplayNameChangeAt','general']) && (!data.exists() || newData.child('userId').val() === data.child('userId').val()) && (!data.exists() || newData.child('playerId').val() === data.child('playerId').val()) && (!data.exists() || newData.child('createdAt').val() === data.child('createdAt').val()) && (!data.exists() || newData.child('displayName').val() === data.child('displayName').val() || (data.child('lastDisplayNameChangeAt').isNumber() && data.child('lastDisplayNameChangeAt').val() <= now - 86400000 && newData.child('lastDisplayNameChangeAt').isNumber() && newData.child('lastDisplayNameChangeAt').val() >= now - 60000 && newData.child('lastDisplayNameChangeAt').val() <= now + 60000)))",
         "userId": {
+          ".write": "auth != null && auth.uid === $uid",
           ".validate": "newData.isString() && newData.val() === $uid"
         },
         "playerId": {
+          ".write": "auth != null && auth.uid === $uid",
           ".validate": "newData.isString() && newData.val().length >= 12 && newData.val().length <= 40"
         },
         "email": {
+          ".write": "auth != null && auth.uid === $uid",
           ".validate": "newData.isString() && newData.val().length <= 254 && ((auth.token.email != null && newData.val().length >= 3 && newData.val() === auth.token.email) || (auth.token.email == null && newData.val() === ''))"
         },
         "displayName": {
+          ".write": "auth != null && auth.uid === $uid",
           ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 32"
         },
         "createdAt": {
+          ".write": "auth != null && auth.uid === $uid",
           ".validate": "newData.isNumber() && newData.val() <= now + 300000 && (!data.exists() || newData.val() === data.val())"
         },
         "updatedAt": {
+          ".write": "auth != null && auth.uid === $uid",
           ".validate": "newData.isNumber() && newData.val() >= now - 300000 && newData.val() <= now + 300000"
         },
         "lastDisplayNameChangeAt": {
+          ".write": "auth != null && auth.uid === $uid",
           ".validate": "newData.isNumber() && newData.val() <= now + 300000"
         },
         "general": {
+          ".write": "auth != null && auth.uid === $uid",
           ".validate": "newData.hasChildren(['schemaVersion','accountType','language','countryCode','lastSeenAt'])",
           "schemaVersion": {
             ".validate": "newData.isNumber() && newData.val() === 1"
           },
           "accountType": {
-            ".validate": "newData.isString() && newData.val() === 'registered'"
+            ".validate": "newData.isString() && (auth.token.firebase.sign_in_provider === 'anonymous' ? newData.val() === 'guest' : newData.val() === 'registered')"
           },
           "language": {
             ".validate": "newData.isString() && (newData.val() === 'en' || newData.val() === 'tr' || newData.val() === 'es' || newData.val() === 'fr' || newData.val() === 'de' || newData.val() === 'ko' || newData.val() === 'ru')"
@@ -50,6 +155,7 @@
           }
         },
         "platforms": {
+          ".write": "auth != null && auth.uid === $uid",
           "$platform": {
             ".validate": "$platform === 'android' || $platform === 'ios' || $platform === 'windows' || $platform === 'macos' || $platform === 'linux' || $platform === 'other'",
             "devices": {
@@ -90,12 +196,15 @@
           ".validate": false
         },
         "accountStatus": {
+          ".write": "auth != null && auth.uid === $uid",
           ".validate": "newData.isString() && newData.val() === 'active'"
         },
         "membershipTier": {
+          ".write": "auth != null && auth.uid === $uid",
           ".validate": "newData.isString() && newData.val() === 'normal'"
         },
         "settings": {
+          ".write": "auth != null && auth.uid === $uid",
           ".validate": "newData.hasChildren(['schemaVersion','language'])",
           "schemaVersion": {
             ".validate": "newData.isNumber() && newData.val() === 1"
@@ -133,6 +242,13 @@
             ".validate": false
           }
         }
+      }
+    },
+    "devWalletTesters": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": false,
+        ".validate": "newData.isBoolean()"
       }
     },
     "joinCodes": {
@@ -569,7 +685,7 @@
           ".validate": "newData.isString() && newData.val().length <= 64"
         },
         "profileFrameId": {
-          ".validate": "newData.isString() && newData.val().length <= 64"
+          ".validate": "newData.isString() && newData.val().length <= 64 && (newData.val() === '' || (root.child('users').child($uid).child('metaEconomy/inventory/profile_frames').child(newData.val()).val() === true && root.child('users').child($uid).child('metaEconomy/equipped/profileFrameId').val() === newData.val()))"
         },
         "updatedAt": {
           ".validate": "newData.isNumber() && newData.val() >= now - 300000 && newData.val() <= now + 300000"

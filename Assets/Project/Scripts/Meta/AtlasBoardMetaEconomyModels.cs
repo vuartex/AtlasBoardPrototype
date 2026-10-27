@@ -12,6 +12,8 @@ public sealed class AtlasBoardStorefrontItem
     public int SortOrder;
     public int CatalogVersion;
     public bool Owned;
+    // Local catalog proposals are never eligible for server purchases.
+    public bool PreviewOnly;
 }
 
 [Serializable]
@@ -39,6 +41,12 @@ public sealed class AtlasBoardMetaHistoryItem
 public sealed class AtlasBoardMetaEconomySnapshot
 {
     public bool Success;
+    public bool WalletVerified;
+    public bool IsGuest;
+    public bool IsSteamAccount;
+    public bool IsDeveloperTester;
+    public string EquippedFrameId;
+    public long DailyClaimedAtMs;
     public string ErrorKey;
     public string TechnicalMessage;
     public int Gold;

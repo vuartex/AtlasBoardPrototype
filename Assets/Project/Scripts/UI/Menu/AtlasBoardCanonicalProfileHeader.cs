@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Reflection;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 public sealed class AtlasBoardCanonicalProfileHeader :
@@ -10,6 +11,7 @@ public sealed class AtlasBoardCanonicalProfileHeader :
 {
     private const float CheckIntervalSeconds = 0.75f;
     private const float RetryAfterFailureSeconds = 4f;
+    private const string FrameOverlayPrefix = "AtlasBoardEquippedProfileFrame_";
 
     private AtlasBoardAccountService accountService;
     private AtlasBoardMainMenuController mainMenuController;
@@ -19,6 +21,7 @@ public sealed class AtlasBoardCanonicalProfileHeader :
 
     private string observedAccountId = string.Empty;
     private string appliedDisplayName = string.Empty;
+    private string appliedProfileFrameId = string.Empty;
 
     private bool loadInFlight;
     private float nextCheckAt;
@@ -77,6 +80,7 @@ public sealed class AtlasBoardCanonicalProfileHeader :
             CheckIntervalSeconds;
 
         ResolveReferences();
+        SynchronizeProfileFrameSurfaces();
 
         if (accountService == null)
         {
@@ -100,6 +104,7 @@ public sealed class AtlasBoardCanonicalProfileHeader :
 
                 appliedDisplayName =
                     string.Empty;
+                ApplyProfileFrame(string.Empty);
 
                 ApplyFallbackIdentity();
             }
@@ -117,6 +122,7 @@ public sealed class AtlasBoardCanonicalProfileHeader :
             string.IsNullOrWhiteSpace(
                 appliedDisplayName);
 
+        if (accountChanged) ApplyProfileFrame(string.Empty);
         if (!loadInFlight &&
             (accountChanged ||
              needsIdentity))
@@ -154,6 +160,20 @@ public sealed class AtlasBoardCanonicalProfileHeader :
             string.Empty;
 
         nextCheckAt = 0f;
+    }
+
+    // Career calls this ONLY after both the server-owned EQUIP transaction
+    // and the canonical public-profile update have succeeded. It reuses this
+    // header's single presentation owner across menu, Store, Career and lobby.
+    public void NotifyVerifiedProfileFrameEquipped(string ownerUid, string frameId)
+    {
+        ResolveReferences();
+        if (accountService == null || !accountService.IsSignedIn ||
+            !string.Equals(accountService.CurrentAccountId, ownerUid,
+                StringComparison.Ordinal)) return;
+
+        ApplyProfileFrame(frameId);
+        RefreshNow(); // Reconcile with the saved RTDB profile on the next poll.
     }
 
     private void ResolveReferences()
@@ -374,6 +394,7 @@ public sealed class AtlasBoardCanonicalProfileHeader :
 
             ApplyCanonicalIdentity(
                 appliedDisplayName);
+            ApplyProfileFrame(snapshot.ProfileFrameId);
         }
         catch (Exception exception)
         {
@@ -409,6 +430,150 @@ public sealed class AtlasBoardCanonicalProfileHeader :
         {
             loadInFlight = false;
         }
+    }
+
+    private void ApplyProfileFrame(string frameId)
+    {
+        frameId = AtlasBoardShopProfileFrameArt.IsSupported(frameId)
+            ? frameId : string.Empty;
+        appliedProfileFrameId = frameId;
+        SynchronizeProfileFrameSurfaces();
+    }
+
+    private void SynchronizeProfileFrameSurfaces()
+    {
+        // Static Menu/Lobby cards have a 118x118 "Avatar" Image SIBLING of
+        // the 95x95 "AvatarInitial" TMP text. Store/Career put their initial
+        // inside the avatar Image instead. Always decorate that actual avatar
+        // tile, never its smaller text rectangle or the full ProfileCard.
+        TMP_Text[] texts = Resources.FindObjectsOfTypeAll<TMP_Text>();
+        string expectedName = FrameOverlayPrefix + appliedProfileFrameId;
+        foreach (TMP_Text text in texts)
+        {
+            if (text == null || !text.gameObject.scene.IsValid() ||
+                !IsCanonicalProfileAvatar(text)) continue;
+
+            RectTransform avatarTile = ResolveAvatarTile(text);
+            if (avatarTile == null) continue;
+
+            // Remove an overlay created by the previous text-anchored build.
+            // That obsolete child was intentionally smaller than the blue tile.
+            if (avatarTile != text.rectTransform)
+                RemoveTextAnchoredLegacyOverlays(text.rectTransform);
+
+            bool hasCurrent = false;
+            for (int i = avatarTile.childCount - 1; i >= 0; i--)
+            {
+                Transform child = avatarTile.GetChild(i);
+                if (!child.name.StartsWith(FrameOverlayPrefix,
+                        StringComparison.Ordinal)) continue;
+                if (!string.IsNullOrEmpty(appliedProfileFrameId) &&
+                    child.name == expectedName && !hasCurrent)
+                {
+                    hasCurrent = true;
+                    continue;
+                }
+                child.gameObject.SetActive(false);
+                Destroy(child.gameObject);
+            }
+
+            // Removing a frame restores the original blue Image and its V.
+            // An equipped frame instead REPLACES those defaults completely;
+            // drawing both produces a distracting nested blue border.
+            Image defaultAvatar = avatarTile.GetComponent<Image>();
+            if (string.IsNullOrEmpty(appliedProfileFrameId))
+            {
+                if (defaultAvatar != null) defaultAvatar.enabled = true;
+                text.enabled = true;
+                continue;
+            }
+
+            if (hasCurrent)
+            {
+                if (defaultAvatar != null) defaultAvatar.enabled = false;
+                text.enabled = false;
+                continue;
+            }
+
+            Rect rect = avatarTile.rect;
+            float side = Mathf.Min(Mathf.Abs(rect.width), Mathf.Abs(rect.height));
+            // Wait for a valid layout instead of inventing an arbitrary size.
+            // NO 88px cap: the scene avatar tile is 118px, the Career tile
+            // 96px, and the Store tile 88px. Use each tile's FULL bounds.
+            if (side < 24f) continue;
+
+            GameObject art = AtlasBoardShopProfileFrameArt.Create(
+                avatarTile, appliedProfileFrameId, side,
+                GetInitial(appliedDisplayName));
+            if (art == null) continue;
+
+            art.name = expectedName;
+            RectTransform artRect = art.GetComponent<RectTransform>();
+            if (artRect != null)
+            {
+                artRect.anchorMin = new Vector2(0.5f, 0.5f);
+                artRect.anchorMax = new Vector2(0.5f, 0.5f);
+                artRect.pivot = new Vector2(0.5f, 0.5f);
+                artRect.anchoredPosition = Vector2.zero;
+                artRect.localScale = Vector3.one;
+                artRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, side);
+                artRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, side);
+            }
+            // Cosmetic graphics must not block Profile clicks or drag input.
+            foreach (Graphic graphic in art.GetComponentsInChildren<Graphic>(true))
+                graphic.raycastTarget = false;
+            art.transform.SetAsLastSibling();
+
+            if (defaultAvatar != null) defaultAvatar.enabled = false;
+            text.enabled = false;
+        }
+    }
+
+    private static RectTransform ResolveAvatarTile(TMP_Text initial)
+    {
+        RectTransform textRect = initial != null ? initial.rectTransform : null;
+        RectTransform parent = textRect != null ? textRect.parent as RectTransform : null;
+        if (parent == null) return textRect;
+
+        // Runtime Store and Career: the Text is a child of the avatar Image.
+        if ((parent.name == "Avatar" || parent.name == "CareerHudAvatar") &&
+            parent.GetComponent<Image>() != null) return parent;
+
+        // Scene Main Menu, Private and Public Lobby: Image and TMP are siblings.
+        RectTransform sibling = parent.Find("Avatar") as RectTransform;
+        if (sibling != null && sibling.GetComponent<Image>() != null) return sibling;
+
+        return textRect;
+    }
+
+    private void RemoveTextAnchoredLegacyOverlays(Transform root)
+    {
+        if (root == null) return;
+        for (int i = root.childCount - 1; i >= 0; i--)
+        {
+            Transform child = root.GetChild(i);
+            if (!child.name.StartsWith(FrameOverlayPrefix,
+                    StringComparison.Ordinal)) continue;
+            child.gameObject.SetActive(false);
+            Destroy(child.gameObject);
+        }
+    }
+
+    private static bool IsCanonicalProfileAvatar(TMP_Text initial)
+    {
+        bool sharedCard = initial.gameObject.name == "AvatarInitial";
+        bool careerCard = initial.gameObject.name == "CareerHudInitial";
+        if (!sharedCard && !careerCard) return false;
+
+        for (Transform parent = initial.transform.parent; parent != null;
+             parent = parent.parent)
+        {
+            if (parent.name.StartsWith(FrameOverlayPrefix,
+                    StringComparison.Ordinal)) return false;
+            if (sharedCard && parent.name == "ProfileCard") return true;
+            if (careerCard && parent.name == "CareerProfileHeader") return true;
+        }
+        return false;
     }
 
     private void ApplyCanonicalIdentity(

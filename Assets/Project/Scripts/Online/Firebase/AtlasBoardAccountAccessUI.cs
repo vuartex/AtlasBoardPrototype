@@ -264,6 +264,25 @@ public sealed class AtlasBoardAccountAccessUI : MonoBehaviour
     }
 
 
+    // Store uses the existing canonical Firebase account modal. Anonymous
+    // Firebase Auth sessions must be upgraded via an explicit registration or
+    // email/password login before a private RTDB economy can be initialized.
+    public static bool OpenLoginForStore()
+    {
+        if (instance == null) return false;
+        instance.openCareerAfterAuthentication = false;
+        instance.OpenModal(AuthView.Login);
+        instance.SetStatus(T(
+            "Sign in or create an account before purchasing cosmetics.",
+            "Kozmetik satın almak için giriş yap veya hesap oluştur.",
+            "Inicia sesión o crea una cuenta para comprar cosméticos.",
+            "Connectez-vous ou créez un compte avant l'achat.",
+            "Bitte anmelden oder ein Konto zum Kauf erstellen.",
+            "아이템을 구매하려면 로그인하거나 계정을 만드세요.",
+            "Для покупки войдите или создайте учётную запись."));
+        return true;
+    }
+
     private void HandleCareerPressed()
     {
         if (IsSignedIn())
