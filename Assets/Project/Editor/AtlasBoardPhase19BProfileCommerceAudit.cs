@@ -17,13 +17,14 @@ public static class AtlasBoardPhase19BProfileCommerceAudit
         bool gated = rows.All(x => x.PreviewOnly && !x.Owned);
         bool methods = typeof(AtlasBoardMetaEconomyBridge).GetMethod("PurchaseAsync") != null &&
                        typeof(AtlasBoardAccountService).GetMethod("UpdatePublicProfileAsync") != null;
-        bool pass = frames == 10 && dice == 6 && distinct && gated &&
-                    rows.Count == 27 && AtlasBoardShopContentDraft.HasCompleteLanguages() && methods;
+        bool pass = frames == 10 && dice == 4 && distinct && gated &&
+                    rows.Count == 25 && AtlasBoardShopContentDraft.HasCompleteLanguages() && methods &&
+                    rows.Where(x => x.ItemType == "dice_skin").All(x => AtlasBoardRtdbMetaEconomy.IsDice(x.ItemId));
         string text = "ATB_PHASE19B_PROFILE_QA " + (pass ? "PASS" : "FAIL") +
             " items=" + rows.Count + " frames=" + frames + " diceDrafts=" + dice +
             " unique=" + distinct + " previewGated=" + gated +
             " languages=" + AtlasBoardLocalizationLanguages.Codes.Length +
-            " emulatorPurchaseQA=OPEN liveCommerce=BLOCKED assetImport=OPEN readOnly=true";
+            " livePurchaseRules=OWNER_DEPLOY_REQUIRED faceCalibration=OPEN readOnly=true";
         if (pass) Debug.Log(text); else Debug.LogError(text);
     }
 }

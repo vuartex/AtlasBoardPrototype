@@ -869,6 +869,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
 
         ApplyLobbyIdentitySnapshot(lobbySnapshot);
+        DiceVisualController diceForSkins = FindSceneComponent<DiceVisualController>();
+        if (diceForSkins != null) diceForSkins.PrimeOnlineDiceSkins(lobbySnapshot);
 
 
 
@@ -7895,6 +7897,13 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
         AtlasLobbySnapshot previous = startLobbySnapshot;
         startLobbySnapshot = snapshot;
+        if (prepared && (snapshot.LifecycleState == AtlasRoomLifecycleState.InMatch ||
+                         snapshot.LifecycleState == AtlasRoomLifecycleState.Starting))
+        {
+            DiceVisualController refreshedDice = FindSceneComponent<DiceVisualController>();
+            if (refreshedDice != null && refreshedDice.NeedsOnlineDiceRefresh(snapshot))
+                refreshedDice.PrimeOnlineDiceSkins(snapshot);
+        }
 
 
 

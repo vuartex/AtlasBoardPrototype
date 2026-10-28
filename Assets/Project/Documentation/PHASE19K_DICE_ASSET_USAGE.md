@@ -1,0 +1,12 @@
+# Phase 19K — Imported dice asset usage / release check
+
+This file supplements the canonical `ASSET_CREDITS_REGISTER.md`; it is **not** a second roadmap. The five binaries remain in the owner's locally imported project and GitHub repository and are **not redistributed in this source ZIP**.
+
+- Publisher: **Ferocious Industries** — **PBR Little Games Pack – 4K**, version 1.0; Unity Asset Store Standard EULA. Usage and platform redistribution must be reviewed under the applicable Unity Asset Store license before release. No assertion that the models are public domain.
+- Source mesh folder: `Assets/SubstanceAssets/LittleGamesPack/Models/GamePieces/`. `Dice_White.fbx` -> Default/Classic (free; Inventory ONLY); `Dice_Red.fbx` -> `dice_ruby_red` (350 Gold); `Dice_Blue.fbx` -> `dice_ocean_blue` (350 Gold); `Dice_Black.fbx` -> `dice_midnight_black` (400 Gold); `Dice_Marble.fbx` -> `dice_marble` (400 Gold).
+- Existing imported `GamePieces.mat` and `Textures/GamePieces/*` supply the FBX appearance. Do not strip materials/textures that the imported FBX requires, and confirm URP shaders if pink.
+- The existing `DiceVisualRoot` in `Assets/Board_Prototype.unity` references the five original model asset GUIDs. No model meshes are copied into `Resources` or embedded in this delivery. The original two Die roots animate; they receive noncolliding cosmetic render children. RNG/turn results are unchanged.
+- The Store and Career preview widgets use simplified 2D die art at small sizes and an actual FBX rendered off-board with a bounded 256x256 target for large previews. This is only client-side presentation, not a proof of entitlement.
+- **Face 1..6 mapping and imported face/pivot orientation are NOT yet calibrated.** Use the existing `DiceVisualController.PreviewDebugFace` on each model; compare the displayed upper face with network-authoritative result before marking gameplay QA PASS.
+- The legacy proposals `dice_obsidian_gold` and `dice_polar_ice` remain a future cosmetic concept only. They are not offered for purchase in the Phase 19K shop. The `dice_graphite_gray` draft was replaced by the real Marble FBX / ID. Do not create legacy entitlement grants for removed preview IDs.
+- Steam, Windows, Android, URP material compatibility and sustained Android FPS require owner play-mode/device verification. Extra preview camera is only active while its large inspect/Inventory view is visible.

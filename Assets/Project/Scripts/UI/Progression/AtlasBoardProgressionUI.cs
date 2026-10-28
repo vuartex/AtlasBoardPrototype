@@ -455,6 +455,14 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                 ? inventoryServer.EquippedBoardId : "";
             return id == "default_board" ? string.IsNullOrEmpty(boardId) : boardId == id;
         }
+        if (inventoryCategory == "dice_skin")
+        {
+            string equippedDiceId = inventoryServer != null && inventoryServer.WalletVerified
+                ? inventoryServer.EquippedDiceId : "";
+            return id == "default_dice"
+                ? string.IsNullOrEmpty(equippedDiceId)
+                : string.Equals(equippedDiceId, id, StringComparison.Ordinal);
+        }
         if (inventoryCategory != "profile_frame") return id == InventoryDefaultFor(inventoryCategory);
         string current = inventoryServer != null && inventoryServer.WalletVerified
             ? inventoryServer.EquippedFrameId
@@ -544,6 +552,11 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
 
     private async void ApplyInventorySelection()
     {
+        if (inventoryCategory == "dice_skin")
+        {
+            await ApplyOwnedDiceAsync();
+            return;
+        }
         if (inventoryCategory == "board_theme")
         {
             await ApplyOwnedBoardAsync();
@@ -670,6 +683,38 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         finally { inventoryWriting = false; RebuildCurrentPage(); }
     }
 
+    private async Task ApplyOwnedDiceAsync()
+    {
+        if (inventoryLoading || inventoryWriting || inventoryServer == null ||
+            !inventoryServer.WalletVerified || InventoryIsEquipped(inventorySelectedId)) return;
+        string uid = inventoryAccountUid;
+        if (string.IsNullOrEmpty(uid) || uid != AtlasBoardRtdbMetaEconomy.CurrentUid) return;
+        string id = inventorySelectedId == "default_dice" ? "" : inventorySelectedId;
+        bool owned = id == "";
+        foreach (AtlasBoardStorefrontItem item in inventoryServer.Items)
+            if (item.ItemId == id && item.ItemType == "dice_skin" && item.Owned &&
+                !item.PreviewOnly) owned = true;
+        if (!owned) return;
+        inventoryWriting = true;
+        RebuildCurrentPage();
+        try
+        {
+            AtlasBoardMetaEconomyOperationResult equipped =
+                await AtlasBoardRtdbMetaEconomy.EquipDiceAsync(id);
+            if (equipped != null && equipped.Success && uid == AtlasBoardRtdbMetaEconomy.CurrentUid)
+            {
+                inventoryServer.EquippedDiceId = id;
+                inventoryMessage = InventoryWord("Dice equipped for this player.",
+                    "Bu oyuncunun zarları kuşanıldı.", "Dados equipados.",
+                    "Dés équipés.", "Würfel ausgerüstet.", "주사위를 장착했습니다.",
+                    "Кости выбраны.");
+            }
+            else inventoryMessage = "Could not save dice selection to RTDB.";
+        }
+        catch (Exception exception) { inventoryMessage = exception.GetType().Name; }
+        finally { inventoryWriting = false; RebuildCurrentPage(); }
+    }
+
     private void BuildInventoryPage()
     {
         CreateSectionTitle(contentRoot, InventoryWord("MY INVENTORY", "ENVANTERİM",
@@ -706,6 +751,9 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             AtlasBoardShopProfileFrameArt.IsSupported(inventorySelectedId))
             AtlasBoardShopProfileFrameArt.Create(preview.transform,
                 inventorySelectedId, 138f, inventoryAccount != null ? inventoryAccount.DisplayName : "A");
+        else if (inventoryCategory == "dice_skin")
+            AtlasBoardDiceSkinPreviewArt.Create(preview.transform,
+                inventorySelectedId, 170f);
         else
         {
             GameObject previewSquare = CreatePanel(preview.transform, "InventorySample",
@@ -736,7 +784,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         Button apply = CreateButton(preview.transform, buttonText, Green,
             new Vector2(0f, -183f), new Vector2(250f, 56f));
         apply.interactable = !inventoryLoading && !inventoryWriting &&
-            (inventoryCategory == "profile_frame" || inventoryCategory == "board_theme") && inventoryAccount != null &&
+            (inventoryCategory == "profile_frame" || inventoryCategory == "board_theme" || inventoryCategory == "dice_skin") && inventoryAccount != null &&
             !InventoryIsEquipped(inventorySelectedId) &&
             (inventorySelectedId == InventoryDefaultFor(inventoryCategory) ||
              ownedItems.Contains(inventorySelectedId) && inventoryServer != null);

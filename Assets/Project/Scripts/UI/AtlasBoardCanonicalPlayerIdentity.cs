@@ -37,6 +37,8 @@ public sealed class AtlasBoardCanonicalPlayerIdentity : MonoBehaviour
         .GetField("modalBody", PrivateFields);
     private static readonly FieldInfo ProfileHeaderNameField = typeof(AtlasBoardCanonicalProfileHeader)
         .GetField("appliedDisplayName", PrivateFields);
+    private static readonly FieldInfo ProfileHeaderAccountField = typeof(AtlasBoardCanonicalProfileHeader)
+        .GetField("observedAccountId", PrivateFields);
 
     private static AtlasBoardCanonicalPlayerIdentity instance;
     private AtlasBoardMainMenuController menu;
@@ -99,8 +101,22 @@ public sealed class AtlasBoardCanonicalPlayerIdentity : MonoBehaviour
         {
             string steam = ValidSteamPersona();
             if (!string.IsNullOrWhiteSpace(steam)) return steam;
-            // Steam provider selected but pending: don't flash a guest alias.
-            return "Steam Player";
+
+            // SteamAPI.Init can fail in the Editor while the RTDB account is
+            // already signed in and its server profile name is known. Do NOT
+            // invent a Steam persona or replace that verified name with the
+            // generic "Steam Player" placeholder. This is display-only:
+            // Steam authentication state remains false until Steamworks works.
+            AtlasBoardAccountService steamPendingAccount = AtlasBoardAccountService.Instance;
+            if (steamPendingAccount != null && steamPendingAccount.IsSignedIn)
+            {
+                string canonical = instance != null
+                    ? instance.ReadCanonicalHeaderName() : string.Empty;
+                if (!string.IsNullOrWhiteSpace(canonical)) return canonical;
+            }
+            string pending = AtlasBoardL.T("menu.player");
+            return string.IsNullOrWhiteSpace(pending) || pending == "menu.player"
+                ? "Player" : pending;
         }
         AtlasBoardAccountService account = AtlasBoardAccountService.Instance;
         if (account != null && account.IsSignedIn)
@@ -134,11 +150,22 @@ public sealed class AtlasBoardCanonicalPlayerIdentity : MonoBehaviour
 
     private string ReadCanonicalHeaderName()
     {
+        AtlasBoardAccountService account = AtlasBoardAccountService.Instance;
+        if (account == null || !account.IsSignedIn ||
+            string.IsNullOrWhiteSpace(account.CurrentAccountId))
+            return string.Empty;
         if (canonicalHeader == null)
             canonicalHeader = UnityEngine.Object.FindAnyObjectByType<AtlasBoardCanonicalProfileHeader>();
-        return canonicalHeader != null && ProfileHeaderNameField != null
-            ? ProfileHeaderNameField.GetValue(canonicalHeader) as string ?? string.Empty
-            : string.Empty;
+        if (canonicalHeader == null || ProfileHeaderNameField == null ||
+            ProfileHeaderAccountField == null)
+            return string.Empty;
+
+        // A profile loaded for a prior Firebase UID must never be displayed
+        // during an account change; the canonical header already tracks this.
+        string observedUid = ProfileHeaderAccountField.GetValue(canonicalHeader) as string;
+        if (!string.Equals(observedUid, account.CurrentAccountId, StringComparison.Ordinal))
+            return string.Empty;
+        return (ProfileHeaderNameField.GetValue(canonicalHeader) as string ?? string.Empty).Trim();
     }
 
     private IEnumerator WatchIdentity()

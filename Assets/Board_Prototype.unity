@@ -18951,7 +18951,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: A
+  m_text: V
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -19514,7 +19514,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: $ 1,500
+  m_text: 'store.wallet.gold: 325'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -36709,7 +36709,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: A
+  m_text: V
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -54061,9 +54061,9 @@ MonoBehaviour:
   existingTabletCanvas: {fileID: 720191109}
   existingGameplayOverlayCanvas: {fileID: 272275228}
   matchSetupBridge: {fileID: 738613085}
-  profileName: PLAYER
-  profileCash: 1500
-  profileGold: 100
+  profileName: Vuartex
+  profileCash: 325
+  profileGold: 500
 --- !u!114 &738613087
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -79047,7 +79047,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: G 100
+  m_text: 'store.wallet.coin: 500'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -96321,6 +96321,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DiceVisualController
   dieOne: {fileID: 626834588}
   dieTwo: {fileID: 344414105}
+  classicDiceModel: {fileID: 919132149155446097, guid: b29be7e578bb89144b97eea319812824, type: 3}
+  rubyDiceModel: {fileID: 919132149155446097, guid: 134827ca0f2c9b64386c5a21b0c0c929, type: 3}
+  oceanDiceModel: {fileID: 919132149155446097, guid: 4df17728f18d1b74ca6d153adaaf8094, type: 3}
+  midnightDiceModel: {fileID: 919132149155446097, guid: 8e59f73a9bfbdad4d9d0da0732cdba21, type: 3}
+  marbleDiceModel: {fileID: 919132149155446097, guid: 84faf413a04b5c4458ef525249a41731, type: 3}
+  importedDiceAtlasMaterial: {fileID: 2100000, guid: a65e6227ec9f5c647b25d8c80cc88d41, type: 2}
+  importedDiceRenderMaterial: {fileID: 2100000, guid: 9b3827e61ae9e134592d159deee295da, type: 2}
   faceLocalEulerRotations:
   - {x: -90, y: 0, z: 0}
   - {x: 0, y: 0, z: 0}
@@ -137640,7 +137647,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: G 100
+  m_text: 'store.wallet.coin: 500'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -142122,7 +142129,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: $ 1,500
+  m_text: 'store.wallet.gold: 325'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -152185,7 +152192,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: PLAYER
+  m_text: Vuartex
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 5aac894ed5ad52e49b5fba41510fcaf6, type: 2}
   m_sharedMaterial: {fileID: 3992633408061745460, guid: 5aac894ed5ad52e49b5fba41510fcaf6, type: 2}
@@ -159314,7 +159321,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: PLAYER
+  m_text: Vuartex
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 5aac894ed5ad52e49b5fba41510fcaf6, type: 2}
   m_sharedMaterial: {fileID: 3992633408061745460, guid: 5aac894ed5ad52e49b5fba41510fcaf6, type: 2}

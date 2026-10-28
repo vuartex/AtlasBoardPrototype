@@ -1371,6 +1371,7 @@ public class TurnManager : MonoBehaviour
             PlayDiceVisual(
                 dieOne,
                 dieTwo,
+                dicePlayerSlotIndex,
                 () =>
                 {
                     resolvingDiceVisual = false;
@@ -1912,6 +1913,7 @@ public class TurnManager : MonoBehaviour
         PlayDiceVisual(
             dieOne,
             dieTwo,
+            authoritativeRollingPlayer != null ? authoritativeRollingPlayer.PlayerSlotIndex : 0,
             () =>
                 CompleteStartingOrderRoll(
                     playerArrayIndex,
@@ -2317,6 +2319,7 @@ public class TurnManager : MonoBehaviour
         PlayDiceVisual(
             resolvedDieOne,
             resolvedDieTwo,
+            activePlayer != null ? activePlayer.PlayerSlotIndex : 0,
             () =>
                 CompleteActiveRollAfterVisual(
                     activePawn,
@@ -2400,6 +2403,7 @@ public class TurnManager : MonoBehaviour
     private void PlayDiceVisual(
         int dieOne,
         int dieTwo,
+        int slotIndex,
         System.Action onCompleted)
     {
         if (diceVisualController == null)
@@ -2408,10 +2412,24 @@ public class TurnManager : MonoBehaviour
             return;
         }
 
+        PlayerGameState rollingSeat = GetPlayerStateBySlotIndex(slotIndex);
+        BotPlayerController rollingBot = rollingSeat != null
+            ? rollingSeat.GetComponent<BotPlayerController>() : null;
+        bool botControlled = rollingBot != null && rollingBot.BotEnabled;
+        // Followers do not necessarily run AI scripts for remote bots.
+        // Their authoritative seat snapshot still marks bot-controlled seats.
+        if (!botControlled && rollingSeat != null && rollingSeat.IsOnlineBotControlled)
+        {
+            AtlasBoardTurnDiceNetworkCoordinator online =
+                FindAnyObjectByType<AtlasBoardTurnDiceNetworkCoordinator>();
+            botControlled = online != null && online.IsPreparedOnlineMatch;
+        }
         diceVisualController.PlayRoll(
             dieOne,
             dieTwo,
-            onCompleted);
+            onCompleted,
+            slotIndex,
+            botControlled);
     }
 
     private void BuildDiceForForcedTotal(

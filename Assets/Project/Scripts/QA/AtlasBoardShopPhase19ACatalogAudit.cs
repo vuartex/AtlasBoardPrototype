@@ -32,7 +32,7 @@ public static class AtlasBoardShopPhase19ACatalogAudit
         }
         invalid += !AtlasBoardShopContentDraft.HasCompleteLanguages() ? 1 : 0;
         invalid += GetCount(categories, "board_theme") != 3 ? 1 : 0;
-        invalid += GetCount(categories, "dice_skin") != 6 ? 1 : 0;
+        invalid += GetCount(categories, "dice_skin") != 4 ? 1 : 0;
         invalid += GetCount(categories, "pawn") != 4 ? 1 : 0;
         invalid += GetCount(categories, "profile_frame") != 10 ? 1 : 0;
         invalid += GetCount(categories, "emote") != 4 ? 1 : 0;
@@ -49,12 +49,12 @@ public static class AtlasBoardShopPhase19ACatalogAudit
             PreviewOnly = false, GoldPrice = 999 };
         List<AtlasBoardStorefrontItem> merged =
             AtlasBoardShopContentDraft.MergeForDisplay(new [] { trusted });
-        invalid += merged.Count != 27 ? 1 : 0;
+        invalid += merged.Count != 25 ? 1 : 0;
         invalid += !object.ReferenceEquals(merged[0], trusted) ? 1 : 0;
         invalid += merged.FindAll(x => x.ItemId == "frame_halloween").Count != 1 ? 1 : 0;
-        invalid += merged.FindAll(x => x.PreviewOnly).Count != 26 ? 1 : 0;
-        if (invalid == 0 && rows.Count == 27)
-            Debug.Log("ATB_PHASE19I_CATALOG_QA PASS items=27 boards=3 dice=6 pawns=4 frames=10 emotes=4 languages=7 currency=gold profileArt=10 mergedCatalog=true");
+        invalid += merged.FindAll(x => x.PreviewOnly).Count != 24 ? 1 : 0;
+        if (invalid == 0 && rows.Count == 25)
+            Debug.Log("ATB_PHASE19I_CATALOG_QA PASS items=25 boards=3 dice=4 pawns=4 frames=10 emotes=4 languages=7 currency=gold profileArt=10 mergedCatalog=true");
         else
             Debug.LogError("ATB_PHASE19A_CATALOG_QA FAIL invalid=" + invalid + " items=" + rows.Count);
     }

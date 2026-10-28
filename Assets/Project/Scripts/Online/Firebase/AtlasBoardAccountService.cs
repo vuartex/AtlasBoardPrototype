@@ -701,7 +701,7 @@ public sealed class AtlasBoardAccountService : MonoBehaviour
             };
 
         await RequestAsync(
-            "PUT",
+            "PATCH",
             PublicProfileUrl(uid, token),
             JsonUtility.ToJson(payload));
     }

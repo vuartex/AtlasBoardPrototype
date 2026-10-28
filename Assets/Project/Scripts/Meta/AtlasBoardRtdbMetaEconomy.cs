@@ -124,15 +124,42 @@ public static class AtlasBoardRtdbMetaEconomy
             (board_arctic_aurora ? 1700 : 0);
     }
 
+    // Exact, audited RTDB dice catalog; paid cosmetic state stays in the
+    // existing per-UID metaEconomy ETag transaction (never a second wallet).
+    [Serializable]
+    private sealed class Dice
+    {
+        public bool dice_ruby_red;
+        public bool dice_ocean_blue;
+        public bool dice_midnight_black;
+        public bool dice_marble;
+        public bool IsOwned(string id) =>
+            id == "dice_ruby_red" && dice_ruby_red ||
+            id == "dice_ocean_blue" && dice_ocean_blue ||
+            id == "dice_midnight_black" && dice_midnight_black ||
+            id == "dice_marble" && dice_marble;
+        public void SetOwned(string id, bool owned)
+        {
+            if (id == "dice_ruby_red") dice_ruby_red = owned;
+            else if (id == "dice_ocean_blue") dice_ocean_blue = owned;
+            else if (id == "dice_midnight_black") dice_midnight_black = owned;
+            else if (id == "dice_marble") dice_marble = owned;
+        }
+        public int RefundAmount() =>
+            (dice_ruby_red ? 350 : 0) + (dice_ocean_blue ? 350 : 0) +
+            (dice_midnight_black ? 400 : 0) + (dice_marble ? 400 : 0);
+    }
+
     [Serializable]
     private sealed class Inventory
     {
         public Frames profile_frames = new Frames();
         public Boards boards = new Boards();
+        public Dice dice = new Dice();
     }
 
     [Serializable]
-    private sealed class Equipped { public string profileFrameId = ""; public string boardId = ""; }
+    private sealed class Equipped { public string profileFrameId = ""; public string boardId = ""; public string diceId = ""; }
 
     [Serializable]
     private sealed class DailyReward { public long lastClaimAt; }
@@ -241,6 +268,10 @@ public static class AtlasBoardRtdbMetaEconomy
             case Midnight: return 1200;
             case Maple: return 1500;
             case Aurora: return 1700;
+            case "dice_ruby_red":
+            case "dice_ocean_blue": return 350;
+            case "dice_midnight_black":
+            case "dice_marble": return 400;
             default: return 0;
         }
     }
@@ -289,13 +320,19 @@ public static class AtlasBoardRtdbMetaEconomy
             snapshot.AtlasCoin = document.wallet.atlasCoin;
             snapshot.EquippedFrameId = document.equipped.profileFrameId ?? "";
             snapshot.EquippedBoardId = document.equipped.boardId ?? "";
+            snapshot.EquippedDiceId = document.equipped.diceId ?? "";
+            // Presentation cache only; RTDB remains the owner of this value.
+            if (identity.Uid == CurrentUid)
+                CurrentEquippedDiceId = snapshot.EquippedDiceId;
             snapshot.DailyClaimedAtMs = document.dailyReward.lastClaimAt;
 
             foreach (AtlasBoardStorefrontItem item in snapshot.Items)
             {
                 item.Owned = IsBoard(item.ItemId)
                     ? document.inventory.boards.IsOwned(item.ItemId)
-                    : document.inventory.profile_frames.IsOwned(item.ItemId);
+                    : IsDice(item.ItemId)
+                        ? document.inventory.dice.IsOwned(item.ItemId)
+                        : document.inventory.profile_frames.IsOwned(item.ItemId);
             }
 
             Debug.Log("ATB_PHASE19E_RTDB_WALLET ready=true guest=" +
@@ -326,6 +363,20 @@ public static class AtlasBoardRtdbMetaEconomy
         return await MutateAsync("DAILY", "", false);
     }
 
+    private static string currentDiceUid = "";
+    private static string cachedDiceId = "";
+    public static bool HasCurrentDiceCache =>
+        !string.IsNullOrEmpty(currentDiceUid) && currentDiceUid == CurrentUid;
+    public static string CurrentEquippedDiceId
+    {
+        get => CurrentUid == currentDiceUid ? cachedDiceId : "";
+        private set { currentDiceUid = CurrentUid; cachedDiceId = value ?? ""; }
+    }
+
+    public static bool IsDice(string id) =>
+        id == "dice_ruby_red" || id == "dice_ocean_blue" ||
+        id == "dice_midnight_black" || id == "dice_marble";
+
     public static bool IsBoard(string itemId) =>
         itemId == Midnight || itemId == Maple || itemId == Aurora;
 
@@ -350,6 +401,55 @@ public static class AtlasBoardRtdbMetaEconomy
         if (!string.IsNullOrEmpty(itemId) && !IsBoard(itemId))
             return Failure("meta.error.invalid_purchase");
         return await MutateAsync("EQUIP_BOARD", itemId ?? "", false);
+    }
+
+    public static async Task<AtlasBoardMetaEconomyOperationResult> EquipDiceAsync(string itemId)
+    {
+        if (!string.IsNullOrEmpty(itemId) && !IsDice(itemId))
+            return Failure("meta.error.invalid_purchase");
+        var result = await MutateAsync("EQUIP_DICE", itemId ?? "", false);
+        if (result != null && result.Success)
+        {
+            CurrentEquippedDiceId = itemId ?? "";
+            // RTDB-backed public projection validated against the equipped UID.
+            // Failure does NOT mint an item or rollback a legitimate ETag equip.
+            if (!await PublishEquippedDiceAsync(CurrentEquippedDiceId))
+                Debug.LogWarning("ATB_PHASE19K_DICE public_projection_retry_needed");
+        }
+        return result;
+    }
+
+    [Serializable]
+    private sealed class PublicDiceWire { public string diceSkinId; }
+
+    private static async Task<bool> PublishEquippedDiceAsync(string id)
+    {
+        Identity identity = await ResolveIdentityAsync();
+        if (identity == null) return false;
+        Response response = await RequestAsync(identity, "PATCH",
+            "/publicProfiles/" + UnityWebRequest.EscapeURL(identity.Uid) + ".json",
+            JsonUtility.ToJson(new PublicDiceWire { diceSkinId = id ?? "" }), null);
+        return response.Status >= 200 && response.Status < 300;
+    }
+
+    // Read-only public projection: Firebase rules allow an owner to publish
+    // only the server-verified equipped item; never accept an unowned client ID.
+    public static async Task<string> ReadPublicDiceAsync(string uid)
+    {
+        if (string.IsNullOrEmpty(uid)) return "";
+        Identity identity = await ResolveIdentityAsync();
+        if (identity == null) return "";
+        try
+        {
+            Response response = await RequestAsync(identity, "GET",
+                "/publicProfiles/" + UnityWebRequest.EscapeURL(uid) + ".json",
+                null, null);
+            if (response.Status != 200 || string.IsNullOrEmpty(response.Body) ||
+                response.Body.Trim() == "null") return "";
+            PublicDiceWire profile = JsonUtility.FromJson<PublicDiceWire>(response.Body);
+            return profile != null && IsDice(profile.diceSkinId) ? profile.diceSkinId : "";
+        }
+        catch { return ""; }
     }
 
     public static async Task<AtlasBoardMetaEconomyOperationResult> ResetDevAsync()
@@ -406,12 +506,13 @@ public static class AtlasBoardRtdbMetaEconomy
                         }
                         break;
                     case "PURCHASE":
-                        if (IsBoard(itemId) ? doc.inventory.boards.IsOwned(itemId) : doc.inventory.profile_frames.IsOwned(itemId))
+                        if (IsBoard(itemId) ? doc.inventory.boards.IsOwned(itemId) : IsDice(itemId) ? doc.inventory.dice.IsOwned(itemId) : doc.inventory.profile_frames.IsOwned(itemId))
                             return Failure("meta.error.already_owned");
                         if (doc.wallet.gold < Price(itemId))
                             return Failure("meta.error.insufficient_funds");
                         doc.wallet.gold -= Price(itemId);
                         if (IsBoard(itemId)) doc.inventory.boards.SetOwned(itemId, true);
+                        else if (IsDice(itemId)) doc.inventory.dice.SetOwned(itemId, true);
                         else doc.inventory.profile_frames.SetOwned(itemId, true);
                         break;
                     case "EQUIP":
@@ -435,10 +536,22 @@ public static class AtlasBoardRtdbMetaEconomy
                               ItemId = itemId, Type = "EQUIP_BOARD" };
                         doc.equipped.boardId = itemId;
                         break;
+                    case "EQUIP_DICE":
+                        if (!string.IsNullOrEmpty(itemId) && !doc.inventory.dice.IsOwned(itemId))
+                            return Failure("meta.error.not_owned");
+                        if (doc.equipped.diceId == itemId)
+                            return new AtlasBoardMetaEconomyOperationResult
+                            { Success = true, IdempotentReplay = true,
+                              ItemId = itemId, Type = "EQUIP_DICE" };
+                        doc.equipped.diceId = itemId;
+                        break;
                     case "RESET_PURCHASES":
-                        doc.wallet.gold += doc.inventory.profile_frames.RefundAmount() + doc.inventory.boards.RefundAmount();
+                        doc.wallet.gold += doc.inventory.profile_frames.RefundAmount() + doc.inventory.boards.RefundAmount() + doc.inventory.dice.RefundAmount();
                         doc.inventory.profile_frames = new Frames();
                         doc.inventory.boards = new Boards();
+                        doc.inventory.dice = new Dice();
+                        doc.equipped.diceId = "";
+                        CurrentEquippedDiceId = "";
                         doc.equipped.boardId = "";
                         doc.equipped.profileFrameId = "";
                         doc.dev.resetCount++;
@@ -471,7 +584,11 @@ public static class AtlasBoardRtdbMetaEconomy
                     throw new InvalidOperationException("RTDB_HTTP_" + written.Status);
 
                 if (clearPublicFrame)
+                {
+                    CurrentEquippedDiceId = "";
                     await ClearPublicFrameBestEffortAsync();
+                    await PublishEquippedDiceAsync("");
+                }
 
                 Debug.Log("ATB_PHASE19C_RTDB_OP type=" + kind +
                           " result=success uid=" + Short(identity.Uid));
@@ -518,12 +635,12 @@ public static class AtlasBoardRtdbMetaEconomy
         string[] ids = { Halloween, NewYear, Turkiye, Usa,
             "frame_neon_circuit", "frame_royal_crown", "frame_ocean_tide",
             "frame_sakura_blossom", "frame_cosmic_nova", "frame_forest_spirit",
-            Midnight, Maple, Aurora };
+            Midnight, Maple, Aurora, "dice_ruby_red", "dice_ocean_blue", "dice_midnight_black", "dice_marble" };
         foreach (string id in ids)
         {
             result.Items.Add(new AtlasBoardStorefrontItem
             {
-                ItemId = id, ItemType = IsBoard(id) ? "board_theme" : "profile_frame",
+                ItemId = id, ItemType = IsBoard(id) ? "board_theme" : IsDice(id) ? "dice_skin" : "profile_frame",
                 DisplayName = AtlasBoardShopContentDraft.LocalizedName(id, "en"),
                 GoldPrice = Price(id), AtlasCoinPrice = 0,
                 SortOrder = 200, CatalogVersion = 19,
@@ -579,8 +696,10 @@ public static class AtlasBoardRtdbMetaEconomy
             if (doc.inventory.profile_frames == null)
                 doc.inventory.profile_frames = new Frames();
             if (doc.inventory.boards == null) doc.inventory.boards = new Boards();
+            if (doc.inventory.dice == null) doc.inventory.dice = new Dice();
             if (doc.equipped == null) doc.equipped = new Equipped();
             if (doc.equipped.boardId == null) doc.equipped.boardId = "";
+            if (doc.equipped.diceId == null) doc.equipped.diceId = "";
             if (doc.equipped.profileFrameId == null) doc.equipped.profileFrameId = "";
         }
         return new ReadState

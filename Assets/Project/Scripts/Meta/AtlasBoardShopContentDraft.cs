@@ -22,14 +22,12 @@ public static class AtlasBoardShopContentDraft
         new DraftRow("board_midnight_azure", "board_theme", 1200, "Midnight Azure", "Gece Mavisi", "Azul Medianoche", "Azur de Minuit", "Mitternachtsblau", "미드나이트 블루", "Полуночная лазурь"),
         new DraftRow("board_ember_maple", "board_theme", 1500, "Ember Maple", "Kor Akçaağaç", "Arce Ardiente", "Érable Ardent", "Glutahorn", "불꽃 단풍", "Пламенный клён"),
         new DraftRow("board_arctic_aurora", "board_theme", 1700, "Arctic Aurora", "Kutup Işığı", "Aurora Ártica", "Aurore Arctique", "Arktische Aurora", "북극 오로라", "Арктическое сияние"),
-        new DraftRow("dice_obsidian_gold", "dice_skin", 450, "Obsidian Gold", "Obsidyen Altın", "Oro Obsidiana", "Or Obsidienne", "Obsidiangold", "흑요석 골드", "Обсидиановое золото"),
-        new DraftRow("dice_polar_ice", "dice_skin", 550, "Polar Ice", "Kutup Buzu", "Hielo Polar", "Glace Polaire", "Polareis", "극지의 얼음", "Полярный лёд"),
         // Phase 19B: D6 color variants awaiting the licensed Unitypackage import.
         // Visual-only until geometry / face orientation / server catalog pass.
         new DraftRow("dice_ruby_red", "dice_skin", 350, "Ruby Red", "Yakut Kırmızısı", "Rojo Rubí", "Rouge Rubis", "Rubinrot", "루비 레드", "Рубиново-красный"),
         new DraftRow("dice_ocean_blue", "dice_skin", 350, "Ocean Blue", "Okyanus Mavisi", "Azul Océano", "Bleu Océan", "Ozeanblau", "오션 블루", "Океанский синий"),
         new DraftRow("dice_midnight_black", "dice_skin", 400, "Midnight Black", "Gece Siyahı", "Negro Medianoche", "Noir Minuit", "Mitternachtsschwarz", "미드나이트 블랙", "Полуночный чёрный"),
-        new DraftRow("dice_graphite_gray", "dice_skin", 400, "Graphite Gray", "Grafit Gri", "Gris Grafito", "Gris Graphite", "Graphitgrau", "그래파이트 그레이", "Графитово-серый"),
+        new DraftRow("dice_marble", "dice_skin", 400, "Marble", "Mermer", "Mármol", "Marbre", "Marmor", "대리석", "Мрамор"),
         new DraftRow("pawn_knight", "pawn", 300, "Explorer Knight", "Kâşif Şövalye", "Caballero Explorador", "Chevalier Explorateur", "Entdeckerritter", "탐험가 기사", "Рыцарь-исследователь"),
         new DraftRow("pawn_rocket", "pawn", 450, "Atlas Rocket", "Atlas Roketi", "Cohete Atlas", "Fusée Atlas", "Atlas-Rakete", "아틀라스 로켓", "Ракета Атлас"),
         new DraftRow("pawn_rover", "pawn", 550, "Trail Rover", "Yol Gezgini", "Explorador de Rutas", "Rover des Pistes", "Pfad-Rover", "탐사 로버", "Марсоход"),

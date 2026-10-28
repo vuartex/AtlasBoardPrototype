@@ -102,9 +102,12 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return;
         }
 
+        string requestedUid = AtlasBoardRtdbMetaEconomy.CurrentUid;
         AtlasBoardMetaEconomySnapshot initial = await bridge.RefreshAsync();
-        snapshot = initial != null && initial.Success ? initial : null;
-        lastLiveWalletUid = AtlasBoardRtdbMetaEconomy.CurrentUid;
+        // Do not promote a wallet loaded for a former UID during sign-out/in.
+        snapshot = requestedUid == AtlasBoardRtdbMetaEconomy.CurrentUid &&
+            initial != null && initial.Success ? initial : null;
+        lastLiveWalletUid = requestedUid;
         nextLiveWalletPollAt = Time.unscaledTime + 15f;
         UpdateWalletText();
     }
@@ -324,6 +327,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return;
         }
         BeginOperation("store.response.loading");
+        string requestedUid = AtlasBoardRtdbMetaEconomy.CurrentUid;
         AtlasBoardMetaEconomySnapshot result = await bridge.RefreshAsync();
         AtlasBoardSeasonalOverview seasonal = result != null && result.Success &&
             bridge.IsLocalEmulatorMode
@@ -331,6 +335,14 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             : null;
         EndOperation();
 
+        if (requestedUid != AtlasBoardRtdbMetaEconomy.CurrentUid)
+        {
+            snapshot = null;
+            UpdateWalletText();
+            RebuildCurrentPage();
+            return;
+        }
+        lastLiveWalletUid = requestedUid;
         if (result == null || !result.Success)
         {
             snapshot = null;
@@ -350,13 +362,25 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         RebuildCurrentPage();
     }
 
+    // RTDB authorization belongs to the Firebase UID, not the Steam overlay.
+    // The administrator allowlists exact tester UIDs in /devWalletTesters.
+    // A SteamAPI.Init failure must not block an ALREADY verified/allowlisted
+    // UID, nor may a cached tester flag grant access after an account switch.
+    private bool HasVerifiedApprovedTestWallet()
+    {
+        string uid = AtlasBoardRtdbMetaEconomy.CurrentUid;
+        return bridge != null && !bridge.IsLocalEmulatorMode &&
+            !string.IsNullOrWhiteSpace(uid) &&
+            string.Equals(lastLiveWalletUid, uid, StringComparison.Ordinal) &&
+            snapshot != null && snapshot.Success && snapshot.WalletVerified &&
+            snapshot.IsDeveloperTester;
+    }
+
     private bool RequireEmulatorForDevelopmentEconomy()
     {
         if (bridge != null && bridge.IsLocalEmulatorMode) return true;
         if (AtlasBoardRtdbMetaEconomy.IsRegistered) return true;
-        if (AtlasBoardRtdbMetaEconomy.IsSteamSession &&
-            snapshot != null && snapshot.WalletVerified &&
-            snapshot.IsDeveloperTester) return true;
+        if (HasVerifiedApprovedTestWallet()) return true;
         if (AtlasBoardRtdbMetaEconomy.IsSteamSession)
         {
             ShowMessagePopup("store.popup.info_title", StoreAccountText(
@@ -688,12 +712,22 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
                 Cream);
         AddCardTitle(daily.transform, T("store.home.daily_title"), Green);
         bool steamAccount = AtlasBoardRtdbMetaEconomy.IsSteamSession;
-        bool steamTester = steamAccount && snapshot != null &&
-            snapshot.IsDeveloperTester && snapshot.WalletVerified;
+        bool approvedTestWallet = HasVerifiedApprovedTestWallet();
+        bool steamTester = steamAccount && approvedTestWallet;
         bool guestAccount = bridge != null && !bridge.IsLocalEmulatorMode &&
-            !steamAccount && !AtlasBoardRtdbMetaEconomy.IsRegistered;
+            !steamAccount && !AtlasBoardRtdbMetaEconomy.IsRegistered &&
+            !approvedTestWallet;
         AddCardBody(daily.transform,
-            steamAccount && !AtlasBoardRtdbMetaEconomy.IsRegistered
+            approvedTestWallet && !steamAccount && !AtlasBoardRtdbMetaEconomy.IsRegistered
+                ? StoreAccountText(
+                    "Approved test wallet: claim 50 Gold every 24 hours.",
+                    "Onaylı test cüzdanı: 24 saatte bir 50 Gold al.",
+                    "Cartera de prueba autorizada: 50 Gold cada 24 horas.",
+                    "Portefeuille de test approuvé : 50 Gold toutes les 24 h.",
+                    "Freigegebene Test-Wallet: 50 Gold alle 24 Stunden.",
+                    "승인된 테스트 지갑: 24시간마다 50 Gold.",
+                    "Одобренный тестовый кошелёк: 50 Gold раз в 24 часа.")
+                : steamAccount && !AtlasBoardRtdbMetaEconomy.IsRegistered
                 ? steamTester
                     ? StoreAccountText(
                         "Approved Steam test account: claim 50 Gold every 24 hours.",
@@ -742,7 +776,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         claim.interactable = guestAccount || bridge != null &&
             (bridge.IsLocalEmulatorMode ||
              snapshot != null && snapshot.WalletVerified &&
-             (!snapshot.IsGuest || snapshot.IsDeveloperTester) &&
+             (!snapshot.IsGuest || approvedTestWallet) &&
              (!steamAccount || AtlasBoardRtdbMetaEconomy.IsRegistered || steamTester) &&
              (snapshot.DailyClaimedAtMs <= 0 ||
               DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() -
@@ -994,6 +1028,16 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
                 GetProfileInitial(snapshot != null ? snapshot.DisplayName : null));
             inspect.onClick.AddListener(() => ShowFramePreview(item.ItemId));
         }
+        else if (item.ItemType == "dice_skin" &&
+                 AtlasBoardDiceSkinPreviewArt.IsSupported(item.ItemId))
+        {
+            Button inspect = CreateSmallButton(
+                row.transform, string.Empty, DarkBlue,
+                new Vector2(100f, 0f), new Vector2(88f, 88f));
+            inspect.gameObject.name = "PreviewDice_" + item.ItemId;
+            AtlasBoardDiceSkinPreviewArt.Create(inspect.transform, item.ItemId, 80f);
+            inspect.onClick.AddListener(() => ShowFramePreview(item.ItemId));
+        }
         else if (item.ItemType == "board_theme" &&
                  AtlasBoardShopBoardPreviewArt.IsSupported(item.ItemId))
         {
@@ -1012,17 +1056,20 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         {
             bool isFrame = item.ItemType == "profile_frame" &&
                 AtlasBoardShopProfileFrameArt.IsSupported(item.ItemId);
-            if (isFrame)
+            bool isDice = item.ItemType == "dice_skin" &&
+                AtlasBoardDiceSkinPreviewArt.IsSupported(item.ItemId);
+            if (isFrame || isDice)
             {
                 // Show a single Gold Buy beside inspect. Preview-only frames
                 // never reach the checkout; Guest opens canonical login.
                 Button frameBuy = CreateSmallButton(
                     row.transform, T("store.items.buy_gold", item.GoldPrice),
                     Green, new Vector2(360f, 0f), new Vector2(258f, 54f));
-                frameBuy.gameObject.name = "ProfileBuy_" + item.ItemId;
+                frameBuy.gameObject.name = (isFrame ? "ProfileBuy_" : "DiceBuy_") + item.ItemId;
                 frameBuy.onClick.AddListener(() =>
                 {
-                    if (!AtlasBoardRtdbMetaEconomy.IsRegistered)
+                    if (!AtlasBoardRtdbMetaEconomy.IsRegistered &&
+                        !HasVerifiedApprovedTestWallet())
                     {
                         if (!AtlasBoardRtdbMetaEconomy.IsSteamSession)
                             OpenStoreSignIn();
@@ -1795,7 +1842,8 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
     {
         bool isProfile = AtlasBoardShopProfileFrameArt.IsSupported(itemId);
         bool isBoard = AtlasBoardShopBoardPreviewArt.IsSupported(itemId);
-        if ((!isProfile && !isBoard) ||
+        bool isDice = AtlasBoardDiceSkinPreviewArt.IsSupported(itemId);
+        if ((!isProfile && !isBoard && !isDice) ||
             framePreviewRoot == null || framePreviewArtSlot == null)
             return;
         framePreviewItemId = itemId;
@@ -1806,9 +1854,11 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             AtlasBoardShopProfileFrameArt.Create(framePreviewArtSlot,
                 itemId, 250f,
                 GetProfileInitial(snapshot != null ? snapshot.DisplayName : null));
-        else
+        else if (isBoard)
             AtlasBoardShopBoardPreviewArt.Create(framePreviewArtSlot,
                 itemId, 250f);
+        else
+            AtlasBoardDiceSkinPreviewArt.Create(framePreviewArtSlot, itemId, 240f);
         RefreshFramePreviewLanguage();
         framePreviewRoot.SetActive(true);
         framePreviewRoot.transform.SetAsLastSibling();
@@ -1828,10 +1878,12 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             AtlasBoardShopContentDraft.CreatePreview()
                 .FirstOrDefault(x => x.ItemId == framePreviewItemId);
         if (framePreviewPrice != null)
-            framePreviewPrice.text = item != null
-                ? item.GoldPrice.ToString("N0") + " Gold  •  " +
-                  AtlasBoardShopContentDraft.PreviewLabel(lang)
-                : AtlasBoardShopContentDraft.PreviewLabel(lang);
+            framePreviewPrice.text = item == null
+                ? AtlasBoardShopContentDraft.PreviewLabel(lang)
+                : item.GoldPrice.ToString("N0") + " Gold" +
+                  (AtlasBoardRtdbMetaEconomy.Price(framePreviewItemId) > 0 &&
+                   snapshot != null && snapshot.WalletVerified
+                      ? "" : "  •  " + AtlasBoardShopContentDraft.PreviewLabel(lang));
         if (framePreviewClose != null)
         {
             TMP_Text label = framePreviewClose.GetComponentInChildren<TMP_Text>();

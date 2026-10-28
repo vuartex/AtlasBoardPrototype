@@ -441,6 +441,13 @@ public sealed class AtlasBoardOfflineModeBootstrap : MonoBehaviour
             "ATB_LOCAL_START_GATE event=countdown_complete " +
             "launch=canonical_legacy_bridge");
 
+        // Same scene may have hosted an online room immediately beforehand.
+        // Reset only the existing dice presentation to the local UID's equipped
+        // model; otherwise online slot skin IDs leak into the local match.
+        DiceVisualController dice = UnityEngine.Object.FindAnyObjectByType<DiceVisualController>(
+            FindObjectsInactive.Include);
+        dice?.BeginLocalOfflineDiceSession();
+
         offlineMainMenu.StartMatchAfterPrivateBackendAuthorization();
 
         offlineCountdownActive = false;
