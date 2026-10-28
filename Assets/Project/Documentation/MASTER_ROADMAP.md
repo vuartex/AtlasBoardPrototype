@@ -3973,3 +3973,74 @@ Known non-blocking warnings still OPEN and must be cleaned from their canonical 
 2. No change to current game source, RTDB rules or economy has been made in this **roadmap-only** checkpoint. No Firebase deployment; no code/Unity/Android/online acceptance claimed beyond owner reports. Owner's in-progress modifications must be the source of truth.
 3. **GitHub `main` was verified at `015778099165c8d81b27c90924e9d94b70e7d2fb` and still contains the earlier Phase 19R/19S backup**, not the user's subsequent applied Phase 19T–19AC local ZIPs and saved scene. Connected GitHub reports **`pull=true`, `push=false`**, so an assistant-side push is NOT possible or performed. User must commit/push the actual local Unity working tree and this same `Assets/Project/Documentation/MASTER_ROADMAP.md` to obtain a complete backup. Check local `git status` before committing. Include saved Unity scene, new map assets + `.meta`, RTDB rules, tests, third-party licenses, catalog assets + `.meta`, shaders/material `.mat/.meta`, generated Emote sprites and all local script changes. Do not force-push or reset; never commit secrets or Firebase service-account keys.
 4. Historic roadmap chapters are preserved verbatim. This new phase supersedes only listed acceptance/open statuses; it is NOT a separate competing roadmap.
+
+
+---
+
+## Documentation consolidation — canonical files and retired reference material (2026-10-28)
+
+**Scope:** Documentation maintenance only. This section does not change Unity code, asset entitlements, RTDB security rules, map economy, game content, publishing licenses or acceptance status. Prior roadmap phases and the original historic text above are retained intact. If a historic phase references a retired `Documentation/*.md`, that path is a legacy artifact reference, **not** an active documentation dependency or an instruction to regenerate the file. The current implementation and later Owner acceptance supersede older candidate/OPEN statements.
+
+### Canonical documentation retention rule
+
+- `Assets/Project/Documentation/MASTER_ROADMAP.md` — the **only active roadmap, project handoff, phase history, unresolved work, design contract and test/protocol record**. Update this existing file; never create `PHASE*.md`, another roadmap, a QA handoff/README, separate release-backlog file or one-off summary inside Documentation. New work should amend the relevant section and append only a concise new acceptance/change record when needed. Avoid repeating the same specification in multiple chapters.
+- `Assets/Project/Documentation/FRONTEND_ERROR_CODEBOOK.md` — **the separate canonical frontend error-code list; preserve unchanged**. It is not a second roadmap.
+- `Assets/Project/Documentation/AtlasBoard_Master_Roadmap_v5_1_2026-09-29.md` — **frozen archival exception. Preserve as-is, do not review, modify, merge or remove**. It is not the current roadmap.
+- Historic Steam notes, Phase QA notes, the former `ASSET_CREDITS_REGISTER.md`, `KENNEY_EMOTES_IMPORT_GUIDE.md` and `MapDrafts/` under Documentation are not additional authorities. Important unique information from these files is captured in the concise subsections here; source/asset/licensing records **outside** Documentation (for example `Assets/Project/ThirdPartyLicenses/`) are not covered by this cleanup policy.
+
+### Germany and Mexico: retired MapDrafts and actual playable map authority
+
+**Both premium maps are Owner smoke PASS** for Gold purchase, ownership, Lobby selection and entry into playable matches (see preceding Phase 19AB/19AC acceptance; no stronger multiplayer/Civic/Pulse verification implied). Draft CSVs under `Documentation/MapDrafts/` were **pre-implementation authoring inputs**, labeled `DRAFT_NOT_PLAYABLE` and `DRAFT_NOT_FACT_CHECKED_NOT_FINAL_BALANCED`; they are **not** required by the current game at runtime. Do not treat their old figures or text as a separate economy, or restore an old `MapDrafts` copy. **The actual canonical gameplay data lives in** `Assets/Project/Data/Maps/map_germany.asset` and `map_mexico.asset`, with existing `BoardMapDefinition`, `BoardGenerator`, `AtlasBoardCivicProjectManager`, localized City Info and Pulse infrastructure. These Unity assets, not the deleted CSV drafts, decide current city costs and tiles.
+
+| Map ID | Store price / permanent account entitlement | Gameplay content | Owner-tested scope |
+|---|---:|---|---|
+| `map_germany` | **30,000 Gold** | 32 indexed tiles, 24 cities, 8 specials, 3 off-path Civic projects, country Pulse baseline, local City Info and rent/upgrade economy | Purchased and played; OWNER smoke PASS |
+| `map_mexico` | **25,000 Gold** | 32 indexed tiles, 24 cities, 8 specials, 3 off-path Civic projects, country Pulse baseline, local City Info and rent/upgrade economy | Purchased and played; OWNER smoke PASS |
+
+Canonical entitlement: `users/{uid}/metaEconomy/inventory/maps/{map_germany,map_mexico}` in the existing RTDB ETag wallet; Gold is **account currency**, not within-match property money. The host must own a premium map to select it; other players can join without buying. Lobby preview and map choice propagate before match start; fresh rooms default to a free map, and host handoff **during an active match must not replace its map**. Preserve existing Turkey/Colorado/USA and seven localizations (EN/TR/ES/FR/DE/KO/RU). **KO/RU Civic Project proper names stay English**; explanatory text can be localized. Prices/city stats are original **game-balance fiction**, not sourced economic statistics. Two-real-client host migration, comprehensive Civic/Pulse outcomes and Android remain separate OPEN release gates in Phase 19AD.
+
+### Consolidated third-party attribution and import/license record
+
+The public-facing asset license review **remains OPEN**; do not falsely declare legal clearance. Source entitlement and publisher license terms, including any Extension Asset / seat designation, must be checked before Steam/Google Play release. These are **integrated game assets**, not third-party assets released under AtlasBoard ownership. Game-embedded commercial use under an applicable Standard Unity Asset Store EULA is distinct from publishing raw `.fbx`, `.prefab`, material, texture or package sources in a public GitHub repository or its historic commits. Original account purchase receipts, source licenses and original Kenney text should remain in the existing `Assets/Project/ThirdPartyLicenses/` location; this consolidation does not change it.
+
+| Actual integrated asset | Author / acquisition | Usage and local source | License treatment |
+|---|---|---|---|
+| Dice | **Ferocious Industries**, *PBR Little Games Pack - 4K* v1.0, https://assetstore.unity.com/packages/3d/props/pbr-little-games-pack-4k-237164 | `Assets/SubstanceAssets/LittleGamesPack/Models/GamePieces/` plus GamePieces material/texture; 4 paid D6 colors + free original Classic bot die | Unity Asset Store Standard EULA, **not CC0**; check actual extension/seat terms and raw-source distribution |
+| Ghost pawns | **SR Studios Kerala**, *Little Ghost lowpoly(FREE)* v1.0, https://assetstore.unity.com/packages/3d/characters/little-ghost-lowpoly-free-271926 | Seven prefabs from `Assets/Little_GhostLP(FREE)/Prefabs/`, corresponding FBX/material/texture/animation | Unity Asset Store Standard EULA, **not CC0**; check entitlement/seat terms |
+| Vehicle pawns | **OlyPoly**, *FREE Cartoon Car Pack - Simple Vehicles* v1.3, https://assetstore.unity.com/packages/3d/vehicles/land/free-cartoon-car-pack-simple-vehicles-282425 | Police, Taxi, Pickup under `Assets/Pack_FREE_Cars/` with color palette material/texture | Unity Asset Store Standard EULA, **not CC0**; check entitlement/seat terms |
+| Emotes | **Kenney**, *Emotes Pack*, https://kenney.nl/assets/emotes-pack | `Assets/Project/ThirdParty/Kenney/Emotes/Sprites/`, 30 imported PNGs of a single visual style (29 reaction sprites + blank balloon); 480 source PNG variants are not 480 distinct products | **CC0 1.0**; commercial game use and modification permitted, attribution optional. Retain original `License.txt` in `Assets/Project/ThirdPartyLicenses/` |
+
+**Import provenance (not a new import request):** Kenney's original archive was an ordinary ZIP, not a `.unitypackage`; the chosen images came from `PNG/Vector/Style 1/` and Unity's `Sprite (2D and UI)` importer. `Atlas Board > QA & Diagnostics > Configure Kenney Emote Sprites` previously returned `ATB_EMOTE_SPRITES status=ready count=30`; a distinct `Build Emote Runtime Catalog` step binds game usage. Historical Dice/Ghost/Car source imports are already completed; do **not** re-import all package demo scenes or re-run destructive old pawn catalog creation. The reported missing Emote catalogue script GUID in Phase 19AD remains **OPEN** regardless of 30/30 source import.
+
+**Archived candidates are not active dependencies:** historical alternatives such as Daniel Riches Board Game Essentials, Armor and Rum Collection Dice, Warcool Low-Poly Objects Pack and Lowpoly_Master Cartoon Vehicles were merely proposed; do not list them as shipped content without actual Unity evidence. AtlasBoard procedural profile frame art is project original. This paragraph supersedes earlier “NOT IMPORTED” proposals concerning the four assets actually integrated later.
+
+### Steam reference preserved from retired Documentation/Steam CSV and notes
+
+The following **14 canonical internal achievement ID -> planned Steamworks API-name** pairs were in `Documentation/Steam/STEAM_ACHIEVEMENT_API_NAMES.csv`. Retain these exact mappings for the real app's Steamworks dashboard; do **not** rename AtlasBoard internal IDs. This is **mapping documentation, not proof that achievements are currently live on Steam**.
+
+```text
+    first_match -> ATLAS_FIRST_MATCH
+    first_win -> ATLAS_FIRST_WIN
+    win_streak_3 -> ATLAS_WIN_STREAK_3
+    matches_10 -> ATLAS_MATCHES_10
+    wins_10 -> ATLAS_WINS_10
+    dice_100 -> ATLAS_DICE_100
+    doubles_10 -> ATLAS_DOUBLES_10
+    properties_25 -> ATLAS_PROPERTIES_25
+    builder_20 -> ATLAS_BUILDER_20
+    networth_5000 -> ATLAS_NETWORTH_5000
+    turkey_explorer -> ATLAS_TURKEY_EXPLORER
+    colorado_explorer -> ATLAS_COLORADO_EXPLORER
+    usa_explorer -> ATLAS_USA_EXPLORER
+    atlas_traveler -> ATLAS_TRAVELER
+```
+
+**Release boundary:** AppID **480** (Spacewar) is development-only; the real AtlasBoard AppID and its own configured achievements are required before Steam shipping. The older Phase 11C/11D documents describe a **legacy** verified-ticket + Cloud Functions/Firestore account-linking design (`GetAuthTicketForWebApi` -> Valve `AuthenticateUserTicket` -> trusted UID mapping -> Firebase custom-token return); its emulator-only development proofs and unauthenticated returning-sign-in fallbacks must **not** be treated as production verification. Current AtlasBoard is Spark RTDB-first and prohibits new Functions/Firestore/Blaze assumptions: decide an actually deployable trusted Steam linking design and test independently before release. Never trust a client-provided SteamID, expose a publisher Web API key or commit secrets; retain the existing canonical Firebase account/wallet UID across successful account linking. Prior standalone `-atlasLocalEmulators` Steam non-Steam shortcut and `steam_appid.txt=480` instructions were **development test instructions only**, not shipping configuration.
+
+### Unique historical QA notes consolidated (do not treat as completed release tests)
+
+- **N4 three-match / RTDB chat:** former QA panel `Atlas Board > QA & Diagnostics > N4 Final - Three Match Acceptance` used three genuine matches: Unity host + Guest; reverse Guest host + Unity follower; menu exit/re-entry + fresh match without process restart. Test actual room/match IDs, turn/money/property transitions, lobby/match chat and cleanup. Casual chat lives under `chatMessages/{lobby|match}/{scopeId}/{messageId}` and `chatThrottle/{kind}/{scopeId}/{uid}`; messages are 1–120 chars and use an intended 10-second send throttle. Old `AtlasBoardChatModerationBridge` report/appeal/ban moderation still referenced Functions at the time: **production abuse/reporting moderation parity is a release gate**, not provided by basic RTDB transport. Old test-panel UI previews and `ATB_N4_CHAT_WIRE_QA PASS mode=local_no_network` were **not** proof of remote multiplayer or moderation. Do not run offline scene-reset/preview harnesses against live host gameplay. See existing roadmap N4 history for past tests and caveats.
+- **Android S20 FE / A17 diagnostics:** historical S20 FE ~16–23 FPS is an old observation, not a current release performance figure; A17 baseline unverified. Existing diagnostic `AtlasBoardAndroidFpsDiagnostics.cs` (Development Android only) logs `ATB_ANDROID_FPS_DIAG_START`, `ATB_ANDROID_FPS_WINDOW`, `ATB_ANDROID_FPS_HINT` (when applicable), and `ATB_MOBILE_PERF` every ~10 seconds; inspect avg/p95/p99 frame time, available Main/GPU counters, GC allocation, render scale, graphics API, RTDB activity and device context. Use the **same Development APK** on S20 FE and A17; measure 60 s menu, 60–90 s offline match, >=60 s online lobby, >=120 s online two-human match with swapped host/guest roles, then second match without app restart. Development performance is not final Release-APK FPS. Analyze CPU/GC vs GPU evidence rather than assigning a cause from FPS alone; the old `ApplyCareerMobileAccent` / scene-search cost is only a hypothesis. Preserve Steam/Windows graphics while optimizing Android. See Phase 19AD release gates and older Android roadmap for additional constraints.
+- **Owner acceptance supersession:** Ghost/car sizing, preview isolation and second-match Pawn switch; Emote Buy/Owned, 6-slot inventory and HUD popup/sending; four paid Dice FBX calibrated faces; Germany/Mexico purchased and played are owner-accepted **only to the extent recorded in the latest roadmap phases**. Extended two-client multiplayer (including remote self-owned Pawn selection), account switch, 7-language visual QA, host migration, RTDB security and Android remain OPEN. This does not grant extra QA PASS via document consolidation.
+
+**Repository status when consolidated:** user-confirmed GitHub push; live `main` HEAD observed as `30f89bbfb5f3b60b3cf107825e04a59e3e654033` (2026-10-28 UTC). Earlier roadmap entries referring to a previous HEAD are historic snapshots; they are not the current branch status. This documentation consolidation itself has **not** been pushed by the assistant. No production Firebase deploy, client change or license clearance was performed in this step.
