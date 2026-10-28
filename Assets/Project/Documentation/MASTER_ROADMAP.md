@@ -3668,3 +3668,308 @@ Known non-blocking warnings still OPEN and must be cleaned from their canonical 
 - Documentation-only audit; **no Pawn/Emote/Motion/Event/Career source changes implemented** in this checkpoint. No Firebase rules deployed, no remote repository update executed as part of this documentation edit.
 - Local Unity project is ahead of GitHub `main` (`733eacc5b68c3f10486f2ec30f285ef1e7f865b6`, older Phase 19J) by all v5.49.12 through v5.49.12i user-applied ZIPs; the precise working-tree diff, Unity-saved scene, generated `Assets/Project/Materials/ATB_Dice_GamePieces_URP_Unlit.mat` and its `.meta` must be captured from owner's **actual local repository** before pushing. Previous ZIP scene is not guaranteed identical to Unity-saved scene. A documentation ZIP alone is not a complete GitHub source backup.
 - Owner explicitly approved a GitHub backup this turn. Connected GitHub repository currently exposes `pull=true` and `push=false`; automated push cannot be truthfully reported. Owner can commit/push locally after reviewing `git status` and ensuring `.mat`, `.meta`, `.shader`, 19K rules/QA and updated single roadmap are included. Do not force-push, reset or delete untracked user work.
+
+---
+
+## v5.49.12j — Phase 19T: Additive Ghost & Car Pawn Catalog + Motion Candidate (2026-10-27; OWNER UNITY TEST OPEN)
+
+**Authoritative starting point:** latest GitHub `main` HEAD `015778099165c8d81b27c90924e9d94b70e7d2fb` (Phase 19S roadmap), verified existing eight `PawnCosmeticCatalog_Default.asset` references, existing `AtlasBoardPawnCustomizationUI` rotating 3D lobby preview, `PawnCosmeticApplier`, `PawnMotionAnimator`, `PlayerPawnMover` 2×2 safe formation and `AtlasBoardTurnDiceNetworkCoordinator` per-slot snapshot presentation. All original eight Kenney definitions, their order, existing motion clips and saved GUIDs remain unchanged. Phase 19R four paid dice + Classic are OWNER PASS; two-client and Android dice QA are still separately OPEN. This is an additive source candidate, NOT a completed Unity/online pawn acceptance.
+
+**Imported source models confirmed in GitHub:** seven `Assets/Little_GhostLP(FREE)/Prefabs/LittleGhost_LP (1..7).prefab` plus `Assets/Pack_FREE_Cars/Prefabs/{Police,Taxi,Pickup}.prefab`, with their pre-existing materials/FBX. No third-party binaries redistributed or overwritten. Existing eight + up to 10 new candidate cosmetics = up to 18 catalog entries. Stable IDs `ghost_01..ghost_07`, `vehicle_police`, `vehicle_taxi`, `vehicle_pickup`. The new editor menu `Atlas Board > Design > Board & Presentation > Pawns > Extend Existing Catalog - Ghosts and Cars` loads **only** the canonical catalog and appends missing ScriptableObject definitions while preserving all original entries and GUIDs. Running it again is idempotent: no second manager, no new lobby overlay, no duplicate catalog or modal. If a model is missing, report it and skip only that candidate; never overwrite old assets. Do NOT run `Build Pawn Customization v1` for this extension because that old rebuild procedure replaces catalog content and reconstructs the modal.
+
+**Movement/presentation:** Original Kenney MotionSets remain unchanged. Existing `PlayerPawnMover` remains the sole source of tile-by-tile/special civic movement, XZ heading and four-seat collision-free formation; no movement math/path/turn direction modification. New ghosts only use a subtle idle+moving levitation effect (no walk/look-left or look-right animation), while new vehicles retain a steady non-bouncing chassis and turn toward travel direction through the existing `SetFacingDirection`. Imported physics/colliders are disabled by the existing applier and preview; visual mounts still use player-colored identity discs. New optional `PawnCosmeticDefinition.maxWorldFootprint` defaults to 0 for all original definitions (no change), and caps new ghost/vehicle footprint in the already-established 2x2 formation. Existing preview camera still rotates the model 24 degrees per second around vertical Y; new models appear in the SAME existing lobby Pawn selector, after existing eight items. 7-language localized selector controls remain intact; third-party asset character names are artwork labels, not a new localization UI.
+
+**Seat ownership requirements:** Host must not change a remote human's pawn or any bot pawn. The existing popup's remote-human selection check is kept read-only for other real players; bot seats also become read-only, including host. In local/offline without an independently authenticated slot mapping, only owner's slot 0 may apply cosmetics. **Known online gap identified in existing sources:** client `lobbySetPawnCosmetic` currently routes to host-only `HostChangeAsync` while RTDB `/roomState` is host-write-only, so the remote person's authenticated self-selection and propagation require a separate secure owner-authored request/host acknowledgment flow before they can be claimed PASS. Do not loosen RTDB rules or assume this is implemented by this phase; add this test to next bounded online network work. Avoid promising cross-client success until verified. No new backend or paid services.
+
+**Commerce scope:** This candidate extends the existing LOBBY selection catalog; no Gold prices or store purchase entitlements are invented for the 10 models. Pawn Store commerce remains a separate phase after author-approved pricing/entitlement design. Do not claim `Store/Pawns` completed. Existing Dice/Boards/Profile wallet and Firebase rules unchanged. No RTDB redeploy required.
+
+**Owner acceptance gates:** (1) existing eight Kenney pawn previews, motion sets and slot defaults still identical; (2) ten imported previews load, correct materials/no magenta, preview still rotates; (3) ghost hovers, car drives facing each segment and 90° corners without foot-walk bob; (4) 1–4 pawns stand on the same tile with existing identity colors visible and no model clipping; (5) civic/forced movement and return face direction remain coherent; (6) host cannot edit bot or foreign remote seat; (7) changing own pawn is persisted and shown on other online clients after reconnect; (8) run in Private/Public/Local, first/second/third match, Windows/Steam/Android, and seven languages. **Source static tests only** were performed by assistant; no Unity compilation, two-client security test, screenshot QA or Android build PASS claimed. Take an owner backup of generated catalog `.asset/.meta` and ten new definition `.asset/.meta` after running menu, before GitHub push.
+
+**Workflow:** Latest GitHub connection is read-only (`push=false`); no remote writes or Firebase deploy. User-approved GitHub backups remain owner-controlled. Never replace or erase canonical `MASTER_ROADMAP.md` history, the original eight pawn definitions, or import third-party binaries again.
+
+
+---
+
+## v5.49.12k — Phase 19U: Pawn Commerce, Static Preview & Vehicle Color Candidate (2026-10-27; OWNER UNITY/FIREBASE TEST OPEN)
+
+**Owner Phase 19T feedback:** All seven ghost prefabs appeared and 360-degree lobby preview worked. Ghost float and car drive/turn motion worked, first 4-on-tile test showed no model intersection, while ghosts and vehicles were too small. All three cars were entirely magenta in Lobby; one new pawn could stay visible after returning to Main Menu, choosing a different pawn and starting another match. Owner also correctly challenged testing an unpurchasable item: Phase 19T had no Shop purchase/ownership. Do not call Phase 19T commerce PASS.
+
+**This candidate changes only existing integration:** Addendum to `AtlasBoardPhase19TPawnAssetExtension` creates a single AtlasBoard-owned Standard/ColorPalette material when the existing additive catalog command runs; originals' prefabs and original eight Kenney entries remain unchanged. Ghost target height/footprint 1.32/0.53, vehicle 0.95/0.56; new sizes and 4-seat formation **RETEST OPEN**. Override material only for new OlyPoly vehicle models; lobby rotation stays exactly in existing `AtlasBoardPawnCustomizationUI`.
+
+**Shop/Pawns product implementation:** Ten actual imported cosmetics (`ghost_01..07`, `vehicle_police`, `vehicle_taxi`, `vehicle_pickup`) are now candidate real catalog items, at Gold 300 per ghost / 450 police / 400 taxi / 425 pickup; owner should approve prices before commercial release. Unimplemented `pawn_knight/rocket/rover/compass` remain historical design drafts but no longer clutter Shop. Existing single Store Preview card now shows a **non-rotating 3D preview** of any new paid Pawn, while existing Lobby selector continues rotating. Canonical RTDB wallet's ETag `PURCHASE` flow adds `inventory.pawns` ownership; guests/unauthorized UIDs remain blocked, no new currency or duplicate manager. Career Inventory/Pawns shows server-Owned purchased items with a static model preview. Existing Lobby Use Pawn button locks unpaid new models; previously stored but unowned local Pawn IDs fall back to a free original model. An owner-accepted new selection now refreshes the visual even if the prior online-authoritative bit remained set from an earlier match. No modification to TurnManager movement/RNG, PawnMover safe formation, original eight animators, or 7-language page framework.
+
+**RTDB rules / deployment:** `Backend/Firebase/database.rules.json` extended with ten boolean Pawn entitlements and exact UID-protected Gold prices/ownership changes, with preservation checks for all other operation types and owner-approved Reset refunds. Static simulated rule tests PASS: Phase19U new Pawn checks **91**, migration/previous Dice/Board/Profile checks **60**. These do **not** replace Firebase emulator, live security or Unity QA; rules are NOT deployed in this chat. Run Firebase emulator and owner approval before `firebase.cmd deploy --only database --project atlasboard-usa` from `C:\Users\crazy\AtlasBoardPrototype\Backend\Firebase`.
+
+**Acceptance still OPEN:** Owner verifies material colors, scale, four Pawns on tile after resizing, second/third match cosmetic changes, paid Store and Career ownership, missing purchased asset fallback, first purchase Gold cost, attempted double purchase, seven languages, offline/Private/Public, Steam, Android/low FPS, two-client remote sync. Existing RTDB `lobbySetPawnCosmetic` still routes remote member selection through host-only `HostChangeAsync`; host must not edit bot/remote accounts, and remote self-selection remains separate network security follow-up. Do not mark online PASS on source tests alone. `PHASE19U_PAWN_COMMERCE_OWNER_QA.md` contains installation and test gates.
+
+**No duplicate implementations / handoff:** Changed source delivered as full-file ZIP preserving single `MASTER_ROADMAP.md`; do not run older destructive `Build Pawn Customization v1`. Existing FBX textures/prefabs stay in local project and are not redistributed. **No Unity compilation, Firebase emulator, RTDB production deploy or GitHub push performed.** Owner should include editor-generated `Pawn_ATB_*.asset` and `ATB_PawnCar_ColorPalette_Standard.mat` plus their `.meta` files in any reviewed git backup.
+
+---
+
+## v5.49.12k1 — Phase 19U RTDB Rules Syntax Hotfix (2026-10-27)
+
+### Issue reported by owner
+- `firebase.cmd deploy --only database --project atlasboard-usa` failed during the RTDB syntax check with `105:176: missing ) after argument list`.
+- Deployment stopped before new rules were published; no production-rule changes were made by that failed attempt.
+
+### Exact correction
+- Fixed `Backend/Firebase/database.rules.json` at `rules/users/$uid/metaEconomy/inventory/pawns/.validate`: `newData.hasChildren([...])` was missing the final closing parenthesis.
+- No entitlement IDs, prices, wallet operations, auth restrictions or other database-rule behaviors were intentionally changed.
+- Enhanced the existing `Backend/Firebase/qa/phase19u_pawn_purchase_contract.test.cjs` to syntax-check all 256 string rule expressions and explicitly assert the complete pawn `hasChildren` expression, to prevent recurrence.
+
+### Checks actually executed
+- Database rules JSON decoding: PASS.
+- Syntax compilation of all 256 RTDB rule expression strings as JavaScript expressions: PASS (static check, **not** Firebase CLI or emulator acceptance).
+- `phase19u_pawn_purchase_contract.test.cjs`: 348/348 PASS.
+- `phase19u_existing_commerce_regression.test.cjs`: 60/60 PASS, executed against a reconstructed set of prior delivered full-source files and the corrected rules.
+- Firebase CLI syntax verification, RTDB security rules emulator test and Production deploy: NOT RUN in this environment; owner must verify after installing this fix.
+- Unity runtime, live purchases, two-client multiplayer and Android QA: unchanged and NOT RUN for this hotfix.
+
+### Deployment and constraints
+- Installation requires replacing the complete `Backend/Firebase/database.rules.json` file; other Phase 19U project source remains installed from v5.49.12k.
+- After JSON/QA and preferably emulator verification, owner can rerun the usual Firebase RTDB deploy from `C:\Users\crazy\AtlasBoardPrototype\Backend\Firebase` using `firebase.cmd`.
+- Single canonical roadmap retained; no duplicate managers, no new database services, no assistant GitHub push or Firebase deploy.
+
+## v5.49.12l — Phase 19V Pawn Preview Isolation & Size Pass (OWNER TEST OPEN)
+
+**Previous checkpoint:** v5.49.12k1 Phase 19U Firebase rules syntax hotfix; source-only UI/asset updates in this phase. Historical roadmap entries and the existing Pawn/Dice/Board/Profile architecture remain unchanged.
+
+### Owner observation and scope
+
+- Shop -> Items -> Pawns -> Preview and Career -> Inventory -> Pawns previews displayed a *previously viewed* Ghost or vehicle together with the newly chosen asset. The 3D preview helper reused the same offscreen camera/stage world position for multiple instances; `Destroy` deferred removal to the end of the Unity frame. This is a scene presentation regression, not duplicate ownership or additional purchases.
+- The selected Pawn can be viewed in the lobby before purchase, but `USE PAWN` is locked for an unowned paid Pawn. Keep that behavior.
+- Career Inventory Pawn `APPLY` must stay disabled; selection is in the existing Lobby Pawn Customization modal.
+- Owner wants all 7 Ghost world visuals **30% larger** and all 3 Police/Taxi/Pickup visuals **70% larger** than the existing Phase 19U size; no re-scaling of original eight Kenney pawns.
+- Before this phase, Ghost candidates used desired height=1.32 and footprint cap=0.53; car candidates used height=0.95 and cap=0.56. Updated ghost height=1.716, cap=0.689; car height=1.615, cap=0.952. Because the applier uses the *minimum* of height and footprint ratios, both limits must be scaled equally to achieve the requested size factor in either constrained case.
+
+### Implementation (candidate, not owner-verified)
+
+- Reuse `AtlasBoardPawnShopPreviewArt.cs`: isolate each ephemeral preview camera/stage in its own offscreen world position at least 64 Unity units apart, so the next camera cannot see previously spawned 3D models. On repeated preview within a UI parent, immediately disable and dispose the previous render target/stage before `Destroy` completes at frame end. Avoid duplicate preview controllers and do not add new canvases or overlays.
+- Reuse the additive Unity Editor menu `Atlas Board > Design > Board & Presentation > Pawns > Extend Existing Catalog - Ghosts and Cars`: update only ten imported model definition assets. Preserve the existing eight catalog entries, IDs, order, .meta GUIDs, player selection code, account ownership and 2x2 formation logic.
+- Keep Shop Gold purchase (RTDB), Career inventory as read-only, and Lobby `USE PAWN` as the one equip location. No RTDB rule changes, no Firebase deployment, no GitHub push.
+
+### Owner acceptance tests (OPEN)
+
+1. Exit Play Mode; extract full files under `C:\Users\crazy\AtlasBoardPrototype`; run the additive **Extend Existing Catalog - Ghosts and Cars** menu once (idempotent) and save assets/scene. **Do NOT run Build Pawn Customization v1**, which can rebuild the eight-entry original catalog.
+2. In Shop preview Taxi -> Ghost -> Police -> Ghost -> Taxi repeatedly. Each preview shows **only one 3D model**. Repeat in Career owned Pawn inventory. Confirm the Store popup can close and reopen without old model overlays or render-texture leaks.
+3. Compare Ghost and vehicles at Start/City/special/Civic tiles with existing Kenney pawns. Requested size increases are data applied in editor; test **2x2 formation with four players** to catch visible overlaps/clipping in crowded tiles, especially vehicles (larger footprint may exceed the visual clearance of certain narrow tiles).
+4. Keep the Ghost hover and car driving/left turn motion, local player's cosmetic, remote player ownership restrictions, original Kenney eight, and persistence after return to Main Menu and second/third match.
+5. Shop purchase and owned lists should remain stable without deducting Gold again. No new Firebase deployment. Windows/Steam/Android and two-client multiplayer remain independent acceptance gates; no unrun tests are PASS.
+
+**QA:** source invariants and ZIP integrity test locally; actual Unity compilation, visuals, collision/formation, two-client and Android remain **OWNER TEST OPEN**.
+
+
+---
+
+## v5.49.12m — Phase 19W EMOTES & MAPS APPROVED REQUIREMENTS / LICENSE UPDATE (2026-10-27)
+
+- **Owner direction:** Replace *Motion* as a planned cosmetic Store/Inventory offering with **Maps**; do not delete the existing `PawnMotionAnimator` and motion set pipeline (needed for walk/hover/drive). **Scope is planned; no Maps implementation in this checkpoint.**
+- **Maps proposals:** Germany (`map_germany`, premium proposed 30,000 Gold) and Mexico (`map_mexico`, premium proposed 25,000 Gold). Each requires 32 tile slots/24 properties/8 special tiles; original seven-language city Info; map-specific property pricing/rent/investment, Civic Projects, Pulse 4-vector/balance, card/transport labels and consistent economic profile. Host-only owned selection, peer-visible pre-match preview, ownership-safe reset for new room/host, no changes to active match on host migration. Existing Turkey/USA/Colorado preserved. Pricing not yet approved or activated.
+- **Emotes asset:** Kenney Emotes Pack (480 PNG visual variants, **CC0 1.0**). Deduplicate by semantic expression; do not call all 480 individually payable items. Keep happy/sad/angry as universally free and pre-equipped defaults. Paid distinct reactions use existing secured RTDB wallet and per-UID inventory. At most 6 active per account, explicit unequip required before selecting a 7th; in-game-only popup from own Player HUD, paginated for future growth, with edge-aware layout (bottom HUDs show above; top HUDs below, bubble on left). Online events require UID/membership/ownership checks. Throttle 3 seconds between messages; 20 in rolling 3-minute window => 3-minute mute + localized message; server-side anti-bypass necessary. Full system not yet implemented.
+- **License records added:** Kenney_EmotesPack_CC0 and Unity Standard EULA records for Ferocious Industries Dice, SR Studios Kerala Ghost, and OlyPoly Cars. Existing ThirdPartyLicenses inventory and roadmap history preserved. Free asset store package != public domain; no standalone redistribution of models/textures.
+- **Existing regression OPEN:** Lobby Pawn new-selection after return-to-main-menu/rematch sometimes displays previous Pawn. Suspected stale online authoritative state; fix only with verified fresh-session reset + preserve ownership and second/third match QA.
+- **Evidence:** User verified Ghost/Vehicle scale and preview improvements, Dice 4 paid visual calibrations, and Pawn purchases; offline and two real online clients are different acceptance gates.
+- **Current release content:** Documents/licenses/specification only. **NO Emotes gameplay implementation**, **NO Germany/Mexico asset generation**, **NO RTDB rule changes**, **NO Unity Play Mode or emulator PASS**, **NO GitHub push**. The Kenney ZIP was not supplied into this tool runtime; actual icon mapping remains OPEN.
+- See `PHASE19W_EMOTES_MAPS_PRODUCT_CONTRACT.md`, `KENNEY_EMOTES_IMPORT_GUIDE.md`, `ASSET_CREDITS_REGISTER.md`, and new `Assets/Project/ThirdPartyLicenses` records for full design, safety and legal details.
+
+
+---
+
+## v5.49.12m — Phase 19X Kenney Emotes CC0 Import + Maps Pricing and License Review (2026-10-27)
+
+**Delivery type: asset import + licensing + safe authoring drafts. NOT completed Emote gameplay or premium maps.** Earlier version history retained verbatim.
+
+- Verified the owner's original `kenney_emotes-pack.zip` includes `License.txt`, 480 separate PNG sprites in 16 style groups, 30 vector-style originals. Copied exactly 30 PNGs from `PNG/Vector/Style 1` into `Assets/Project/ThirdParty/Kenney/Emotes/Sprites/`. One file is the empty UI bubble `emote__.png`. Free base faces: faceHappy, faceSad, faceAngry; other 26 expressions are **not purchased until live economy implementation**. All icon identity records are in `PHASE19X_EMOTE_SPRITE_MANIFEST.json`.
+- Added idempotent Unity Editor importer `AtlasBoardPhase19XEmoteSpriteImport` via `Atlas Board > QA & Diagnostics > Configure Kenney Emote Sprites`, which configures 30 Sprite (2D and UI) PNG importers without creating a new runtime manager. This is NOT a Store integration.
+- Copied the original Kenney CC0 License.txt verbatim and updated `Kenney_EmotesPack_CC0.txt`. Verified attribution optional, commercial use allowed; Steam/Google Play allowed for embedded game.
+- Updated dice (Ferocious Industries), ghost (SR Studios Kerala) and cars (OlyPoly) entries: Standard Unity Asset Store EULA not CC0, free acquisition not unrestricted source redistribution; integrated commercial game and in-game monetization broadly allowed for appropriate non-Restricted license under section 2.2.1. **The observed product pages currently render License type: Extension Asset**; prior to publication verify licensing/seat entitlement and any package-specific conditions with Unity, especially since these are model packs. PUBLIC GitHub source asset redistribution risk: audit repo visibility/history and keep raw licensed asset files private or obtain explicit distribution rights. NOT a legal clearance.
+- **Motion Store category will become Maps** (existing PawnMotionAnimator stays). Premium map prices approved: **Germany `map_germany` 30,000 Gold**, **Mexico `map_mexico` 25,000 Gold**. Added `Map_Products_Germany_Mexico_DRAFT.json` and two 24-city balance drafting CSV files; all seven language description columns and four per-city Pulse baselines included as provisional content, not real economic statistics. **No actual 32-tile map assets, city lore, secure RTDB entitlement or lobby/board runtime implementation** provided here. No map appears for sale, no Gold charged.
+- Maps authoritative acceptance: host chooses only purchased maps, all room members see country-specific pre-match preview/board, active map survives host migration mid-match, new room resets to available free map if owner lacks purchase, never leak previous host's premium map, local/offline and online support, Android, all 7 languages; regional city info/Civic Projects/Atlas Pulse/economy must be complete before live.
+- Emote runtime acceptance remains: free Happy/Sad/Angry in new-account inventory, max 6 equipped with explicit removal before 7th; HUD click on own player only during match; display above lower HUD / below upper HUD, aligned left, 3-second cooldown, 20 accepted in rolling 180s, 180s mute, server-validated owner UID/room membership, all languages. Emote runtime is NOT delivered by this ZIP.
+- Existing Pawn second-game stale selection regression remains OPEN; do not claim repaired by docs/art import. Career Achievements/XP/Match History recording and Events empty state remain OPEN. No Firebase deploy or GitHub push; Unity compile and Android tests NOT run.
+
+- Phase 19X authoring addendum: `GERMANY_32_Tiles_LAYOUT_DRAFT.csv` and `MEXICO_32_Tiles_LAYOUT_DRAFT.csv` contain 32-slot draft position maps (24 cities and 8 placeholder special tiles per country). These are **not** Unity tile assets and must never be represented as tested gameplay maps.
+
+---
+
+## v5.49.12n — Phase 19Y EMOTES SHOP / LOADOUT / HUD TEST CANDIDATE — 2026-10-27
+
+**State:** SOURCE PACKAGE PREPARED; Unity compile/actual checkout/two-client and Firebase emulator **NOT PASSED**. Owner must verify. No GitHub push, no Firebase deploy in source preparation. Last known installed `ATB_EMOTE_SPRITES status=ready count=30 configured=30 errors=0` proves import only, NOT runtime. Preserve every older roadmap record.
+
+### Existing systems preserved
+- Current authenticated UID, ETag `/users/{uid}/metaEconomy`, Steam test-wallet approval, Boards/Dice/Profile/Pawns purchases and inventory; no parallel wallet, no Functions/Firestore/Blaze.
+- Existing Kenney, Ghost, Car motion, lobby Pawn choices and gameplay movement/dice. Returning to Main Menu and joining the next match can still show the previous Pawn; **OPEN** and must be fixed separately after emote QA.
+- Existing Kenney sprite source assets at `Assets/Project/ThirdParty/Kenney/Emotes/Sprites/`. This package references originals through an Editor-generated `Assets/Project/Resources/AtlasBoard/EmoteSpriteCatalog.asset`; it does not duplicate/redistribute sprites beyond the already imported licensed files.
+
+### Emote design implemented in source / gates
+- 29 semantic images identified among the 30 imported PNGs; the remaining `emote__` is an empty speech balloon and is not for sale. Smile `emote_faceHappy`, Sad `emote_faceSad`, Angry `emote_faceAngry` are universally free and never listed as a Buy product. The other 26 distinct expressions have exact Gold prices 150–190 and seven-language names.
+- Paid Emotes extend the existing ETag wallet. New `inventory.emotes` booleans are verified by each RTDB validation; PURCHASE id/price restrictions and admin refund rules extended without weakening old product state. Older wallets initialize default-false paid emotes on next authorized write.
+- `Career > Inventory > Emotes`: owned including three free, preview, Add/Remove up to six active; persistent `/users/{uid}/emoteLoadout` has six distinct, entitled slots validated in RTDB. The seventh requires explicitly removing one. Never auto grant a paid expression.
+- Click the *locally controlled human's* `PlayerHudPanel` during a live match to show a 6-icon 2D popup; chosen emote appears for 2.5s on the left-aligned edge ABOVE the bottom corner HUD or BELOW the top corner HUD. No other player's sender controls, no bot sender control. UI canvas overlay is reused, no second HUD or 3D world-space display.
+- Secure online event path `/emoteEvents/{room}/{uid}` accepts only the authorized active room participant during a live match, for a currently active loadout item. The record is one RTDB ETag-guarded sequence per sender. RTDB `now` checks enforce >=3s spacing, max 20 messages in a 180s window; the twentieth starts 180s server mute. Recipients in the room can read, but cannot forge other users' send state. Client polling checks room, seq and age to avoid replay; runtime/member/network tests are OPEN.
+- `Store > Items`: category `Motion` renamed to `Maps`. This is currently an informational category, NOT a live purchasable or playable map.
+
+### Germany + Mexico maps decisions (approved prices, functionality deferred)
+- Germany **30,000 Gold** and Mexico **25,000 Gold** approved by owner; both remain NOT_BUYABLE / NOT_PLAYABLE until real country assets + security. Existing Türkiye / USA / Colorado map options preserved.
+- Requires 32 tiles (24 localized cities and eight specials), map-specific economy (fictional balanced game values), Info localization to EN/TR/ES/FR/DE/KO/RU, Civic projects, Pulse parameters, investments, 7-language tiles and card rules, client snapshots and previews.
+- Only the HOST who owns a premium map can select it. Lobby map preview must update for *all* participants BEFORE match starts. A new room must select an owned/free default instead of inheriting a previous host's premium map; an ongoing match retains its map through host migration. Do not reuse selected board theme state as map entitlement; offline and Android tests still required.
+
+### Required user tests / security blockers
+1. In Unity Editor (not Play mode) run `Atlas Board > QA & Diagnostics > Build Emote Runtime Catalog` after `Configure Kenney Emote Sprites`; expect `ATB_EMOTES_RUNTIME status=ready sprites=29 missing=0`.
+2. Check Editor compile. Shop Emotes shows 26 paid items, three free omitted; inspect preview. Buy one item exactly once, verify Gold and Owned after restart; no purchase on unverified guest.
+3. Career Inventory Emotes shows three free and owned paid item. Add up to six; seventh must display remove-first; reload must preserve exactly the same loadout.
+4. In a match click own HUD, choose an equipped Emote, verify bubble placement/duration. Attempt to click bot/other human HUD; no sender popup. Test >3 seconds between sends; twenty sends in rolling 3 minutes then 3-minute mute. **Server-authoritative testing requires deployed/tested rules**.
+5. Test 2 independent UID clients; verify broadcast both ways, sender spoof denial, no old popup after switching rooms or second/third match; test android small screens and all seven languages. No Firebase emulator / Unity compile / two-device PASS claimed by this package.
+6. No deploy until owner inspects and runs `firebase.cmd` rules validation/emulator. Reuse `Set-Location "C:\Users\crazy\AtlasBoardPrototype\Backend\Firebase"` and `firebase.cmd`; avoid `firebase.ps1`.
+7. License audit still OPEN. Preserve CC0 Kenney text and Unity Asset Store EULA / public Git history risk documented in Phase 19X; no assumption the license audit is closed.
+
+
+## v5.49.12o — Phase 19Z — Emote HUD click/raycast and immediate picker candidate (2026-10-28)
+
+### Owner verification / fixed scope
+- **OWNER PASS (v5.49.12n):** Store purchases with Gold, owned Emotes in Career Inventory, and six-active-item maximum (seventh selection prevented). Preserve these workflows and RTDB security unchanged.
+- **OPEN REGRESSION before this fix:** During a started match, clicking the owner's Player HUD shows no Emote picker; no Emote can be sent from HUD.
+- Root cause in delivered `PlayerHudPanel.cs`: `EnsureRuntimeLayout()` disabled `backgroundImage.raycastTarget`, while the HUD's icon and text graphics are also intentionally non-raycastable. The root `IPointerClickHandler` therefore had no uGUI raycast surface; its `OnPointerClick` was not reached. Scene confirms HUD background is the root Image.
+- **Candidate correction:** Keep the existing HUD Image raycastable; preserve label/badge/icon raycast settings, HUD appearance, gameplay authority, no duplicate HUD/overlay managers, no custom player input capture. Add `ATB_EMOTE_HUD_CLICK` and `ATB_EMOTE_PICKER status=open|blocked` diagnostics. Show the cached Emote picker immediately on a valid click, then refresh with RTDB loadout results while guarding against account/room/UI close races. The pre-existing 3-second and 20-emote anti-spam logic remains unchanged.
+- **Required OWNER tests (NOT YET PASS):** local/online owner HUD opens picker with 6 saved Emotes; click owned Emote and see bubble at correct HUD side; another player's HUD and bot HUD cannot send; repeat after closing/reopening a match; confirm 3-second cooldown and server security still enforce 20 messages and 3-minute mute.
+- **Tests:** static source QA is not Unity compilation, actual UI, or two-device online verification. No RTDB rule changes and no Firebase deploy. No GitHub push.
+
+### Carry-forward / do not regress
+- Phase 19Y free Happy/Sad/Angry, 26 paid Emotes, six-active loadout, Maps replacing Motion in the storefront; Germany 30,000 Gold and Mexico 25,000 Gold remain roadmap/draft only, not playable or purchasable.
+- The Pawn new-match old-selection regression, trusted Career progress/achievements, online remote Pawn authority, Android/multiplayer tests, and third-party license compliance review remain open.
+- Keep one canonical MASTER_ROADMAP.md and preserve the complete historic entries; no duplicate feature managers or wallet flows.
+
+
+---
+
+## v5.49.12p — Phase 19AA Emote Bubble & New-Match Pawn Selection Hotfix (2026-10-28)
+
+**Source baseline:** v5.49.12o (Phase 19Z Emote HUD click fix) over the owner's locally imported Phase 19Y Emote runtime and Phase 19U/V Pawn cosmetics. GitHub main is an older backup: use this incremental full-file ZIP, do not overwrite later user-owned Unity scene/materials. This entry **appends** to the single canonical roadmap; it does not replace earlier milestones.
+
+### Owner verified and still open
+
+- **OWNER PASS:** Store Emote purchases, Owned inventory, maximum six active Emotes, HUD picker opens on clicking the local Player HUD and an Emote can be sent; Kenney sprite import 30/30. Multiplayer second-client delivery and server-enforced spam cooldown are still **OPEN**.
+- **OWNER FAIL (visual):** Sent Emote displays an unwanted additional white rectangular background behind the existing Kenney bubble.
+- **OWNER PASS (Pawn visuals):** Original eight Kenney characters, 7 Ghosts, Police/Taxi/Pickup models, preview isolation and new sizes; Ghost float and vehicle movement and turns observed to work in sampled matches. Four-player narrow-corner/online ownership acceptance still **OPEN**.
+- **OWNER FAIL (Pawn rematch):** After returning to Main Menu, selecting a different Pawn, and entering the next match, the earlier match's Pawn can remain visible. It is not a closed regression until the owner confirms the new match shows the newly selected pawn.
+
+### Phase 19AA implementation — candidate, pending Unity test
+
+1. Existing `AtlasBoardEmoteHudRuntime.ShowBubble` no longer paints an opaque pale background behind the Kenney Sprite. Transparent container, image raycasts disabled; keep original sprite, emote display lifetime, existing HUD anchor rules, overlay layout, spam safeguards and RTDB behavior unchanged. No second Emote manager.
+2. Existing `AtlasBoardTurnDiceNetworkCoordinator` now prioritizes the local owner's validated latest Pawn catalog selection over the previous `PawnCosmeticApplier.CurrentCosmetic` visual at the start of a **new authoritative session**. Applies the corrected visual and publishes the corresponding authoritative cosmetic ID only for `HostLocal` or `LocalHuman` seats owned by this authenticated account. RemoteHuman, Bot and unowned seats retain the existing host/remote snapshot behavior. No changes to `PlayerPawnMover`, Pawn Motion Animator, board navigation, dice, Wallet, security or lobby role permissions. Adds development log `ATB_PAWN_REMATCH_SELECT` only when a local-owned selection differs.
+3. The result depends on the **existing** RTDB lobby Pawn operation accepting/saving the owner's new selection *before* the new match begins. Its two-client permission issues remain OPEN. Never claim the second-match bug fixed based solely on static test.
+
+### Required owner Unity gates
+
+- Emote: open Emotes on local HUD, send an expression, confirm only the Kenney icon/bubble is visible with no second white rectangle; verify top/bottom HUD positioning and 2.5 s dismissal. Other players cannot open/send from their HUD.
+- Pawn: Lobby A choose Ghost, start match and verify; leave to Main Menu, create **new** lobby, choose Taxi on same owned slot, use Pawn, start match and check Taxi (not Ghost); repeat Taxi→Kenney and third match. Confirm chosen Pawn appears on peer clients. Read `ATB_PAWN_REMATCH_SELECT` if emitted and inspect `lobbySetPawnCosmetic` result. Cross-account and bot seats must remain unchanged.
+- No new Firebase rule changes or deploy; no claim of Unity compilation, two-client online QA, Android or Steam release certification.
+
+### Next major phase: premium playable Maps (Germany/Mexico)
+
+- Replace *Motion* Store section with **Maps** (the store label was changed earlier); **Germany 30,000 Gold**, **Mexico 25,000 Gold** are approved list prices, not yet purchase-ready.
+- Implement complete playable `BoardMapDefinition` assets: 32 tiles, 24 properties/cities per country, geographic order and authentic city information, purchase/rent/upgrade balance, seven languages, country-relevant Civic Projects, Atlas Pulse stability/demand/prosperity/traffic, special destinations, season/pulse/investment/loan integrations. Keep working Türkiye/Colorado/USA and their current city logic unchanged. QA prices and complete data rather than shipping placeholder maps.
+- **Host-only map entitlement**, owned selection in Lobby, all players visually preview chosen map **before Start Match** and load identical board tiles at match start. Active match freezes map even after host migration; a new room or return-to-menu must not inherit an earlier host's premium map. Require owner selection again for each new room. Keep RTDB Spark security and avoid duplicate board/map managers.
+- Ensure the item list, Shop preview, Career-owned maps and Lobby selector use the same canonical IDs; avoid buying unfinished drafts. Tests for online host, nonhost, second/third match, reconnect, Android build, security emulator and localization remain OPEN until actually run.
+
+### Outstanding compliance
+
+- Third-party licensed Dice/Ghost/Car source assets on public GitHub, per-seat Unity Standard Asset Store EULA, Kenney CC0 records and multi-store global distribution require the separate user-requested legal/license audit; do NOT mark that review complete.
+
+
+---
+
+## v5.49.12q — Phase 19AB | Germany and Mexico premium playable map source candidate (2026-10-28)
+
+**Owner request:** Two paid, fully integrated 32-tile country maps, stored under the purchasing Firebase Auth UID, host-controlled map selection, seven supported languages, city-level economic balance, Pulse and three Civic Projects for each map. Preserve Türkiye, Colorado, USA and all existing game systems. Civic Project proper names MUST NOT be translated into Korean or Russian; UI descriptions may be localized.
+
+### Implemented in this source candidate
+
+- Added `Assets/Project/Data/Maps/map_germany.asset` and `map_mexico.asset`, each with 32 serialized Monopoly-style board positions, 24 individually priced/rented/developable cities and eight special tiles using existing `TileType` rules. Existing 3 maps/assets unchanged.
+- New cities and price tiers are authored in-game economy designs, not official economic statistics. Original city names are kept. Balance values and 7-language city-info texts derive from the previous Phase 19X country-map data CSVs.
+- `BoardMapDefinition.GetPulseBaseline` gains 24x4 metrics per map, with default 50 only for other unknown map IDs. Existing Turkey/Colorado/USA baselines intact.
+- Three **off-path** Civic Project names per country in `AtlasBoardCivicProjectManager`; KO/RU intentionally use English proper names, consistent with previous project policy. Country rules reuse existing Civic ownership, purchase, start bonus, trade/transit/innovation buffs and 32-tile gameplay; no second Civic manager is created.
+- Seven-language localized city descriptions in `AtlasBoardPremiumMapCityInfo`, integrated with existing city info UI. `AtlasBoardPremiumMapDropdownLabels` localizes the two new map options without renumbering the original three.
+- Germany: 30,000 Gold; Mexico: 25,000 Gold. Actual user UID entitlement fields `users/{uid}/metaEconomy/inventory/maps/{map_germany,map_mexico}` are part of the existing ETag wallet transaction. New items are displayed by the real Store catalog; owned indicator uses server state; no local-only currency is granted.
+- RTDB owner rule: INIT maps false, any other operations preserve maps, map PURCHASE atomically spends exactly 30k/25k and flips only the specified map from false to true, RESET_PURCHASES refunds both prices. Rule-level `roomMeta/mapId` validation denies unowned premium selection; host update/start transport re-checks actual UID entitlement. A remote invited player is allowed to play a host-owned map without purchasing.
+- Existing Lobby and match setup dropdowns are extended via a single non-destructive, idempotent Unity Editor action `Atlas Board > QA & Diagnostics > Install Germany and Mexico Maps`. Scene refs must be saved in the user's real Unity project with Ctrl+S. Existing map/dropdown managers are reused, not duplicated. New lobbies default back to Turkey, active matches do not change map when ownership of host changes.
+- Store maps have Buy/Owned and a static two-country city tile preview using the existing inspect modal. Existing Store/Wallet/Profile/Dice/Pawn/Emote source logic preserved.
+
+### Explicit validation status and limitations
+
+- PASS (source only): both new YAML assets contain 32 unique tile indexes and 24 properties, all priced with valid group keys. Pulse 24x4 profile integrity checked. Seven localized city-info entries per city and Civic KO/RU English names checked.
+- PASS (custom mock JS evaluation, NOT Firebase emulator): correct-priced map purchase/legacy wallet migration accepted; wrong price, simultaneous second-map mint, free entitlement and double purchase rejected. Static JavaScript syntax parsed for all rules.
+- OPEN: actual Firebase CLI rules validation and emulator Auth tests; Unity import/compilation and visual QA; local/private/public hosted play, two clients, reconnection/rematch and host migration; Android/Steam. No Firebase deploy or GitHub push was performed.
+- This is a **source integration candidate, not an owner-verified playable release** until all those gates pass. Economy, City Info, Pulse and Civic logic is coded, but the UI and real-time multiplayer behavior cannot be declared PASS from static tests.
+- Licensed asset sources unchanged. Previous licence review remains OPEN.
+- If a live rule syntax issue occurs, do not deploy; fix the exact line and run emulator verification first. Production entitlement/data migrations require backup.
+
+### Owner acceptance checklist
+
+1. Install ZIP at `C:\Users\crazy\AtlasBoardPrototype`, exit Play Mode. In Unity, run `Atlas Board > QA & Diagnostics > Install Germany and Mexico Maps`; verify two map assets and both dropdowns; Ctrl+S.
+2. Check 7 languages in Store and Lobby map dropdown. Korece/Rusça Civic Project names stay in English; descriptions can localize.
+3. Verify Store prices 30,000/25,000; purchase from a test wallet with enough Gold, Gold deducted once, Owned shown, persists after restarting; another UID must not inherit ownership. Test both insufficient funds and duplicate purchase.
+4. Validate RTDB rules in emulator with authenticated UID, then intentionally deploy via `firebase.cmd` only after successful emulation. Confirm `users/{uid}/metaEconomy/inventory/maps` exactly.
+5. Private/public host selects owned Germany/Mexico, everyone sees same board before launch; guests and other players cannot choose the host's map; joiners without map entitlement still play.
+6. Play each map through city purchase/rent/development, all special tiles, Civic Project arrival/purchase, Pulse effects, city info, round transition, rematch and match-end. Ensure original three maps unchanged.
+7. Exit to main menu, create new room: Turkey must be selected by default; host change during a current match must retain the in-match map. Test second/third match and reconnect.
+
+**Next:** resolve any Unity and RTDB emulator issues before owner testing; do not claim production PASS before owner verifies.
+
+
+## v5.49.12r — Phase 19AC Germany/Mexico Lobby dropdown self-registration (source candidate, 2026-10-28)
+
+- **Owner evidence:** Germany purchased and shown **Owned** in Store. Game Lobby Map dropdown still showed Turkey/Colorado/USA only. Do not recharge Germany or conflate purchase entitlement with visible map registration. Mexico remains unowned.
+- **Root cause in 19AB source:** New map assets were installed in project, but existing Game Lobby dropdown held its original 3 serialized options. Optional `Install Germany and Mexico Maps` Editor menu appended options; existing editor component could make installer silently skip re-adding choices if they were reset. `MatchSetupManager.availableMaps` likewise held three serialized references unless Editor install succeeded.
+- **19AC repair:** Use one build-safe `Assets/Resources/ATB_PremiumMapReferences.asset` data-only reference to the existing canonical `map_germany.asset` and `map_mexico.asset` (NO duplicated country definitions or second map manager). Existing MatchSetupManager merges referenced maps at Awake while retaining Turkey/Colorado/USA and the same indices. Existing Main Menu / Lobby dropdown appends localized Germany and Mexico on Awake/Bind and backend refresh if missing. Re-running Editor installer is idempotent even if a Labels component already exists.
+- **Security unchanged:** Immediate non-owned premium selection rejection and owned-map pre-start preview, existing host UID RTDB map entitlement checks, single-wallet purchases, waiting-room-only setup, host change in active match and fresh room reset remain authoritative; no Firebase rules altered by this hotfix. Germany 30,000 Gold and Mexico 25,000 Gold retained. Seven languages remain through AtlasBoardShopContentDraft.LocalizedName.
+- **Acceptance (OPEN):** Unity compile; console `ATB_MAP_REGISTRY status=ready maps=5 germany=True mexico=True` and `ATB_MAP_CHOICES status=ready count=5`; Map dropdown displays both new maps; Germany select previews 24 city/32 tile map, launches match after ownership check; unowned Mexico cannot start; new room resets to Turkey; invited non-owning client sees host map, active host change preserves map; Android build and two-client online QA. **No Unity or Firebase emulator PASS claimed yet.**
+- **Owner implementation steps:** unzip full paths over previous 19AB+19AA source, enter Play Mode to confirm runtime self-registration, optionally execute idempotent original installer and Ctrl+S to persist scene. Do not replace the owner's current `Board_Prototype.unity` scene. No new Firebase deploy. No GitHub push.
+
+
+---
+
+## v5.49.12r — Phase 19AC OWNER ACCEPTANCE + Phase 19AD release readiness backlog (2026-10-27/28; ROADMAP-ONLY, NO CODE MODIFICATIONS)
+
+### Authoritative owner acceptance and scope
+
+- **Germany premium map — OWNER MANUAL SMOKE PASS:** the owner successfully purchased Germany for **30,000 Gold**, observed it as `Owned` in Store, selected it in Lobby after the Phase 19AC dropdown/registry correction, entered and played on that map. Preserve premium entitlement under the purchasing user's Firebase Auth UID; only the room host's entitlement authorizes a new room's premium map. Joining clients do not separately need to buy it.
+- **Mexico premium map — OWNER MANUAL SMOKE PASS:** the owner successfully purchased Mexico for **25,000 Gold**, entered and played on the map. Do not treat this as proof of exhaustive rent, 24-city Info, Civic Projects, Pulse, seven-language, host-handoff and remote-client equivalence. Treat both maps as **owner-smoke-tested/playable**; do not mark complete multiplayer/regression/Android/security coverage PASS.
+- **Germany and Mexico content maintained:** each 32 board tiles / 24 properties / 3 country-specific Civic Projects, property prices/rents/development, city Info, Atlas Pulse, seven localization languages (EN/TR/ES/FR/DE/KO/RU). **Civic Project proper names are deliberately NOT translated to Korean or Russian**; use English canonical names in those languages while allowing localized explanatory text. Ensure existing Turkey, Colorado and USA continue unchanged.
+- **Map lifecycle contract:** premium map visible/selectable only for purchasing host; room preview must show host-selected map to all players before match. Match map stays fixed on host transfer; creating a new room or returning to Main Menu must not inherit previous premium selection; free-default new room must use the intended default. These are required regression assertions, NOT all owner verified in this checkpoint.
+- **Pawn second-match stale selection — OWNER REPORTED RESOLVED.** The previously OPEN Phase 19AA local-owner rematch selection issue is CLOSED by owner report; the 8 original Kenney pawns and 7 Little Ghost + 3 vehicle variants, visual scale, 360-degree previews and adjacent tile occupation were previously verified in observed manual scopes. Remote two-device pawn ownership and synchronized self-selection still need QA. The previous remediation notes remain historical; this acceptance supersedes the 'owner retest open' status for that specific bug.
+- **Dice — OWNER PASS (previously):** Ruby Red, Ocean Blue, Midnight Black and Marble face calibration and visible material; original white Classic for bots. Shop/Career and per-player cosmetics observed. Online two-device/Android gates remain separate.
+- **Emotes commerce/loadout — OWNER PASS (previously):** paid purchases and Inventory ownership, exactly six active slots with seventh rejected, P1 HUD picker opens and sends. The Phase 19AA white/background bubble correction should receive a final screenshot check if not explicitly verified in later tests. Remote-client event propagation, 3-second cooldown, sliding 20-event/3-minute restriction and disconnect/reconnect are NOT comprehensively tested.
+
+### P0/P1 regressions and unfinished functionality (do next, without duplicate architecture)
+
+1. **P0/P1 STORE TRANSACTION HISTORY EMPTY — confirmed UI/source mismatch, owner reported.** `AtlasBoardMetaEconomyUI.RebuildHistoryPage()` only renders `snapshot.History`; `AtlasBoardMetaEconomyBridge.RefreshAsync()` routes live accounts to `AtlasBoardRtdbMetaEconomy.LoadAsync()` and the current RTDB wallet loader fills coins/Gold/owned catalog but does not populate purchase/reward audit history. Legacy/emulator history reads use other paths. Implement transaction history for real RTDB accounts with trusted ownership validation, append-only or bounded audit records, idempotent transaction IDs, server timestamps, explicit type/currency/delta/item and UID scoping, all while preserving **atomic ETag wallet/purchase correctness and Spark/free architecture**. Use a single canonical wallet/history implementation; do not allow arbitrary client ledger forgery or balance edits. Display current RTDB purchases, Daily Reward, grants/redeems where authorized, in all seven languages; clear on account switch; don't manufacture historical transactions from present inventory. Check legacy Firestore/old Spark records before any optional migration, and do not claim historical completeness without actual source evidence. Test replay, duplicate purchase, concurrency, restart, Android, account separation and pagination/retention.
+2. **P0/P1 CAREER: ACHIEVEMENTS CATALOG EMPTY (owner confirmed).** Career currently displays only returned `snapshot.Achievements`; if RTDB `/careerProfiles/{uid}` is empty there are no cards. The 14 canonical achievement IDs/goals from `AtlasBoardSteamAchievementCatalog` must still appear **locked**, with goals, target, descriptions and available progress in EN/TR/ES/FR/DE/KO/RU. Keep server-verified unlocks separate from locked catalog; offline/nonrewarded match must not fabricate achievements or XP. Do not treat empty server array as 'no achievements exist'.
+3. **P0/P1 CAREER: MATCH HISTORY, XP, LEVEL, OVERVIEW READ/WRITE MIGRATION.** `AtlasBoardRtdbCareerReadModel` reads server-owned `/careerProfiles/{uid}` and returns level 1, XP 0, no matches when no projection exists. `AtlasBoardProgressionMatchRecorder` sends completed results through `AtlasBoardProgressionBridge.RecordCompletedMatchAsync()` which still calls legacy `progressionRecordCompletedMatch` Functions URL. Define and test a trustworthy Spark RTDB-only, host/room proof-verifiable finality flow and protected projection writer **without Cloud Functions, Firestore, Blaze or relaxing client write security**. Confirm eligibility, persistence and idempotency; ensure online *eligible* completed matches populate latest-10 / 72-hour history and stats only after server-valid proof. Do not attempt to backfill wins/XP from untrusted client logs. A user-reported empty view alone does not prove cloud data loss.
+4. **ELIGIBILITY OBSERVED IN OWNER LOG:** `ATB_SPARK_MATCH_START ... local_humans=1 remote_humans=0 bots=3 rewarded=false`. That match is nonrewarded by the current rules even though created as a private RTDB room, so its absence from ranked Career/XP is not itself a bug. Clearly distinguish **online transport** from **reward-eligible match**, and make the Career UI explain why no progress was granted. Nonetheless show locked achievement goals to every account.
+5. **P1 STORE EVENTS TAB EMPTY OR MISLEADING:** existing seasonal UI may display only loading/blank when no active event. Show localized (all 7 languages) neutral 'No active events right now. Check back later for upcoming events and special rewards.' placeholder, with no fake dates, Claim actions, XP or backend campaigns. Keep the existing active-event route intact.
+6. **P1 EMOTE CATALOG RESOURCE WARNING (2026-10-28 log):** `The referenced script on this Behaviour (Game Object '<null>') is missing!` from `Resources.Load<AtlasBoardEmoteSpriteCatalog>` through `AtlasBoardEmotes.Sprite`. HUD later opens with 6 and `ATB_EMOTE_SENT mode=online`, so not proof of total failure, but inspect generated ScriptableObject `.asset/.meta`, C# script GUID, editor build/import and asset references; verify 29 emotes + blank style persist in Windows/Steam/Android builds and survive Unity reimport. Avoid rebuilding or duplicating emote catalog without tracing actual serialization.
+7. **P1 FIREBASE CONFIG WARNING (2026-10-28 log):** `Database URL not set in the Firebase config.` during FirebaseApp creation; explicit RTDB REST URL appears to work and user authentication/room creation succeeded. Check platform-specific Firebase configuration (`google-services.json`, Android options, SDK init, region) on clean installs. Do not infer live RTDB outage solely from this warning.
+8. **P1 STEAM RELEASE CONFIG:** the observed development startup says `AppID=480` and Steam persona initialized. This is an SDK/test AppID, NOT proof of Steam release integration for AtlasBoard's own app. Verify proper Steamworks AppID, build/overlay/sign-in and licensing before publishing; do not ship production configured with 480. Earlier transient automatic returning sign-in failed to restore an existing account but canonical Firebase account subsequently loaded; only investigate further if reproducible on sign-out/relaunch.
+9. **P0 RELEASE LICENSING / SOURCE DISTRIBUTION — OPEN at owner's request:** review Unity Asset Store Standard EULA and per-seat/Extension classification of Dice (Ferocious Industries), Ghosts (SR Studios Kerala), Cars (OlyPoly), Kenney CC0 and all third-party dependencies. Asset usage in a compiled commercial game is different from making paid/Unity Asset Store source FBX, prefab or texture assets available in a public GitHub repository (including historical commits). The project has ThirdPartyLicenses and credit documents; records do not substitute license grants. Obtain account-level entitlements where relevant, restrict vendor source distribution, review git history, and check Steam/Google Play global distribution requirements before release; do not declare legal clearance without review.
+
+### Release gates still OPEN; do not conflate with static tests
+
+- **Two independent real clients** in Public and Private: room/host authorization, host transfer, reconnect, matchmaking, remote pawn and distinct dice/emotes, synchronized active map/board, lobby preview, account switch, anti-cheat and no paywall bypass for map host entitlement. Verify paid board selection vs paid map ownership and that starting a new room resets both appropriately.
+- **Unity runtime**: repeated first/second/third matches, leave/return, full match completion and all five maps, country-specific Civic/Pulse investment, rent/city Info, popup z-order, six active emotes, spam throttle, no duplicate UI. Test all seven localization languages and special KO/RU Civic proper-name rule; don't claim acceptance solely from one game per map.
+- **Firebase RTDB security**: no arbitrary Gold/Atlas Coin/ownership/history/XP writes; ETag race/double-click, daily reward reuse, owner-only purchase, remote host authority, account UID isolation; validate via emulator or comparable Rules test AND real controlled client tests. Keep Spark architecture, no Firestore/Functions dependency introduced.
+- **Windows/Steam + Android APK**: real Steam AppID, Android authentication/room creation, portrait/tablet layout, pinch zoom, FPS/memory/scene loading, application re-entry, Firebase App Check and network interruption. Previous Android ~15–20 FPS and reported private/public 404s require remeasurement; don't assert they're still present or resolved without fresh logs.
+- **Operational launch**: secure third-party distribution, privacy/data disclosures, account deletion, store/commercial compliance, retention and support. The owner's remaining legal license discussion is explicitly NOT completed in this checkpoint.
+
+### Owner-provided log interpretation (read-only; no code/test changes)
+
+- Startup confirms `ATB_MAP_REGISTRY ... maps=5 germany=True mexico=True` and `ATB_MAP_CHOICES ... count=5`. Steam connection initialized and RTDB account loaded, room creation/start succeeded; in-memory room cleanup found no eligible deletions and protected active rooms. No new failure inferred from those messages.
+- Log shows Emote picker initially 3 then refreshed to 6 after backend read, and successful `ATB_EMOTE_SENT mode=online`, which supports HUD send flow in the observed single-client test but not independent receiver verification.
+- Warning from missing emote script and Firebase URL configuration are flagged above. The `pawn was hidden after bankruptcy` log during reinitialization is NOT independently diagnosed as a persistent bug because pawns were then prepared; revisit only on reproduced visible failure.
+
+### Next work order and backup integrity
+
+1. Owner requested **GitHub backup checkpoint now**, followed by **license audit on the next work session**, then release-blocking Career, Store History and Events fixes. Prioritize licensing review before public release; implementation ordering afterward can be (a) Transaction History + Career data trust boundary, (b) 14 locked achievement UX, (c) Events empty state, (d) warnings and two-client/Android/security QA.
+2. No change to current game source, RTDB rules or economy has been made in this **roadmap-only** checkpoint. No Firebase deployment; no code/Unity/Android/online acceptance claimed beyond owner reports. Owner's in-progress modifications must be the source of truth.
+3. **GitHub `main` was verified at `015778099165c8d81b27c90924e9d94b70e7d2fb` and still contains the earlier Phase 19R/19S backup**, not the user's subsequent applied Phase 19T–19AC local ZIPs and saved scene. Connected GitHub reports **`pull=true`, `push=false`**, so an assistant-side push is NOT possible or performed. User must commit/push the actual local Unity working tree and this same `Assets/Project/Documentation/MASTER_ROADMAP.md` to obtain a complete backup. Check local `git status` before committing. Include saved Unity scene, new map assets + `.meta`, RTDB rules, tests, third-party licenses, catalog assets + `.meta`, shaders/material `.mat/.meta`, generated Emote sprites and all local script changes. Do not force-push or reset; never commit secrets or Firebase service-account keys.
+4. Historic roadmap chapters are preserved verbatim. This new phase supersedes only listed acceptance/open statuses; it is NOT a separate competing roadmap.

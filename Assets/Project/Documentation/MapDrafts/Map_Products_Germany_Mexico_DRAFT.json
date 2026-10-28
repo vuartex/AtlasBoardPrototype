@@ -1,0 +1,69 @@
+{
+  "status": "AUTHORING_DRAFT_ONLY_NOT_BUYABLE_NOT_PLAYABLE",
+  "store_category_label": "Maps",
+  "replaces_store_category": "Motion",
+  "do_not_modify": "PawnMotionAnimator/TurnManager/dice/boards",
+  "products": [
+    {
+      "id": "map_germany",
+      "name": {
+        "en": "Germany",
+        "tr": "Almanya",
+        "es": "Alemania",
+        "fr": "Allemagne",
+        "de": "Deutschland",
+        "ko": "독일",
+        "ru": "Германия"
+      },
+      "gold_price": 30000,
+      "currency": "Gold",
+      "is_live": false,
+      "requires_host_ownership": true,
+      "tiles": 32,
+      "cities": 24,
+      "price_approved": true
+    },
+    {
+      "id": "map_mexico",
+      "name": {
+        "en": "Mexico",
+        "tr": "Meksika",
+        "es": "México",
+        "fr": "Mexique",
+        "de": "Mexiko",
+        "ko": "멕시코",
+        "ru": "Мексика"
+      },
+      "gold_price": 25000,
+      "currency": "Gold",
+      "is_live": false,
+      "requires_host_ownership": true,
+      "tiles": 32,
+      "cities": 24,
+      "price_approved": true
+    }
+  ],
+  "lobby_rules": {
+    "filter": "owned_by_host_uid",
+    "default_new_room": "existing_free_default",
+    "on_host_migration": "freeze_active_match_map",
+    "new_room": "do_not_inherit_previous_host_map",
+    "preview": "visible_to_all_members_before_match",
+    "host_switch_prematch": "update_preview_and_board_context",
+    "offline": "local_account_owned_map_only",
+    "no_shadow_backend": true,
+    "persistence": "RTDB secure account inventory and room metadata"
+  },
+  "roadmap_dependencies": [
+    "real BoardMapDefinition + BoardEconomyProfile assets",
+    "32 BoardTileDefinition per country",
+    "24 localized city info records 7 languages",
+    "24 civic project templates per country",
+    "Pulse baselines for each city",
+    "RTDB inventory purchases/eligibility",
+    "host-only map selection and pre-match preview",
+    "map-specific game board/scene tiles",
+    "Unity QA real two clients Android"
+  ],
+  "price_approval": "OWNER_APPROVED_2026-10-27_NOT_BUYABLE_UNTIL_COMPLETE"
+}

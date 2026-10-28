@@ -218,6 +218,64 @@ public class BoardMapDefinition : ScriptableObject
         { 90, 88, 90, 70 },
     };
 
+    // Phase 19AB: authored game-balance metrics, not national statistics.
+    private static readonly int[,] Pulse_germany = new int[,]
+    {
+        { 75, 78, 78, 79 },
+        { 76, 79, 79, 78 },
+        { 77, 80, 80, 77 },
+        { 78, 81, 81, 76 },
+        { 73, 71, 75, 72 },
+        { 74, 72, 70, 77 },
+        { 68, 73, 71, 76 },
+        { 63, 68, 65, 72 },
+        { 64, 69, 66, 71 },
+        { 65, 65, 67, 70 },
+        { 66, 66, 68, 69 },
+        { 67, 67, 63, 74 },
+        { 68, 68, 64, 73 },
+        { 62, 69, 65, 72 },
+        { 63, 65, 66, 71 },
+        { 64, 66, 67, 70 },
+        { 65, 67, 68, 69 },
+        { 66, 68, 63, 74 },
+        { 67, 69, 64, 73 },
+        { 62, 59, 58, 69 },
+        { 62, 66, 66, 71 },
+        { 57, 61, 60, 67 },
+        { 58, 62, 61, 66 },
+        { 59, 63, 56, 71 },
+    };
+
+    // Phase 19AB: authored game-balance metrics, not national statistics.
+    private static readonly int[,] Pulse_mexico = new int[,]
+    {
+        { 75, 78, 78, 79 },
+        { 76, 79, 79, 78 },
+        { 77, 80, 80, 77 },
+        { 72, 75, 74, 73 },
+        { 73, 71, 75, 72 },
+        { 74, 72, 70, 77 },
+        { 68, 73, 71, 76 },
+        { 69, 74, 72, 75 },
+        { 70, 75, 73, 74 },
+        { 65, 65, 67, 70 },
+        { 66, 66, 68, 69 },
+        { 67, 67, 63, 74 },
+        { 68, 68, 64, 73 },
+        { 62, 69, 65, 72 },
+        { 63, 65, 66, 71 },
+        { 64, 66, 67, 70 },
+        { 65, 67, 68, 69 },
+        { 66, 68, 63, 74 },
+        { 67, 69, 64, 73 },
+        { 68, 65, 65, 72 },
+        { 62, 66, 66, 71 },
+        { 63, 67, 67, 70 },
+        { 64, 68, 68, 69 },
+        { 65, 69, 63, 74 },
+    };
+
     public int GetPulseBaseline(string propertyId, int category)
     {
         if (category < 0 || category >= 4 || string.IsNullOrWhiteSpace(propertyId) ||
@@ -229,7 +287,9 @@ public class BoardMapDefinition : ScriptableObject
         string id = (MapId ?? string.Empty).ToLowerInvariant();
         int[,] profile = id == "map_turkey" ? Pulse_turkey :
                          id == "map_colorado" ? Pulse_colorado :
-                         id == "map_usa" ? Pulse_usa : null;
+                         id == "map_usa" ? Pulse_usa :
+                         id == "map_germany" ? Pulse_germany :
+                         id == "map_mexico" ? Pulse_mexico : null;
         return profile != null ? profile[number - 1, category] : 50;
     }
 

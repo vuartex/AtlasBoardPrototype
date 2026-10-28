@@ -107,6 +107,7 @@ public class MatchSetupManager : MonoBehaviour
             boardControlsRoot.SetActive(false);
         }
 
+        EnsurePremiumMapsAvailable();
         ConfigureMapDropdown();
         ConfigurePlayerCountDropdown();
         ConfigureRoundLimitDropdown();
@@ -280,6 +281,37 @@ public class MatchSetupManager : MonoBehaviour
         {
             setupPanel.SetActive(false);
         }
+    }
+
+    // Phase 19AC: canonical map assets must survive Unity Editor-to-build
+    // without depending on an optional scene repair menu or duplicating maps.
+    private void EnsurePremiumMapsAvailable()
+    {
+        AtlasBoardPremiumMapReferences references =
+            Resources.Load<AtlasBoardPremiumMapReferences>("ATB_PremiumMapReferences");
+        if (references == null)
+        {
+            Debug.LogWarning("ATB_MAP_REGISTRY status=missing resource=ATB_PremiumMapReferences", this);
+            return;
+        }
+
+        List<BoardMapDefinition> maps = new List<BoardMapDefinition>();
+        if (availableMaps != null)
+        {
+            foreach (BoardMapDefinition map in availableMaps)
+                if (map != null && !maps.Exists(existing => existing.MapId == map.MapId))
+                    maps.Add(map);
+        }
+        foreach (BoardMapDefinition map in references.Maps)
+            if (map != null && !maps.Exists(existing => existing.MapId == map.MapId))
+                maps.Add(map);
+        availableMaps = maps.ToArray();
+        bool hasGermany = maps.Exists(map => map.MapId == "map_germany");
+        bool hasMexico = maps.Exists(map => map.MapId == "map_mexico");
+        Debug.Log("ATB_MAP_REGISTRY status=" +
+            (hasGermany && hasMexico ? "ready" : "incomplete") +
+            " maps=" + maps.Count +
+            " germany=" + hasGermany + " mexico=" + hasMexico, this);
     }
 
     private void ConfigureMapDropdown()
@@ -605,6 +637,22 @@ public class MatchSetupManager : MonoBehaviour
         int dropdownValue)
     {
         ApplySelectedMapPreview();
+    }
+
+    /// <summary>Preview the host-selected map in the existing board generator
+    /// while the room is waiting. Never rebuild an active match.</summary>
+    public bool PreviewLobbyMapById(string mapId)
+    {
+        if (turnManager != null && turnManager.IsMatchStarted) return false;
+        string canonical = mapId == "Germany" ? "map_germany" :
+            mapId == "Mexico" ? "map_mexico" : mapId == "Turkey" ? "map_turkey" :
+            mapId == "Colorado" ? "map_colorado" : mapId == "USA" ? "map_usa" : mapId;
+        BoardMapDefinition found = availableMaps != null
+            ? availableMaps.FirstOrDefault(m => m != null &&
+                string.Equals(m.MapId, canonical, StringComparison.OrdinalIgnoreCase)) : null;
+        if (found == null || boardGenerator == null) return false;
+        boardGenerator.SetActiveMapDefinition(found, applyImmediately:true);
+        return true;
     }
 
     private void ApplySelectedMapPreview()

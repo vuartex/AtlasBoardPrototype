@@ -210,7 +210,12 @@ public class AtlasBoardPawnCustomizationUI :
                 currentCosmeticIndex);
 
         if (cosmetic == null)
+            return;
+        if (AtlasBoardRtdbMetaEconomy.IsPaidPawn(cosmetic.CosmeticId) &&
+            !AtlasBoardRtdbMetaEconomy.IsPawnOwnedOnThisAccount(cosmetic.CosmeticId))
         {
+            Debug.LogWarning("ATB_PAWN_SELECT locked; purchase first in Atlas Store: " + cosmetic.CosmeticId);
+            RefreshPreview();
             return;
         }
 
@@ -218,42 +223,32 @@ public class AtlasBoardPawnCustomizationUI :
             AtlasBoardPawnCosmeticService
                 .Instance;
 
-        if (service != null)
+        AtlasBoardLobbyRuntimeBridge bridge = FindLobbyBridge();
+        if (bridge != null && bridge.HasLobby)
         {
-            service.SelectCosmetic(
-                currentSlotIndex,
-                cosmetic.CosmeticId);
-        }
-        else
-        {
-            AtlasBoardPawnSelectionStore
-                .SetSelectedId(
-                    currentSlotIndex,
-                    cosmetic.CosmeticId);
-        }
-
-        originalCosmeticId =
-            cosmetic.CosmeticId;
-
-        AtlasBoardLobbyRuntimeBridge bridge =
-            FindLobbyBridge();
-
-        if (bridge != null &&
-            bridge.HasLobby)
-        {
+            // Remote operations are authoritative. Do not cache a choice
+            // locally and falsely show it as committed on an RTDB denial.
             AtlasLobbyOperationResult syncResult =
                 await bridge.SetPawnCosmeticAsync(
                     currentSlotIndex,
                     cosmetic.CosmeticId);
-
             if (!syncResult.Success)
             {
                 Debug.LogWarning(
-                    "Pawn cosmetic was saved locally but lobby sync failed: " +
-                    syncResult.TechnicalMessage,
-                    this);
+                    "ATB_PAWN_SELECT denied; lobby remains authoritative: " +
+                    syncResult.TechnicalMessage, this);
+                RefreshPreview();
+                return;
             }
         }
+
+        if (service != null)
+            service.SelectCosmetic(currentSlotIndex, cosmetic.CosmeticId);
+        else
+            AtlasBoardPawnSelectionStore.SetSelectedId(
+                currentSlotIndex, cosmetic.CosmeticId);
+
+        originalCosmeticId = cosmetic.CosmeticId;
 
         if (modalRoot != null)
         {
@@ -434,7 +429,10 @@ public class AtlasBoardPawnCustomizationUI :
             !bridge.HasLobby ||
             bridge.CurrentSnapshot == null)
         {
-            // Preserve existing local/offline customization behavior.
+            // The local account controls slot 0. Other local seats are
+            // not independently authenticated and must not inherit host
+            // permission to reconfigure bots or other people's pawns.
+            editable = slotIndex == 0;
             return true;
         }
 
@@ -494,8 +492,10 @@ public class AtlasBoardPawnCustomizationUI :
 
         if (botSeat)
         {
-            editable = localIsHost;
-            return localIsHost;
+            // The host cannot customize bot pawns. Bots keep their own
+            // deterministic/previously assigned cosmetic in the room.
+            editable = false;
+            return true;
         }
 
         // Other real Human seats remain inspectable, but read-only.
@@ -554,6 +554,22 @@ public class AtlasBoardPawnCustomizationUI :
 
         ShowPreviewModel(
             cosmetic);
+        bool paidUnowned = cosmetic != null &&
+            AtlasBoardRtdbMetaEconomy.IsPaidPawn(cosmetic.CosmeticId) &&
+            !AtlasBoardRtdbMetaEconomy.IsPawnOwnedOnThisAccount(cosmetic.CosmeticId);
+        if (selectionText != null && paidUnowned)
+        {
+            string lang = AtlasBoardLocalizationManager.Instance != null
+                ? AtlasBoardLocalizationManager.Instance.CurrentLanguageCode : "en";
+            selectionText.text += lang == "tr" ? "  •  MAĞAZADAN AL" :
+                lang == "es" ? "  •  COMPRAR" :
+                lang == "fr" ? "  •  ACHETER" :
+                lang == "de" ? "  •  KAUFEN" :
+                lang == "ko" ? "  •  구매 필요" :
+                lang == "ru" ? "  •  КУПИТЬ" : "  •  BUY IN STORE";
+        }
+        if (applyButton != null)
+            applyButton.interactable = !currentReadOnly && !paidUnowned;
     }
 
     private void HookButtons()
@@ -813,6 +829,17 @@ public class AtlasBoardPawnCustomizationUI :
 
         DisablePhysics(
             previewModel);
+        if (cosmetic.OverrideMaterial != null &&
+            cosmetic.CosmeticId.StartsWith("vehicle_", StringComparison.Ordinal))
+        {
+            foreach (Renderer renderer in previewModel.GetComponentsInChildren<Renderer>(true))
+            {
+                if (renderer == null) continue;
+                Material[] slots = renderer.sharedMaterials;
+                for (int i = 0; i < slots.Length; i++) slots[i] = cosmetic.OverrideMaterial;
+                renderer.sharedMaterials = slots;
+            }
+        }
 
         if (!TryGetBounds(
                 previewModel,
@@ -821,11 +848,9 @@ public class AtlasBoardPawnCustomizationUI :
             return;
         }
 
-        float scale =
-            2.15f /
-            Mathf.Max(
-                0.001f,
-                bounds.size.y);
+        float scale = Mathf.Min(
+            2.15f / Mathf.Max(0.001f, bounds.size.y),
+            2.65f / Mathf.Max(0.001f, bounds.size.x, bounds.size.z));
 
         previewModel.transform
             .localScale *=

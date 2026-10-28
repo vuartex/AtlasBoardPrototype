@@ -47,15 +47,13 @@ public class AtlasBoardPawnCosmeticService :
                     playerSlotIndex,
                     catalog);
 
-        PawnCosmeticDefinition selected =
-            catalog.FindById(
-                selectedId);
+        PawnCosmeticDefinition selected = catalog.FindById(selectedId);
+        if (selected != null &&
+            AtlasBoardRtdbMetaEconomy.IsPaidPawn(selected.CosmeticId) &&
+            !AtlasBoardRtdbMetaEconomy.IsPawnOwnedOnThisAccount(selected.CosmeticId))
+            selected = null;
 
-        return selected != null
-            ? selected
-            : catalog
-                .GetDefaultForSlot(
-                    playerSlotIndex);
+        return selected != null ? selected : catalog.GetDefaultForSlot(playerSlotIndex);
     }
 
     public void SelectCosmetic(

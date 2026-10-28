@@ -86,6 +86,8 @@ public class PawnMotionAnimator :
     private bool isMoving;
     private bool isSprinting;
     private float bobPhase;
+    private bool useGhostFloatStyle;
+    private bool useVehicleDriveStyle;
 
     private void Awake()
     {
@@ -138,6 +140,17 @@ public class PawnMotionAnimator :
         isSprinting = false;
         bobPhase = 0f;
 
+        // Only the newly imported cosmetics get motion styling.
+        // Kenney's existing eight motion sets and idle-look clips are untouched.
+        string cosmeticId = cosmeticApplier != null &&
+            cosmeticApplier.CurrentCosmetic != null
+                ? cosmeticApplier.CurrentCosmetic.CosmeticId
+                : string.Empty;
+        useGhostFloatStyle = cosmeticId.StartsWith(
+            "ghost_", System.StringComparison.Ordinal);
+        useVehicleDriveStyle = cosmeticId.StartsWith(
+            "vehicle_", System.StringComparison.Ordinal);
+
         if (motionRoot != null)
         {
             motionRoot.localPosition =
@@ -151,6 +164,16 @@ public class PawnMotionAnimator :
 
             targetLocalRotation =
                 motionRoot.localRotation;
+        }
+
+        if (currentVisual != null &&
+            (useGhostFloatStyle || useVehicleDriveStyle))
+        {
+            // Avoid third-party animation clips fighting the existing
+            // board-facing logic. Keep the imported meshes intact.
+            foreach (Animator imported in
+                currentVisual.GetComponentsInChildren<Animator>(true))
+                imported.enabled = false;
         }
 
         if (currentVisual == null ||
@@ -392,6 +415,24 @@ public class PawnMotionAnimator :
     {
         if (motionRoot == null)
         {
+            return;
+        }
+
+        if (useVehicleDriveStyle)
+        {
+            // A car drives on the board surface; it does not walk/bounce.
+            motionRoot.localPosition = baseMotionLocalPosition;
+            return;
+        }
+
+        if (useGhostFloatStyle)
+        {
+            // Deliberately does not depend on Animator clips or physics.
+            // Gentle flight when moving, quiet hovering when stationary.
+            float phase = Time.time * (isMoving ? 6.5f : 2.2f);
+            float amplitude = isMoving ? 0.035f : 0.022f;
+            motionRoot.localPosition = baseMotionLocalPosition +
+                Vector3.up * (0.048f + Mathf.Sin(phase) * amplitude);
             return;
         }
 

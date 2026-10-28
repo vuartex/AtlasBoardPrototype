@@ -205,14 +205,19 @@ public class PawnCosmeticApplier :
         int playerSlotIndex,
         string cosmeticId)
     {
-        if (onlineAuthoritativeCosmeticActive ||
-            playerState == null ||
-            playerState.PlayerSlotIndex !=
-            playerSlotIndex)
-        {
+        if (playerState == null || playerState.PlayerSlotIndex != playerSlotIndex)
             return;
-        }
 
+        // SelectionChanged is emitted only by the local owner's accepted
+        // Use Pawn action. Never let a former match's authoritative flag
+        // block a newly committed choice for the next match.
+        if (onlineAuthoritativeCosmeticActive)
+        {
+            if (ApplyOnlineAuthoritativeCosmeticId(cosmeticId))
+                return;
+            onlineAuthoritativeCosmeticActive = false;
+            lastOnlineAuthoritativeCosmeticId = string.Empty;
+        }
         ApplySelection();
     }
 
@@ -273,6 +278,18 @@ public class PawnCosmeticApplier :
         DisablePhysics(
             currentVisual);
 
+        if (cosmetic.OverrideMaterial != null &&
+            cosmetic.CosmeticId.StartsWith("vehicle_", System.StringComparison.Ordinal))
+        {
+            foreach (Renderer renderer in currentVisual.GetComponentsInChildren<Renderer>(true))
+            {
+                if (renderer == null) continue;
+                Material[] slots = renderer.sharedMaterials;
+                for (int i = 0; i < slots.Length; i++) slots[i] = cosmetic.OverrideMaterial;
+                renderer.sharedMaterials = slots;
+            }
+        }
+
         FitModelToMount(
             currentVisual,
             cosmetic.DesiredWorldHeight);
@@ -314,6 +331,19 @@ public class PawnCosmeticApplier :
                 currentHeight,
                 0.02f,
                 20f);
+
+        // New vehicle/ghost cosmetics must fit the ORIGINAL 2x2 player
+        // formation. Existing pawn definitions have footprint=0 and
+        // retain their exact previous scale/placement behavior.
+        float footprint = currentCosmetic != null
+            ? currentCosmetic.MaxWorldFootprint
+            : 0f;
+        if (footprint > 0f)
+        {
+            float largestHorizontal = Mathf.Max(
+                bounds.size.x, bounds.size.z, 0.001f);
+            scale = Mathf.Min(scale, footprint / largestHorizontal);
+        }
 
         model.transform.localScale *=
             scale;

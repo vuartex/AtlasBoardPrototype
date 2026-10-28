@@ -1,8 +1,9 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
-public class PlayerHudPanel : MonoBehaviour
+public class PlayerHudPanel : MonoBehaviour, IPointerClickHandler
 {
     [Header("References")]
     [SerializeField]
@@ -57,6 +58,22 @@ public class PlayerHudPanel : MonoBehaviour
 
     public PlayerGameState Player =>
         player;
+
+    // HUD background is the raycast surface for the existing emote entry point.
+    // The badge, icon and labels remain non-interactive so the same root
+    // IPointerClickHandler receives clicks anywhere on this player's HUD.
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (eventData == null ||
+            eventData.button != PointerEventData.InputButton.Left)
+            return;
+
+        if (player != null && player.IsParticipating)
+            Debug.Log("ATB_EMOTE_HUD_CLICK slot=" + player.PlayerSlotIndex, this);
+
+        AtlasBoardEmoteHudRuntime.OpenFor(this);
+    }
+
 
     private void OnEnable()
     {
@@ -504,7 +521,9 @@ public class PlayerHudPanel : MonoBehaviour
         {
             backgroundImage.type =
                 Image.Type.Sliced;
-            backgroundImage.raycastTarget = false;
+            // Do not disable this graphic: uGUI will otherwise have no
+            // raycast target on the HUD and OnPointerClick never fires.
+            backgroundImage.raycastTarget = true;
         }
 
         if (accentImage != null)

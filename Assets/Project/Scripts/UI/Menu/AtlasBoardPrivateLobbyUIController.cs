@@ -2230,6 +2230,42 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+        // Paid country maps are host-only. A non-owned map may be visible
+        // in the dropdown, but it must not become the active selection.
+        if (hostSettingsDropdowns != null && hostSettingsDropdowns.Length > 0 &&
+            hostSettingsDropdowns[0] != null)
+        {
+            int mapIndex = hostSettingsDropdowns[0].value;
+            string requestedPremium = mapIndex == 3 ? "map_germany" :
+                mapIndex == 4 ? "map_mexico" : string.Empty;
+            if (requestedPremium.Length > 0 &&
+                !AtlasBoardRtdbMetaEconomy.IsPremiumMapOwnedForCurrentUid(requestedPremium))
+            {
+                int priorIndex = 0;
+                if (backendSnapshot != null && backendSnapshot.Settings != null)
+                {
+                    switch (backendSnapshot.Settings.MapId)
+                    {
+                        case "Colorado": priorIndex = 1; break;
+                        case "USA": priorIndex = 2; break;
+                        case "Germany": priorIndex = 3; break;
+                        case "Mexico": priorIndex = 4; break;
+                    }
+                }
+                suppressSeatEvents = true;
+                try { SetDropdownByIndex(hostSettingsDropdowns[0], priorIndex); }
+                finally { suppressSeatEvents = false; }
+                Debug.LogWarning("ATB_MAP_OWNER_REJECT selected=" + requestedPremium +
+                    " reason=not_owned_by_current_host", this);
+                return;
+            }
+            // Preview an owned premium map while waiting for host settings
+            // acknowledgement; the backend snapshot remains authoritative.
+            if (requestedPremium.Length > 0)
+                AtlasBoardPremiumMapDropdownLabels.PreviewMap(
+                    mapIndex == 3 ? "Germany" : "Mexico");
+        }
+
         RestoreRowsFromPlayerCount();
         ResetInactiveHostSeatModes();
         CloseAllSeatChoicePanels();
@@ -3179,6 +3215,9 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
         suppressSeatEvents = true;
+        if (hostSettingsDropdowns != null && hostSettingsDropdowns.Length > 0)
+            AtlasBoardPremiumMapDropdownLabels.EnsureOptions(hostSettingsDropdowns[0]);
+        AtlasBoardPremiumMapDropdownLabels.PreviewMap(snapshot.Settings.MapId);
 
 
 
@@ -3194,6 +3233,8 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                     {
                         "Colorado" => 1,
                         "USA" => 2,
+                        "Germany" => 3,
+                        "Mexico" => 4,
                         _ => 0
                     });
 
@@ -6019,6 +6060,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
     private void BindRuntimeEvents()
     {
+        // The visible Game Lobby dropdown is shared with Main Menu, but some
+        // scenes configure it only after opening the private/public lobby.
+        if (hostSettingsDropdowns != null && hostSettingsDropdowns.Length > 0)
+            AtlasBoardPremiumMapDropdownLabels.EnsureOptions(hostSettingsDropdowns[0]);
         if (eventsBound)
         {
             return;

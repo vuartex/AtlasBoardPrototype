@@ -1,0 +1,14 @@
+ATLASBOARD THIRD-PARTY ASSET RECORD — NON-CC0 — REVIEW BEFORE PUBLISHING
+Package: FREE Cartoon Car Pack - Simple Vehicles
+Publisher / Copyright holder: OlyPoly
+Official listing: https://assetstore.unity.com/packages/3d/vehicles/land/free-cartoon-car-pack-simple-vehicles-282425
+Owner-used version (screenshots): 1.3
+Price at acquisition: FREE; free does not mean royalty-free source redistribution or CC0.
+Official listed license: Standard Unity Asset Store EULA — https://unity.com/legal/as-terms
+Official listing LICENSE TYPE: "Extension Asset" shown on the current public listing — special seat-assignment status to CHECK in your Unity My Assets account and, if ambiguous for a 3D model pack, with Unity Asset Store Support. A model pack is not automatically an SDK; don't assume otherwise. Before release verify license entitlement, license type/seat count, any Restricted designation or additional provider terms.
+Project usage: Police, Taxi and Pickup prefabs, color/material palette.
+COMMERCIAL GAME RELEASE: Standard EULA 2.2.1 generally permits embedding a licensed non-Restricted asset in a substantial original game, distributing the integrated game worldwide, and monetizing integrated cosmetics, including in-app purchase. This is not an unconditional legal clearance for this specific package; separate terms and seat conditions take precedence.
+FORBIDDEN / CAUTION: Do not sell, provide direct downloads of, or redistribute stand-alone source models, textures, original package ZIP or prefabs. Prevent users extracting source through game features. Public source repositories containing the original licensed assets are a COMPLIANCE RISK; check current repository visibility and history, prevent public standalone asset redistribution; consult licensor or lawyer if unsure.
+Credit: Standard EULA typically does not mandate an in-game credit for these assets; voluntary credit is reasonable. Keep this project record, official URL, publisher, version, Unity account acquisition evidence, and any custom EULA.
+Distribution target: Steam Windows and Google Play Android (same integrated-use conditions; platform listing alone gives no extra source-asset rights).
+Review date: 2026-10-27; NOT independent legal advice; NOT a proof of ownership.

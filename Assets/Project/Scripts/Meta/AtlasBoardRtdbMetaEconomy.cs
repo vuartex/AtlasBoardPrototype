@@ -124,6 +124,21 @@ public static class AtlasBoardRtdbMetaEconomy
             (board_arctic_aurora ? 1700 : 0);
     }
 
+    [Serializable]
+    private sealed class Maps
+    {
+        public bool map_germany;
+        public bool map_mexico;
+        public bool IsOwned(string id) =>
+            id == "map_germany" && map_germany || id == "map_mexico" && map_mexico;
+        public void SetOwned(string id, bool owned)
+        {
+            if (id == "map_germany") map_germany = owned;
+            else if (id == "map_mexico") map_mexico = owned;
+        }
+        public int RefundAmount() => (map_germany ? 30000 : 0) + (map_mexico ? 25000 : 0);
+    }
+
     // Exact, audited RTDB dice catalog; paid cosmetic state stays in the
     // existing per-UID metaEconomy ETag transaction (never a second wallet).
     [Serializable]
@@ -151,11 +166,187 @@ public static class AtlasBoardRtdbMetaEconomy
     }
 
     [Serializable]
+    private sealed class Pawns
+    {
+        public bool ghost_01;
+        public bool ghost_02;
+        public bool ghost_03;
+        public bool ghost_04;
+        public bool ghost_05;
+        public bool ghost_06;
+        public bool ghost_07;
+        public bool vehicle_police;
+        public bool vehicle_taxi;
+        public bool vehicle_pickup;
+        public bool IsOwned(string id) =>
+            id == "ghost_01" && ghost_01 ||
+            id == "ghost_02" && ghost_02 ||
+            id == "ghost_03" && ghost_03 ||
+            id == "ghost_04" && ghost_04 ||
+            id == "ghost_05" && ghost_05 ||
+            id == "ghost_06" && ghost_06 ||
+            id == "ghost_07" && ghost_07 ||
+            id == "vehicle_police" && vehicle_police ||
+            id == "vehicle_taxi" && vehicle_taxi ||
+            id == "vehicle_pickup" && vehicle_pickup;
+        public void SetOwned(string id, bool owned)
+        {
+            if (id == "ghost_01") ghost_01 = owned;
+            if (id == "ghost_02") ghost_02 = owned;
+            if (id == "ghost_03") ghost_03 = owned;
+            if (id == "ghost_04") ghost_04 = owned;
+            if (id == "ghost_05") ghost_05 = owned;
+            if (id == "ghost_06") ghost_06 = owned;
+            if (id == "ghost_07") ghost_07 = owned;
+            if (id == "vehicle_police") vehicle_police = owned;
+            if (id == "vehicle_taxi") vehicle_taxi = owned;
+            if (id == "vehicle_pickup") vehicle_pickup = owned;
+        }
+        public int RefundAmount() =>
+            (ghost_01 ? 300 : 0) +
+            (ghost_02 ? 300 : 0) +
+            (ghost_03 ? 300 : 0) +
+            (ghost_04 ? 300 : 0) +
+            (ghost_05 ? 300 : 0) +
+            (ghost_06 ? 300 : 0) +
+            (ghost_07 ? 300 : 0) +
+            (vehicle_police ? 450 : 0) +
+            (vehicle_taxi ? 400 : 0) +
+            (vehicle_pickup ? 425 : 0);
+    }
+
+    [Serializable]
+    private sealed class Emotes
+    {
+        public bool emote_alert;
+        public bool emote_anger;
+        public bool emote_bars;
+        public bool emote_cash;
+        public bool emote_circle;
+        public bool emote_cloud;
+        public bool emote_cross;
+        public bool emote_dots1;
+        public bool emote_dots2;
+        public bool emote_dots3;
+        public bool emote_drop;
+        public bool emote_drops;
+        public bool emote_exclamation;
+        public bool emote_exclamations;
+        public bool emote_heart;
+        public bool emote_heartBroken;
+        public bool emote_hearts;
+        public bool emote_idea;
+        public bool emote_laugh;
+        public bool emote_music;
+        public bool emote_question;
+        public bool emote_sleep;
+        public bool emote_sleeps;
+        public bool emote_star;
+        public bool emote_stars;
+        public bool emote_swirl;
+        public bool IsOwned(string id)
+        {
+            switch (id)
+            {
+                case "emote_alert": return emote_alert;
+                case "emote_anger": return emote_anger;
+                case "emote_bars": return emote_bars;
+                case "emote_cash": return emote_cash;
+                case "emote_circle": return emote_circle;
+                case "emote_cloud": return emote_cloud;
+                case "emote_cross": return emote_cross;
+                case "emote_dots1": return emote_dots1;
+                case "emote_dots2": return emote_dots2;
+                case "emote_dots3": return emote_dots3;
+                case "emote_drop": return emote_drop;
+                case "emote_drops": return emote_drops;
+                case "emote_exclamation": return emote_exclamation;
+                case "emote_exclamations": return emote_exclamations;
+                case "emote_heart": return emote_heart;
+                case "emote_heartBroken": return emote_heartBroken;
+                case "emote_hearts": return emote_hearts;
+                case "emote_idea": return emote_idea;
+                case "emote_laugh": return emote_laugh;
+                case "emote_music": return emote_music;
+                case "emote_question": return emote_question;
+                case "emote_sleep": return emote_sleep;
+                case "emote_sleeps": return emote_sleeps;
+                case "emote_star": return emote_star;
+                case "emote_stars": return emote_stars;
+                case "emote_swirl": return emote_swirl;
+                default: return false;
+            }
+        }
+        public void SetOwned(string id, bool owned)
+        {
+            switch (id)
+            {
+                case "emote_alert": emote_alert = owned; break;
+                case "emote_anger": emote_anger = owned; break;
+                case "emote_bars": emote_bars = owned; break;
+                case "emote_cash": emote_cash = owned; break;
+                case "emote_circle": emote_circle = owned; break;
+                case "emote_cloud": emote_cloud = owned; break;
+                case "emote_cross": emote_cross = owned; break;
+                case "emote_dots1": emote_dots1 = owned; break;
+                case "emote_dots2": emote_dots2 = owned; break;
+                case "emote_dots3": emote_dots3 = owned; break;
+                case "emote_drop": emote_drop = owned; break;
+                case "emote_drops": emote_drops = owned; break;
+                case "emote_exclamation": emote_exclamation = owned; break;
+                case "emote_exclamations": emote_exclamations = owned; break;
+                case "emote_heart": emote_heart = owned; break;
+                case "emote_heartBroken": emote_heartBroken = owned; break;
+                case "emote_hearts": emote_hearts = owned; break;
+                case "emote_idea": emote_idea = owned; break;
+                case "emote_laugh": emote_laugh = owned; break;
+                case "emote_music": emote_music = owned; break;
+                case "emote_question": emote_question = owned; break;
+                case "emote_sleep": emote_sleep = owned; break;
+                case "emote_sleeps": emote_sleeps = owned; break;
+                case "emote_star": emote_star = owned; break;
+                case "emote_stars": emote_stars = owned; break;
+                case "emote_swirl": emote_swirl = owned; break;
+            }
+        }
+        public int RefundAmount() =>
+            (emote_alert ? 150 : 0) +
+            (emote_anger ? 150 : 0) +
+            (emote_bars ? 150 : 0) +
+            (emote_cash ? 190 : 0) +
+            (emote_circle ? 150 : 0) +
+            (emote_cloud ? 150 : 0) +
+            (emote_cross ? 150 : 0) +
+            (emote_dots1 ? 150 : 0) +
+            (emote_dots2 ? 150 : 0) +
+            (emote_dots3 ? 150 : 0) +
+            (emote_drop ? 150 : 0) +
+            (emote_drops ? 150 : 0) +
+            (emote_exclamation ? 150 : 0) +
+            (emote_exclamations ? 150 : 0) +
+            (emote_heart ? 180 : 0) +
+            (emote_heartBroken ? 180 : 0) +
+            (emote_hearts ? 150 : 0) +
+            (emote_idea ? 165 : 0) +
+            (emote_laugh ? 165 : 0) +
+            (emote_music ? 175 : 0) +
+            (emote_question ? 150 : 0) +
+            (emote_sleep ? 150 : 0) +
+            (emote_sleeps ? 150 : 0) +
+            (emote_star ? 175 : 0) +
+            (emote_stars ? 180 : 0) +
+            (emote_swirl ? 150 : 0);
+    }
+
+    [Serializable]
     private sealed class Inventory
     {
         public Frames profile_frames = new Frames();
         public Boards boards = new Boards();
+        public Maps maps = new Maps();
         public Dice dice = new Dice();
+        public Pawns pawns = new Pawns();
+        public Emotes emotes = new Emotes();
     }
 
     [Serializable]
@@ -265,6 +456,8 @@ public static class AtlasBoardRtdbMetaEconomy
             case "frame_sakura_blossom": return 475;
             case "frame_cosmic_nova": return 550;
             case "frame_forest_spirit": return 475;
+            case "map_germany": return 30000;
+            case "map_mexico": return 25000;
             case Midnight: return 1200;
             case Maple: return 1500;
             case Aurora: return 1700;
@@ -272,7 +465,17 @@ public static class AtlasBoardRtdbMetaEconomy
             case "dice_ocean_blue": return 350;
             case "dice_midnight_black":
             case "dice_marble": return 400;
-            default: return 0;
+            case "ghost_01": return 300;
+            case "ghost_02": return 300;
+            case "ghost_03": return 300;
+            case "ghost_04": return 300;
+            case "ghost_05": return 300;
+            case "ghost_06": return 300;
+            case "ghost_07": return 300;
+            case "vehicle_police": return 450;
+            case "vehicle_taxi": return 400;
+            case "vehicle_pickup": return 425;
+            default: return AtlasBoardEmotes.Price(itemId);
         }
     }
 
@@ -282,6 +485,9 @@ public static class AtlasBoardRtdbMetaEconomy
         Identity identity = await ResolveIdentityAsync();
         if (identity == null)
         {
+            cachedMapUid = ""; CachedOwnedMaps.Clear();
+            cachedPawnOwnerUid = "";
+            CachedOwnedPawnIds.Clear();
             snapshot.Success = true;
             snapshot.IsGuest = !IsSteamSession;
             snapshot.IsSteamAccount = IsSteamSession;
@@ -321,6 +527,19 @@ public static class AtlasBoardRtdbMetaEconomy
             snapshot.EquippedFrameId = document.equipped.profileFrameId ?? "";
             snapshot.EquippedBoardId = document.equipped.boardId ?? "";
             snapshot.EquippedDiceId = document.equipped.diceId ?? "";
+            cachedMapUid = identity.Uid;
+            CachedOwnedMaps.Clear();
+            if (document.inventory.maps.IsOwned("map_germany")) CachedOwnedMaps.Add("map_germany");
+            if (document.inventory.maps.IsOwned("map_mexico")) CachedOwnedMaps.Add("map_mexico");
+            cachedPawnOwnerUid = identity.Uid;
+            CachedOwnedPawnIds.Clear();
+            cachedEmoteUid = identity.Uid;
+            CachedPaidEmotes.Clear();
+            foreach (var emote in AtlasBoardEmotes.All)
+                if (emote.Gold > 0 && document.inventory.emotes.IsOwned(emote.Id))
+                    CachedPaidEmotes.Add(emote.Id);
+            foreach (string pawnId in new [] { "ghost_01", "ghost_02", "ghost_03", "ghost_04", "ghost_05", "ghost_06", "ghost_07", "vehicle_police", "vehicle_taxi", "vehicle_pickup" })
+                if (document.inventory.pawns.IsOwned(pawnId)) CachedOwnedPawnIds.Add(pawnId);
             // Presentation cache only; RTDB remains the owner of this value.
             if (identity.Uid == CurrentUid)
                 CurrentEquippedDiceId = snapshot.EquippedDiceId;
@@ -328,7 +547,13 @@ public static class AtlasBoardRtdbMetaEconomy
 
             foreach (AtlasBoardStorefrontItem item in snapshot.Items)
             {
-                item.Owned = IsBoard(item.ItemId)
+                item.Owned = AtlasBoardEmotes.IsPaid(item.ItemId)
+                    ? document.inventory.emotes.IsOwned(item.ItemId)
+                    : IsPremiumMap(item.ItemId)
+                    ? document.inventory.maps.IsOwned(item.ItemId)
+                    : IsPaidPawn(item.ItemId)
+                    ? document.inventory.pawns.IsOwned(item.ItemId)
+                    : IsBoard(item.ItemId)
                     ? document.inventory.boards.IsOwned(item.ItemId)
                     : IsDice(item.ItemId)
                         ? document.inventory.dice.IsOwned(item.ItemId)
@@ -372,6 +597,34 @@ public static class AtlasBoardRtdbMetaEconomy
         get => CurrentUid == currentDiceUid ? cachedDiceId : "";
         private set { currentDiceUid = CurrentUid; cachedDiceId = value ?? ""; }
     }
+
+    private static readonly System.Collections.Generic.HashSet<string> CachedOwnedMaps =
+        new System.Collections.Generic.HashSet<string>(StringComparer.Ordinal);
+    private static string cachedMapUid = "";
+    public static bool IsPremiumMap(string id) => id == "map_germany" || id == "map_mexico";
+    public static bool IsPremiumMapOwnedForCurrentUid(string id) =>
+        !IsPremiumMap(id) || (cachedMapUid == CurrentUid && CachedOwnedMaps.Contains(id));
+    public static bool IsPremiumRoomMap(string mapId) => mapId == "Germany" || mapId == "Mexico";
+    public static string MapEntitlementId(string mapId) => mapId == "Germany" ? "map_germany" : mapId == "Mexico" ? "map_mexico" : "";
+
+    private static readonly System.Collections.Generic.HashSet<string> CachedOwnedPawnIds =
+        new System.Collections.Generic.HashSet<string>(StringComparer.Ordinal);
+    private static string cachedPawnOwnerUid = "";
+    public static bool IsPaidPawn(string id) =>
+        !string.IsNullOrEmpty(id) &&
+        (id.StartsWith("ghost_", StringComparison.Ordinal) ||
+         id == "vehicle_police" || id == "vehicle_taxi" || id == "vehicle_pickup") &&
+        Price(id) > 0;
+    public static bool IsPawnOwnedOnThisAccount(string id) =>
+        !IsPaidPawn(id) ||
+        (cachedPawnOwnerUid == CurrentUid && CachedOwnedPawnIds.Contains(id));
+    private static readonly System.Collections.Generic.HashSet<string> CachedPaidEmotes =
+        new System.Collections.Generic.HashSet<string>(StringComparer.Ordinal);
+    private static string cachedEmoteUid = "";
+    public static bool IsEmoteOwnedForCurrentUid(string id) =>
+        AtlasBoardEmotes.Find(id) != null &&
+        (AtlasBoardEmotes.Find(id).IsFree ||
+         cachedEmoteUid == CurrentUid && CachedPaidEmotes.Contains(id));
 
     public static bool IsDice(string id) =>
         id == "dice_ruby_red" || id == "dice_ocean_blue" ||
@@ -506,12 +759,15 @@ public static class AtlasBoardRtdbMetaEconomy
                         }
                         break;
                     case "PURCHASE":
-                        if (IsBoard(itemId) ? doc.inventory.boards.IsOwned(itemId) : IsDice(itemId) ? doc.inventory.dice.IsOwned(itemId) : doc.inventory.profile_frames.IsOwned(itemId))
+                        if (IsPremiumMap(itemId) ? doc.inventory.maps.IsOwned(itemId) : AtlasBoardEmotes.IsPaid(itemId) ? doc.inventory.emotes.IsOwned(itemId) : IsPaidPawn(itemId) ? doc.inventory.pawns.IsOwned(itemId) : IsBoard(itemId) ? doc.inventory.boards.IsOwned(itemId) : IsDice(itemId) ? doc.inventory.dice.IsOwned(itemId) : doc.inventory.profile_frames.IsOwned(itemId))
                             return Failure("meta.error.already_owned");
                         if (doc.wallet.gold < Price(itemId))
                             return Failure("meta.error.insufficient_funds");
                         doc.wallet.gold -= Price(itemId);
-                        if (IsBoard(itemId)) doc.inventory.boards.SetOwned(itemId, true);
+                        if (IsPremiumMap(itemId)) doc.inventory.maps.SetOwned(itemId, true);
+                        else if (AtlasBoardEmotes.IsPaid(itemId)) doc.inventory.emotes.SetOwned(itemId, true);
+                        else if (IsPaidPawn(itemId)) doc.inventory.pawns.SetOwned(itemId, true);
+                        else if (IsBoard(itemId)) doc.inventory.boards.SetOwned(itemId, true);
                         else if (IsDice(itemId)) doc.inventory.dice.SetOwned(itemId, true);
                         else doc.inventory.profile_frames.SetOwned(itemId, true);
                         break;
@@ -546,10 +802,13 @@ public static class AtlasBoardRtdbMetaEconomy
                         doc.equipped.diceId = itemId;
                         break;
                     case "RESET_PURCHASES":
-                        doc.wallet.gold += doc.inventory.profile_frames.RefundAmount() + doc.inventory.boards.RefundAmount() + doc.inventory.dice.RefundAmount();
+                        doc.wallet.gold += doc.inventory.profile_frames.RefundAmount() + doc.inventory.boards.RefundAmount() + doc.inventory.dice.RefundAmount() + doc.inventory.pawns.RefundAmount() + doc.inventory.emotes.RefundAmount() + doc.inventory.maps.RefundAmount();
                         doc.inventory.profile_frames = new Frames();
                         doc.inventory.boards = new Boards();
+                        doc.inventory.maps = new Maps();
                         doc.inventory.dice = new Dice();
+                        doc.inventory.pawns = new Pawns();
+                        doc.inventory.emotes = new Emotes();
                         doc.equipped.diceId = "";
                         CurrentEquippedDiceId = "";
                         doc.equipped.boardId = "";
@@ -588,6 +847,30 @@ public static class AtlasBoardRtdbMetaEconomy
                     CurrentEquippedDiceId = "";
                     await ClearPublicFrameBestEffortAsync();
                     await PublishEquippedDiceAsync("");
+                }
+
+                if (kind == "PURCHASE" && IsPremiumMap(itemId))
+                {
+                    cachedMapUid = identity.Uid;
+                    CachedOwnedMaps.Add(itemId);
+                }
+                if (kind == "PURCHASE" && AtlasBoardEmotes.IsPaid(itemId))
+                {
+                    cachedEmoteUid = identity.Uid;
+                    CachedPaidEmotes.Add(itemId);
+                }
+                if (kind == "PURCHASE" && IsPaidPawn(itemId))
+                {
+                    cachedPawnOwnerUid = identity.Uid;
+                    CachedOwnedPawnIds.Add(itemId);
+                }
+                if (kind == "RESET_PURCHASES")
+                {
+                    cachedMapUid = identity.Uid; CachedOwnedMaps.Clear();
+                    cachedPawnOwnerUid = identity.Uid;
+                    CachedOwnedPawnIds.Clear();
+                    cachedEmoteUid = identity.Uid;
+                    CachedPaidEmotes.Clear();
                 }
 
                 Debug.Log("ATB_PHASE19C_RTDB_OP type=" + kind +
@@ -635,13 +918,17 @@ public static class AtlasBoardRtdbMetaEconomy
         string[] ids = { Halloween, NewYear, Turkiye, Usa,
             "frame_neon_circuit", "frame_royal_crown", "frame_ocean_tide",
             "frame_sakura_blossom", "frame_cosmic_nova", "frame_forest_spirit",
-            Midnight, Maple, Aurora, "dice_ruby_red", "dice_ocean_blue", "dice_midnight_black", "dice_marble" };
-        foreach (string id in ids)
+            Midnight, Maple, Aurora, "map_germany", "map_mexico", "dice_ruby_red", "dice_ocean_blue", "dice_midnight_black", "dice_marble",
+            "ghost_01", "ghost_02", "ghost_03", "ghost_04", "ghost_05", "ghost_06", "ghost_07", "vehicle_police", "vehicle_taxi", "vehicle_pickup" };
+        var catalogIds = new System.Collections.Generic.List<string>(ids);
+        foreach (var emote in AtlasBoardEmotes.All)
+            if (emote.Gold > 0) catalogIds.Add(emote.Id);
+        foreach (string id in catalogIds)
         {
             result.Items.Add(new AtlasBoardStorefrontItem
             {
-                ItemId = id, ItemType = IsBoard(id) ? "board_theme" : IsDice(id) ? "dice_skin" : "profile_frame",
-                DisplayName = AtlasBoardShopContentDraft.LocalizedName(id, "en"),
+                ItemId = id, ItemType = IsPremiumMap(id) ? "map" : AtlasBoardEmotes.IsPaid(id) ? "emote" : IsPaidPawn(id) ? "pawn" : IsBoard(id) ? "board_theme" : IsDice(id) ? "dice_skin" : "profile_frame",
+                DisplayName = AtlasBoardEmotes.IsPaid(id) ? AtlasBoardEmotes.Name(id, "en") : AtlasBoardShopContentDraft.LocalizedName(id, "en"),
                 GoldPrice = Price(id), AtlasCoinPrice = 0,
                 SortOrder = 200, CatalogVersion = 19,
                 PreviewOnly = true, Owned = false
@@ -696,7 +983,10 @@ public static class AtlasBoardRtdbMetaEconomy
             if (doc.inventory.profile_frames == null)
                 doc.inventory.profile_frames = new Frames();
             if (doc.inventory.boards == null) doc.inventory.boards = new Boards();
+            if (doc.inventory.maps == null) doc.inventory.maps = new Maps();
             if (doc.inventory.dice == null) doc.inventory.dice = new Dice();
+            if (doc.inventory.pawns == null) doc.inventory.pawns = new Pawns();
+            if (doc.inventory.emotes == null) doc.inventory.emotes = new Emotes();
             if (doc.equipped == null) doc.equipped = new Equipped();
             if (doc.equipped.boardId == null) doc.equipped.boardId = "";
             if (doc.equipped.diceId == null) doc.equipped.diceId = "";

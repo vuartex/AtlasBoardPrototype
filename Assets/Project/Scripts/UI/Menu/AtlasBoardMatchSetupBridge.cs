@@ -830,6 +830,19 @@ public class AtlasBoardMatchSetupBridge : MonoBehaviour
                 fallbackIndex = 2;
                 break;
 
+            case "germany":
+            case "deutschland":
+            case "almanya":
+                aliases = new [] { "Germany", "Deutschland", "Almanya", "Alemania", "Allemagne", "독일", "Германия" };
+                fallbackIndex = 3;
+                break;
+            case "mexico":
+            case "méxico":
+            case "meksika":
+                aliases = new [] { "Mexico", "México", "Meksika", "Mexique", "Mexiko", "멕시코", "Мексика" };
+                fallbackIndex = 4;
+                break;
+
             default:
                 aliases =
                     new[]

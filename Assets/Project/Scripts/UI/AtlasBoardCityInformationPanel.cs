@@ -559,6 +559,16 @@ public class AtlasBoardCityInformationPanel : MonoBehaviour
 
         string owner = ResolveOwnerName(tile);
         string description = tile.Description;
+        // New premium country maps have language-specific city explanations;
+        // existing Turkey/Colorado/USA descriptions are unchanged.
+        if (boardGenerator != null && boardGenerator.ActiveMapDefinition != null)
+        {
+            string locale = AtlasBoardLocalizationManager.Instance != null
+                ? AtlasBoardLocalizationManager.Instance.CurrentLanguageCode : "en";
+            string localized = AtlasBoardPremiumMapCityInfo.Resolve(
+                boardGenerator.ActiveMapDefinition.MapId, tile.PropertyId, locale);
+            if (!string.IsNullOrWhiteSpace(localized)) description = localized;
+        }
 
         if (string.IsNullOrWhiteSpace(description))
         {

@@ -1511,6 +1511,21 @@ public static class AtlasBoardRtdbCasualLobbyTransport
 
         if(operation=="lobbyUpdateSettings")
         {
+            // Server-checked current host entitlement. A client-owned dropdown
+            // is NOT authority to choose a paid country map.
+            string entitlementMap = req.mapId == "Germany" ? "map_germany" :
+                req.mapId == "Mexico" ? "map_mexico" : "";
+            if (string.IsNullOrWhiteSpace(req.mapId) ||
+                (req.mapId != "Turkey" && req.mapId != "USA" &&
+                 req.mapId != "Colorado" && entitlementMap.Length == 0))
+                return Failure("lobby.error.invalid_settings", "Unknown map selection.");
+            if (entitlementMap.Length > 0)
+            {
+                Response mapOwner = await Send("GET",
+                    "users/" + Safe(uid) + "/metaEconomy/inventory/maps/" + entitlementMap, token);
+                if (!mapOwner.Ok || mapOwner.Body == null || mapOwner.Body.Trim() != "true")
+                    return Failure("lobby.error.access_denied", "Selected map is not owned by this host UID.");
+            }
             // The authenticated host cannot select a cosmetic they do not
             // own. The room member may view it but only the owner can apply.
             string boardId = string.IsNullOrEmpty(req.boardThemeId)
@@ -1707,6 +1722,17 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             return Failure("lobby.error.not_joinable", "Lobby is not waiting for a new match.");
         if (!string.Equals(snap.HostAccountId, uid, StringComparison.Ordinal))
             return Failure("lobby.error.access_denied", "Only the current room host can start this match.");
+
+        // Enforce ownership again at the last possible host-start boundary.
+        string startMapId = snap.Settings.MapId == "Germany" ? "map_germany" :
+            snap.Settings.MapId == "Mexico" ? "map_mexico" : "";
+        if (startMapId.Length > 0)
+        {
+            Response receipt = await Send("GET", "users/" + Safe(uid) +
+                "/metaEconomy/inventory/maps/" + startMapId, token);
+            if (!receipt.Ok || receipt.Body == null || receipt.Body.Trim() != "true")
+                return Failure("lobby.error.access_denied", "Premium map ownership was not verified for host UID.");
+        }
 
         for (int i = 1; i < snap.Members.Count; i++)
         {

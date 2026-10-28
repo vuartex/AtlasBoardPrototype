@@ -869,8 +869,6 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
 
         ApplyLobbyIdentitySnapshot(lobbySnapshot);
-        DiceVisualController diceForSkins = FindSceneComponent<DiceVisualController>();
-        if (diceForSkins != null) diceForSkins.PrimeOnlineDiceSkins(lobbySnapshot);
 
 
 
@@ -5803,9 +5801,29 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             if (!string.IsNullOrWhiteSpace(
                     cosmeticId))
             {
-                authoritativePawnCosmeticIds[
-                    slotIndex] =
-                        cosmeticId;
+                // Only the locally-owned human seat may replace an old
+                // scene visual with its newly committed lobby selection.
+                // This is especially important after returning to the main
+                // menu and starting a second match: the old 3D visual may
+                // still be present when the new room is prepared.
+                bool isLocalOwner =
+                    IsHostOwnedLocalHumanPawnSlot(slotIndex);
+                bool changed = !string.Equals(
+                    authoritativePawnCosmeticIds[slotIndex],
+                    cosmeticId, StringComparison.Ordinal);
+                authoritativePawnCosmeticIds[slotIndex] = cosmeticId;
+                if (changed && isLocalOwner)
+                {
+                    if (ApplyPawnCosmeticToSlot(slotIndex, cosmeticId))
+                    {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                        Debug.Log(
+                            "ATB_PAWN_REMATCH_SELECT slot=" + slotIndex +
+                            " cosmetic=" + cosmeticId +
+                            " source=local_owner_committed", this);
+#endif
+                    }
+                }
             }
         }
     }
@@ -5845,9 +5863,54 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
 
 
+    private bool IsHostOwnedLocalHumanPawnSlot(int slotIndex)
+    {
+        if (!localIsHost || startLobbySnapshot == null ||
+            startLobbySnapshot.Members == null || lobbyBridge == null ||
+            string.IsNullOrWhiteSpace(lobbyBridge.CurrentAccountId))
+        {
+            return false;
+        }
+
+        AtlasLobbyMemberSnapshot member =
+            startLobbySnapshot.Members.FirstOrDefault(
+                item => item != null && item.Active &&
+                        item.SlotIndex == slotIndex);
+        if (member == null ||
+            (member.SeatMode != AtlasLobbySeatMode.HostLocal &&
+             member.SeatMode != AtlasLobbySeatMode.LocalHuman))
+        {
+            return false;
+        }
+
+        string ownerId = lobbyBridge.CurrentAccountId;
+        return string.Equals(member.AccountId, ownerId,
+                   StringComparison.Ordinal) ||
+               string.Equals(member.LocalOwnerAccountId, ownerId,
+                   StringComparison.Ordinal);
+    }
+
     private string GetCurrentPawnCosmeticId(
         int slotIndex)
     {
+        // A persisted, owned selection committed in the new lobby must win
+        // over the mesh left on screen by an earlier match. Do not use local
+        // PlayerPrefs to choose a RemoteHuman, bot or another user's pawn.
+        if (IsHostOwnedLocalHumanPawnSlot(slotIndex))
+        {
+            AtlasBoardPawnCosmeticService localService =
+                AtlasBoardPawnCosmeticService.Instance;
+            PawnCosmeticDefinition localSelection =
+                localService != null
+                    ? localService.GetSelectedCosmetic(slotIndex)
+                    : null;
+            if (localSelection != null &&
+                !string.IsNullOrWhiteSpace(localSelection.CosmeticId))
+            {
+                return localSelection.CosmeticId;
+            }
+        }
+
         PlayerPawnMover pawn =
             FindPawnBySlotIndex(
                 slotIndex);
@@ -7897,13 +7960,6 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
         AtlasLobbySnapshot previous = startLobbySnapshot;
         startLobbySnapshot = snapshot;
-        if (prepared && (snapshot.LifecycleState == AtlasRoomLifecycleState.InMatch ||
-                         snapshot.LifecycleState == AtlasRoomLifecycleState.Starting))
-        {
-            DiceVisualController refreshedDice = FindSceneComponent<DiceVisualController>();
-            if (refreshedDice != null && refreshedDice.NeedsOnlineDiceRefresh(snapshot))
-                refreshedDice.PrimeOnlineDiceSkins(snapshot);
-        }
 
 
 

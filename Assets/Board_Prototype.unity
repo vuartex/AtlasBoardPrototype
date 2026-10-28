@@ -19514,7 +19514,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'store.wallet.gold: 325'
+  m_text: 'store.wallet.gold: 6.700'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -34236,6 +34236,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: f1a93af5da9189b408477cd57abda247, type: 2}
   - {fileID: 11400000, guid: a15eed31a1601fd42b779f822159f35b, type: 2}
   - {fileID: 11400000, guid: 1b81943cdfa78c54db84f2642e50c5c5, type: 2}
+  - {fileID: 11400000, guid: 062e8a57ebb746d27d8cad104b13afb3, type: 2}
+  - {fileID: 11400000, guid: 66881cfbb70b3ad38a0bb9f5259ba653, type: 2}
   defaultMapIndex: 0
   players:
   - {fileID: 290664504}
@@ -54062,8 +54064,8 @@ MonoBehaviour:
   existingGameplayOverlayCanvas: {fileID: 272275228}
   matchSetupBridge: {fileID: 738613085}
   profileName: Vuartex
-  profileCash: 325
-  profileGold: 500
+  profileCash: 6700
+  profileGold: 4500
 --- !u!114 &738613087
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -79047,7 +79049,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'store.wallet.coin: 500'
+  m_text: 'store.wallet.coin: 4.500'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -90646,6 +90648,7 @@ GameObject:
   - component: {fileID: 1257561338}
   - component: {fileID: 1257561340}
   - component: {fileID: 1257561341}
+  - component: {fileID: 1257561342}
   m_Layer: 0
   m_Name: Dropdown_Map
   m_TagString: Untagged
@@ -90773,6 +90776,12 @@ MonoBehaviour:
     - m_Text: USA
       m_Image: {fileID: 0}
       m_Color: {r: 1, g: 1, b: 1, a: 1}
+    - m_Text: Germany
+      m_Image: {fileID: 0}
+      m_Color: {r: 1, g: 1, b: 1, a: 1}
+    - m_Text: Mexico
+      m_Image: {fileID: 0}
+      m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -90797,6 +90806,18 @@ MonoBehaviour:
   - map.turkey
   - map.colorado
   - map.usa
+--- !u!114 &1257561342
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1257561336}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 98352250a4b1361406f7d5b5604bfb89, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AtlasBoardPremiumMapDropdownLabels
 --- !u!1 &1258497182
 GameObject:
   m_ObjectHideFlags: 0
@@ -137647,7 +137668,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'store.wallet.coin: 500'
+  m_text: 'store.wallet.coin: 4.500'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -142129,7 +142150,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'store.wallet.gold: 325'
+  m_text: 'store.wallet.gold: 6.700'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}

@@ -1,0 +1,436 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b90d357ead17a7c468d7c46ff580af8d, type: 3}
+  m_Name: map_germany
+  m_EditorClassIdentifier: Assembly-CSharp::BoardMapDefinition
+  mapId: map_germany
+  displayName: "Germany"
+  propertyNoun: Location
+  groupNoun: Region
+  economyProfile: {fileID: 11400000, guid: c29dc5234503f074591d22256d33590f, type: 2}
+  tiles:
+  - tileIndex: 0
+    tileType: 0
+    displayName: "Start"
+    boardDisplayName: "Start"
+    description: ""
+    propertyId: 
+    groupId: 
+    groupDisplayName: ""
+    groupColor: {r: 0, g: 0, b: 0, a: 0}
+    purchasePrice: 0
+    baseRent: 0
+    developmentCost: 0
+    specialValueOverride: 0
+  - tileIndex: 1
+    tileType: 1
+    displayName: "Berlin"
+    boardDisplayName: "Berlin"
+    description: ""
+    propertyId: property_01
+    groupId: group_01
+    groupDisplayName: "Region 1"
+    groupColor: {r: 0.48, g: 0.25, b: 0.15, a: 1}
+    purchasePrice: 202
+    baseRent: 20
+    developmentCost: 101
+    specialValueOverride: 0
+  - tileIndex: 2
+    tileType: 1
+    displayName: "Munich"
+    boardDisplayName: "Munich"
+    description: ""
+    propertyId: property_02
+    groupId: group_01
+    groupDisplayName: "Region 1"
+    groupColor: {r: 0.48, g: 0.25, b: 0.15, a: 1}
+    purchasePrice: 209
+    baseRent: 20
+    developmentCost: 104
+    specialValueOverride: 0
+  - tileIndex: 3
+    tileType: 1
+    displayName: "Hamburg"
+    boardDisplayName: "Hamburg"
+    description: ""
+    propertyId: property_03
+    groupId: group_01
+    groupDisplayName: "Region 1"
+    groupColor: {r: 0.48, g: 0.25, b: 0.15, a: 1}
+    purchasePrice: 216
+    baseRent: 21
+    developmentCost: 108
+    specialValueOverride: 0
+  - tileIndex: 4
+    tileType: 2
+    displayName: "Event"
+    boardDisplayName: "Event"
+    description: ""
+    propertyId: 
+    groupId: 
+    groupDisplayName: ""
+    groupColor: {r: 0, g: 0, b: 0, a: 0}
+    purchasePrice: 0
+    baseRent: 0
+    developmentCost: 0
+    specialValueOverride: 0
+  - tileIndex: 5
+    tileType: 1
+    displayName: "Frankfurt am Main"
+    boardDisplayName: "Frankfurt am Main"
+    description: ""
+    propertyId: property_04
+    groupId: group_02
+    groupDisplayName: "Region 2"
+    groupColor: {r: 0.35, g: 0.74, b: 0.94, a: 1}
+    purchasePrice: 223
+    baseRent: 22
+    developmentCost: 111
+    specialValueOverride: 0
+  - tileIndex: 6
+    tileType: 1
+    displayName: "Cologne"
+    boardDisplayName: "Cologne"
+    description: ""
+    propertyId: property_05
+    groupId: group_02
+    groupDisplayName: "Region 2"
+    groupColor: {r: 0.35, g: 0.74, b: 0.94, a: 1}
+    purchasePrice: 205
+    baseRent: 20
+    developmentCost: 102
+    specialValueOverride: 0
+  - tileIndex: 7
+    tileType: 1
+    displayName: "Stuttgart"
+    boardDisplayName: "Stuttgart"
+    description: ""
+    propertyId: property_06
+    groupId: group_02
+    groupDisplayName: "Region 2"
+    groupColor: {r: 0.35, g: 0.74, b: 0.94, a: 1}
+    purchasePrice: 212
+    baseRent: 21
+    developmentCost: 106
+    specialValueOverride: 0
+  - tileIndex: 8
+    tileType: 3
+    displayName: "Tax"
+    boardDisplayName: "Tax"
+    description: ""
+    propertyId: 
+    groupId: 
+    groupDisplayName: ""
+    groupColor: {r: 0, g: 0, b: 0, a: 0}
+    purchasePrice: 0
+    baseRent: 0
+    developmentCost: 0
+    specialValueOverride: 0
+  - tileIndex: 9
+    tileType: 1
+    displayName: "Düsseldorf"
+    boardDisplayName: "Düsseldorf"
+    description: ""
+    propertyId: property_07
+    groupId: group_03
+    groupDisplayName: "Region 3"
+    groupColor: {r: 0.84, g: 0.24, b: 0.62, a: 1}
+    purchasePrice: 219
+    baseRent: 21
+    developmentCost: 109
+    specialValueOverride: 0
+  - tileIndex: 10
+    tileType: 1
+    displayName: "Leipzig"
+    boardDisplayName: "Leipzig"
+    description: ""
+    propertyId: property_08
+    groupId: group_03
+    groupDisplayName: "Region 3"
+    groupColor: {r: 0.84, g: 0.24, b: 0.62, a: 1}
+    purchasePrice: 201
+    baseRent: 20
+    developmentCost: 100
+    specialValueOverride: 0
+  - tileIndex: 11
+    tileType: 1
+    displayName: "Dresden"
+    boardDisplayName: "Dresden"
+    description: ""
+    propertyId: property_09
+    groupId: group_03
+    groupDisplayName: "Region 3"
+    groupColor: {r: 0.84, g: 0.24, b: 0.62, a: 1}
+    purchasePrice: 208
+    baseRent: 20
+    developmentCost: 104
+    specialValueOverride: 0
+  - tileIndex: 12
+    tileType: 5
+    displayName: "Civic"
+    boardDisplayName: "Civic"
+    description: ""
+    propertyId: 
+    groupId: 
+    groupDisplayName: ""
+    groupColor: {r: 0, g: 0, b: 0, a: 0}
+    purchasePrice: 0
+    baseRent: 0
+    developmentCost: 0
+    specialValueOverride: 0
+  - tileIndex: 13
+    tileType: 1
+    displayName: "Hanover"
+    boardDisplayName: "Hanover"
+    description: ""
+    propertyId: property_10
+    groupId: group_04
+    groupDisplayName: "Region 4"
+    groupColor: {r: 0.93, g: 0.57, b: 0.18, a: 1}
+    purchasePrice: 215
+    baseRent: 21
+    developmentCost: 107
+    specialValueOverride: 0
+  - tileIndex: 14
+    tileType: 1
+    displayName: "Bremen"
+    boardDisplayName: "Bremen"
+    description: ""
+    propertyId: property_11
+    groupId: group_04
+    groupDisplayName: "Region 4"
+    groupColor: {r: 0.93, g: 0.57, b: 0.18, a: 1}
+    purchasePrice: 222
+    baseRent: 22
+    developmentCost: 111
+    specialValueOverride: 0
+  - tileIndex: 15
+    tileType: 1
+    displayName: "Dortmund"
+    boardDisplayName: "Dortmund"
+    description: ""
+    propertyId: property_12
+    groupId: group_04
+    groupDisplayName: "Region 4"
+    groupColor: {r: 0.93, g: 0.57, b: 0.18, a: 1}
+    purchasePrice: 229
+    baseRent: 22
+    developmentCost: 114
+    specialValueOverride: 0
+  - tileIndex: 16
+    tileType: 4
+    displayName: "Trade"
+    boardDisplayName: "Trade"
+    description: ""
+    propertyId: 
+    groupId: 
+    groupDisplayName: ""
+    groupColor: {r: 0, g: 0, b: 0, a: 0}
+    purchasePrice: 0
+    baseRent: 0
+    developmentCost: 0
+    specialValueOverride: 0
+  - tileIndex: 17
+    tileType: 1
+    displayName: "Essen"
+    boardDisplayName: "Essen"
+    description: ""
+    propertyId: property_13
+    groupId: group_05
+    groupDisplayName: "Region 5"
+    groupColor: {r: 0.78, g: 0.12, b: 0.1, a: 1}
+    purchasePrice: 236
+    baseRent: 23
+    developmentCost: 118
+    specialValueOverride: 0
+  - tileIndex: 18
+    tileType: 1
+    displayName: "Nuremberg"
+    boardDisplayName: "Nuremberg"
+    description: ""
+    propertyId: property_14
+    groupId: group_05
+    groupDisplayName: "Region 5"
+    groupColor: {r: 0.78, g: 0.12, b: 0.1, a: 1}
+    purchasePrice: 243
+    baseRent: 24
+    developmentCost: 121
+    specialValueOverride: 0
+  - tileIndex: 19
+    tileType: 1
+    displayName: "Bonn"
+    boardDisplayName: "Bonn"
+    description: ""
+    propertyId: property_15
+    groupId: group_05
+    groupDisplayName: "Region 5"
+    groupColor: {r: 0.78, g: 0.12, b: 0.1, a: 1}
+    purchasePrice: 250
+    baseRent: 25
+    developmentCost: 125
+    specialValueOverride: 0
+  - tileIndex: 20
+    tileType: 2
+    displayName: "Event"
+    boardDisplayName: "Event"
+    description: ""
+    propertyId: 
+    groupId: 
+    groupDisplayName: ""
+    groupColor: {r: 0, g: 0, b: 0, a: 0}
+    purchasePrice: 0
+    baseRent: 0
+    developmentCost: 0
+    specialValueOverride: 0
+  - tileIndex: 21
+    tileType: 1
+    displayName: "Karlsruhe"
+    boardDisplayName: "Karlsruhe"
+    description: ""
+    propertyId: property_16
+    groupId: group_06
+    groupDisplayName: "Region 6"
+    groupColor: {r: 0.98, g: 0.87, b: 0.21, a: 1}
+    purchasePrice: 257
+    baseRent: 25
+    developmentCost: 128
+    specialValueOverride: 0
+  - tileIndex: 22
+    tileType: 1
+    displayName: "Freiburg"
+    boardDisplayName: "Freiburg"
+    description: ""
+    propertyId: property_17
+    groupId: group_06
+    groupDisplayName: "Region 6"
+    groupColor: {r: 0.98, g: 0.87, b: 0.21, a: 1}
+    purchasePrice: 264
+    baseRent: 26
+    developmentCost: 132
+    specialValueOverride: 0
+  - tileIndex: 23
+    tileType: 1
+    displayName: "Heidelberg"
+    boardDisplayName: "Heidelberg"
+    description: ""
+    propertyId: property_18
+    groupId: group_06
+    groupDisplayName: "Region 6"
+    groupColor: {r: 0.98, g: 0.87, b: 0.21, a: 1}
+    purchasePrice: 271
+    baseRent: 27
+    developmentCost: 135
+    specialValueOverride: 0
+  - tileIndex: 24
+    tileType: 5
+    displayName: "Civic"
+    boardDisplayName: "Civic"
+    description: ""
+    propertyId: 
+    groupId: 
+    groupDisplayName: ""
+    groupColor: {r: 0, g: 0, b: 0, a: 0}
+    purchasePrice: 0
+    baseRent: 0
+    developmentCost: 0
+    specialValueOverride: 0
+  - tileIndex: 25
+    tileType: 1
+    displayName: "Augsburg"
+    boardDisplayName: "Augsburg"
+    description: ""
+    propertyId: property_19
+    groupId: group_07
+    groupDisplayName: "Region 7"
+    groupColor: {r: 0.18, g: 0.63, b: 0.38, a: 1}
+    purchasePrice: 278
+    baseRent: 27
+    developmentCost: 139
+    specialValueOverride: 0
+  - tileIndex: 26
+    tileType: 1
+    displayName: "Regensburg"
+    boardDisplayName: "Regensburg"
+    description: ""
+    propertyId: property_20
+    groupId: group_07
+    groupDisplayName: "Region 7"
+    groupColor: {r: 0.18, g: 0.63, b: 0.38, a: 1}
+    purchasePrice: 260
+    baseRent: 26
+    developmentCost: 130
+    specialValueOverride: 0
+  - tileIndex: 27
+    tileType: 1
+    displayName: "Münster"
+    boardDisplayName: "Münster"
+    description: ""
+    propertyId: property_21
+    groupId: group_07
+    groupDisplayName: "Region 7"
+    groupColor: {r: 0.18, g: 0.63, b: 0.38, a: 1}
+    purchasePrice: 292
+    baseRent: 29
+    developmentCost: 146
+    specialValueOverride: 0
+  - tileIndex: 28
+    tileType: 7
+    displayName: "Rest"
+    boardDisplayName: "Rest"
+    description: ""
+    propertyId: 
+    groupId: 
+    groupDisplayName: ""
+    groupColor: {r: 0, g: 0, b: 0, a: 0}
+    purchasePrice: 0
+    baseRent: 0
+    developmentCost: 0
+    specialValueOverride: 0
+  - tileIndex: 29
+    tileType: 1
+    displayName: "Aachen"
+    boardDisplayName: "Aachen"
+    description: ""
+    propertyId: property_22
+    groupId: group_08
+    groupDisplayName: "Region 8"
+    groupColor: {r: 0.18, g: 0.25, b: 0.55, a: 1}
+    purchasePrice: 274
+    baseRent: 27
+    developmentCost: 137
+    specialValueOverride: 0
+  - tileIndex: 30
+    tileType: 1
+    displayName: "Kiel"
+    boardDisplayName: "Kiel"
+    description: ""
+    propertyId: property_23
+    groupId: group_08
+    groupDisplayName: "Region 8"
+    groupColor: {r: 0.18, g: 0.25, b: 0.55, a: 1}
+    purchasePrice: 281
+    baseRent: 28
+    developmentCost: 140
+    specialValueOverride: 0
+  - tileIndex: 31
+    tileType: 1
+    displayName: "Rostock"
+    boardDisplayName: "Rostock"
+    description: ""
+    propertyId: property_24
+    groupId: group_08
+    groupDisplayName: "Region 8"
+    groupColor: {r: 0.18, g: 0.25, b: 0.55, a: 1}
+    purchasePrice: 288
+    baseRent: 28
+    developmentCost: 144
+    specialValueOverride: 0

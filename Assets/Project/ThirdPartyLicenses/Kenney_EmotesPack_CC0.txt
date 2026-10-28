@@ -1,0 +1,15 @@
+ATLASBOARD THIRD-PARTY ASSET RECORD — CC0
+Title: Emotes Pack
+Creator: Kenney Vleugels (Kenney.nl)
+Official source: https://kenney.nl/assets/emotes-pack
+Version: 1.0 (2018)
+Source package: user-provided kenney_emotes-pack.zip / License.txt
+License: Creative Commons Zero (CC0) 1.0 Universal
+License link: https://creativecommons.org/publicdomain/zero/1.0/
+Original verbatim license: Assets/Project/ThirdPartyLicenses/Kenney_EmotesPack_Original_License.txt
+Commercial use: YES, including Steam/Google Play. Modification: YES. Attribution: not required, voluntary Kenney credit appreciated.
+Included: 30 PNG files, one original visual style (PNG/Vector/Style 1/), of which 29 have distinctive expression content and one is a blank bubble; 480 source PNG files across 16 style sets are NOT all necessary.
+Project path: Assets/Project/ThirdParty/Kenney/Emotes/Sprites/
+Use: intended gameplay HUD emotes, Shop visual previews, Career Inventory. This package imports the ART and catalog DRAFT only; no secured emote purchase/HUD runtime yet.
+Third-party trademarks / depictions: CC0 applies to Kenney's asset art, not a blanket promise about independently protected logos or content added later.
+Record date: 2026-10-27.

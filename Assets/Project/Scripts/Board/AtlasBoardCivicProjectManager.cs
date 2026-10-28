@@ -163,6 +163,20 @@ public sealed class AtlasBoardCivicProjectManager : MonoBehaviour
                     default: return LocalizedProjectName(lang, "Colorado Innovation Center", "Colorado İnovasyon Merkezi",
                         "Centro de Innovación de Colorado", "Centre d'innovation du Colorado", "Innovationszentrum Colorado");
                 }
+            case "map_germany":
+                switch (id)
+                {
+                    case 0: return LocalizedProjectName(lang, "Rhine Trade Gateway", "Ren Ticaret Merkezi", "Centro Comercial del Rin", "Pôle Commercial du Rhin", "Rhein-Handelszentrum");
+                    case 1: return LocalizedProjectName(lang, "German Rail Network", "Almanya Demiryolu Ağı", "Red Ferroviaria Alemana", "Réseau Ferroviaire Allemand", "Deutsches Schienennetz");
+                    default: return LocalizedProjectName(lang, "Berlin Innovation Center", "Berlin İnovasyon Merkezi", "Centro de Innovación de Berlín", "Centre d’Innovation de Berlin", "Berliner Innovationszentrum");
+                }
+            case "map_mexico":
+                switch (id)
+                {
+                    case 0: return LocalizedProjectName(lang, "Pacific Trade Corridor", "Pasifik Ticaret Koridoru", "Corredor Comercial del Pacífico", "Corridor Commercial du Pacifique", "Pazifischer Handelskorridor");
+                    case 1: return LocalizedProjectName(lang, "Mexican Transit Network", "Meksika Ulaşım Ağı", "Red de Transporte de México", "Réseau de Transport Mexicain", "Mexikanisches Verkehrsnetz");
+                    default: return LocalizedProjectName(lang, "Mexico City Innovation Center", "Mexico City İnovasyon Merkezi", "Centro de Innovación de Ciudad de México", "Centre d’Innovation de Mexico", "Innovationszentrum Mexiko-Stadt");
+                }
             case "map_usa":
                 switch (id)
                 {

@@ -425,6 +425,11 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
 
     private static string InventoryItemName(string id)
     {
+        if (AtlasBoardEmotes.IsEmote(id))
+        {
+            AtlasBoardLocalizationManager emoteLoc = AtlasBoardLocalizationManager.Instance;
+            return AtlasBoardEmotes.Name(id, emoteLoc != null ? emoteLoc.CurrentLanguageCode : "en");
+        }
         if (id.StartsWith("default_", StringComparison.Ordinal))
             return InventoryWord("Classic / Default", "Klasik / Varsayılan",
                 "Clásico / Predeterminado", "Classique / Par défaut",
@@ -436,7 +441,9 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
 
     private List<string> InventoryOwnedItems()
     {
-        List<string> result = new List<string> { InventoryDefaultFor(inventoryCategory) };
+        List<string> result = inventoryCategory == "emote"
+            ? new List<string>(AtlasBoardEmotes.FreeIds)
+            : new List<string> { InventoryDefaultFor(inventoryCategory) };
         // The preview rows are display-only. A successful trusted inventory
         // read must explicitly mark an item Owned before it is selectable.
         if (inventoryServer != null && inventoryServer.Success)
@@ -449,6 +456,8 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
 
     private bool InventoryIsEquipped(string id)
     {
+        if (inventoryCategory == "emote")
+            return AtlasBoardEmoteLoadoutService.Active.Contains(id);
         if (inventoryCategory == "board_theme")
         {
             string boardId = inventoryServer != null && inventoryServer.WalletVerified
@@ -518,6 +527,8 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                      AtlasBoardRtdbMetaEconomy.CurrentUid == uid))
                     inventoryServer = read;
             }
+            if (inventoryServer != null)
+                await AtlasBoardEmoteLoadoutService.LoadAsync();
             inventoryMessage = inventoryServer == null
                 ? InventoryWord("Default cosmetics available. Server ownership could not be verified.",
                     "Varsayılanlar kullanılabilir. Sunucu sahiplik doğrulaması yapılamadı.",
@@ -546,12 +557,17 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
     private void SelectInventoryCategory(string category)
     {
         inventoryCategory = category;
-        inventorySelectedId = InventoryDefaultFor(category);
+        inventorySelectedId = category == "emote" ? AtlasBoardEmotes.FreeIds[0] : InventoryDefaultFor(category);
         RebuildCurrentPage();
     }
 
     private async void ApplyInventorySelection()
     {
+        if (inventoryCategory == "emote")
+        {
+            await ToggleOwnedEmoteAsync();
+            return;
+        }
         if (inventoryCategory == "dice_skin")
         {
             await ApplyOwnedDiceAsync();
@@ -715,6 +731,38 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         finally { inventoryWriting = false; RebuildCurrentPage(); }
     }
 
+    private async Task ToggleOwnedEmoteAsync()
+    {
+        if (inventoryWriting || inventoryLoading || inventoryServer == null ||
+            !inventoryServer.WalletVerified || !AtlasBoardEmotes.IsEmote(inventorySelectedId)) return;
+        string uid = inventoryAccountUid;
+        if (uid != AtlasBoardRtdbMetaEconomy.CurrentUid) return;
+        var owned = InventoryOwnedItems();
+        if (!owned.Contains(inventorySelectedId)) return;
+        var list = new List<string>(AtlasBoardEmoteLoadoutService.Active);
+        if (list.Contains(inventorySelectedId)) list.Remove(inventorySelectedId);
+        else if (list.Count >= 6)
+        {
+            inventoryMessage = InventoryWord("Six active emotes maximum. Remove one first.",
+                "En fazla 6 aktif emote. Önce birini çıkar.", "Máximo 6 emoticonos; elimina uno.",
+                "Maximum 6 emotes ; retirez-en un.", "Maximal 6 Emotes; bitte eines entfernen.",
+                "활성 이모트는 최대 6개입니다. 먼저 하나를 제거하세요.", "Не более 6 эмоций: уберите одну.");
+            RebuildCurrentPage(); return;
+        }
+        else list.Add(inventorySelectedId);
+        inventoryWriting = true;
+        try
+        {
+            bool success = await AtlasBoardEmoteLoadoutService.SaveAsync(list);
+            inventoryMessage = success ? InventoryWord("Emote loadout saved.", "Emote listesi kaydedildi.",
+                "Selección guardada.", "Sélection enregistrée.", "Auswahl gespeichert.", "이모트 설정 저장됨.", "Набор эмоций сохранён.")
+                : InventoryWord("Could not save emotes. Reload and retry.", "Emote kaydedilemedi, yeniden yükle.",
+                "Error al guardar.", "Échec de l'enregistrement.", "Speichern fehlgeschlagen.",
+                "이모트를 저장하지 못했습니다.", "Не удалось сохранить эмоции.");
+        }
+        finally { inventoryWriting = false; RebuildCurrentPage(); }
+    }
+
     private void BuildInventoryPage()
     {
         CreateSectionTitle(contentRoot, InventoryWord("MY INVENTORY", "ENVANTERİM",
@@ -754,6 +802,12 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         else if (inventoryCategory == "dice_skin")
             AtlasBoardDiceSkinPreviewArt.Create(preview.transform,
                 inventorySelectedId, 170f);
+        else if (inventoryCategory == "emote")
+            AtlasBoardEmotePreviewArt.Create(preview.transform, inventorySelectedId, 154f);
+        else if (inventoryCategory == "pawn" &&
+            AtlasBoardPawnShopPreviewArt.IsSupported(inventorySelectedId))
+            AtlasBoardPawnShopPreviewArt.Create(preview.transform,
+                inventorySelectedId, 170f);
         else
         {
             GameObject previewSquare = CreatePanel(preview.transform, "InventorySample",
@@ -768,7 +822,11 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             FontStyles.Normal, TextAlignmentOptions.Center, TextDark);
         SetAnchored(info.rectTransform, new Vector2(0f, -120f), new Vector2(492f, 64f));
         info.textWrappingMode = TextWrappingModes.Normal;
-        info.text = InventoryIsEquipped(inventorySelectedId)
+        info.text = inventoryCategory == "emote"
+            ? InventoryWord("Active emotes: ", "Aktif emote: ", "Emotes activos: ", "Emotes actifs : ",
+                "Aktive Emotes: ", "활성 이모트: ", "Активные эмоции: ") +
+                AtlasBoardEmoteLoadoutService.Active.Count + "/6"
+            : InventoryIsEquipped(inventorySelectedId)
             ? InventoryWord("Currently equipped on this account.", "Bu hesapta şu anda kullanılıyor.",
                 "Actualmente equipado.", "Actuellement équipé.", "Derzeit angelegt.",
                 "현재 장착 중.", "Сейчас используется.")
@@ -778,15 +836,20 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                 "Wähle einen eigenen Gegenstand.", "보유 아이템을 선택하세요.",
                 "Выберите доступный предмет.");
 
-        string buttonText = InventoryIsEquipped(inventorySelectedId)
+        string buttonText = inventoryCategory == "emote"
+            ? (InventoryIsEquipped(inventorySelectedId)
+                ? InventoryWord("REMOVE", "ÇIKAR", "QUITAR", "RETIRER", "ENTFERNEN", "제거", "УБРАТЬ")
+                : InventoryWord("ADD", "EKLE", "AÑADIR", "AJOUTER", "HINZUFÜGEN", "추가", "ДОБАВИТЬ"))
+            : InventoryIsEquipped(inventorySelectedId)
             ? InventoryWord("EQUIPPED", "KUŞANILDI", "EQUIPADO", "ÉQUIPÉ", "AUSGERÜSTET", "장착 중", "ВЫБРАНО")
             : InventoryWord("APPLY", "UYGULA", "APLICAR", "APPLIQUER", "ANWENDEN", "적용", "ПРИМЕНИТЬ");
         Button apply = CreateButton(preview.transform, buttonText, Green,
             new Vector2(0f, -183f), new Vector2(250f, 56f));
         apply.interactable = !inventoryLoading && !inventoryWriting &&
-            (inventoryCategory == "profile_frame" || inventoryCategory == "board_theme" || inventoryCategory == "dice_skin") && inventoryAccount != null &&
-            !InventoryIsEquipped(inventorySelectedId) &&
-            (inventorySelectedId == InventoryDefaultFor(inventoryCategory) ||
+            (inventoryCategory == "profile_frame" || inventoryCategory == "board_theme" || inventoryCategory == "dice_skin" || inventoryCategory == "emote") && inventoryAccount != null &&
+            (inventoryCategory == "emote" || !InventoryIsEquipped(inventorySelectedId)) &&
+            (inventoryCategory == "emote" && ownedItems.Contains(inventorySelectedId) && inventoryServer != null ||
+             inventorySelectedId == InventoryDefaultFor(inventoryCategory) ||
              ownedItems.Contains(inventorySelectedId) && inventoryServer != null);
         apply.onClick.AddListener(ApplyInventorySelection);
 

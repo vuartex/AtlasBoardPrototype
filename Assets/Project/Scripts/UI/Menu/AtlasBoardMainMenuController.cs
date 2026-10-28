@@ -85,6 +85,10 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             HandleLanguageChanged;
 
         ResolveGameplayUIReferences();
+        // The runtime lobby dropdown may be recreated from an old 3-map scene.
+        // Always register the premium entries before any room interaction.
+        if (AtlasBoardPremiumMapDropdownLabels.EnsureOptions(mapDropdown))
+            Debug.Log("ATB_MAP_CHOICES status=ready count=" + mapDropdown.options.Count, this);
         CaptureGameplayUIState();
         HideExistingGameUI();
         RefreshProfile();
@@ -99,6 +103,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
 
     private void HandleLanguageChanged()
     {
+        AtlasBoardPremiumMapDropdownLabels.EnsureOptions(mapDropdown);
         RefreshProfile();
 
         if (lobbyPanel != null &&
@@ -459,6 +464,21 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         AtlasBoardLobbySelection selection =
             ReadLobbySelection();
 
+        string premiumId = AtlasBoardRtdbMetaEconomy.MapEntitlementId(selection.MapId);
+        // Joined remote humans may play the host-owned map without owning it.
+        AtlasBoardLobbyRuntimeBridge mapBridge = GetComponent<AtlasBoardLobbyRuntimeBridge>();
+        bool remoteParticipant = mapBridge != null && mapBridge.HasLobby &&
+            mapBridge.CurrentSnapshot != null &&
+            !string.Equals(mapBridge.CurrentSnapshot.HostAccountId,
+                mapBridge.CurrentAccountId, System.StringComparison.Ordinal);
+        if (!remoteParticipant && premiumId.Length > 0 &&
+            !AtlasBoardRtdbMetaEconomy.IsPremiumMapOwnedForCurrentUid(premiumId))
+        {
+            ShowModal("MAP NOT OWNED", "Only the host who owns this country map can start it. Purchase the map in Atlas Store.");
+            Debug.LogWarning("ATB_MAP_OWNER_REJECT map=" + selection.MapId + " ownerUidNotVerified=true");
+            return;
+        }
+
         ApplySelectedTheme(
             selection.ThemeId);
 
@@ -550,6 +570,8 @@ public class AtlasBoardMainMenuController : MonoBehaviour
 
     private void OpenLobby()
     {
+        // New rooms start on a free map, never inherit previous owner's paid map.
+        if (mapDropdown != null) { mapDropdown.SetValueWithoutNotify(0); mapDropdown.RefreshShownValue(); }
         SetActive(mainMenuPanel, false);
         SetActive(modalPanel, false);
         SetActive(lobbyPanel, true);
@@ -698,6 +720,8 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         {
             1 => "Colorado",
             2 => "USA",
+            3 => "Germany",
+            4 => "Mexico",
             _ => "Turkey"
         };
     }

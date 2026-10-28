@@ -908,7 +908,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         string[] categories =
         {
             "all", "pawn", "dice_skin", "board_theme",
-            "profile_frame", "emote", "animation_pack"
+            "profile_frame", "emote", "map"
         };
 
         string[] keys =
@@ -916,7 +916,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             "store.category.all", "store.category.pawns",
             "store.category.dice", "store.category.boards",
             "store.category.profile", "store.category.emotes",
-            "store.category.motion"
+            "store.category.maps"
         };
 
         float startX = -486f;
@@ -925,7 +925,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             string captured = categories[i];
             Button button = CreateSmallButton(
                 contentRoot,
-                T(keys[i]),
+                captured == "map" ? StoreAccountText("MAPS", "HARİTALAR", "MAPAS", "CARTES", "KARTEN", "지도", "КАРТЫ") : T(keys[i]),
                 captured == activeCategory ? DarkBlue : Blue,
                 new Vector2(startX + i * 160f, 190f),
                 new Vector2(148f, 44f));
@@ -961,7 +961,12 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         List<AtlasBoardStorefrontItem> list = items.ToList();
         if (list.Count == 0)
         {
-            AddInfoRow(itemContent, T("store.items.empty"));
+            AddInfoRow(itemContent, activeCategory == "map"
+                ? StoreAccountText("Germany · 30,000 Gold / Mexico · 25,000 Gold — Coming soon. Host-owned playable maps are in development.",
+                    "Almanya · 30.000 Gold / Meksika · 25.000 Gold — Yakında. Host'a ait oynanabilir haritalar geliştiriliyor.",
+                    "Alemania y México — Próximamente.", "Allemagne et Mexique — Bientôt.",
+                    "Deutschland und Mexiko — Demnächst.", "독일 및 멕시코 — 준비 중.", "Германия и Мексика — Скоро.")
+                : T("store.items.empty"));
             return;
         }
 
@@ -1038,6 +1043,33 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             AtlasBoardDiceSkinPreviewArt.Create(inspect.transform, item.ItemId, 80f);
             inspect.onClick.AddListener(() => ShowFramePreview(item.ItemId));
         }
+        else if (item.ItemType == "emote" && AtlasBoardEmotes.IsEmote(item.ItemId))
+        {
+            Button inspect = CreateSmallButton(row.transform, string.Empty, DarkBlue,
+                new Vector2(100f, 0f), new Vector2(88f, 88f));
+            inspect.gameObject.name = "PreviewEmote_" + item.ItemId;
+            AtlasBoardEmotePreviewArt.Create(inspect.transform, item.ItemId, 73f);
+            inspect.onClick.AddListener(() => ShowFramePreview(item.ItemId));
+        }
+        else if (item.ItemType == "pawn" &&
+                 AtlasBoardPawnShopPreviewArt.IsSupported(item.ItemId))
+        {
+            Button inspect = CreateSmallButton(
+                row.transform, StoreAccountText("VIEW", "GÖR", "VER", "VOIR",
+                    "ANSEHEN", "보기", "СМОТРЕТЬ"), DarkBlue,
+                new Vector2(100f, 0f), new Vector2(88f, 88f));
+            inspect.gameObject.name = "PreviewPawn_" + item.ItemId;
+            inspect.onClick.AddListener(() => ShowFramePreview(item.ItemId));
+        }
+        else if (item.ItemType == "map" &&
+                 AtlasBoardRtdbMetaEconomy.IsPremiumMap(item.ItemId))
+        {
+            Button inspect = CreateSmallButton(row.transform,
+                StoreAccountText("VIEW", "GÖR", "VER", "VOIR", "ANSEHEN", "보기", "СМОТРЕТЬ"),
+                DarkBlue, new Vector2(100f, 0f), new Vector2(88f, 88f));
+            inspect.gameObject.name = "PreviewMap_" + item.ItemId;
+            inspect.onClick.AddListener(() => ShowFramePreview(item.ItemId));
+        }
         else if (item.ItemType == "board_theme" &&
                  AtlasBoardShopBoardPreviewArt.IsSupported(item.ItemId))
         {
@@ -1058,14 +1090,17 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
                 AtlasBoardShopProfileFrameArt.IsSupported(item.ItemId);
             bool isDice = item.ItemType == "dice_skin" &&
                 AtlasBoardDiceSkinPreviewArt.IsSupported(item.ItemId);
-            if (isFrame || isDice)
+            bool isPawn = item.ItemType == "pawn" &&
+                AtlasBoardPawnShopPreviewArt.IsSupported(item.ItemId);
+            bool isEmote = item.ItemType == "emote" && AtlasBoardEmotes.IsPaid(item.ItemId);
+            if (isFrame || isDice || isPawn || isEmote)
             {
                 // Show a single Gold Buy beside inspect. Preview-only frames
                 // never reach the checkout; Guest opens canonical login.
                 Button frameBuy = CreateSmallButton(
                     row.transform, T("store.items.buy_gold", item.GoldPrice),
                     Green, new Vector2(360f, 0f), new Vector2(258f, 54f));
-                frameBuy.gameObject.name = (isFrame ? "ProfileBuy_" : "DiceBuy_") + item.ItemId;
+                frameBuy.gameObject.name = (isFrame ? "ProfileBuy_" : isDice ? "DiceBuy_" : isPawn ? "PawnBuy_" : "EmoteBuy_") + item.ItemId;
                 frameBuy.onClick.AddListener(() =>
                 {
                     if (!AtlasBoardRtdbMetaEconomy.IsRegistered &&
@@ -1843,20 +1878,29 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         bool isProfile = AtlasBoardShopProfileFrameArt.IsSupported(itemId);
         bool isBoard = AtlasBoardShopBoardPreviewArt.IsSupported(itemId);
         bool isDice = AtlasBoardDiceSkinPreviewArt.IsSupported(itemId);
-        if ((!isProfile && !isBoard && !isDice) ||
+        bool isPawn = AtlasBoardPawnShopPreviewArt.IsSupported(itemId);
+        bool isEmote = AtlasBoardEmotes.IsEmote(itemId);
+        bool isMap = AtlasBoardRtdbMetaEconomy.IsPremiumMap(itemId);
+        if ((!isProfile && !isBoard && !isDice && !isPawn && !isEmote && !isMap) ||
             framePreviewRoot == null || framePreviewArtSlot == null)
             return;
         framePreviewItemId = itemId;
         // The artwork is created only on explicit user interaction.
         for (int i = framePreviewArtSlot.childCount - 1; i >= 0; --i)
             Destroy(framePreviewArtSlot.GetChild(i).gameObject);
-        if (isProfile)
+        if (isMap)
+            AtlasBoardPremiumMapPreviewArt.Create(framePreviewArtSlot, itemId);
+        else if (isProfile)
             AtlasBoardShopProfileFrameArt.Create(framePreviewArtSlot,
                 itemId, 250f,
                 GetProfileInitial(snapshot != null ? snapshot.DisplayName : null));
         else if (isBoard)
             AtlasBoardShopBoardPreviewArt.Create(framePreviewArtSlot,
                 itemId, 250f);
+        else if (isPawn)
+            AtlasBoardPawnShopPreviewArt.Create(framePreviewArtSlot, itemId, 235f);
+        else if (isEmote)
+            AtlasBoardEmotePreviewArt.Create(framePreviewArtSlot, itemId, 225f);
         else
             AtlasBoardDiceSkinPreviewArt.Create(framePreviewArtSlot, itemId, 240f);
         RefreshFramePreviewLanguage();
@@ -1878,7 +1922,9 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             AtlasBoardShopContentDraft.CreatePreview()
                 .FirstOrDefault(x => x.ItemId == framePreviewItemId);
         if (framePreviewPrice != null)
-            framePreviewPrice.text = item == null
+            framePreviewPrice.text = AtlasBoardEmotes.IsPaid(framePreviewItemId)
+                ? AtlasBoardEmotes.Price(framePreviewItemId).ToString("N0") + " Gold"
+                : item == null
                 ? AtlasBoardShopContentDraft.PreviewLabel(lang)
                 : item.GoldPrice.ToString("N0") + " Gold" +
                   (AtlasBoardRtdbMetaEconomy.Price(framePreviewItemId) > 0 &&
@@ -2159,7 +2205,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             case "board_theme": return "store.category.boards";
             case "profile_frame": return "store.category.profile";
             case "emote": return "store.category.emotes";
-            case "animation_pack": return "store.category.motion";
+            case "map": return "store.category.maps";
             default: return "store.category.items";
         }
     }
@@ -2173,7 +2219,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             case "board_theme": return Orange;
             case "profile_frame": return Green;
             case "emote": return new Color32(188, 94, 167, 255);
-            case "animation_pack": return new Color32(66, 168, 150, 255);
+            case "map": return new Color32(66, 168, 150, 255);
             default: return Blue;
         }
     }
