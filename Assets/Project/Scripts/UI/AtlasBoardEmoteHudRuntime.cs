@@ -139,7 +139,7 @@ public sealed class AtlasBoardEmoteHudRuntime : MonoBehaviour
                 var member=bridge!=null && bridge.CurrentSnapshot!=null && bridge.CurrentSnapshot.Members!=null
                     ? bridge.CurrentSnapshot.Members.Find(m=>m!=null && m.Active && m.AccountId==pair.Key) : null;
                 if (member==null) continue;
-                foreach (var h in FindObjectsByType<PlayerHudPanel>(FindObjectsInactive.Exclude,FindObjectsSortMode.None))
+                foreach (var h in FindObjectsByType<PlayerHudPanel>(FindObjectsInactive.Exclude))
                     if (h.Player!=null && h.Player.PlayerSlotIndex==member.SlotIndex)
                     { ShowBubble(h,pair.Value.emoteId); break; }
             }

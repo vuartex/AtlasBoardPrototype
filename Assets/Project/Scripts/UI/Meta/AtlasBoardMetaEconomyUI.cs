@@ -1241,14 +1241,10 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
     private void RebuildEventPage()
     {
         CreateSectionTitle(contentRoot, T("seasonal.page.title"));
-        if (seasonalOverview == null || !seasonalOverview.Success)
+        if (seasonalOverview == null || !seasonalOverview.Success ||
+            seasonalOverview.Event == null || !seasonalOverview.Event.Active)
         {
-            AddInfoRow(contentRoot, T("seasonal.response.loading"));
-            return;
-        }
-        if (seasonalOverview.Event == null || !seasonalOverview.Event.Active)
-        {
-            AddInfoRow(contentRoot, T("seasonal.home.inactive"));
+            BuildEventComingSoonPanel(seasonalOverview != null && seasonalOverview.Success);
             return;
         }
 
@@ -1275,6 +1271,40 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         BuildSeasonalChallenges();
         BuildSeasonalTrack();
         BuildSeasonalLimitedItems();
+    }
+
+    // Calm, seven-language showcase rather than one isolated "service unavailable" row.
+    // The existing LIVE event path below remains unchanged if an event is active.
+    private void BuildEventComingSoonPanel(bool statusKnown)
+    {
+        GameObject card = CreateCard(contentRoot, "EventsComingSoon",
+            new Vector2(0f, 24f), new Vector2(970f, 345f), Cream);
+        GameObject ribbon = CreatePanel(card.transform, "EventHeader",
+            new Vector2(0f, 119f), new Vector2(936f, 65f), Blue);
+        TMP_Text header = CreateText(ribbon.transform, 27f, FontStyles.Bold,
+            TextAlignmentOptions.Center, Color.white);
+        Stretch(header.rectTransform, 12f);
+        header.text = AtlasBoardReleaseUiText.EventsComingSoonTitle();
+
+        TMP_Text symbol = CreateText(card.transform, 46f, FontStyles.Bold,
+            TextAlignmentOptions.Center, Orange);
+        SetAnchored(symbol.rectTransform, new Vector2(0f, 44f), new Vector2(200f, 65f));
+        symbol.text = "★";
+
+        TMP_Text body = CreateText(card.transform, 20f, FontStyles.Normal,
+            TextAlignmentOptions.Center, TextDark);
+        SetAnchored(body.rectTransform, new Vector2(0f, -35f), new Vector2(838f, 85f));
+        body.enableAutoSizing = true;
+        body.fontSizeMin = 16f;
+        body.fontSizeMax = 20f;
+        body.text = AtlasBoardReleaseUiText.EventsComingSoonBody();
+
+        TMP_Text footer = CreateText(card.transform, 12f, FontStyles.Normal,
+            TextAlignmentOptions.Center, Muted);
+        SetAnchored(footer.rectTransform, new Vector2(0f, -128f),
+            new Vector2(850f, 32f));
+        footer.text = statusKnown ? AtlasBoardReleaseUiText.EventsComingSoonFooter() :
+            AtlasBoardReleaseUiText.EventsStatusPendingFooter();
     }
 
     private void BuildSeasonalChallenges()
@@ -1527,7 +1557,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
 
         if (snapshot == null || snapshot.History.Count == 0)
         {
-            AddInfoRow(historyContent, T("store.history.empty"));
+            AddInfoRow(historyContent, AtlasBoardReleaseUiText.NoTransactions());
             return;
         }
 
@@ -2236,7 +2266,10 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         switch (type)
         {
             case "REDEEM_CODE": return T("store.history.type_redeem");
-            case "DAILY_REWARD": return T("store.history.type_daily");
+            case "DAILY_REWARD":
+            case "DAILY": return T("store.history.type_daily");
+            case "DEV_GRANT": return "Developer Wallet";
+            case "RESET_PURCHASES": return "Test Purchase Reset";
             default: return T("store.history.type_purchase");
         }
     }
@@ -2263,6 +2296,10 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
                    $"{CurrencyLabel(item.CurrencyId)}  |  {item.Status}";
         }
 
+        if (item.Type == "DAILY" || item.Type == "DEV_GRANT")
+            return "+" + item.Amount.ToString("N0") + " " + CurrencyLabel(item.CurrencyId);
+        if (item.Type == "RESET_PURCHASES")
+            return "Development test inventory reset";
         return item.Detail ?? string.Empty;
     }
 

@@ -60,14 +60,23 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
 
         if (coordinator == null ||
             !coordinator.IsOnlineSessionActive ||
-            !coordinator.LocalIsHost ||
             matchResultManager == null ||
             !matchResultManager.ResultShown)
         {
             return;
         }
 
-        RecordCompletedMatchAsync(matchId);
+        // Live Spark: immutable per-UID peer-attested journal (no Gold).
+        // Old Functions progression is unavailable on the live Spark plan.
+        // The journal requires a real second human to attest the same final
+        // match digest; bot-only, offline, solo and guest games earn no XP.
+        if (lobbyBridge == null || !lobbyBridge.UsingLocalEmulators)
+        {
+            RecordLiveRtdbMatchAsync(matchId);
+            return;
+        }
+        // Retain the legacy emulator-only verification path for QA.
+        if (coordinator.LocalIsHost) RecordCompletedMatchAsync(matchId);
     }
 
     private void ResolveReferences()
@@ -189,6 +198,42 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
             telemetry[slot].totalDiceValue = 0;
             telemetry[slot].highestRoll = 0;
         }
+    }
+
+    private async void RecordLiveRtdbMatchAsync(string matchId)
+    {
+        recordInFlight = true;
+        try
+        {
+            AtlasBoardRtdbCareerJournal.RecordStatus result =
+                await AtlasBoardRtdbCareerJournal.RecordAsync(matchId,
+                    lobbyBridge, coordinator, matchResultManager, turnManager,
+                    telemetry);
+            if (result.Applied)
+            {
+                recordedMatchId = matchId;
+                if (progressionBridge != null)
+                    await progressionBridge.GetProfileAsync();
+            }
+            else if (result.Reason == "not_eligible" ||
+                     result.Reason == "second_human_required")
+            {
+                recordedMatchId = matchId;
+                Debug.Log("ATB_CAREER_RTDB_CLAIM deferred=" + result.Reason +
+                    " xp=0 match=" + matchId);
+            }
+            else
+            {
+                nextRecordAttemptAt = Time.unscaledTime + 5f;
+                Debug.Log("ATB_CAREER_RTDB_CLAIM pending=" + result.Reason);
+            }
+        }
+        catch (Exception ex)
+        {
+            nextRecordAttemptAt = Time.unscaledTime + 6f;
+            Debug.LogWarning("ATB_CAREER_RTDB_CLAIM error=" + ex.Message);
+        }
+        finally { recordInFlight = false; }
     }
 
     private async void RecordCompletedMatchAsync(string matchId)

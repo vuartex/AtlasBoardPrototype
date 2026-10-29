@@ -105,6 +105,16 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
             int completedTurns,
             IReadOnlyList<AtlasBoardProgressionSlotTelemetry> telemetry)
     {
+        // The legacy callable belongs to the old hosted backend. Live Spark
+        // matches do not have a trusted verifier and may NEVER grant XP on the
+        // authority of a client/host payload. Keep the local emulator QA path.
+        ResolveLobbyBridge();
+        if (lobbyBridge == null || !lobbyBridge.UsingLocalEmulators)
+        {
+            lastErrorKey = "progression.error.trusted_verifier_required";
+            lastTechnicalMessage = "Live Spark RTDB has no trusted completed-match verifier.";
+            return FailedRecordResult(matchId);
+        }
         if (!await EnsureIdentityAsync())
         {
             return FailedRecordResult(matchId);

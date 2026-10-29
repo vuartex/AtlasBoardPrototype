@@ -2,6 +2,7 @@ using System;
 using System.Text;
 using System.Threading.Tasks;
 using Firebase.Auth;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -545,6 +546,21 @@ public static class AtlasBoardRtdbMetaEconomy
                 CurrentEquippedDiceId = snapshot.EquippedDiceId;
             snapshot.DailyClaimedAtMs = document.dailyReward.lastClaimAt;
 
+            // Read-only display of immutable, owner-scoped receipts. The
+            // main wallet remains the single ETag-authoritative economy.
+            if (document.operation != null &&
+                (document.operation.type == "PURCHASE" ||
+                 document.operation.type == "DAILY" ||
+                 document.operation.type == "DEV_GRANT" ||
+                 document.operation.type == "RESET_PURCHASES"))
+                await TryWriteReceiptAsync(identity, document.operation);
+            try { await ReadHistoryAsync(identity, snapshot); }
+            catch (Exception historyError)
+            {
+                Debug.LogWarning("ATB_HISTORY_READ unavailable=" +
+                    Sanitize(historyError.Message));
+            }
+
             foreach (AtlasBoardStorefrontItem item in snapshot.Items)
             {
                 item.Owned = AtlasBoardEmotes.IsPaid(item.ItemId)
@@ -873,6 +889,13 @@ public static class AtlasBoardRtdbMetaEconomy
                     CachedPaidEmotes.Clear();
                 }
 
+                // Ledger is a second, immutable receipt write validated against
+                // this operation in Firebase rules. It does NOT award items,
+                // restore Gold, or claim atomicity with the wallet commit.
+                if (kind == "PURCHASE" || kind == "DAILY" ||
+                    kind == "DEV_GRANT" || kind == "RESET_PURCHASES")
+                    await TryWriteReceiptAsync(identity, doc.operation);
+
                 Debug.Log("ATB_PHASE19C_RTDB_OP type=" + kind +
                           " result=success uid=" + Short(identity.Uid));
                 return new AtlasBoardMetaEconomyOperationResult
@@ -1020,7 +1043,7 @@ public static class AtlasBoardRtdbMetaEconomy
         Identity identity, string method, string path, string body,
         string etag, bool fetchEtag = false)
     {
-        string url = Database + path + "?auth=" +
+        string url = Database + path + (path.Contains("?") ? "&auth=" : "?auth=") +
                      UnityWebRequest.EscapeURL(identity.Token);
         using (UnityWebRequest request = new UnityWebRequest(url, method))
         {
@@ -1052,6 +1075,92 @@ public static class AtlasBoardRtdbMetaEconomy
                 ETag = request.GetResponseHeader("ETag")
             };
         }
+    }
+
+    [Serializable]
+    private sealed class HistoryReceipt
+    {
+        public string id;
+        public string type;
+        public string itemId;
+        public long atMs;
+    }
+
+    private static string HistoryPath(string uid)
+    {
+        return "/users/" + UnityWebRequest.EscapeURL(uid) + "/metaHistory";
+    }
+
+    private static async Task TryWriteReceiptAsync(Identity identity, Operation operation)
+    {
+        if (identity == null || operation == null ||
+            string.IsNullOrEmpty(operation.id)) return;
+        try
+        {
+            var receipt = new HistoryReceipt
+            {
+                id = operation.id,
+                type = operation.type,
+                itemId = operation.itemId ?? "",
+                atMs = operation.atMs
+            };
+            Response response = await RequestAsync(identity, "PUT",
+                HistoryPath(identity.Uid) + "/" + operation.id + ".json",
+                JsonUtility.ToJson(receipt), null);
+            if (response.Status < 200 || response.Status >= 300)
+                Debug.LogWarning("ATB_HISTORY_RECEIPT pending=true status=" +
+                    response.Status + " (wallet remains committed)");
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning("ATB_HISTORY_RECEIPT pending=true type=" +
+                e.GetType().Name + " (wallet remains committed)");
+        }
+    }
+
+    private static async Task ReadHistoryAsync(
+        Identity identity, AtlasBoardMetaEconomySnapshot snapshot)
+    {
+        Response response = await RequestAsync(identity, "GET",
+            HistoryPath(identity.Uid) +
+                ".json?orderBy=%22atMs%22&limitToLast=100", null, null);
+        if (response.Status < 200 || response.Status >= 300)
+            throw new InvalidOperationException("HISTORY_HTTP_" + response.Status);
+        if (string.IsNullOrWhiteSpace(response.Body) ||
+            response.Body.Trim() == "null") return;
+        JObject raw = JObject.Parse(response.Body);
+        var items = new System.Collections.Generic.List<HistoryReceipt>();
+        foreach (JProperty entry in raw.Properties())
+        {
+            if (!(entry.Value is JObject)) continue;
+            HistoryReceipt value;
+            try { value = entry.Value.ToObject<HistoryReceipt>(); }
+            catch { continue; }
+            if (value == null || !string.Equals(entry.Name, value.id,
+                    StringComparison.Ordinal)) continue;
+            items.Add(value);
+        }
+        items.Sort((a, b) => b.atMs.CompareTo(a.atMs));
+        for (int i = 0; i < items.Count && i < 100; i++)
+        {
+            var receipt = items[i];
+            int amount = receipt.type == "PURCHASE" ? -Price(receipt.itemId) :
+                receipt.type == "DAILY" ? DailyGold :
+                receipt.type == "DEV_GRANT" ? DevGold : 0;
+            snapshot.History.Add(new AtlasBoardMetaHistoryItem
+            {
+                Type = receipt.type,
+                TransactionId = receipt.id,
+                ReferenceId = receipt.itemId ?? "",
+                Status = "completed",
+                CurrencyId = "gold",
+                Amount = amount,
+                Detail = receipt.itemId ?? "",
+                CreatedAtUtc = DateTimeOffset.FromUnixTimeMilliseconds(
+                    receipt.atMs).UtcDateTime.ToString("o")
+            });
+        }
+        Debug.Log("ATB_HISTORY_READ source=RTDB receipts=" + items.Count);
     }
 
     private static string EconomyPath(string uid)

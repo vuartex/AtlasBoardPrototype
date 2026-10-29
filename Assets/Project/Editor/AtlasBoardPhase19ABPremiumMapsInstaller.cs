@@ -20,7 +20,7 @@ public static class AtlasBoardPhase19ABPremiumMapsInstaller
         if (germany == null || mexico == null || germany.Tiles.Count != 32 || mexico.Tiles.Count != 32)
         { Debug.LogError("Premium maps missing or invalid: expected two 32-tile assets."); return; }
         int setupCount = 0, dropdownCount = 0;
-        foreach (var setup in UnityEngine.Object.FindObjectsByType<MatchSetupManager>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        foreach (var setup in UnityEngine.Object.FindObjectsByType<MatchSetupManager>(FindObjectsInactive.Include))
         {
             if (!setup.gameObject.scene.IsValid()) continue;
             var so = new SerializedObject(setup); var prop = so.FindProperty("availableMaps");
@@ -32,14 +32,14 @@ public static class AtlasBoardPhase19ABPremiumMapsInstaller
             for (int i=0; i<maps.Count; i++) prop.GetArrayElementAtIndex(i).objectReferenceValue=maps[i];
             so.ApplyModifiedProperties(); EditorUtility.SetDirty(setup); setupCount++;
         }
-        var mainTypes = UnityEngine.Object.FindObjectsByType<AtlasBoardMainMenuController>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        var mainTypes = UnityEngine.Object.FindObjectsByType<AtlasBoardMainMenuController>(FindObjectsInactive.Include);
         foreach (var menu in mainTypes)
         {
             var so=new SerializedObject(menu); var prop=so.FindProperty("mapDropdown");
             var dd=prop != null ? prop.objectReferenceValue as TMP_Dropdown : null;
             if (dd != null && Append(dd)) dropdownCount++;
         }
-        foreach (var lobby in UnityEngine.Object.FindObjectsByType<AtlasBoardPrivateLobbyUIController>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        foreach (var lobby in UnityEngine.Object.FindObjectsByType<AtlasBoardPrivateLobbyUIController>(FindObjectsInactive.Include))
         {
             var so=new SerializedObject(lobby); var prop=so.FindProperty("hostSettingsDropdowns");
             if(prop!=null && prop.arraySize>0) { var dd=prop.GetArrayElementAtIndex(0).objectReferenceValue as TMP_Dropdown; if(dd!=null && Append(dd)) dropdownCount++; }

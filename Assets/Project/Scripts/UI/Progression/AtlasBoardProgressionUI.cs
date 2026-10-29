@@ -947,6 +947,24 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             levelProgressXp,
             levelRequirementXp);
 
+        if (string.Equals(snapshot.TechnicalMessage,
+            "empty_authoritative_profile", StringComparison.Ordinal) ||
+            string.Equals(snapshot.TechnicalMessage,
+            "peer_attested_not_server_verified", StringComparison.Ordinal))
+        {
+            TMP_Text notice = CreateText(
+                card.transform, 11f, FontStyles.Normal,
+                TextAlignmentOptions.Center, Muted);
+            SetAnchored(notice.rectTransform,
+                new Vector2(0f, -73f), new Vector2(1000f, 20f));
+            notice.text = snapshot.TechnicalMessage == "peer_attested_not_server_verified"
+                ? AtlasBoardReleaseUiText.PeerAttestedCareerNotice()
+                : AtlasBoardReleaseUiText.NoVerifiedCareer();
+            notice.enableAutoSizing = true;
+            notice.fontSizeMin = 8f;
+            notice.fontSizeMax = 11f;
+        }
+
         GameObject barBackground = CreatePanel(
             card.transform,
             "XpBarBackground",
@@ -1332,7 +1350,9 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
 
         if (snapshot == null || snapshot.RecentMatches.Count == 0)
         {
-            AddInfoRow(list, T("progression.history.empty"));
+            AddInfoRow(list, AtlasBoardReleaseUiText.CareerNoHistory(
+                snapshot != null && snapshot.Success &&
+                snapshot.TechnicalMessage != "empty_authoritative_profile"));
             return;
         }
 
@@ -1707,14 +1727,13 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             new Vector2(1120f, 455f),
             PanelBlue);
 
-        if (snapshot == null || snapshot.Achievements.Count == 0)
-        {
-            AddInfoRow(list, T("progression.achievements.empty"));
-            return;
-        }
-
+        // Display locked goals even before the authoritative Career projection
+        // is created. Never infer unlocks/XP from offline or host-only results.
+        List<AtlasBoardProgressionAchievement> visible =
+            AtlasBoardCareerAchievementDisplay.MergeVerified(
+                snapshot != null ? snapshot.Achievements : null);
         foreach (AtlasBoardProgressionAchievement achievement in
-                 snapshot.Achievements
+                 visible
                      .OrderByDescending(item => item.unlocked)
                      .ThenBy(item => item.achievementId))
         {
@@ -1745,7 +1764,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             title.rectTransform,
             new Vector2(-300f, 25f),
             new Vector2(430f, 28f));
-        title.text = T(achievement.titleKey);
+        title.text = AtlasBoardCareerAchievementDisplay.Title(achievement.achievementId);
 
         TMP_Text body = CreateText(
             row.transform,
@@ -1757,7 +1776,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             body.rectTransform,
             new Vector2(-285f, -12f),
             new Vector2(460f, 42f));
-        body.text = T(achievement.descriptionKey);
+        body.text = AtlasBoardCareerAchievementDisplay.Description(achievement.achievementId);
 
         TMP_Text progress = CreateText(
             row.transform,
