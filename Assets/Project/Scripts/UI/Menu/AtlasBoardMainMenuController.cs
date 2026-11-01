@@ -1,3 +1,4 @@
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -59,6 +60,12 @@ public class AtlasBoardMainMenuController : MonoBehaviour
     [SerializeField] private int profileGold = 0;
 
     private string currentLobbyMode = "PLAY";
+    private Coroutine mainMenuReturnRoutine;
+    private int navigationGeneration;
+
+    public int NavigationGeneration => navigationGeneration;
+    public bool IsNavigationGenerationCurrent(int generation) =>
+        generation == navigationGeneration;
 
     public void ApplyVerifiedMetaWallet(int gold, int atlasCoin)
     {
@@ -92,7 +99,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         CaptureGameplayUIState();
         HideExistingGameUI();
         RefreshProfile();
-        ShowMainMenu();
+        ShowMainMenuImmediate();
     }
 
     private void OnDestroy()
@@ -208,8 +215,12 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             return;
         }
 
-        currentLobbyMode = "PUBLIC TABLE";
-        OpenLobby();
+        // Do not open the pre-networking 4-local-player lobby as a fallback.
+        // A missing public-room controller is a real setup error, not an
+        // invitation to silently enter obsolete local UI.
+        Debug.LogError("ATB_ONLINE_LOBBY_BLOCKED public_controller_missing=true legacy_fallback=false");
+        ShowModal("ONLINE ROOM UNAVAILABLE",
+            "The online lobby could not be opened. Please restart and try again.");
     }
 
     public void OpenPrivateLobby()
@@ -225,8 +236,10 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             return;
         }
 
-        // Safety fallback if the private-lobby extension is missing.
-        OpenLobby();
+        // Never expose the obsolete local-player lobby on an online flow.
+        Debug.LogError("ATB_ONLINE_LOBBY_BLOCKED private_controller_missing=true legacy_fallback=false");
+        ShowModal("ONLINE ROOM UNAVAILABLE",
+            "The private online lobby is unavailable. Please restart and try again.");
     }
 
     public void OpenPrivateLobbyAfterRoomChoice()
@@ -291,19 +304,82 @@ public class AtlasBoardMainMenuController : MonoBehaviour
 
     public void ShowMainMenu()
     {
-        SetMainMenuCanvasRendering(true);
+        BeginMainMenuReturn(false);
+    }
 
+    private void ShowMainMenuImmediate()
+    {
+        SetMainMenuCanvasRendering(true);
         SetActive(mainMenuPanel, true);
         SetActive(lobbyPanel, false);
         SetActive(modalPanel, false);
+    }
 
+    private void BeginMainMenuReturn(bool resetGameplay)
+    {
+        // A second Back/Escape/menu click while a room leave/close is still in
+        // flight used to let stale async callbacks reopen serialized lobby UI.
+        // Keep one canonical transition and cover it with the existing loading
+        // blocker until the online controllers have settled.
+        if (mainMenuReturnRoutine != null) return;
+
+        navigationGeneration++;
+        int generation = navigationGeneration;
+        AtlasBoardLoadingExperience.BeginMenuReturnReset();
+        mainMenuReturnRoutine = StartCoroutine(
+            MainMenuReturnRoutine(resetGameplay, generation));
+    }
+
+    private IEnumerator MainMenuReturnRoutine(bool resetGameplay, int generation)
+    {
         AtlasBoardPrivateLobbyUIController privateLobby =
             GetComponent<AtlasBoardPrivateLobbyUIController>();
+        AtlasBoardPublicLobbyBrowserController publicBrowser =
+            GetComponent<AtlasBoardPublicLobbyBrowserController>();
 
-        if (privateLobby != null)
+        publicBrowser?.InvalidateForMainMenuReturn();
+        privateLobby?.InvalidatePendingRoomOperations();
+        privateLobby?.NotifyMainMenuShown();
+
+        if (resetGameplay)
         {
-            privateLobby.NotifyMainMenuShown();
+            ResolveGameplayUIReferences();
+            ResetReusableGameplaySession();
+            SetActive(existingTabletCanvas, false);
+            SetActive(existingGameplayOverlayCanvas, false);
+            SetActive(boardControlsCanvas, false);
         }
+
+        const float timeoutSeconds = 8f;
+        float started = Time.unscaledTime;
+        while (privateLobby != null &&
+               !privateLobby.IsMainMenuTransitionSettled &&
+               Time.unscaledTime - started < timeoutSeconds)
+        {
+            float elapsed = Time.unscaledTime - started;
+            AtlasBoardLoadingExperience.SetMenuReturnResetProgress(
+                Mathf.Lerp(0.18f, 0.88f, Mathf.Clamp01(elapsed / timeoutSeconds)));
+            yield return null;
+        }
+
+        if (privateLobby != null && !privateLobby.IsMainMenuTransitionSettled)
+        {
+            Debug.LogWarning(
+                "ATB_MENU_RESET timeout=true lobby_cleanup_pending=true generation=" +
+                generation);
+        }
+
+        // Only the latest transition may reveal Main Menu. Old async lobby
+        // callbacks carry an older generation and are discarded by their
+        // controllers instead of reopening room UI.
+        if (generation == navigationGeneration)
+        {
+            ShowMainMenuImmediate();
+            Debug.Log("ATB_MENU_RESET stale_callbacks_blocked=true generation=" + generation);
+        }
+
+        AtlasBoardLoadingExperience.CompleteMenuReturnReset();
+        mainMenuReturnRoutine = null;
     }
 
     public void ReturnOnlineMatchToLobby()
@@ -313,7 +389,14 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         SetMainMenuCanvasRendering(true);
 
         SetActive(mainMenuPanel, false);
+        if (!HasModernLobbyScaffold())
+        {
+            Debug.LogError("ATB_MODERN_LOBBY missing_scaffold=true rematch_lobby_aborted=true");
+            ShowMainMenuAfterActiveMatchExit();
+            return;
+        }
         SetActive(lobbyPanel, true);
+        RestoreOnlineLobbyScaffold();
         SetActive(modalPanel, false);
 
         SetActive(existingTabletCanvas, false);
@@ -328,17 +411,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
 
     public void ShowMainMenuAfterActiveMatchExit()
     {
-        ResolveGameplayUIReferences();
-        ResetReusableGameplaySession();
-        SetMainMenuCanvasRendering(true);
-
-        SetActive(mainMenuPanel, true);
-        SetActive(lobbyPanel, false);
-        SetActive(modalPanel, false);
-
-        SetActive(existingTabletCanvas, false);
-        SetActive(existingGameplayOverlayCanvas, false);
-        SetActive(boardControlsCanvas, false);
+        BeginMainMenuReturn(true);
     }
 
     private static void ResetReusableGameplaySession()
@@ -568,13 +641,61 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         }
     }
 
+    // PrivateOnlineRoot owns the room code/online controls, but the actual
+    // online settings and player cards are serialized siblings beneath Lobby.
+    // Never disable all siblings: doing so leaves a blank room with only the
+    // code and start buttons. Entry is authorized by the online controllers;
+    // legacy local-player fallback is blocked at OpenPrivateLobby/OpenPlayLobby.
+    private bool HasModernLobbyScaffold()
+    {
+        return lobbyPanel != null &&
+            lobbyPanel.transform.Find("PrivateOnlineRoot") != null &&
+            lobbyPanel.transform.Find("Panel_GameSettings") != null &&
+            lobbyPanel.transform.Find("Panel_Players") != null;
+    }
+
+    private void RestoreOnlineLobbyScaffold()
+    {
+        if (!HasModernLobbyScaffold())
+        {
+            Debug.LogError("ATB_MODERN_LOBBY missing_scaffold=true legacy_fallback=false");
+            return;
+        }
+
+        // These were deactivated by the previous blanket-hiding regression.
+        // They are the SAME live online room widgets (used by the private-room
+        // controller), not a separate legacy lobby.
+        string[] requiredChildren =
+        {
+            "LobbyModeTitle", "Panel_GameSettings", "Panel_Players",
+            "Button_Back", "Button_StartMatch", "PrivateOnlineRoot"
+        };
+        foreach (string childName in requiredChildren)
+        {
+            Transform child = lobbyPanel.transform.Find(childName);
+            if (child != null && !child.gameObject.activeSelf)
+                child.gameObject.SetActive(true);
+        }
+
+        Debug.Log("ATB_MODERN_LOBBY scaffold_restored=true settings=true players=true legacy_fallback=false");
+    }
+
     private void OpenLobby()
     {
+        // Do not expose an obsolete local lobby if required online UI is missing.
+        if (!HasModernLobbyScaffold())
+        {
+            Debug.LogError("ATB_MODERN_LOBBY missing_scaffold=true legacy_fallback=false");
+            ShowModal("ONLINE ROOM UNAVAILABLE",
+                "The online room layout is incomplete. Please reopen the game.");
+            return;
+        }
         // New rooms start on a free map, never inherit previous owner's paid map.
         if (mapDropdown != null) { mapDropdown.SetValueWithoutNotify(0); mapDropdown.RefreshShownValue(); }
         SetActive(mainMenuPanel, false);
         SetActive(modalPanel, false);
         SetActive(lobbyPanel, true);
+        RestoreOnlineLobbyScaffold();
 
         if (lobbyTitleText != null)
         {
@@ -593,6 +714,38 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         }
 
         RefreshPlayerRows();
+    }
+
+    // Shared account-entitlement notice for offline, private and public
+    // selectors. Do not silently discard a premium map selection.
+    public void ShowPremiumMapNotOwned(string mapId)
+    {
+        string locale = AtlasBoardLocalizationManager.Instance != null
+            ? AtlasBoardLocalizationManager.Instance.CurrentLanguageCode : "en";
+        string mapName = AtlasBoardShopContentDraft.LocalizedName(
+            mapId == "Mexico" || mapId == "map_mexico" ? "map_mexico" :
+            "map_germany", locale);
+        string title;
+        string message;
+        switch ((locale ?? "en").ToLowerInvariant())
+        {
+            case "tr": title = "HARİTA SATIN ALINMAMIŞ";
+                message = mapName + " haritasına sahip değilsiniz. Bu haritada oda kurmak için Atlas Mağaza'dan satın alın."; break;
+            case "es": title = "MAPA NO ADQUIRIDO";
+                message = "No tienes el mapa " + mapName + ". Cómpralo en la Tienda Atlas para crear una partida."; break;
+            case "fr": title = "CARTE NON ACHETÉE";
+                message = "Vous ne possédez pas la carte " + mapName + ". Achetez-la dans la boutique Atlas pour créer une partie."; break;
+            case "de": title = "KARTE NICHT GEKAUFT";
+                message = "Du besitzt die Karte " + mapName + " nicht. Kaufe sie im Atlas-Shop, um ein Spiel zu erstellen."; break;
+            case "ko": title = "보유하지 않은 지도";
+                message = mapName + " 지도를 보유하고 있지 않습니다. Atlas 상점에서 구매한 뒤 방을 만드세요."; break;
+            case "ru": title = "КАРТА НЕ КУПЛЕНА";
+                message = "У вас нет карты " + mapName + ". Купите её в магазине Atlas, чтобы создать игру."; break;
+            default: title = "MAP NOT OWNED";
+                message = "You don't own " + mapName + ". Purchase this map in Atlas Store before creating a game."; break;
+        }
+        ShowModal(title, message);
+        if (modalPanel != null) modalPanel.transform.SetAsLastSibling();
     }
 
     private void ShowModal(

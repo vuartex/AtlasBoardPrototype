@@ -137,6 +137,9 @@ public class BotPlayerController : MonoBehaviour
 
     private PlayerGameState playerState;
     private Coroutine decisionRoutine;
+    private float decisionRoutineStartedAtRealtime = -1f;
+    private string decisionRoutineKind = string.Empty;
+    private const float DecisionRoutineWatchdogSeconds = 8f;
 
     private int lastOwnTradeAttemptCompletedTurns = -1;
     private int lastPulseAttemptCompletedTurns = -1;
@@ -189,6 +192,8 @@ public class BotPlayerController : MonoBehaviour
             {
                 StopCoroutine(decisionRoutine);
                 decisionRoutine = null;
+                decisionRoutineStartedAtRealtime = -1f;
+                decisionRoutineKind = string.Empty;
             }
             return;
         }
@@ -252,10 +257,18 @@ public class BotPlayerController : MonoBehaviour
         }
 
         if (!botEnabled ||
-            playerState == null ||
-            decisionRoutine != null)
+            playerState == null)
         {
             return;
+        }
+
+        if (decisionRoutine != null)
+        {
+            RecoverStalledDecisionRoutine();
+            if (decisionRoutine != null)
+            {
+                return;
+            }
         }
 
         EnsureReferences();
@@ -352,6 +365,107 @@ public class BotPlayerController : MonoBehaviour
                 "bot-pulse-" + playerState.PlayerSlotIndex + "-" + token);
     }
 
+    private Coroutine StartTrackedDecision(
+        IEnumerator routine,
+        string kind)
+    {
+        decisionRoutineStartedAtRealtime =
+            Time.realtimeSinceStartup;
+        decisionRoutineKind =
+            string.IsNullOrWhiteSpace(kind)
+                ? "unknown"
+                : kind;
+
+        return StartCoroutine(routine);
+    }
+
+    private void RecoverStalledDecisionRoutine()
+    {
+        if (decisionRoutine == null ||
+            Time.timeScale <= 0f)
+        {
+            return;
+        }
+
+        if (decisionRoutineStartedAtRealtime < 0f)
+        {
+            decisionRoutineStartedAtRealtime =
+                Time.realtimeSinceStartup;
+            return;
+        }
+
+        float elapsed =
+            Time.realtimeSinceStartup -
+            decisionRoutineStartedAtRealtime;
+
+        if (elapsed < DecisionRoutineWatchdogSeconds)
+        {
+            return;
+        }
+
+        StopCoroutine(decisionRoutine);
+        decisionRoutine = null;
+
+        string pending = DescribePendingDecision();
+
+        Debug.LogWarning(
+            "ATB_BOT_DECISION_WATCHDOG recovered=true " +
+            $"player={playerState?.DisplayName ?? "unknown"} " +
+            $"slot={playerState?.PlayerSlotIndex ?? -1} " +
+            $"kind={decisionRoutineKind} elapsed={elapsed:0.0}s " +
+            $"pending={pending}",
+            this);
+
+        decisionRoutineStartedAtRealtime = -1f;
+        decisionRoutineKind = string.Empty;
+    }
+
+    private string DescribePendingDecision()
+    {
+        if (eventCardManager != null &&
+            eventCardManager.HasPendingEventFor(playerState))
+        {
+            return "event";
+        }
+
+        if (specialTileManager != null &&
+            specialTileManager.HasPendingSpecialFor(playerState))
+        {
+            return "special";
+        }
+
+        if (tileResolutionManager != null)
+        {
+            if (tileResolutionManager.HasPendingPurchaseFor(playerState))
+                return "purchase";
+            if (tileResolutionManager.HasPendingTravelFor(playerState))
+                return "travel";
+            if (tileResolutionManager.HasPendingDevelopmentFor(playerState))
+                return "development";
+        }
+
+        if (auctionManager != null &&
+            auctionManager.IsAuctionActive &&
+            auctionManager.IsCurrentBidder(playerState))
+        {
+            return "auction";
+        }
+
+        if (tradeManager != null &&
+            tradeManager.HasPendingOfferFor(playerState))
+        {
+            return "trade_response";
+        }
+
+        if (turnManager != null &&
+            turnManager.CanPlayerRequestRoll(playerState))
+        {
+            return "roll";
+        }
+
+        return "none";
+    }
+
     private bool TryStartTradeResponse()
     {
         if (tradeManager == null ||
@@ -362,8 +476,9 @@ public class BotPlayerController : MonoBehaviour
         }
 
         decisionRoutine =
-            StartCoroutine(
-                ResolveTradeResponseAfterDelay());
+            StartTrackedDecision(
+                ResolveTradeResponseAfterDelay(),
+                "trade_response");
 
         return true;
     }
@@ -372,14 +487,15 @@ public class BotPlayerController : MonoBehaviour
     {
         if (eventCardManager == null ||
             !eventCardManager
-                .HasPendingEventFor(playerState))
+                .CanBotContinueEventFor(playerState))
         {
             return false;
         }
 
         decisionRoutine =
-            StartCoroutine(
-                ContinueEventAfterDelay());
+            StartTrackedDecision(
+                ContinueEventAfterDelay(),
+                "event_continue");
 
         return true;
     }
@@ -394,8 +510,9 @@ public class BotPlayerController : MonoBehaviour
         }
 
         decisionRoutine =
-            StartCoroutine(
-                ContinueSpecialAfterDelay());
+            StartTrackedDecision(
+                ContinueSpecialAfterDelay(),
+                "special_continue");
 
         return true;
     }
@@ -410,8 +527,9 @@ public class BotPlayerController : MonoBehaviour
         }
 
         decisionRoutine =
-            StartCoroutine(
-                ResolvePurchaseAfterDelay());
+            StartTrackedDecision(
+                ResolvePurchaseAfterDelay(),
+                "purchase");
 
         return true;
     }
@@ -427,8 +545,9 @@ public class BotPlayerController : MonoBehaviour
         }
 
         decisionRoutine =
-            StartCoroutine(
-                ResolveAuctionAfterDelay());
+            StartTrackedDecision(
+                ResolveAuctionAfterDelay(),
+                "auction");
 
         return true;
     }
@@ -443,8 +562,9 @@ public class BotPlayerController : MonoBehaviour
         }
 
         decisionRoutine =
-            StartCoroutine(
-                ResolveTravelAfterDelay());
+            StartTrackedDecision(
+                ResolveTravelAfterDelay(),
+                "travel");
 
         return true;
     }
@@ -459,8 +579,9 @@ public class BotPlayerController : MonoBehaviour
         }
 
         decisionRoutine =
-            StartCoroutine(
-                ResolveDevelopmentAfterDelay());
+            StartTrackedDecision(
+                ResolveDevelopmentAfterDelay(),
+                "development");
 
         return true;
     }
@@ -504,11 +625,12 @@ public class BotPlayerController : MonoBehaviour
         }
 
         decisionRoutine =
-            StartCoroutine(
+            StartTrackedDecision(
                 BeginOwnTradeAfterDelay(
                     targetPlayer,
                     requestedProperty,
-                    cashOffer));
+                    cashOffer),
+                "own_trade");
 
         return true;
     }
@@ -523,8 +645,9 @@ public class BotPlayerController : MonoBehaviour
         }
 
         decisionRoutine =
-            StartCoroutine(
-                RollAfterDelay());
+            StartTrackedDecision(
+                RollAfterDelay(),
+                "roll");
     }
 
     private IEnumerator RollAfterDelay()
@@ -589,9 +712,19 @@ public class BotPlayerController : MonoBehaviour
             $"{(shouldBuy ? "BUY" : "PASS")}.",
             this);
 
-        tileResolutionManager.TryResolveBotPurchase(
-            playerState,
-            shouldBuy);
+        bool resolved =
+            tileResolutionManager.TryResolveBotPurchase(
+                playerState,
+                shouldBuy);
+
+        if (!resolved &&
+            tileResolutionManager.HasPendingPurchaseFor(playerState))
+        {
+            Debug.LogWarning(
+                "ATB_BOT_DECISION_RETRY kind=purchase " +
+                $"player={playerState.DisplayName} reason=rejected",
+                this);
+        }
 
         decisionRoutine = null;
     }
@@ -626,9 +759,20 @@ public class BotPlayerController : MonoBehaviour
             $"{action}.",
             this);
 
-        auctionManager.TryResolveBotAction(
-            playerState,
-            action);
+        bool resolved =
+            auctionManager.TryResolveBotAction(
+                playerState,
+                action);
+
+        if (!resolved &&
+            auctionManager.IsAuctionActive &&
+            auctionManager.IsCurrentBidder(playerState))
+        {
+            Debug.LogWarning(
+                "ATB_BOT_DECISION_RETRY kind=auction " +
+                $"player={playerState.DisplayName} reason=rejected",
+                this);
+        }
 
         decisionRoutine = null;
     }
@@ -661,9 +805,19 @@ public class BotPlayerController : MonoBehaviour
             $"{(shouldTravel ? "TRAVEL" : "STAY")}.",
             this);
 
-        tileResolutionManager.TryResolveBotTravel(
-            playerState,
-            shouldTravel);
+        bool resolved =
+            tileResolutionManager.TryResolveBotTravel(
+                playerState,
+                shouldTravel);
+
+        if (!resolved &&
+            tileResolutionManager.HasPendingTravelFor(playerState))
+        {
+            Debug.LogWarning(
+                "ATB_BOT_DECISION_RETRY kind=travel " +
+                $"player={playerState.DisplayName} reason=rejected",
+                this);
+        }
 
         decisionRoutine = null;
     }
@@ -700,9 +854,19 @@ public class BotPlayerController : MonoBehaviour
             $"{(shouldDevelop ? "DEVELOP" : "SKIP")}.",
             this);
 
-        tileResolutionManager.TryResolveBotDevelopment(
-            playerState,
-            shouldDevelop);
+        bool resolved =
+            tileResolutionManager.TryResolveBotDevelopment(
+                playerState,
+                shouldDevelop);
+
+        if (!resolved &&
+            tileResolutionManager.HasPendingDevelopmentFor(playerState))
+        {
+            Debug.LogWarning(
+                "ATB_BOT_DECISION_RETRY kind=development " +
+                $"player={playerState.DisplayName} reason=rejected",
+                this);
+        }
 
         decisionRoutine = null;
     }
@@ -802,9 +966,19 @@ public class BotPlayerController : MonoBehaviour
             $"cash reserve safe: {cashReserveSafe}.",
             this);
 
-        tradeManager.TryResolveBotResponse(
-            playerState,
-            accept);
+        bool resolved =
+            tradeManager.TryResolveBotResponse(
+                playerState,
+                accept);
+
+        if (!resolved &&
+            tradeManager.HasPendingOfferFor(playerState))
+        {
+            Debug.LogWarning(
+                "ATB_BOT_DECISION_RETRY kind=trade_response " +
+                $"player={playerState.DisplayName} reason=rejected",
+                this);
+        }
 
         decisionRoutine = null;
     }
@@ -824,13 +998,25 @@ public class BotPlayerController : MonoBehaviour
             eventCardManager
                 .HasPendingEventFor(playerState))
         {
-            eventCardManager.TryResolveBotContinue(
-                playerState);
+            bool resolved =
+                eventCardManager.TryResolveBotContinue(
+                    playerState);
 
-            Debug.Log(
-                $"{playerState.DisplayName} [BOT] " +
-                "continued the event result.",
-                this);
+            if (resolved)
+            {
+                Debug.Log(
+                    $"{playerState.DisplayName} [BOT] " +
+                    "continued the event result.",
+                    this);
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "ATB_BOT_DECISION_RETRY kind=event_continue " +
+                    $"player={playerState?.DisplayName ?? "unknown"} " +
+                    "reason=not_ready_or_rejected",
+                    this);
+            }
         }
 
         decisionRoutine = null;
@@ -851,13 +1037,25 @@ public class BotPlayerController : MonoBehaviour
             specialTileManager
                 .HasPendingSpecialFor(playerState))
         {
-            specialTileManager.TryResolveBotContinue(
-                playerState);
+            bool resolved =
+                specialTileManager.TryResolveBotContinue(
+                    playerState);
 
-            Debug.Log(
-                $"{playerState.DisplayName} [BOT] " +
-                "continued the special result.",
-                this);
+            if (resolved)
+            {
+                Debug.Log(
+                    $"{playerState.DisplayName} [BOT] " +
+                    "continued the special result.",
+                    this);
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "ATB_BOT_DECISION_RETRY kind=special_continue " +
+                    $"player={playerState?.DisplayName ?? "unknown"} " +
+                    "reason=rejected",
+                    this);
+            }
         }
 
         decisionRoutine = null;

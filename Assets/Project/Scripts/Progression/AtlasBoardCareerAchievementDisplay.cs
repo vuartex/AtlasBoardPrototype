@@ -69,8 +69,8 @@ public static class AtlasBoardCareerAchievementDisplay
             items.Add(new AtlasBoardProgressionAchievement
             {
                 achievementId = def.Id,
-                target = server != null && server.target > 0 ? server.target : def.Target,
-                progress = server != null ? Math.Max(0,server.progress) : 0,
+                target = def.Target,
+                progress = server != null ? Math.Min(def.Target, Math.Max(0, server.progress)) : 0,
                 unlocked = server != null && server.unlocked
             });
             source.Remove(def.Id);

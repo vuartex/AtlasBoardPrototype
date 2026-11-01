@@ -5,18 +5,6 @@ using UnityEngine;
 [Serializable]
 public sealed class AtlasBoardEmoteSpriteEntry { public string id; public Sprite sprite; }
 
-// One registry asset refers to the original imported Kenney sprites. No duplicate PNGs.
-public sealed class AtlasBoardEmoteSpriteCatalog : ScriptableObject
-{
-    public List<AtlasBoardEmoteSpriteEntry> entries = new List<AtlasBoardEmoteSpriteEntry>();
-    public Sprite Find(string id)
-    {
-        foreach (var entry in entries)
-            if (entry != null && entry.id == id) return entry.sprite;
-        return null;
-    }
-}
-
 public static class AtlasBoardEmotes
 {
     [Serializable]
@@ -62,6 +50,7 @@ public static class AtlasBoardEmotes
         new EmoteDefinition("emote_swirl", 150, "Dizzy", "Başım Döndü", "Mareo", "Vertige", "Schwindel", "어지러움", "Головокружение"),
     };
     private static AtlasBoardEmoteSpriteCatalog sprites;
+    private static bool loggedMissingRuntimeCatalog;
     public static readonly string[] FreeIds = { "emote_faceHappy", "emote_faceSad", "emote_faceAngry" };
     public static IReadOnlyList<EmoteDefinition> All => Catalog;
     public static bool IsEmote(string id) => Find(id) != null;
@@ -79,7 +68,17 @@ public static class AtlasBoardEmotes
     }
     public static Sprite Sprite(string id)
     {
-        if (sprites == null) sprites = Resources.Load<AtlasBoardEmoteSpriteCatalog>("AtlasBoard/EmoteSpriteCatalog");
+        if (sprites == null)
+        {
+            sprites = Resources.Load<AtlasBoardEmoteSpriteCatalog>("AtlasBoard/EmoteSpriteCatalog");
+            if (sprites == null && !loggedMissingRuntimeCatalog)
+            {
+                loggedMissingRuntimeCatalog = true;
+                Debug.LogError("ATB_EMOTES_CATALOG_IN_BUILD missing=true " +
+                    "path=Resources/AtlasBoard/EmoteSpriteCatalog " +
+                    "fix=Editor_prebuild_catalog_required");
+            }
+        }
         return sprites != null ? sprites.Find(id) : null;
     }
 }

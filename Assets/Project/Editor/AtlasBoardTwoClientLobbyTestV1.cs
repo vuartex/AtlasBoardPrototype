@@ -102,17 +102,37 @@ public static class AtlasBoardTwoClientLobbyTestV1
             GetBuildFolder();
 
 
-        if (Directory.Exists(
-                outputFolder))
+        // A running Guest process keeps its EXE and UnityPlayer files locked on Windows.
+        // Report the problem before deleting anything; never terminate the player's process.
+        if (IsGuestExecutableRunning())
         {
-            Directory.Delete(
-                outputFolder,
-                true);
+            const string runningMessage =
+                "Close the standalone AtlasBoardGuest.exe window before building again. " +
+                "The existing Guest build was left untouched.";
+            Debug.LogError("ATB_GUEST_BUILD_BLOCKED reason=guest_running " + runningMessage);
+            EditorUtility.DisplayDialog("Atlas Board - Guest Is Running", runningMessage, "OK");
+            return;
         }
 
+        try
+        {
+            if (Directory.Exists(outputFolder))
+            {
+                Directory.Delete(outputFolder, true);
+            }
 
-        Directory.CreateDirectory(
-            outputFolder);
+            Directory.CreateDirectory(outputFolder);
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            ReportGuestBuildFolderLocked(outputFolder, exception);
+            return;
+        }
+        catch (IOException exception)
+        {
+            ReportGuestBuildFolderLocked(outputFolder, exception);
+            return;
+        }
 
 
         string executable =
@@ -313,6 +333,54 @@ public static class AtlasBoardTwoClientLobbyTestV1
             ". Actual PASS still requires Editor Host + standalone Guest against the same local Firebase emulators.");
     }
 
+
+    // Only the Editor's Guest build routine uses this guard. Gameplay is unchanged.
+    private static bool IsGuestExecutableRunning()
+    {
+        try
+        {
+            Process[] processes = Process.GetProcessesByName(
+                Path.GetFileNameWithoutExtension(ExecutableName));
+            bool running = false;
+            foreach (Process process in processes)
+            {
+                using (process)
+                {
+                    try
+                    {
+                        if (!process.HasExited)
+                        {
+                            running = true;
+                        }
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // The process may have exited between enumeration and inspection.
+                    }
+                }
+            }
+            return running;
+        }
+        catch (Exception exception)
+        {
+            // Still try the file operation: the IOException/UnauthorizedAccessException
+            // handler reports whether the output folder is actually locked.
+            Debug.LogWarning("ATB_GUEST_BUILD_CHECK status=unknown " + exception.Message);
+            return false;
+        }
+    }
+
+    private static void ReportGuestBuildFolderLocked(string folder, Exception exception)
+    {
+        string message =
+            "Guest build folder is locked or not writable: " + folder +
+            "\nClose AtlasBoardGuest.exe, any File Explorer/file-sync process using this " +
+            "folder, and try Build Two-Client Guest Test v1 again. " +
+            "Do not delete your project or Library folder.";
+        Debug.LogError("ATB_GUEST_BUILD_BLOCKED reason=folder_locked path=" +
+            folder + " error=" + exception.Message);
+        EditorUtility.DisplayDialog("Atlas Board - Guest Build Blocked", message, "OK");
+    }
 
     private static string GetBuildFolder()
     {

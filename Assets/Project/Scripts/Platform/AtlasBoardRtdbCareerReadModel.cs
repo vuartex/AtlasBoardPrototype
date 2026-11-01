@@ -113,7 +113,11 @@ public sealed class AtlasBoardRtdbCareerReadModel : MonoBehaviour
                 if (wire.recentMatches != null) snapshot.RecentMatches.AddRange(wire.recentMatches);
             }
         }
-        try { return await AtlasBoardRtdbCareerJournal.MergeAsync(snapshot, uid, idToken); }
+        try
+        {
+            await AtlasBoardRtdbCareerJournal.RecoverPendingAsync(uid, idToken);
+            return await AtlasBoardRtdbCareerJournal.MergeAsync(snapshot, uid, idToken);
+        }
         catch (Exception exception)
         {
             Debug.LogWarning("ATB_CAREER_RTDB_READ journal_unavailable=" +
@@ -193,7 +197,7 @@ public sealed class AtlasBoardRtdbCareerReadModel : MonoBehaviour
     {
         FirebaseUser user = null;
         try { user = FirebaseAuth.DefaultInstance.CurrentUser; } catch { }
-        if (user != null && !string.IsNullOrWhiteSpace(user.UserId) && !user.IsAnonymous)
+        if (user != null && !string.IsNullOrWhiteSpace(user.UserId))
             return "uid:" + user.UserId;
         AtlasBoardPlatformRuntime platform = AtlasBoardPlatformRuntime.Instance;
         if (platform != null && platform.IsSteamProviderActive &&
@@ -242,12 +246,17 @@ public sealed class AtlasBoardRtdbCareerReadModel : MonoBehaviour
         try
         {
             FirebaseUser user = FirebaseAuth.DefaultInstance.CurrentUser;
-            if (user == null || user.IsAnonymous || user.UserId != uid) return;
+            if (user == null || user.UserId != uid ||
+                !await AtlasBoardRtdbMetaEconomy.IsCareerRewardEligibleAsync()) return;
             string token = await user.TokenAsync(false);
             if (string.IsNullOrEmpty(token)) return;
-            AtlasBoardProgressionSnapshot snapshot =
-                await ReadProfileAsync(uid, token, DisplayName(identityAtStart));
-            if (this == null || career == null || lastIdentity != identityAtStart) return;
+            AtlasBoardProgressionBridge progression =
+                UnityEngine.Object.FindAnyObjectByType<AtlasBoardProgressionBridge>();
+            AtlasBoardProgressionSnapshot snapshot = progression != null
+                ? await progression.GetProfileAsync()
+                : await ReadProfileAsync(uid, token, DisplayName(identityAtStart));
+            if (this == null || career == null || lastIdentity != identityAtStart ||
+                IdentityKey() != identityAtStart) return;
             if (snapshot == null || !snapshot.Success)
             {
                 lastState = "unavailable";

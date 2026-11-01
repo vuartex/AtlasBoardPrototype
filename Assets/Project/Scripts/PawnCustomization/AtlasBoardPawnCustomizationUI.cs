@@ -492,9 +492,9 @@ public class AtlasBoardPawnCustomizationUI :
 
         if (botSeat)
         {
-            // The host cannot customize bot pawns. Bots keep their own
-            // deterministic/previously assigned cosmetic in the room.
-            editable = false;
+            // Permanent bots belong to the host's room configuration. Other
+            // users must never reconfigure them, while the host may.
+            editable = localIsHost;
             return true;
         }
 

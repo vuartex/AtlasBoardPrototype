@@ -25,7 +25,8 @@ public sealed class AtlasBoardLoadingExperience : MonoBehaviour
     {
         None = 0,
         Startup = 1,
-        Match = 2
+        Match = 2,
+        MenuReset = 3
     }
 
     private sealed class LocalizedLine
@@ -125,6 +126,40 @@ public sealed class AtlasBoardLoadingExperience : MonoBehaviour
         GameObject root = new GameObject("AtlasBoard_Loading_Experience");
         DontDestroyOnLoad(root);
         root.AddComponent<AtlasBoardLoadingExperience>();
+    }
+
+    // Reuse the canonical startup blocker as a short soft-reset gate whenever
+    // a player returns to Main Menu. This prevents stale lobby/create/join
+    // callbacks from racing a new menu action while the previous room is still
+    // being left or closed. It does NOT rerun the full startup bootstrap.
+    public static void BeginMenuReturnReset()
+    {
+        if (instance == null) return;
+        instance.BeginLoadingMode(LoadingMode.MenuReset);
+        instance.SetProgress(0.12f);
+        instance.SetStatus(L(
+            "Returning to Main Menu...",
+            "Ana menüye dönülüyor...",
+            "Volviendo al menú principal...",
+            "Retour au menu principal...",
+            "Rückkehr zum Hauptmenü...",
+            "메인 메뉴로 돌아가는 중...",
+            "Возврат в главное меню..."));
+        Debug.Log("ATB_MENU_RESET event=begin");
+    }
+
+    public static void SetMenuReturnResetProgress(float progress)
+    {
+        if (instance == null || instance.mode != LoadingMode.MenuReset) return;
+        instance.SetProgress(Mathf.Clamp01(progress));
+    }
+
+    public static void CompleteMenuReturnReset()
+    {
+        if (instance == null || instance.mode != LoadingMode.MenuReset) return;
+        instance.SetProgress(1f);
+        instance.HideBlockingOverlay();
+        Debug.Log("ATB_MENU_RESET event=complete");
     }
 
     private void Awake()
@@ -899,16 +934,32 @@ public sealed class AtlasBoardLoadingExperience : MonoBehaviour
 
         if (titleText != null)
         {
-            titleText.text = mode == LoadingMode.Match
-                ? L(
+            if (mode == LoadingMode.Match)
+            {
+                titleText.text = L(
                     "Starting Match",
                     "Maç Başlatılıyor",
                     "Iniciando partida",
                     "Démarrage de la partie",
                     "Spiel wird gestartet",
                     "경기 시작 중",
-                    "Запуск матча")
-                : "Atlas Board";
+                    "Запуск матча");
+            }
+            else if (mode == LoadingMode.MenuReset)
+            {
+                titleText.text = L(
+                    "Main Menu",
+                    "Ana Menü",
+                    "Menú principal",
+                    "Menu principal",
+                    "Hauptmenü",
+                    "메인 메뉴",
+                    "Главное меню");
+            }
+            else
+            {
+                titleText.text = "Atlas Board";
+            }
         }
     }
 

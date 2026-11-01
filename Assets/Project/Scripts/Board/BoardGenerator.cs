@@ -348,8 +348,20 @@ public class BoardGenerator : MonoBehaviour
 
         if (selectedMaterial != null)
         {
-            tileRenderer.sharedMaterial =
-                selectedMaterial;
+            tileRenderer.sharedMaterial = selectedMaterial;
+            // Reduce glare on the light city-tile faces without changing the
+            // imported material asset or ownership/gameplay geometry.
+            // Block only shader properties this actual material supports.
+            MaterialPropertyBlock matte = new MaterialPropertyBlock();
+            if (selectedMaterial.HasProperty("_BaseColor"))
+                matte.SetColor("_BaseColor", selectedMaterial.GetColor("_BaseColor") * 0.83f);
+            if (selectedMaterial.HasProperty("_Color"))
+                matte.SetColor("_Color", selectedMaterial.GetColor("_Color") * 0.83f);
+            if (selectedMaterial.HasProperty("_Smoothness"))
+                matte.SetFloat("_Smoothness", 0.08f);
+            if (selectedMaterial.HasProperty("_Glossiness"))
+                matte.SetFloat("_Glossiness", 0.08f);
+            tileRenderer.SetPropertyBlock(matte);
         }
 
         BoardTile boardTile =

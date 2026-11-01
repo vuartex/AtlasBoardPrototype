@@ -62,6 +62,10 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
     private float nextReferenceRefreshAt;
 
 
+    private string lastLobbySlotResolutionSignature =
+        string.Empty;
+
+
     [RuntimeInitializeOnLoadMethod(
         RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -151,7 +155,14 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
 
         SynchronizeMainMenuProfileSource();
         SynchronizeSharedProfileCards();
-        SynchronizeLocalLobbySeat();
+
+        // ONLINE LOBBY SEAT LABEL OWNERSHIP:
+        // AtlasBoardPrivateLobbyUIController is the single authoritative
+        // writer for P1..P4 names/statuses. Do not repaint a lobby seat from
+        // the local Steam/profile presenter. During rematch host migration a
+        // transient snapshot can temporarily have no exact local UID match;
+        // the old host fallback then assumed slot 0 and overwrote the verified
+        // Guest P1 label with the promoted host name (Vuartex) only in Editor.
     }
 
 
@@ -583,29 +594,6 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
                 : string.Empty;
 
 
-        if (snapshot != null &&
-            snapshot.Members != null &&
-            !string.IsNullOrWhiteSpace(
-                localAccountId))
-        {
-            AtlasLobbyMemberSnapshot local =
-                snapshot.Members.FirstOrDefault(
-                    member =>
-                        member != null &&
-                        member.Active &&
-                        string.Equals(
-                            member.AccountId,
-                            localAccountId,
-                            StringComparison.Ordinal));
-
-
-            if (local != null)
-            {
-                return local.SlotIndex;
-            }
-        }
-
-
         bool localIsHost =
             lobbyLocalIsHostField != null &&
             lobbyLocalIsHostField.GetValue(
@@ -613,9 +601,178 @@ public sealed class AtlasBoardUnifiedProfilePresentation :
             host;
 
 
-        return localIsHost
-            ? 0
-            : -1;
+        if (snapshot != null &&
+            snapshot.Members != null &&
+            !string.IsNullOrWhiteSpace(
+                localAccountId))
+        {
+            List<AtlasLobbyMemberSnapshot> matches =
+                snapshot.Members
+                    .Where(member =>
+                        member != null &&
+                        member.Active &&
+                        member.SlotIndex >= 0 &&
+                        string.Equals(
+                            member.AccountId,
+                            localAccountId,
+                            StringComparison.Ordinal))
+                    .OrderBy(member => member.SlotIndex)
+                    .ToList();
+
+
+            if (matches.Count == 1)
+            {
+                lastLobbySlotResolutionSignature =
+                    string.Empty;
+                return matches[0].SlotIndex;
+            }
+
+
+            if (matches.Count > 1)
+            {
+                // During host migration/rematch a transient lobby projection
+                // can contain the NEW host UID in both the real host slot and
+                // the outgoing host's old reconnecting slot. Never use
+                // FirstOrDefault here: it makes the global profile presenter
+                // overwrite the old player's row with the host's display name.
+                // Prefer the single authoritative HostLocal/IsHost row when
+                // this client owns the room.
+                AtlasLobbyMemberSnapshot authoritativeHost =
+                    matches.FirstOrDefault(member =>
+                        string.Equals(
+                            snapshot.HostAccountId,
+                            localAccountId,
+                            StringComparison.Ordinal) &&
+                        (member.SeatMode ==
+                             AtlasLobbySeatMode.HostLocal ||
+                         member.IsHost));
+
+
+                if (authoritativeHost != null &&
+                    (localIsHost ||
+                     string.Equals(
+                         snapshot.HostAccountId,
+                         localAccountId,
+                         StringComparison.Ordinal)))
+                {
+                    ReportAmbiguousLobbySlot(
+                        snapshot,
+                        localAccountId,
+                        matches,
+                        authoritativeHost.SlotIndex,
+                        "authoritative_host");
+                    return authoritativeHost.SlotIndex;
+                }
+
+
+                // A non-host client should have exactly one RemoteHuman row.
+                // If a malformed snapshot duplicates its UID, only accept a
+                // unique RemoteHuman candidate; otherwise fail closed and let
+                // AtlasBoardPrivateLobbyUIController render the roster rather
+                // than clobbering an unrelated player's label.
+                List<AtlasLobbyMemberSnapshot> remoteCandidates =
+                    matches
+                        .Where(member =>
+                            member.SeatMode ==
+                                AtlasLobbySeatMode.RemoteHuman &&
+                            !member.IsHost)
+                        .ToList();
+
+
+                if (remoteCandidates.Count == 1)
+                {
+                    ReportAmbiguousLobbySlot(
+                        snapshot,
+                        localAccountId,
+                        matches,
+                        remoteCandidates[0].SlotIndex,
+                        "unique_remote_human");
+                    return remoteCandidates[0].SlotIndex;
+                }
+
+
+                ReportAmbiguousLobbySlot(
+                    snapshot,
+                    localAccountId,
+                    matches,
+                    -1,
+                    "fail_closed");
+                return -1;
+            }
+        }
+
+
+        // Never infer slot 0 from local host status. Host migration can move
+        // the authoritative host to P2/P3/P4, and during a rematch poll the
+        // local UID can be momentarily absent from Members. In that state the
+        // only safe action for a presentation helper is to write nothing and
+        // let AtlasBoardPrivateLobbyUIController keep the authoritative roster.
+        if (localIsHost)
+        {
+            ReportAmbiguousLobbySlot(
+                snapshot,
+                localAccountId,
+                new List<AtlasLobbyMemberSnapshot>(),
+                -1,
+                string.IsNullOrWhiteSpace(localAccountId)
+                    ? "missing_local_uid_fail_closed"
+                    : "no_local_uid_match_fail_closed");
+        }
+
+        return -1;
+    }
+
+
+    private void ReportAmbiguousLobbySlot(
+        AtlasLobbySnapshot snapshot,
+        string localAccountId,
+        List<AtlasLobbyMemberSnapshot> matches,
+        int chosenSlot,
+        string reason)
+    {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        string slots =
+            matches != null
+                ? string.Join(
+                    ",",
+                    matches.Select(member =>
+                        member != null
+                            ? member.SlotIndex.ToString()
+                            : "null"))
+                : string.Empty;
+
+
+        string signature =
+            (snapshot != null
+                ? snapshot.LobbyId ?? string.Empty
+                : string.Empty) +
+            ":" + localAccountId +
+            ":" + slots +
+            ":" + chosenSlot +
+            ":" + reason;
+
+
+        if (string.Equals(
+                signature,
+                lastLobbySlotResolutionSignature,
+                StringComparison.Ordinal))
+        {
+            return;
+        }
+
+
+        lastLobbySlotResolutionSignature =
+            signature;
+
+
+        Debug.LogWarning(
+            "ATB_PROFILE_LOBBY_SLOT ambiguous=true " +
+            "local_uid=" + localAccountId +
+            " matches=" + slots +
+            " chosen_slot=" + chosenSlot +
+            " reason=" + reason,
+            this);
+#endif
     }
 
 

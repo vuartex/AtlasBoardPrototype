@@ -51,11 +51,30 @@ public sealed class AtlasBoardPremiumMapDropdownLabels : MonoBehaviour
         if (dropdown != null) dropdown.onValueChanged.RemoveListener(PreviewSelection);
     }
 
+    private int lastAllowedIndex;
+    private bool correcting;
+
     private void PreviewSelection(int index)
     {
-        if (index >= 0 && index <= 4)
-            PreviewMap(index == 3 ? "Germany" : index == 4 ? "Mexico" :
-                index == 2 ? "USA" : index == 1 ? "Colorado" : "Turkey");
+        if (correcting || index < 0 || index > 4) return;
+        string premium = index == 3 ? "map_germany" :
+            index == 4 ? "map_mexico" : "";
+        if (premium.Length > 0 &&
+            !AtlasBoardRtdbMetaEconomy.IsPremiumMapOwnedForCurrentUid(premium))
+        {
+            correcting = true;
+            try { dropdown.SetValueWithoutNotify(Mathf.Clamp(lastAllowedIndex, 0, 2));
+                  dropdown.RefreshShownValue(); }
+            finally { correcting = false; }
+            AtlasBoardMainMenuController menu =
+                UnityEngine.Object.FindAnyObjectByType<AtlasBoardMainMenuController>();
+            menu?.ShowPremiumMapNotOwned(premium);
+            Debug.Log("ATB_MAP_OWNER_REJECT from=selector popup=true map=" + premium);
+            return;
+        }
+        lastAllowedIndex = index;
+        PreviewMap(index == 3 ? "Germany" : index == 4 ? "Mexico" :
+            index == 2 ? "USA" : index == 1 ? "Colorado" : "Turkey");
     }
 
     public static void PreviewMap(string mapId)

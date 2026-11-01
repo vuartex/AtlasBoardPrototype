@@ -218,6 +218,9 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         resultRoot.SetActive(false);
         framePreviewRoot.SetActive(false);
         storeRoot.SetActive(false);
+        AtlasBoardMainMenuController menu =
+            UnityEngine.Object.FindAnyObjectByType<AtlasBoardMainMenuController>();
+        menu?.ShowMainMenu();
     }
 
     private static void CloseLegacyShopModal()
@@ -1093,14 +1096,15 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             bool isPawn = item.ItemType == "pawn" &&
                 AtlasBoardPawnShopPreviewArt.IsSupported(item.ItemId);
             bool isEmote = item.ItemType == "emote" && AtlasBoardEmotes.IsPaid(item.ItemId);
-            if (isFrame || isDice || isPawn || isEmote)
+            if (isFrame || isDice || isPawn || isEmote ||
+                item.ItemType == "board_theme" || item.ItemType == "map")
             {
                 // Show a single Gold Buy beside inspect. Preview-only frames
                 // never reach the checkout; Guest opens canonical login.
                 Button frameBuy = CreateSmallButton(
                     row.transform, T("store.items.buy_gold", item.GoldPrice),
                     Green, new Vector2(360f, 0f), new Vector2(258f, 54f));
-                frameBuy.gameObject.name = (isFrame ? "ProfileBuy_" : isDice ? "DiceBuy_" : isPawn ? "PawnBuy_" : "EmoteBuy_") + item.ItemId;
+                frameBuy.gameObject.name = (isFrame ? "ProfileBuy_" : isDice ? "DiceBuy_" : isPawn ? "PawnBuy_" : item.ItemType == "board_theme" ? "BoardBuy_" : item.ItemType == "map" ? "MapBuy_" : "EmoteBuy_") + item.ItemId;
                 frameBuy.onClick.AddListener(() =>
                 {
                     if (!AtlasBoardRtdbMetaEconomy.IsRegistered &&
@@ -1300,7 +1304,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         body.text = AtlasBoardReleaseUiText.EventsComingSoonBody();
 
         TMP_Text footer = CreateText(card.transform, 12f, FontStyles.Normal,
-            TextAlignmentOptions.Center, Muted);
+            TextAlignmentOptions.Center, TextDark);
         SetAnchored(footer.rectTransform, new Vector2(0f, -128f),
             new Vector2(850f, 32f));
         footer.text = statusKnown ? AtlasBoardReleaseUiText.EventsComingSoonFooter() :

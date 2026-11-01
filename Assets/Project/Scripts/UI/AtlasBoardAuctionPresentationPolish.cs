@@ -65,6 +65,7 @@ public sealed class AtlasBoardAuctionPresentationPolish : MonoBehaviour
 
     private float nextRefreshAt;
     private int lastPresentedBid = int.MinValue;
+    private int lastPresentedTile = int.MinValue;
 
     [RuntimeInitializeOnLoadMethod(
         RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -127,10 +128,13 @@ public sealed class AtlasBoardAuctionPresentationPolish : MonoBehaviour
         {
             RestoreLegacyPresentation();
             HidePolish();
+            lastPresentedBid = int.MinValue;
+            lastPresentedTile = int.MinValue;
             return;
         }
 
         EnsurePolish();
+        NormalizeModernGeometry();
         HideLegacyPresentation();
 
         if (polishRoot != null)
@@ -146,6 +150,23 @@ public sealed class AtlasBoardAuctionPresentationPolish : MonoBehaviour
         }
 
         MirrorButtonState();
+
+        // The overlay survives several auctions in a single scene. Never
+        // reuse a prior auction's numeric hero when the property changes.
+        BoardTile currentProperty = auctionManager != null
+            ? auctionManager.AuctionProperty : null;
+        int currentTile = currentProperty != null
+            ? currentProperty.TileIndex : int.MinValue;
+        if (currentTile != lastPresentedTile)
+        {
+            lastPresentedTile = currentTile;
+            lastPresentedBid = int.MinValue;
+            // Rebind the actual visible TMP component after UI recreation.
+            ResolveExistingPolish();
+            NormalizeModernGeometry();
+            ReportModernGeometry("auction_or_tile_change");
+            nextRefreshAt = 0f;
+        }
 
         // A quick succession of remote bids can change the authoritative
         // amount between regular presentation refreshes.
@@ -284,6 +305,7 @@ public sealed class AtlasBoardAuctionPresentationPolish : MonoBehaviour
                 existing as RectTransform;
 
             ResolveExistingPolish();
+            NormalizeModernGeometry();
             return;
         }
 
@@ -320,6 +342,7 @@ public sealed class AtlasBoardAuctionPresentationPolish : MonoBehaviour
         polishRoot.offsetMax =
             Vector2.zero;
 
+        NormalizeModernGeometry();
         CreatePropertyCard();
         CreateBidHero();
         CreateBidderCards();
@@ -328,6 +351,42 @@ public sealed class AtlasBoardAuctionPresentationPolish : MonoBehaviour
 
         polishRoot.gameObject.SetActive(
             false);
+    }
+
+    private void NormalizeModernGeometry()
+    {
+        if (polishRoot == null || tabletRoot == null)
+        {
+            return;
+        }
+
+        // Restore the last owner-accepted full TabletRoot geometry. Reparenting
+        // between legacy candidates must never preserve a stale scale/size.
+        polishRoot.localScale = Vector3.one;
+        polishRoot.localRotation = Quaternion.identity;
+        polishRoot.anchorMin = Vector2.zero;
+        polishRoot.anchorMax = Vector2.one;
+        polishRoot.pivot = new Vector2(0.5f, 0.5f);
+        polishRoot.anchoredPosition = Vector2.zero;
+        polishRoot.offsetMin = Vector2.zero;
+        polishRoot.offsetMax = Vector2.zero;
+    }
+
+    private void ReportModernGeometry(string stage)
+    {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (polishRoot == null || tabletRoot == null)
+        {
+            return;
+        }
+
+        Debug.Log(
+            $"ATB_AUCTION_LAYOUT stage={stage} parent={polishRoot.parent?.name ?? "null"} " +
+            $"tablet={tabletRoot.rect.width:0.#}x{tabletRoot.rect.height:0.#} " +
+            $"polish={polishRoot.rect.width:0.#}x{polishRoot.rect.height:0.#} " +
+            $"scale={polishRoot.localScale.x:0.###},{polishRoot.localScale.y:0.###}",
+            this);
+#endif
     }
 
     private void CreatePropertyCard()
@@ -932,8 +991,9 @@ public sealed class AtlasBoardAuctionPresentationPolish : MonoBehaviour
             ResolveFont(
                 bidValueText);
 
-            bidValueText.text =
-                $"{auctionManager.CurrentBid:N0} ₵";
+            int shownBid = auctionManager.CurrentBid;
+            lastPresentedBid = shownBid;
+            bidValueText.SetText($"{shownBid:N0} ₵");
         }
 
         PlayerGameState bidder =
@@ -1305,22 +1365,22 @@ public sealed class AtlasBoardAuctionPresentationPolish : MonoBehaviour
         propertyNameText =
             FindText(
                 polishRoot,
-                "PropertyName");
+                "PropertyCard/PropertyName");
 
         propertyMetaText =
             FindText(
                 polishRoot,
-                "PropertyMeta");
+                "PropertyCard/PropertyMeta");
 
         bidLabelText =
             FindText(
                 polishRoot,
-                "CurrentBidLabel");
+                "CurrentBidHero/CurrentBidLabel");
 
         bidValueText =
             FindText(
                 polishRoot,
-                "CurrentBidValue");
+                "CurrentBidHero/CurrentBidValue");
 
         Transform bidderCardTransform =
             polishRoot.Find(

@@ -195,6 +195,28 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
     private string selectedBoardThemeId = "default_board";
     private AtlasBoardLobbyBoardThemePicker boardThemePicker;
     private bool backendBusy;
+    private int navigationEpoch;
+
+    // Presentation-only identity cache. Host migration can briefly project the
+    // new host UID into both the old and authoritative host slots on one
+    // client while the other client already has the canonical roster. Never
+    // render the same host twice: preserve the last verified occupant of each
+    // non-host slot until the backend provides its canonical identity again.
+    private readonly string[] seatIdentityAccountCache = new string[4];
+    private readonly string[] seatIdentityNameCache = new string[4];
+    private string seatIdentityCacheLobbyId = string.Empty;
+    private string lastDuplicateHostProjectionLog = string.Empty;
+
+    public bool IsMainMenuTransitionSettled =>
+        !backendBusy && !voluntaryLeaveInFlight && !hostCloseInFlight &&
+        (runtimeBridge == null || !runtimeBridge.HasLobby) && !roomActive;
+
+    public void InvalidatePendingRoomOperations()
+    {
+        navigationEpoch++;
+        SetEntryButtonsInteractable(false);
+        Debug.Log("ATB_LOBBY_NAV invalidated=true epoch=" + navigationEpoch, this);
+    }
 
 
 
@@ -244,6 +266,26 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
     private bool voluntaryLeaveInFlight;
     private bool hostCloseInFlight;
     private float nextGuestHostNameCheckAt;
+
+
+
+    // Rematch can briefly surface a transport snapshot where the newly
+    // promoted host UID is projected into both its real slot and the previous
+    // host slot. The lobby must not trust that first frame. After returning
+    // from a synchronized rematch we re-read the authoritative roster a few
+    // times and rebuild the visible seat rows from the first stable/unique
+    // snapshot. This is presentation recovery only; it does not change seat
+    // ownership or write lobby state.
+    private int rematchRosterRefreshEpoch;
+
+    // After rematch verification succeeds, keep the verified account->name
+    // mapping for the waiting lobby. The transport can briefly preserve the
+    // correct AccountId while replaying the promoted host's DisplayName into
+    // the old host seat. A later polling snapshot must not repaint that seat
+    // as the local host again when the account identity itself did not change.
+    private bool rematchVerifiedIdentityLockActive;
+    private readonly string[] rematchVerifiedAccountBySlot = new string[4];
+    private readonly string[] rematchVerifiedNameBySlot = new string[4];
 
 
 
@@ -680,6 +722,9 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
     private void PrepareRoomEntryChooser()
     {
+        navigationEpoch++;
+        rematchRosterRefreshEpoch++;
+        ClearRematchVerifiedIdentityLock();
         privateMode = true;
         roomActive = false;
         localIsHost = false;
@@ -748,8 +793,14 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 "lobby.online.create_or_join",
                 "Create a room or enter a 6-digit code."));
 
+        // Main-menu soft reset intentionally invalidates and disables entry
+        // controls while stale Create/Join callbacks drain. A fresh chooser
+        // is a new navigation epoch, so explicitly re-arm only these entry
+        // controls here. Without this, Create/Join/code/password stay disabled
+        // after leaving a room even though Cancel/Local Offline still work.
+        SetEntryButtonsInteractable(true);
 
-
+        Debug.Log("ATB_PRIVATE_ENTRY rearmed=true epoch=" + navigationEpoch, this);
 
         RefreshLocalizedText();
     }
@@ -1527,6 +1578,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+        int operationEpoch = navigationEpoch;
         backendBusy = true;
         SetEntryButtonsInteractable(false);
 
@@ -1553,6 +1605,13 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             AtlasLobbyOperationResult result =
                 await runtimeBridge.CreatePrivateRoomAsync(
                     selection);
+
+            if (operationEpoch != navigationEpoch)
+            {
+                await DiscardStaleRoomResultAsync(result, true);
+                Debug.Log("ATB_LOBBY_NAV stale_create_discarded=true", this);
+                return;
+            }
 
 
 
@@ -1662,6 +1721,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+        int operationEpoch = navigationEpoch;
         backendBusy = true;
         SetEntryButtonsInteractable(false);
 
@@ -1689,6 +1749,13 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
             AtlasLobbyOperationResult result =
                 await runtimeBridge.JoinByCodeAsync(code, password);
+
+            if (operationEpoch != navigationEpoch)
+            {
+                await DiscardStaleRoomResultAsync(result, false);
+                Debug.Log("ATB_LOBBY_NAV stale_join_discarded=true", this);
+                return;
+            }
 
 
 
@@ -1770,6 +1837,31 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         }
     }
 
+
+
+
+    private async System.Threading.Tasks.Task DiscardStaleRoomResultAsync(
+        AtlasLobbyOperationResult result, bool createdByThisClient)
+    {
+        if (result == null || !result.Success || result.Snapshot == null ||
+            runtimeBridge == null || !runtimeBridge.HasLobby) return;
+        try
+        {
+            AtlasLobbyOperationResult cleanup = createdByThisClient
+                ? await runtimeBridge.CloseLobbyAsync()
+                : await runtimeBridge.LeaveLobbyAsync();
+            if (cleanup == null || !cleanup.Success)
+                Debug.LogWarning("ATB_LOBBY_NAV stale_cleanup_ack=false", this);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning("ATB_LOBBY_NAV stale_cleanup=" + ex.GetType().Name, this);
+        }
+        finally
+        {
+            ResetPrivateState(false);
+        }
+    }
 
 
 
@@ -2255,8 +2347,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 suppressSeatEvents = true;
                 try { SetDropdownByIndex(hostSettingsDropdowns[0], priorIndex); }
                 finally { suppressSeatEvents = false; }
+                mainMenuController ??= GetComponent<AtlasBoardMainMenuController>();
+                mainMenuController?.ShowPremiumMapNotOwned(requestedPremium);
                 Debug.LogWarning("ATB_MAP_OWNER_REJECT selected=" + requestedPremium +
-                    " reason=not_owned_by_current_host", this);
+                    " reason=not_owned_by_current_host popup=true", this);
                 return;
             }
             // Preview an owned premium map while waiting for host settings
@@ -2338,55 +2432,25 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
     {
         if (!roomActive ||
             !localIsHost ||
-            index <= 0 ||
+            index < 0 ||
             index >= GetPlayerCount() ||
+            IsAuthoritativeHostSlot(index) ||
             hostSeatModes[index] != PrivateSeatMode.OpenOnline)
         {
             return;
         }
 
-
-
-
         CloseAllSeatChoicePanels();
+        openSeatChoiceIndex = index;
+        SetSeatTextVisible(index, false);
+        SetActive(GetChoicePanel(index), true);
 
-
-
-
-        openSeatChoiceIndex =
-            index;
-
-
-
-
-        SetSeatTextVisible(
-            index,
-            false);
-
-
-
-
-        SetActive(
-            GetChoicePanel(index),
-            true);
-
-
-
-
-        Button add =
-            GetAddButton(index);
-
-
-
-
+        Button add = GetAddButton(index);
         if (add != null)
         {
             add.gameObject.SetActive(false);
         }
     }
-
-
-
 
     private void AddLocalPlayerToSeat(int index)
     {
@@ -2412,69 +2476,40 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
     {
         if (!roomActive ||
             !localIsHost ||
-            index <= 0 ||
-            index >= GetPlayerCount())
+            index < 0 ||
+            index >= GetPlayerCount() ||
+            IsAuthoritativeHostSlot(index))
         {
             return;
         }
 
-
-
-
-        if (hostSeatModes[index] ==
-            PrivateSeatMode.RemoteHuman)
+        if (hostSeatModes[index] == PrivateSeatMode.RemoteHuman)
         {
             ShowKickConfirmation(index);
             return;
         }
 
-
-
-
-        ResolveSeat(
-            index,
-            PrivateSeatMode.OpenOnline);
+        ResolveSeat(index, PrivateSeatMode.OpenOnline);
     }
-
-
-
 
     private void ResolveSeat(
         int index,
         PrivateSeatMode mode)
     {
-        if (index <= 0 ||
-            index >= hostSeatModes.Length)
+        if (index < 0 ||
+            index >= hostSeatModes.Length ||
+            IsAuthoritativeHostSlot(index))
         {
             return;
         }
 
-
-
-
         hostSeatModes[index] = mode;
-
-
-
-
         CloseAllSeatChoicePanels();
         SyncHostSeatModesToLegacyControls();
         RefreshHostSeatRows();
-
-
-
-
-        requiredHumanPlayers =
-            CountResolvedLocalHumans();
-
-
-
-
+        requiredHumanPlayers = CountResolvedLocalHumans();
         QueueHostConfigurationSync();
     }
-
-
-
 
     private void QueueHostConfigurationSync()
     {
@@ -2757,6 +2792,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             return;
         }
 
+        // A verified rematch roster can be correct for one poll and then have
+        // only DisplayName regressed by a later transport projection while the
+        // AccountId/slot stay correct. Normalize that presentation-only field
+        // before equivalence checks or repainting.
+        ApplyRematchVerifiedIdentityGuard(snapshot);
+
+        if (snapshot.LifecycleState != AtlasRoomLifecycleState.Waiting &&
+            rematchVerifiedIdentityLockActive)
+        {
+            ClearRematchVerifiedIdentityLock();
+        }
+
 
 
 
@@ -2833,6 +2880,13 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
             mainMenuController?.ReturnOnlineMatchToLobby();
+
+            // Do not trust the first rematch lobby projection. Host migration
+            // can temporarily duplicate the promoted host UID into the old
+            // host seat on one client. Re-read the backend roster after the
+            // lobby has settled and rebuild all player rows from a stable,
+            // unique authoritative snapshot.
+            BeginRematchRosterVerification();
             return;
         }
 
@@ -2844,6 +2898,491 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         {
             BeginAuthoritativeStartCountdown();
         }
+    }
+
+
+
+
+    private void BeginRematchRosterVerification()
+    {
+        ClearRematchVerifiedIdentityLock();
+        int verificationEpoch = ++rematchRosterRefreshEpoch;
+        int expectedNavigationEpoch = navigationEpoch;
+        _ = VerifyAndRefreshRematchRosterAsync(
+            verificationEpoch,
+            expectedNavigationEpoch);
+    }
+
+
+
+
+    private async System.Threading.Tasks.Task VerifyAndRefreshRematchRosterAsync(
+        int verificationEpoch,
+        int expectedNavigationEpoch)
+    {
+        // Give the host-migration/rematch write enough time to settle, then
+        // retry with progressively wider spacing. The first stable roster wins.
+        int[] delaysMs = { 350, 650, 1000, 1500 };
+
+        for (int attempt = 0; attempt < delaysMs.Length; attempt++)
+        {
+            await System.Threading.Tasks.Task.Delay(delaysMs[attempt]);
+
+            if (verificationEpoch != rematchRosterRefreshEpoch ||
+                expectedNavigationEpoch != navigationEpoch ||
+                !roomActive ||
+                runtimeBridge == null ||
+                !runtimeBridge.HasLobby)
+            {
+                return;
+            }
+
+            AtlasLobbyOperationResult result =
+                await runtimeBridge.GetSnapshotAsync();
+
+            if (verificationEpoch != rematchRosterRefreshEpoch ||
+                expectedNavigationEpoch != navigationEpoch ||
+                !roomActive)
+            {
+                return;
+            }
+
+            if (result == null ||
+                !result.Success ||
+                result.Snapshot == null)
+            {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.LogWarning(
+                    "ATB_REMATCH_ROSTER_REFRESH " +
+                    "attempt=" + (attempt + 1) +
+                    " stable=false reason=snapshot_failed " +
+                    "detail=" + (result != null ? result.TechnicalMessage : "null_result"),
+                    this);
+#endif
+                continue;
+            }
+
+            string stabilityReason;
+            bool stable = IsAuthoritativeRosterStable(
+                result.Snapshot,
+                out stabilityReason);
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.Log(
+                "ATB_REMATCH_ROSTER_REFRESH " +
+                "attempt=" + (attempt + 1) +
+                " stable=" + stable.ToString().ToLowerInvariant() +
+                " reason=" + stabilityReason +
+                " members=" +
+                (result.Snapshot.Members != null
+                    ? result.Snapshot.Members.Count.ToString()
+                    : "0") +
+                " host_slot=" + ResolveHostSlotIndex(result.Snapshot),
+                this);
+#endif
+
+            if (!stable)
+            {
+                continue;
+            }
+
+            RebuildRosterFromAuthoritativeSnapshot(result.Snapshot);
+            CaptureRematchVerifiedIdentityLock(result.Snapshot);
+            return;
+        }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Debug.LogWarning(
+            "ATB_REMATCH_ROSTER_REFRESH exhausted=true " +
+            "action=keep_last_rendered_roster",
+            this);
+#endif
+    }
+
+
+
+
+    private static bool IsAuthoritativeRosterStable(
+        AtlasLobbySnapshot snapshot,
+        out string reason)
+    {
+        if (snapshot == null)
+        {
+            reason = "snapshot_null";
+            return false;
+        }
+
+        if (snapshot.LifecycleState != AtlasRoomLifecycleState.Waiting)
+        {
+            reason = "not_waiting";
+            return false;
+        }
+
+        if (snapshot.Members == null)
+        {
+            reason = "members_null";
+            return false;
+        }
+
+        HashSet<string> seenHumanAccounts =
+            new HashSet<string>(StringComparer.Ordinal);
+
+        int hostMatches = 0;
+        string hostAccountId = snapshot.HostAccountId ?? string.Empty;
+
+        foreach (AtlasLobbyMemberSnapshot member in snapshot.Members)
+        {
+            if (member == null ||
+                member.SlotIndex < 0 ||
+                member.SlotIndex >= 4 ||
+                string.IsNullOrWhiteSpace(member.AccountId))
+            {
+                continue;
+            }
+
+            bool humanSeat =
+                member.SeatMode == AtlasLobbySeatMode.HostLocal ||
+                member.SeatMode == AtlasLobbySeatMode.LocalHuman ||
+                member.SeatMode == AtlasLobbySeatMode.RemoteHuman;
+
+            if (!humanSeat)
+            {
+                continue;
+            }
+
+            if (!seenHumanAccounts.Add(member.AccountId))
+            {
+                reason = "duplicate_human_uid";
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(hostAccountId) &&
+                string.Equals(
+                    member.AccountId,
+                    hostAccountId,
+                    StringComparison.Ordinal))
+            {
+                hostMatches++;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(hostAccountId) &&
+            hostMatches != 1)
+        {
+            reason = "host_projection_count_" + hostMatches;
+            return false;
+        }
+
+        if (ResolveHostSlotIndex(snapshot) < 0)
+        {
+            reason = "host_slot_missing";
+            return false;
+        }
+
+        reason = "unique_authoritative_roster";
+        return true;
+    }
+
+
+
+
+    private void ClearRematchVerifiedIdentityLock()
+    {
+        rematchVerifiedIdentityLockActive = false;
+        for (int i = 0; i < 4; i++)
+        {
+            rematchVerifiedAccountBySlot[i] = string.Empty;
+            rematchVerifiedNameBySlot[i] = string.Empty;
+        }
+    }
+
+
+
+
+    private void CaptureRematchVerifiedIdentityLock(
+        AtlasLobbySnapshot snapshot)
+    {
+        ClearRematchVerifiedIdentityLock();
+
+        if (snapshot == null ||
+            snapshot.Members == null ||
+            snapshot.LifecycleState != AtlasRoomLifecycleState.Waiting)
+        {
+            return;
+        }
+
+        foreach (AtlasLobbyMemberSnapshot member in snapshot.Members)
+        {
+            if (member == null ||
+                !member.Active ||
+                member.SlotIndex < 0 ||
+                member.SlotIndex >= 4 ||
+                string.IsNullOrWhiteSpace(member.AccountId))
+            {
+                continue;
+            }
+
+            bool humanSeat =
+                member.SeatMode == AtlasLobbySeatMode.HostLocal ||
+                member.SeatMode == AtlasLobbySeatMode.LocalHuman ||
+                member.SeatMode == AtlasLobbySeatMode.RemoteHuman;
+
+            if (!humanSeat)
+            {
+                continue;
+            }
+
+            rematchVerifiedAccountBySlot[member.SlotIndex] =
+                member.AccountId;
+
+            if (!string.IsNullOrWhiteSpace(member.DisplayName))
+            {
+                rematchVerifiedNameBySlot[member.SlotIndex] =
+                    member.DisplayName.Trim();
+            }
+        }
+
+        rematchVerifiedIdentityLockActive =
+            rematchVerifiedAccountBySlot.Any(
+                accountId => !string.IsNullOrWhiteSpace(accountId));
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (rematchVerifiedIdentityLockActive)
+        {
+            Debug.Log(
+                "ATB_REMATCH_ROSTER_IDENTITY_LOCK captured=true " +
+                BuildRematchIdentityLockSummary(),
+                this);
+        }
+#endif
+    }
+
+
+
+
+    private void ApplyRematchVerifiedIdentityGuard(
+        AtlasLobbySnapshot snapshot)
+    {
+        if (!rematchVerifiedIdentityLockActive ||
+            snapshot == null ||
+            snapshot.Members == null ||
+            snapshot.LifecycleState != AtlasRoomLifecycleState.Waiting)
+        {
+            return;
+        }
+
+        for (int slot = 0; slot < 4; slot++)
+        {
+            string lockedAccountId =
+                rematchVerifiedAccountBySlot[slot];
+
+            if (string.IsNullOrWhiteSpace(lockedAccountId))
+            {
+                continue;
+            }
+
+            AtlasLobbyMemberSnapshot member =
+                snapshot.Members.FirstOrDefault(
+                    candidate =>
+                        candidate != null &&
+                        candidate.Active &&
+                        candidate.SlotIndex == slot);
+
+            if (member == null)
+            {
+                continue;
+            }
+
+            if (!string.Equals(
+                    member.AccountId,
+                    lockedAccountId,
+                    StringComparison.Ordinal))
+            {
+                int authoritativeHostSlot =
+                    ResolveHostSlotIndex(snapshot);
+
+                bool transientDuplicateHostProjection =
+                    slot != authoritativeHostSlot &&
+                    !string.IsNullOrWhiteSpace(snapshot.HostAccountId) &&
+                    string.Equals(
+                        member.AccountId,
+                        snapshot.HostAccountId,
+                        StringComparison.Ordinal) &&
+                    !string.Equals(
+                        lockedAccountId,
+                        snapshot.HostAccountId,
+                        StringComparison.Ordinal);
+
+                if (transientDuplicateHostProjection)
+                {
+                    // Host migration/rematch can replay the promoted host UID
+                    // into the outgoing host's old slot for a later poll even
+                    // after a correct Waiting roster was already observed.
+                    // This is NOT a real occupant change. Keep the verified
+                    // slot identity so presentation code cannot collapse two
+                    // humans into the promoted host.
+                    seatIdentityAccountCache[slot] = lockedAccountId;
+                    if (!string.IsNullOrWhiteSpace(
+                            rematchVerifiedNameBySlot[slot]))
+                    {
+                        seatIdentityNameCache[slot] =
+                            rematchVerifiedNameBySlot[slot];
+                    }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                    Debug.LogWarning(
+                        "ATB_REMATCH_ROSTER_ACCOUNT_GUARD preserved=true " +
+                        "slot=" + slot +
+                        " host_slot=" + authoritativeHostSlot +
+                        " verified_account=" + lockedAccountId +
+                        " transient_account=" +
+                        (member.AccountId ?? string.Empty) +
+                        " reason=duplicate_host_projection",
+                        this);
+#endif
+                    continue;
+                }
+
+                // A genuinely different account now owns this slot. Stop
+                // protecting the old identity rather than masking a real join.
+                rematchVerifiedAccountBySlot[slot] = string.Empty;
+                rematchVerifiedNameBySlot[slot] = string.Empty;
+                continue;
+            }
+
+            string lockedName =
+                rematchVerifiedNameBySlot[slot];
+
+            if (string.IsNullOrWhiteSpace(lockedName))
+            {
+                if (!string.IsNullOrWhiteSpace(member.DisplayName))
+                {
+                    rematchVerifiedNameBySlot[slot] =
+                        member.DisplayName.Trim();
+                }
+
+                continue;
+            }
+
+            if (string.Equals(
+                    member.DisplayName,
+                    lockedName,
+                    StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.LogWarning(
+                "ATB_REMATCH_ROSTER_NAME_GUARD corrected=true " +
+                "slot=" + slot +
+                " account=" + lockedAccountId +
+                " incoming_name=" + (member.DisplayName ?? string.Empty) +
+                " verified_name=" + lockedName,
+                this);
+#endif
+
+            // Presentation-only correction. AccountId, seat mode, readiness,
+            // host ownership and connection state remain authoritative.
+            member.DisplayName = lockedName;
+        }
+
+        bool anyLocked =
+            rematchVerifiedAccountBySlot.Any(
+                accountId => !string.IsNullOrWhiteSpace(accountId));
+
+        if (!anyLocked)
+        {
+            ClearRematchVerifiedIdentityLock();
+        }
+    }
+
+
+
+
+    private string BuildRematchIdentityLockSummary()
+    {
+        System.Text.StringBuilder builder =
+            new System.Text.StringBuilder();
+
+        for (int slot = 0; slot < 4; slot++)
+        {
+            if (string.IsNullOrWhiteSpace(
+                    rematchVerifiedAccountBySlot[slot]))
+            {
+                continue;
+            }
+
+            if (builder.Length > 0)
+            {
+                builder.Append(" | ");
+            }
+
+            builder.Append("P");
+            builder.Append(slot + 1);
+            builder.Append("=");
+            builder.Append(rematchVerifiedNameBySlot[slot]);
+            builder.Append("[");
+            builder.Append(rematchVerifiedAccountBySlot[slot]);
+            builder.Append("]");
+        }
+
+        return builder.ToString();
+    }
+
+
+
+
+    private void RebuildRosterFromAuthoritativeSnapshot(
+        AtlasLobbySnapshot snapshot)
+    {
+        if (snapshot == null)
+        {
+            return;
+        }
+
+        // This refresh intentionally discards the rematch presentation cache.
+        // At this point the snapshot has already passed the uniqueness checks,
+        // so the backend roster is the source of truth for every visible seat.
+        for (int i = 0; i < 4; i++)
+        {
+            seatIdentityAccountCache[i] = string.Empty;
+            seatIdentityNameCache[i] = string.Empty;
+        }
+
+        seatIdentityCacheLobbyId = snapshot.LobbyId ?? string.Empty;
+        lastDuplicateHostProjectionLog = string.Empty;
+
+        backendSnapshot = null;
+
+        ApplyBackendSnapshot(
+            snapshot,
+            roomCode,
+            runtimeBridge != null
+                ? runtimeBridge.CurrentAccountId
+                : backendLocalAccountId);
+
+        // ApplyBackendSnapshot already configures the correct host/guest view,
+        // but repaint once more after the cache reset so no stale row survives
+        // from the rematch transition frame.
+        if (localIsHost)
+        {
+            LoadHostSeatModesFromBackend(snapshot);
+            RefreshHostSeatRows();
+            RefreshHostStartAvailability();
+        }
+        else
+        {
+            RefreshGuestSeats();
+        }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Debug.Log(
+            "ATB_REMATCH_ROSTER_REFRESH applied=true " +
+            "host_slot=" + ResolveHostSlotIndex(snapshot) +
+            " local_is_host=" + localIsHost.ToString().ToLowerInvariant(),
+            this);
+#endif
     }
 
 
@@ -2921,52 +3460,34 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
     private string[] BuildBackendSeatPolicies(
         int playerCount)
     {
-        string[] policies =
-        {
-            "local_human",
-            "inactive",
-            "inactive",
-            "inactive"
-        };
+        string[] policies = { "inactive", "inactive", "inactive", "inactive" };
+        int total = Mathf.Clamp(playerCount, 2, 4);
+        int hostSlotIndex = GetAuthoritativeHostSlotIndex();
 
-
-
-
-        int total =
-            Mathf.Clamp(playerCount, 2, 4);
-
-
-
-
-        for (int i = 1; i < 4; i++)
+        for (int i = 0; i < 4; i++)
         {
             if (i >= total)
             {
                 policies[i] = "inactive";
-                continue;
             }
-
-
-
-
-            policies[i] =
-                hostSeatModes[i] switch
+            else if (i == hostSlotIndex)
+            {
+                policies[i] = "local_human";
+            }
+            else
+            {
+                policies[i] = hostSeatModes[i] switch
                 {
                     PrivateSeatMode.LocalHuman => "local_human",
                     PrivateSeatMode.Bot => "bot",
                     PrivateSeatMode.RemoteHuman => "online",
                     _ => "online"
                 };
+            }
         }
-
-
-
 
         return policies;
     }
-
-
-
 
     private void SetEntryButtonsInteractable(
         bool interactable)
@@ -3452,21 +3973,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
     private void ResetHostSeatModes()
     {
-        hostSeatModes[0] =
-            PrivateSeatMode.LocalHuman;
-
-
-
-
-        for (int i = 1; i < hostSeatModes.Length; i++)
+        for (int i = 0; i < hostSeatModes.Length; i++)
         {
-            hostSeatModes[i] =
-                PrivateSeatMode.OpenOnline;
+            hostSeatModes[i] = PrivateSeatMode.OpenOnline;
         }
+
+        int hostSlotIndex = GetAuthoritativeHostSlotIndex();
+        if (hostSlotIndex < 0 || hostSlotIndex >= hostSeatModes.Length)
+        {
+            hostSlotIndex = 0;
+        }
+        hostSeatModes[hostSlotIndex] = PrivateSeatMode.LocalHuman;
     }
-
-
-
 
     private void ResetInactiveHostSeatModes()
     {
@@ -3488,196 +4006,337 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
     private void RefreshHostSeatRows()
     {
         int total = GetPlayerCount();
-
-
-
-
+        int hostSlotIndex = GetAuthoritativeHostSlotIndex();
         ForceAllPlayerRowsVisible();
-
-
-
 
         for (int i = 0; i < 4; i++)
         {
-            bool active =
-                i < total;
-
-
-
-
-            SetActive(
-                playerRows != null &&
-                i < playerRows.Length
-                    ? playerRows[i]
-                    : null,
-                active);
-
-
-
+            bool active = i < total;
+            SetActive(playerRows != null && i < playerRows.Length ? playerRows[i] : null, active);
 
             if (!active)
             {
-                SetHostSeatActionObjects(
-                    i,
-                    false,
-                    false,
-                    false);
+                SetHostSeatActionObjects(i, false, false, false);
                 continue;
             }
 
-
-
-
-            if (i == 0)
+            if (i == hostSlotIndex)
             {
-                SetSeat(
-                    i,
-                    T(
-                        "lobby.online.you",
-                        "PLAYER (YOU)"),
-                    T(
-                        "lobby.online.host_local",
-                        "HOST • LOCAL"));
-
-
-
-
-                SetHostSeatActionObjects(
-                    i,
-                    false,
-                    false,
-                    false);
+                AtlasLobbyMemberSnapshot hostMember = FindBackendMemberBySlot(i);
+                string hostName = hostMember != null && !string.IsNullOrWhiteSpace(hostMember.DisplayName)
+                    ? hostMember.DisplayName + " (" + T("lobby.online.you_suffix", "YOU") + ")"
+                    : T("lobby.online.you", "PLAYER (YOU)");
+                SetSeat(i, hostName, T("lobby.online.host_local", "HOST • LOCAL"));
+                SetHostSeatActionObjects(i, false, false, false);
                 continue;
             }
-
-
-
 
             switch (hostSeatModes[i])
             {
                 case PrivateSeatMode.LocalHuman:
-                    SetSeat(
-                        i,
-                        T(
-                            "lobby.online.local_player_number",
-                            "LOCAL PLAYER {0}",
-                            i + 1),
-                        T(
-                            "lobby.online.no_ready_required",
-                            "LOCAL • NO READY REQUIRED"));
-
-
-
-
-                    SetHostSeatActionObjects(
-                        i,
-                        false,
-                        false,
-                        true);
+                    SetSeat(i,
+                        T("lobby.online.local_player_number", "LOCAL PLAYER {0}", i + 1),
+                        T("lobby.online.no_ready_required", "LOCAL • NO READY REQUIRED"));
+                    SetHostSeatActionObjects(i, false, false, true);
                     break;
-
-
-
 
                 case PrivateSeatMode.Bot:
-                    SetSeat(
-                        i,
-                        T(
-                            "lobby.online.local_bot_number",
-                            "LOCAL BOT {0}",
-                            i + 1),
-                        T(
-                            "lobby.online.bot_no_ready",
-                            "BOT • NO READY"));
-
-
-
-
-                    SetHostSeatActionObjects(
-                        i,
-                        false,
-                        false,
-                        true);
+                    SetSeat(i,
+                        T("lobby.online.local_bot_number", "LOCAL BOT {0}", i + 1),
+                        T("lobby.online.bot_no_ready", "BOT • NO READY"));
+                    SetHostSeatActionObjects(i, false, false, true);
                     break;
 
-
-
-
                 case PrivateSeatMode.RemoteHuman:
-                    AtlasLobbyMemberSnapshot remote =
-                        FindBackendMemberBySlot(i);
-
-
-
-
-                    string remoteName =
+                    AtlasLobbyMemberSnapshot remote = FindBackendMemberBySlot(i);
+                    bool duplicateHostProjection =
                         remote != null &&
-                        !string.IsNullOrWhiteSpace(remote.DisplayName)
+                        i != hostSlotIndex &&
+                        backendSnapshot != null &&
+                        !string.IsNullOrWhiteSpace(backendSnapshot.HostAccountId) &&
+                        string.Equals(
+                            remote.AccountId,
+                            backendSnapshot.HostAccountId,
+                            StringComparison.Ordinal);
+
+                    string remoteName;
+                    string remoteStatus;
+
+                    if (duplicateHostProjection &&
+                        !string.IsNullOrWhiteSpace(seatIdentityNameCache[i]) &&
+                        !string.Equals(
+                            seatIdentityAccountCache[i],
+                            backendSnapshot.HostAccountId,
+                            StringComparison.Ordinal))
+                    {
+                        remoteName = seatIdentityNameCache[i];
+                        remoteStatus = T(
+                            "lobby.online.reconnecting",
+                            "RECONNECTING");
+
+                        string signature =
+                            (backendSnapshot.LobbyId ?? string.Empty) + ":" +
+                            i + ":" +
+                            (backendSnapshot.HostAccountId ?? string.Empty) + ":" +
+                            seatIdentityAccountCache[i];
+
+                        if (!string.Equals(
+                                signature,
+                                lastDuplicateHostProjectionLog,
+                                StringComparison.Ordinal))
+                        {
+                            lastDuplicateHostProjectionLog = signature;
+                            Debug.LogWarning(
+                                "ATB_LOBBY_SLOT_RECONCILE " +
+                                "duplicate_host_projection=true " +
+                                "slot=" + i +
+                                " host_slot=" + hostSlotIndex +
+                                " cached_uid=" + seatIdentityAccountCache[i] +
+                                " cached_name=" + seatIdentityNameCache[i],
+                                this);
+                        }
+                    }
+                    else
+                    {
+                        remoteName = remote != null &&
+                                     !string.IsNullOrWhiteSpace(remote.DisplayName)
                             ? remote.DisplayName
-                            : T(
-                                "lobby.online.remote_player",
-                                "ONLINE PLAYER");
+                            : T("lobby.online.remote_player", "ONLINE PLAYER");
 
-
-
-
-                    string remoteStatus =
-                        remote != null &&
-                        remote.IsReadyFor(settingsRevision)
+                        remoteStatus = remote != null &&
+                                       remote.IsReadyFor(settingsRevision)
                             ? T(
                                 "lobby.online.ready_for_revision",
                                 "READY • REV {0}",
                                 settingsRevision)
-                            : T(
-                                "lobby.online.not_ready",
-                                "NOT READY");
+                            : remote != null &&
+                              remote.ConnectionState ==
+                                  AtlasSeatConnectionState.Reconnecting
+                                ? T(
+                                    "lobby.online.reconnecting",
+                                    "RECONNECTING")
+                                : T(
+                                    "lobby.online.not_ready",
+                                    "NOT READY");
+                    }
 
-
-
-
-                    SetSeat(
-                        i,
-                        remoteName,
-                        remoteStatus);
-
-
-
-
-                    SetHostSeatActionObjects(
-                        i,
-                        false,
-                        false,
-                        true);
+                    SetSeat(i, remoteName, remoteStatus);
+                    SetHostSeatActionObjects(i, false, false, true);
                     break;
 
-
-
-
                 default:
-                    SetSeat(
-                        i,
-                        T(
-                            "lobby.online.waiting_online",
-                            "WAITING FOR ONLINE PLAYER"),
-                        T(
-                            "lobby.online.open_online_seat",
-                            "OPEN ONLINE SEAT"));
-
-
-
-
-                    SetHostSeatActionObjects(
-                        i,
-                        true,
-                        false,
-                        false);
+                    SetSeat(i,
+                        T("lobby.online.waiting_online", "WAITING FOR ONLINE PLAYER"),
+                        T("lobby.online.open_online_seat", "OPEN ONLINE SEAT"));
+                    SetHostSeatActionObjects(i, true, false, false);
                     break;
             }
         }
     }
 
+    private void UpdateSeatIdentityPresentationCache(
+        AtlasLobbySnapshot previousSnapshot,
+        AtlasLobbySnapshot snapshot)
+    {
+        if (snapshot == null)
+        {
+            return;
+        }
+
+        string lobbyId = snapshot.LobbyId ?? string.Empty;
+        bool sameLobby =
+            previousSnapshot != null &&
+            string.Equals(
+                previousSnapshot.LobbyId ?? string.Empty,
+                lobbyId,
+                StringComparison.Ordinal);
+
+        bool synchronizedRematchContinuity =
+            previousSnapshot != null &&
+            (previousSnapshot.LifecycleState ==
+                 AtlasRoomLifecycleState.Starting ||
+             previousSnapshot.LifecycleState ==
+                 AtlasRoomLifecycleState.InMatch) &&
+            !string.IsNullOrWhiteSpace(previousSnapshot.MatchId) &&
+            snapshot.LifecycleState ==
+                AtlasRoomLifecycleState.Waiting &&
+            string.IsNullOrWhiteSpace(snapshot.MatchId);
+
+        if (!string.Equals(
+                seatIdentityCacheLobbyId,
+                lobbyId,
+                StringComparison.Ordinal))
+        {
+            // A synchronized rematch is the same human roster returning to the
+            // lobby even when the backend rotates a lobby identifier. Preserve
+            // the verified seat identities across that handoff. A genuinely
+            // unrelated room still starts with a clean cache.
+            if (!synchronizedRematchContinuity)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    seatIdentityAccountCache[i] = string.Empty;
+                    seatIdentityNameCache[i] = string.Empty;
+                }
+            }
+
+            seatIdentityCacheLobbyId = lobbyId;
+            lastDuplicateHostProjectionLog = string.Empty;
+        }
+
+        if (snapshot.Members == null)
+        {
+            return;
+        }
+
+        int hostSlot = ResolveHostSlotIndex(snapshot);
+        string hostAccountId = snapshot.HostAccountId ?? string.Empty;
+        bool canUsePreviousIdentity = sameLobby || synchronizedRematchContinuity;
+
+        foreach (AtlasLobbyMemberSnapshot member in snapshot.Members)
+        {
+            if (member == null ||
+                !member.Active ||
+                member.SlotIndex < 0 ||
+                member.SlotIndex >= 4 ||
+                string.IsNullOrWhiteSpace(member.AccountId))
+            {
+                continue;
+            }
+
+            bool duplicateHostProjection =
+                member.SlotIndex != hostSlot &&
+                !string.IsNullOrWhiteSpace(hostAccountId) &&
+                string.Equals(
+                    member.AccountId,
+                    hostAccountId,
+                    StringComparison.Ordinal);
+
+            if (duplicateHostProjection)
+            {
+                // During Host migration/rematch the outgoing host seat can
+                // briefly be projected with the NEW host UID. Recover the
+                // occupant from the immediately preceding authoritative
+                // snapshot instead of allowing that transient projection to
+                // poison the per-seat identity cache.
+                AtlasLobbyMemberSnapshot previousMember =
+                    canUsePreviousIdentity &&
+                    previousSnapshot != null &&
+                    previousSnapshot.Members != null
+                        ? previousSnapshot.Members.FirstOrDefault(candidate =>
+                            candidate != null &&
+                            candidate.SlotIndex == member.SlotIndex &&
+                            !string.IsNullOrWhiteSpace(candidate.AccountId) &&
+                            !string.Equals(
+                                candidate.AccountId,
+                                hostAccountId,
+                                StringComparison.Ordinal))
+                        : null;
+
+                if (previousMember != null)
+                {
+                    seatIdentityAccountCache[member.SlotIndex] =
+                        previousMember.AccountId;
+
+                    if (!string.IsNullOrWhiteSpace(previousMember.DisplayName))
+                    {
+                        seatIdentityNameCache[member.SlotIndex] =
+                            previousMember.DisplayName.Trim();
+                    }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                    Debug.LogWarning(
+                        "ATB_LOBBY_SLOT_IDENTITY_RECOVERED " +
+                        "source=previous_snapshot " +
+                        "slot=" + member.SlotIndex +
+                        " host_slot=" + hostSlot +
+                        " recovered_uid=" + previousMember.AccountId +
+                        " recovered_name=" +
+                        (previousMember.DisplayName ?? string.Empty),
+                        this);
+#endif
+                }
+
+                // Never overwrite a non-host seat with a duplicated host UID.
+                continue;
+            }
+
+            seatIdentityAccountCache[member.SlotIndex] =
+                member.AccountId;
+
+            if (!string.IsNullOrWhiteSpace(member.DisplayName))
+            {
+                seatIdentityNameCache[member.SlotIndex] =
+                    member.DisplayName.Trim();
+            }
+        }
+    }
+
+    private static int ResolveHostSlotIndex(
+        AtlasLobbySnapshot snapshot)
+    {
+        if (snapshot == null || snapshot.Members == null)
+        {
+            return -1;
+        }
+
+        string hostAccountId = snapshot.HostAccountId ?? string.Empty;
+
+        AtlasLobbyMemberSnapshot hostMember =
+            snapshot.Members.FirstOrDefault(member =>
+                member != null &&
+                member.SlotIndex >= 0 &&
+                member.SlotIndex < 4 &&
+                member.SeatMode == AtlasLobbySeatMode.HostLocal &&
+                !string.IsNullOrWhiteSpace(hostAccountId) &&
+                string.Equals(
+                    member.AccountId,
+                    hostAccountId,
+                    StringComparison.Ordinal));
+
+        hostMember ??= snapshot.Members.FirstOrDefault(member =>
+            member != null &&
+            member.SlotIndex >= 0 &&
+            member.SlotIndex < 4 &&
+            member.IsHost &&
+            !string.IsNullOrWhiteSpace(hostAccountId) &&
+            string.Equals(
+                member.AccountId,
+                hostAccountId,
+                StringComparison.Ordinal));
+
+        hostMember ??= snapshot.Members.FirstOrDefault(member =>
+            member != null &&
+            member.SlotIndex >= 0 &&
+            member.SlotIndex < 4 &&
+            !string.IsNullOrWhiteSpace(hostAccountId) &&
+            string.Equals(
+                member.AccountId,
+                hostAccountId,
+                StringComparison.Ordinal));
+
+        hostMember ??= snapshot.Members.FirstOrDefault(member =>
+            member != null &&
+            member.SlotIndex >= 0 &&
+            member.SlotIndex < 4 &&
+            member.IsHost);
+
+        return hostMember != null
+            ? hostMember.SlotIndex
+            : -1;
+    }
+
+    private int GetAuthoritativeHostSlotIndex()
+    {
+        int resolved = ResolveHostSlotIndex(backendSnapshot);
+        return resolved >= 0 ? resolved : 0;
+    }
 
 
+    private bool IsAuthoritativeHostSlot(int slotIndex)
+    {
+        return slotIndex == GetAuthoritativeHostSlotIndex();
+    }
 
     private AtlasLobbyMemberSnapshot FindBackendMemberBySlot(
         int slotIndex)
@@ -3804,60 +4463,29 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
     {
         if (!roomActive ||
             !localIsHost ||
-            index <= 0 ||
+            index < 0 ||
             index >= GetPlayerCount() ||
             index >= hostSeatModes.Length ||
-            hostSeatModes[index] !=
-                PrivateSeatMode.OpenOnline)
+            IsAuthoritativeHostSlot(index) ||
+            hostSeatModes[index] != PrivateSeatMode.OpenOnline)
         {
             openSeatChoiceIndex = -1;
             return;
         }
 
-
-
-
-        GameObject panel =
-            GetChoicePanel(index);
-
-
-
-
-        Button add =
-            GetAddButton(index);
-
-
-
-
-        if (panel == null ||
-            add == null)
+        GameObject panel = GetChoicePanel(index);
+        Button add = GetAddButton(index);
+        if (panel == null || add == null)
         {
             openSeatChoiceIndex = -1;
             return;
         }
 
-
-
-
-        openSeatChoiceIndex =
-            index;
-
-
-
-
-        SetSeatTextVisible(
-            index,
-            false);
-
-
-
-
-        panel.SetActive(true);
+        openSeatChoiceIndex = index;
+        SetSeatTextVisible(index, false);
+        SetActive(panel, true);
         add.gameObject.SetActive(false);
     }
-
-
-
 
     private void SetHostSeatActionUIVisible(
         bool visible)
@@ -3945,56 +4573,31 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
     private bool HasOpenOnlineSeat()
     {
         int total = GetPlayerCount();
-
-
-
-
-        for (int i = 1; i < total; i++)
+        int hostSlotIndex = GetAuthoritativeHostSlotIndex();
+        for (int i = 0; i < total; i++)
         {
-            if (hostSeatModes[i] ==
-                PrivateSeatMode.OpenOnline)
+            if (i != hostSlotIndex && hostSeatModes[i] == PrivateSeatMode.OpenOnline)
             {
                 return true;
             }
         }
-
-
-
-
         return false;
     }
-
-
-
 
     private int CountResolvedLocalHumans()
     {
         int total = GetPlayerCount();
-        int humans = 1;
-
-
-
-
-        for (int i = 1; i < total; i++)
+        int hostSlotIndex = GetAuthoritativeHostSlotIndex();
+        int humans = 0;
+        for (int i = 0; i < total; i++)
         {
-            if (hostSeatModes[i] ==
-                PrivateSeatMode.LocalHuman)
+            if (i == hostSlotIndex || hostSeatModes[i] == PrivateSeatMode.LocalHuman)
             {
                 humans++;
             }
         }
-
-
-
-
-        return Mathf.Clamp(
-            humans,
-            1,
-            total);
+        return Mathf.Clamp(humans, 1, total);
     }
-
-
-
 
     public void PrepareLegacyControlsForOnlineMatchStart()
     {
@@ -4068,40 +4671,14 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
     private void SyncHostSeatModesToLegacyControls()
     {
         int total = GetPlayerCount();
+        int hostSlotIndex = GetAuthoritativeHostSlotIndex();
 
-
-
-
-        // Existing MatchSetupManager still consumes:
-        // Human = 0, Bot = 1.
-        SetPlayerType(
-            0,
-            false);
-
-
-
-
-        for (int i = 1; i < total; i++)
+        for (int i = 0; i < total; i++)
         {
-            bool bot =
-                hostSeatModes[i] ==
-                PrivateSeatMode.Bot;
-
-
-
-
-            // OpenOnline is kept as a Human placeholder only in the hidden
-            // legacy MatchSetup dropdown. START MATCH stays disabled while
-            // any OpenOnline seat is unresolved, so this placeholder can
-            // never incorrectly start a local player.
-            SetPlayerType(
-                i,
-                bot);
+            bool bot = i != hostSlotIndex && hostSeatModes[i] == PrivateSeatMode.Bot;
+            SetPlayerType(i, bot);
         }
     }
-
-
-
 
     private void SaveLegacyControlValues()
     {
@@ -4491,9 +5068,11 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+        // Never label an unverified fallback seat as YOU. The authenticated
+        // backend snapshot is the only authority for local seat ownership.
         SetSeat(
             1,
-            T("lobby.online.you", "PLAYER (YOU)"),
+            T("lobby.online.remote_player", "ONLINE PLAYER"),
             readyForRevision == settingsRevision
                 ? T(
                     "lobby.online.ready_for_revision",
@@ -4598,14 +5177,12 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
                 case AtlasLobbySeatMode.LocalHuman:
+                    // Secondary local-human seats share the host device/UID.
+                    // They are NOT a second copy of the host's Steam profile.
                     SetSeat(
                         i,
-                        !string.IsNullOrWhiteSpace(member.DisplayName)
-                            ? member.DisplayName
-                            : T(
-                                "lobby.online.local_player_number",
-                                "LOCAL PLAYER {0}",
-                                i + 1),
+                        T("lobby.online.local_player_number",
+                            "LOCAL PLAYER {0}", i + 1),
                         T(
                             "lobby.online.no_ready_required",
                             "LOCAL • NO READY REQUIRED"));
@@ -4949,9 +5526,14 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             AtlasBoardBoardThemeVisuals.ApplySelection(selectedBoardThemeId);
         }
 
+        AtlasLobbySnapshot previousSnapshot = backendSnapshot;
         backendSnapshot = snapshot;
         backendLocalAccountId =
             localAccountId ?? string.Empty;
+
+        UpdateSeatIdentityPresentationCache(
+            previousSnapshot,
+            snapshot);
 
 
 
@@ -6123,7 +6705,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
-        for (int i = 1; i < 4; i++)
+        for (int i = 0; i < 4; i++)
         {
             int captured = i;
 
@@ -6264,7 +6846,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
-        for (int i = 1; i < 4; i++)
+        for (int i = 0; i < 4; i++)
         {
             RemoveButton(
                 GetButtonArrayItem(

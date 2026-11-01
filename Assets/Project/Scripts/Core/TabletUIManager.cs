@@ -50,6 +50,8 @@ public class TabletUIManager : MonoBehaviour
     private TMP_Text onlineSeatNoticeText;
     private Button onlineSeatNoticeOkButton;
     private Coroutine onlineSeatNoticeRoutine;
+    private string pendingOnlineSeatNoticeMessage = string.Empty;
+    private float pendingOnlineSeatNoticeSeconds;
     private GameObject currentPanel;
     private GameObject[] gameplayPanels;
     private bool[] gameplayPanelWasActive;
@@ -121,6 +123,8 @@ public class TabletUIManager : MonoBehaviour
     public void ResetForNewMatchSession()
     {
         HideOnlineSeatNotice();
+        pendingOnlineSeatNoticeMessage = string.Empty;
+        pendingOnlineSeatNoticeSeconds = 0f;
 
         GameObject[] panels =
         {
@@ -157,8 +161,32 @@ public class TabletUIManager : MonoBehaviour
         string message,
         float autoHideSeconds = 3f)
     {
-        EnsureOnlineSeatNoticePanel();
+        string normalized = message ?? string.Empty;
 
+        // Informational seat notices never overlap auction/trade/event/etc.
+        // Keep the latest one queued and present it only after the gameplay
+        // decision tablet closes.
+        if (ResolveCanonicalGameplayPanel() != null)
+        {
+            pendingOnlineSeatNoticeMessage = normalized;
+            pendingOnlineSeatNoticeSeconds = autoHideSeconds;
+            HideOnlineSeatNoticeVisual();
+            Debug.Log(
+                "ATB_TABLET_NOTICE queued=true reason=gameplay_panel_active",
+                this);
+            return;
+        }
+
+        pendingOnlineSeatNoticeMessage = string.Empty;
+        pendingOnlineSeatNoticeSeconds = 0f;
+        ShowOnlineSeatNoticeNow(normalized, autoHideSeconds);
+    }
+
+    private void ShowOnlineSeatNoticeNow(
+        string message,
+        float autoHideSeconds)
+    {
+        EnsureOnlineSeatNoticePanel();
         if (onlineSeatNoticePanel == null)
         {
             return;
@@ -166,8 +194,7 @@ public class TabletUIManager : MonoBehaviour
 
         if (onlineSeatNoticeText != null)
         {
-            onlineSeatNoticeText.text =
-                message ?? string.Empty;
+            onlineSeatNoticeText.text = message ?? string.Empty;
         }
 
         onlineSeatNoticePanel.SetActive(true);
@@ -180,14 +207,12 @@ public class TabletUIManager : MonoBehaviour
 
         if (autoHideSeconds > 0f)
         {
-            onlineSeatNoticeRoutine =
-                StartCoroutine(
-                    HideOnlineSeatNoticeAfter(
-                        autoHideSeconds));
+            onlineSeatNoticeRoutine = StartCoroutine(
+                HideOnlineSeatNoticeAfter(autoHideSeconds));
         }
     }
 
-    public void HideOnlineSeatNotice()
+    private void HideOnlineSeatNoticeVisual()
     {
         if (onlineSeatNoticeRoutine != null)
         {
@@ -199,6 +224,13 @@ public class TabletUIManager : MonoBehaviour
         {
             onlineSeatNoticePanel.SetActive(false);
         }
+    }
+
+    public void HideOnlineSeatNotice()
+    {
+        pendingOnlineSeatNoticeMessage = string.Empty;
+        pendingOnlineSeatNoticeSeconds = 0f;
+        HideOnlineSeatNoticeVisual();
     }
 
     private IEnumerator HideOnlineSeatNoticeAfter(
@@ -466,18 +498,30 @@ public class TabletUIManager : MonoBehaviour
 
     private GameObject FindRequestedPanel()
     {
-        GameObject gameplayPanel =
-            ResolveCanonicalGameplayPanel();
+        GameObject gameplayPanel = ResolveCanonicalGameplayPanel();
 
-        // Seat lifecycle notice is an overlay, not another gameplay decision
-        // owner. It may temporarily cover the canonical gameplay panel without
-        // destroying that decision state.
-        if (IsPanelRequested(onlineSeatNoticePanel))
+        if (gameplayPanel != null)
         {
-            return onlineSeatNoticePanel;
+            if (IsPanelRequested(onlineSeatNoticePanel))
+            {
+                HideOnlineSeatNoticeVisual();
+            }
+            return gameplayPanel;
         }
 
-        return gameplayPanel;
+        if (!string.IsNullOrWhiteSpace(pendingOnlineSeatNoticeMessage) &&
+            !IsPanelRequested(onlineSeatNoticePanel))
+        {
+            string queuedMessage = pendingOnlineSeatNoticeMessage;
+            float queuedSeconds = pendingOnlineSeatNoticeSeconds;
+            pendingOnlineSeatNoticeMessage = string.Empty;
+            pendingOnlineSeatNoticeSeconds = 0f;
+            ShowOnlineSeatNoticeNow(queuedMessage, queuedSeconds);
+        }
+
+        return IsPanelRequested(onlineSeatNoticePanel)
+            ? onlineSeatNoticePanel
+            : null;
     }
 
     private void InitializeGameplayPanelTracking()

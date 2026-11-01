@@ -38,6 +38,13 @@ public class EnvironmentThemeManager : MonoBehaviour
     [SerializeField]
     private EnvironmentThemeProfile activeTheme;
 
+    // Small, consistent reduction for every environment/board; never multiply
+    // an already-adjusted value again during rematch or theme switching.
+    private const float AtlasLightingScale = 0.82f;
+    private const float AtlasAmbientScale = 0.90f;
+    private float originalDirectionalIntensity = 1f;
+    private Color originalAmbientLight;
+
     private GameObject spawnedBackground;
     private GameObject spawnedProps;
 
@@ -51,6 +58,9 @@ public class EnvironmentThemeManager : MonoBehaviour
     private void Start()
     {
         EnsureReferences();
+        if (directionalLight != null)
+            originalDirectionalIntensity = directionalLight.intensity;
+        originalAmbientLight = RenderSettings.ambientLight;
 
         if (applyDefaultThemeOnStart &&
             defaultTheme != null)
@@ -255,18 +265,19 @@ public class EnvironmentThemeManager : MonoBehaviour
                 theme.DirectionalLightColor;
 
             directionalLight.intensity =
-                theme.DirectionalLightIntensity;
+                theme.DirectionalLightIntensity * AtlasLightingScale;
 
             directionalLight.transform.rotation =
                 Quaternion.Euler(
                     theme.DirectionalLightEuler);
         }
 
-        if (theme.OverrideAmbientLight)
-        {
-            RenderSettings.ambientLight =
-                theme.AmbientLightColor;
-        }
+        if (!theme.OverrideDirectionalLight && directionalLight != null)
+            directionalLight.intensity = originalDirectionalIntensity * AtlasLightingScale;
+
+        RenderSettings.ambientLight = theme.OverrideAmbientLight
+            ? theme.AmbientLightColor * AtlasAmbientScale
+            : originalAmbientLight * AtlasAmbientScale;
     }
 
     private void ReplaceOptionalPrefab(

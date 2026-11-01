@@ -280,12 +280,23 @@ public class EventCardManager : MonoBehaviour
             player);
     }
 
+    public bool CanBotContinueEventFor(
+        PlayerGameState player)
+    {
+        // A movement Event can hand control to a nested destination decision
+        // (purchase, auction, travel, development, etc.). During that nested
+        // resolution the Event itself is still pending, but its result is NOT
+        // ready to continue yet. BotPlayerController must not let that outer
+        // Event state starve the destination decision.
+        return HasPendingEventFor(player) &&
+               IsBotPlayer(player) &&
+               effectExecutionCompleted;
+    }
+
     public bool TryResolveBotContinue(
         PlayerGameState player)
     {
-        if (!HasPendingEventFor(player) ||
-            !IsBotPlayer(player) ||
-            !effectExecutionCompleted)
+        if (!CanBotContinueEventFor(player))
         {
             return false;
         }

@@ -90,6 +90,11 @@ public static class AtlasBoardRtdbUserProfileMirror
         string countryCodeOverride = null,
         string languageCodeOverride = null)
     {
+        // Live Guest obtains a distinct Firebase UID using its own REST Auth
+        // transport. Mirroring the native Firebase SDK UID here could write
+        // the owner's profile under the Guest executable.
+        if (AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession)
+            return Task.FromResult(false);
         lock (SyncGate)
         {
             // Account bootstrap and the background mirror can arrive in the

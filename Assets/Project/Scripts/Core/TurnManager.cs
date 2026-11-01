@@ -179,6 +179,9 @@ public class TurnManager : MonoBehaviour
             new HashSet<int>();
 
     private int lastFollowerDiceSequence = -1;
+    // Read-only, change-triggered diagnostics for the separate Windows Live
+    // Guest build. Never grant roll authority or leak account tokens.
+    private string lastLiveGuestRollControlState = string.Empty;
     private bool onlineRollRequestPending;
     private bool onlineFollowerManagementPresentation;
     private bool onlineFollowerHoldLastRollResult;
@@ -1498,6 +1501,31 @@ public class TurnManager : MonoBehaviour
         bool canRoll =
             CanFollowerRequestRoll(activePlayer) &&
             !onlineRollRequestPending;
+
+        if (AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession)
+        {
+            bool ownsActiveSeat = activePlayer != null &&
+                locallyControlledOnlineHumanSlots.Contains(
+                    onlineFollowerActiveSlotIndex);
+            string fingerprint = onlineFollowerPhase + ":" +
+                onlineFollowerActiveSlotIndex + ":" +
+                locallyControlledOnlineHumanSlots.Count + ":" +
+                ownsActiveSeat + ":" + canRoll + ":" +
+                onlineRollRequestPending + ":" +
+                onlineFollowerManagementPresentation;
+            if (fingerprint != lastLiveGuestRollControlState)
+            {
+                lastLiveGuestRollControlState = fingerprint;
+                Debug.Log("ATB_LIVE_GUEST_ROLL_DIAG phase=" + onlineFollowerPhase +
+                    " activeSlot=" + onlineFollowerActiveSlotIndex +
+                    " localSeatCount=" + locallyControlledOnlineHumanSlots.Count +
+                    " ownsActiveSeat=" + ownsActiveSeat +
+                    " activeHuman=" + (activePlayer != null && !IsBotPlayer(activePlayer)) +
+                    " pending=" + onlineRollRequestPending +
+                    " management=" + onlineFollowerManagementPresentation +
+                    " canRoll=" + canRoll);
+            }
+        }
 
         if (rollButton != null)
         {

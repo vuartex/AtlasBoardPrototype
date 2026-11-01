@@ -195,6 +195,17 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
     }
 
 
+    public void InvalidateForMainMenuReturn()
+    {
+        browserGeneration++;
+        pendingJoinRoom = null;
+        SetActive(passwordPromptRoot, false);
+        SetActive(joinByCodePromptRoot, false);
+        SetActive(browserRoot, false);
+        Debug.Log("ATB_PUBLIC_NAV invalidated=true generation=" + browserGeneration);
+    }
+
+
     public void HostPublicRoomFromMainMenu()
     {
         if (busy)
@@ -215,16 +226,16 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
 
     public void BackToMainMenu()
     {
-        if (busy && !refreshingRooms)
+        ResolveReferences();
+        if (mainMenuController != null)
         {
+            mainMenuController.ShowMainMenu();
             return;
         }
 
-
-        // Invalidate pending read-only responses from the screen we just left.
-        browserGeneration++;
-        SetActive(passwordPromptRoot, false);
-        SetActive(browserRoot, false);
+        // A missing controller is a setup error; never fall back to opening or
+        // revealing serialized legacy lobby UI.
+        InvalidateForMainMenuReturn();
         SetActive(mainMenuRoot, true);
     }
 
@@ -1382,6 +1393,7 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
             return;
         }
 
+        int operationGeneration = browserGeneration;
         Debug.Log("ATB_RTDB_CREATE_BEGIN mode=public auth_required=true");
         busy = true;
         SetControlsInteractable(false);
@@ -1393,6 +1405,13 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
             AtlasBoardLobbySelection selection = mainMenuController.GetCurrentLobbySelection();
             AtlasLobbyOperationResult result =
                 await runtimeBridge.CreatePublicRoomAsync(selection);
+
+            if (operationGeneration != browserGeneration)
+            {
+                await DiscardStalePublicResultAsync(result, true);
+                Debug.Log("ATB_PUBLIC_NAV stale_create_discarded=true");
+                return;
+            }
 
 
             if (result == null || !result.Success || result.Snapshot == null)
@@ -1789,6 +1808,7 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
         }
 
 
+        int operationGeneration = browserGeneration;
         busy = true;
         SetControlsInteractable(false);
         SetText(statusText, T("public_browser.joining", "Joining room..."));
@@ -1799,6 +1819,13 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
         {
             AtlasLobbyOperationResult result =
                 await runtimeBridge.JoinPublicRoomAsync(room.LobbyId, password);
+
+            if (operationGeneration != browserGeneration)
+            {
+                await DiscardStalePublicResultAsync(result, false);
+                Debug.Log("ATB_PUBLIC_NAV stale_join_discarded=true");
+                return;
+            }
 
 
             if (!result.Success || result.Snapshot == null)
@@ -1845,6 +1872,26 @@ public sealed class AtlasBoardPublicLobbyBrowserController : MonoBehaviour
         {
             busy = false;
             SetControlsInteractable(true);
+        }
+    }
+
+
+    private async Task DiscardStalePublicResultAsync(
+        AtlasLobbyOperationResult result, bool createdByThisClient)
+    {
+        if (result == null || !result.Success || result.Snapshot == null ||
+            runtimeBridge == null || !runtimeBridge.HasLobby) return;
+        try
+        {
+            AtlasLobbyOperationResult cleanup = createdByThisClient
+                ? await runtimeBridge.CloseLobbyAsync()
+                : await runtimeBridge.LeaveLobbyAsync();
+            if (cleanup == null || !cleanup.Success)
+                Debug.LogWarning("ATB_PUBLIC_NAV stale_cleanup_ack=false");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning("ATB_PUBLIC_NAV stale_cleanup=" + ex.GetType().Name);
         }
     }
 

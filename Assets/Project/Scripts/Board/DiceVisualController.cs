@@ -44,6 +44,7 @@ public class DiceVisualController : MonoBehaviour
     private string activeVisualId = null;
     private string localDiceUid = "";
     private string localDiceProjection = "";
+    private float nextOnlineSeatProjectionRefreshAt;
 
     [Header("Face Rotations")]
     [Tooltip(
@@ -126,6 +127,26 @@ public class DiceVisualController : MonoBehaviour
 
     private void Update()
     {
+        // Online dice must always be scoped to the authenticated lobby seat.
+        // The previous priming API had no call from the match coordinator;
+        // without it, follower rolls used local/default dice or another UID.
+        if (Time.unscaledTime >= nextOnlineSeatProjectionRefreshAt)
+        {
+            nextOnlineSeatProjectionRefreshAt = Time.unscaledTime + 0.75f;
+            AtlasBoardTurnDiceNetworkCoordinator coordinator =
+                FindAnyObjectByType<AtlasBoardTurnDiceNetworkCoordinator>();
+            if (coordinator != null && coordinator.IsOnlineSessionActive)
+            {
+                AtlasBoardLobbyRuntimeBridge bridge =
+                    FindAnyObjectByType<AtlasBoardLobbyRuntimeBridge>();
+                AtlasLobbySnapshot seats = bridge != null ? bridge.CurrentSnapshot : null;
+                if (seats != null && seats.Members != null && NeedsOnlineDiceRefresh(seats))
+                {
+                    PrimeOnlineDiceSkins(seats);
+                    Debug.Log("ATB_DICE_SEAT_PRIME uid_scoped=true seats=" + seats.Members.Count, this);
+                }
+            }
+        }
         // One public projection read on identity change, not on every frame.
         // Handles opening Local/Offline directly after application restart.
         string uid = AtlasBoardRtdbMetaEconomy.CurrentUid;

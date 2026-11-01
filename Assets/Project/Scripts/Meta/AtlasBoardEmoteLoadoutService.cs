@@ -36,14 +36,31 @@ public static class AtlasBoardEmoteLoadoutService
     {
         get
         {
-            string uid = AtlasBoardRtdbMetaEconomy.CurrentUid;
-            return uid.Length > 0 && uid == cacheUid && cache != null
+            AtlasBoardLobbyRuntimeBridge bridge =
+                UnityEngine.Object.FindAnyObjectByType<AtlasBoardLobbyRuntimeBridge>();
+            string uid = bridge != null && bridge.HasLobby
+                ? bridge.CurrentAccountId : AtlasBoardRtdbMetaEconomy.CurrentUid;
+            return !string.IsNullOrEmpty(uid) && uid == cacheUid && cache != null
                 ? (IReadOnlyList<string>)cache : AtlasBoardEmotes.FreeIds;
         }
     }
     public static void Invalidate() { cacheUid = ""; cache = null; cacheTag = "null_etag"; }
     private static async Task<(string uid, string token)> Identify()
     {
+        // Match the UID/token that actually owns the live RTDB seat. The
+        // native Firebase singleton can point at another Steam identity when
+        // the No-Steam QA guest uses its own REST Firebase session.
+        AtlasBoardLobbyRuntimeBridge bridge =
+            UnityEngine.Object.FindAnyObjectByType<AtlasBoardLobbyRuntimeBridge>();
+        if (bridge != null && bridge.HasLobby)
+        {
+            string owner = bridge.CurrentAccountId;
+            string token = bridge.AuthTokenForOnlineSubsystems;
+            return !string.IsNullOrEmpty(owner) && !string.IsNullOrEmpty(token)
+                ? (owner, token) : ("", "");
+        }
+        if (AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession)
+            return ("", "");
         try
         {
             FirebaseUser u = FirebaseAuth.DefaultInstance.CurrentUser;
@@ -83,7 +100,8 @@ public static class AtlasBoardEmoteLoadoutService
                 .Where(s => !string.IsNullOrEmpty(s) && AtlasBoardEmotes.IsEmote(s)).Distinct().Take(6).ToList();
             cacheUid = uid;
             cacheTag = string.IsNullOrWhiteSpace(r.ETag) ? "null_etag" : r.ETag;
-            if (w == null) await SaveAsync(cache); // deterministic three free slots for new UID
+            if (w == null && !await SaveAsync(cache))
+                Debug.LogWarning("ATB_EMOTE_LOADOUT status=seed_pending uid_scoped=true");
         }
         catch (Exception e) { Debug.LogWarning("ATB_EMOTE_LOAD failed " + e.Message); cacheUid = uid; cache = new List<string>(AtlasBoardEmotes.FreeIds); }
         return Active;
@@ -92,7 +110,9 @@ public static class AtlasBoardEmoteLoadoutService
     {
         var (uid, token) = await Identify();
         if (uid.Length == 0 || token.Length == 0 || ids == null || ids.Count > 6 ||
-            ids.Distinct().Count() != ids.Count || ids.Any(s => !AtlasBoardRtdbMetaEconomy.IsEmoteOwnedForCurrentUid(s))) return false;
+            ids.Distinct().Count() != ids.Count || ids.Any(s => !AtlasBoardEmotes.IsEmote(s) ||
+                (AtlasBoardEmotes.IsPaid(s) &&
+                 !AtlasBoardRtdbMetaEconomy.IsEmoteOwnedForCurrentUid(s)))) return false;
         try
         {
             // Always read current ETag, avoiding overwrite of another device's latest selection.

@@ -23,6 +23,14 @@ public sealed class AtlasBoardEmoteHudRuntime : MonoBehaviour
     private string watchedRoom = "";
     private string currentLocalUid = "";
 
+    private static string ActiveLobbyUid()
+    {
+        AtlasBoardLobbyRuntimeBridge bridge =
+            UnityEngine.Object.FindAnyObjectByType<AtlasBoardLobbyRuntimeBridge>();
+        return bridge != null && !string.IsNullOrWhiteSpace(bridge.CurrentAccountId)
+            ? bridge.CurrentAccountId : AtlasBoardRtdbMetaEconomy.CurrentUid;
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void EnsureReceiver()
     {
@@ -68,7 +76,7 @@ public sealed class AtlasBoardEmoteHudRuntime : MonoBehaviour
             instance = owner.AddComponent<AtlasBoardEmoteHudRuntime>();
         }
         AtlasBoardEmoteHudRuntime runtime = instance;
-        string uid = AtlasBoardRtdbMetaEconomy.CurrentUid;
+        string uid = ActiveLobbyUid();
         if (uid != runtime.currentLocalUid)
         {
             runtime.currentLocalUid = uid;
@@ -96,7 +104,7 @@ public sealed class AtlasBoardEmoteHudRuntime : MonoBehaviour
         // from a different player/UID after a match/account switch.
         if (runtime != null && instance == runtime &&
             runtime.popup != null && runtime.activeHud == panel &&
-            runtime.currentLocalUid == AtlasBoardRtdbMetaEconomy.CurrentUid &&
+            runtime.currentLocalUid == ActiveLobbyUid() &&
             panel != null && panel.gameObject.activeInHierarchy &&
             runtime.IsMatchLive())
             runtime.OpenPopup(panel);
@@ -134,7 +142,7 @@ public sealed class AtlasBoardEmoteHudRuntime : MonoBehaviour
                 if (lastSeq.TryGetValue(key,out long seq) && pair.Value.seq<=seq) continue;
                 lastSeq[key]=pair.Value.seq;
                 // The sender already drew its own bubble at submit time.
-                if (pair.Key == AtlasBoardRtdbMetaEconomy.CurrentUid) continue;
+                if (pair.Key == ActiveLobbyUid()) continue;
                 if (now-pair.Value.atMs>2500 || pair.Value.atMs>now+5000) continue;
                 var member=bridge!=null && bridge.CurrentSnapshot!=null && bridge.CurrentSnapshot.Members!=null
                     ? bridge.CurrentSnapshot.Members.Find(m=>m!=null && m.Active && m.AccountId==pair.Key) : null;
@@ -219,7 +227,7 @@ public sealed class AtlasBoardEmoteHudRuntime : MonoBehaviour
     {
         PlayerHudPanel hud=activeHud;
         if(hud==null || !IsMatchLive() || !AtlasBoardEmoteLoadoutService.Active.Contains(id))return;
-        string uid=AtlasBoardRtdbMetaEconomy.CurrentUid;
+        string uid=ActiveLobbyUid();
         if(string.IsNullOrEmpty(uid))uid="local";
         long now=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         if(localMute.TryGetValue(uid,out long mute) && now<mute){Warn("muted");return;}
@@ -233,7 +241,13 @@ public sealed class AtlasBoardEmoteHudRuntime : MonoBehaviour
         if(online)
         {
             string reply=await AtlasBoardEmoteNetwork.SendAsync(bridge.CurrentLobbyId,id);
-            if(reply!="ok"){Warn(reply);return;}
+            if(reply!="ok")
+            {
+                Debug.LogWarning("ATB_EMOTE_UI_SEND_FAILED reason="+reply+
+                    " guest="+AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession);
+                Warn(reply);
+                return;
+            }
         }
         localLastSent[uid]=now;localWindowStart[uid]=start;localWindowCount[uid]=++count;
         if(count==20)localMute[uid]=now+180000;

@@ -52,19 +52,20 @@ public static class AtlasBoardReleaseUiText
         "Noch keine bestätigten Online-Spiele. Offline- und Bot-Spiele bringen keine dauerhaften EP.",
         "확인된 온라인 경기 기록이 없습니다. 오프라인 및 봇 전용 경기는 영구 XP를 제공하지 않습니다.",
         "Пока нет подтверждённых онлайн-матчей. Офлайн и игры только с ботами не дают постоянный опыт." }[Language()];
+    // Empty event state is deliberately an informational panel, not a fake event or a claim action.
     public static string EventsComingSoonTitle() => new [] {
-        "NEW EVENTS ARE ON THE WAY", "YENİ ETKİNLİKLER YOLDA",
-        "PRÓXIMOS EVENTOS", "DE NOUVEAUX ÉVÉNEMENTS ARRIVENT",
-        "NEUE EVENTS KOMMEN BALD", "새 이벤트가 곧 찾아옵니다",
-        "СКОРО НОВЫЕ СОБЫТИЯ" }[Language()];
+        "No Upcoming Events", "Yaklaşan Etkinlik Yok",
+        "No hay próximos eventos", "Aucun événement à venir",
+        "Keine bevorstehenden Events", "예정된 이벤트 없음",
+        "Нет предстоящих событий" }[Language()];
     public static string EventsComingSoonBody() => new [] {
-        "There are no active events right now.\nStay tuned for future challenges and seasonal surprises!",
-        "Şu anda yaklaşan bir etkinlik bulunmuyor.\nYeni görevler ve sezonluk sürprizler için takipte kal!",
-        "No hay eventos próximos por ahora.\n¡Vuelve pronto para descubrir nuevos desafíos!",
-        "Aucun événement à venir pour le moment.\nRevenez bientôt pour de nouveaux défis !",
-        "Aktuell stehen keine Events an.\nSchau bald wieder für neue Herausforderungen vorbei!",
-        "현재 예정된 이벤트가 없습니다.\n새로운 도전과 시즌 소식을 기대해 주세요!",
-        "Пока нет предстоящих событий.\nЗагляните позже за новыми испытаниями!" }[Language()];
+        "There are no upcoming events at this time.\nCheck back later for new challenges, special events and rewards.",
+        "Şu anda yaklaşan bir etkinlik bulunmuyor.\nYeni görevler, özel etkinlikler ve ödüller için daha sonra tekrar kontrol et.",
+        "No hay eventos próximos en este momento.\nVuelve más tarde para ver nuevos desafíos, eventos especiales y recompensas.",
+        "Il n’y a aucun événement à venir pour le moment.\nRevenez plus tard pour découvrir de nouveaux défis, événements spéciaux et récompenses.",
+        "Derzeit stehen keine Events an.\nSchau später wieder vorbei, um neue Herausforderungen, besondere Events und Belohnungen zu entdecken.",
+        "현재 예정된 이벤트가 없습니다.\n새로운 도전, 특별 이벤트 및 보상을 확인하려면 나중에 다시 방문해 주세요.",
+        "В настоящее время предстоящих событий нет.\nЗагляните позже, чтобы узнать о новых испытаниях, особых событиях и наградах." }[Language()];
     public static string EventsComingSoonFooter() => new [] {
         "No tickets or rewards are available until an event begins.",
         "Etkinlik başlayana kadar bilet veya ödül sunulmuyor.",

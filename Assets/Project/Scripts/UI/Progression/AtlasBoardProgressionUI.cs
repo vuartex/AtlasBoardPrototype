@@ -257,6 +257,9 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
     {
         detailsRoot.SetActive(false);
         root.SetActive(false);
+        AtlasBoardMainMenuController menu =
+            UnityEngine.Object.FindAnyObjectByType<AtlasBoardMainMenuController>();
+        menu?.ShowMainMenu();
     }
 
     private async System.Threading.Tasks.Task RefreshProfileAsync(
@@ -1122,11 +1125,16 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
 
     private List<string> BuildSelectableMapIds()
     {
+        // Show the complete five-map catalog even before a player has
+        // recorded a Career result on a premium map. Missing stats are zero;
+        // listing a map must NOT grant its store entitlement.
         List<string> mapIds = new List<string>
         {
             "Turkey",
             "Colorado",
-            "USA"
+            "USA",
+            "Germany",
+            "Mexico"
         };
 
         if (snapshot != null && snapshot.MapStats != null)
@@ -1213,10 +1221,12 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
 
     private static string NormalizeMapId(string value)
     {
-        return (value ?? string.Empty)
-            .Trim()
-            .Replace(" ", "_")
-            .ToLowerInvariant();
+        string id = (value ?? string.Empty)
+            .Trim().Replace(" ", "_").ToLowerInvariant();
+        // Career match history can carry public names (Germany/Mexico) while
+        // purchased board definitions use map_germany/map_mexico IDs.
+        return id.StartsWith("map_", StringComparison.Ordinal)
+            ? id.Substring(4) : id;
     }
 
     private void BuildCareerStatsCard(
@@ -1400,13 +1410,15 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             body.rectTransform,
             new Vector2(-255f, -14f),
             new Vector2(510f, 52f));
-        body.text = T(
-            "progression.history.row",
-            LocalizeMap(match.mapId),
-            match.place,
-            match.playerCount,
-            match.netWorth,
-            match.xpAwarded);
+        body.text = string.Equals(match.result, "participation", StringComparison.OrdinalIgnoreCase)
+            ? ParticipationHistoryText()
+            : T(
+                "progression.history.row",
+                LocalizeMap(match.mapId),
+                match.place,
+                match.playerCount,
+                match.netWorth,
+                match.xpAwarded);
 
         Button details = CreateButton(
             row.transform,
@@ -2087,10 +2099,27 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             : T("progression.history.lobby_fallback");
     }
 
+    private static string ParticipationHistoryText()
+    {
+        string language = AtlasBoardLocalizationManager.Instance != null
+            ? AtlasBoardLocalizationManager.Instance.CurrentLanguageCode : "en";
+        switch ((language ?? "en").ToLowerInvariant())
+        {
+            case "tr": return "Katılım doğrulandı • 1 XP korundu • maç ödülü beklemede";
+            case "es": return "Participación confirmada • 1 XP guardado • premio pendiente";
+            case "fr": return "Participation confirmée • 1 XP conservé • récompense en attente";
+            case "de": return "Teilnahme bestätigt • 1 XP gesichert • Belohnung ausstehend";
+            case "ko": return "참가 확인 • 1 XP 보존 • 경기 보상 대기 중";
+            case "ru": return "Участие подтверждено • 1 XP сохранён • награда ожидается";
+            default: return "Participation confirmed • 1 XP saved • match reward pending";
+        }
+    }
+
     private static string ResultLabel(string result)
     {
         switch ((result ?? string.Empty).ToLowerInvariant())
         {
+            case "participation": return ParticipationHistoryText().Split('•')[0].Trim();
             case "win": return T("progression.result.win");
             case "tie": return T("progression.result.tie");
             default: return T("progression.result.loss");
@@ -2103,6 +2132,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         {
             case "win": return Green;
             case "tie": return Orange;
+            case "participation": return Orange;
             default: return Red;
         }
     }
@@ -2121,6 +2151,18 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         if (normalized == "usa" || normalized.Contains("united_states"))
         {
             return T("progression.map.usa");
+        }
+        if (normalized == "germany" || normalized == "map_germany")
+        {
+            AtlasBoardLocalizationManager loc = AtlasBoardLocalizationManager.Instance;
+            return AtlasBoardShopContentDraft.LocalizedName("map_germany",
+                loc != null ? loc.CurrentLanguageCode : "en");
+        }
+        if (normalized == "mexico" || normalized == "map_mexico")
+        {
+            AtlasBoardLocalizationManager loc = AtlasBoardLocalizationManager.Instance;
+            return AtlasBoardShopContentDraft.LocalizedName("map_mexico",
+                loc != null ? loc.CurrentLanguageCode : "en");
         }
         return string.IsNullOrWhiteSpace(mapId) ? "-" : mapId;
     }

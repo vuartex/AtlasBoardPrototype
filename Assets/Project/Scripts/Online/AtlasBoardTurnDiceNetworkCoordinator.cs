@@ -152,6 +152,10 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         // Phase 5F final result snapshot. Host computes this once from the same
         // authoritative economy/development state and Remote only presents it.
         public MatchResultManager.OnlineResultSnapshot matchResult;
+        // Per-seat, actually committed host dice events. Counts reset on match ID change.
+        // These are peer/host observations, NOT independent server replay evidence.
+        public int[] careerDiceRolls = new int[4];
+        public int[] careerDoublesRolled = new int[4];
 
 
 
@@ -344,6 +348,9 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
 
 
+
+    private float nextActiveMatchJoinPumpAt;
+    private bool activeMatchJoinPumpInFlight;
 
     private AtlasLobbySnapshot startLobbySnapshot;
     private bool prepared;
@@ -682,6 +689,29 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
 
 
+        // The host must process exact-UID reconnect reservations even while
+        // the lobby UI is closed. Previously admission only occurred inside
+        // SnapshotAsync called by lobby UI, leading to 24-attempt ATB212.
+        if (!activeMatchJoinPumpInFlight && lobbyBridge != null &&
+            !lobbyBridge.UsingLocalEmulators &&
+            Time.unscaledTime >= nextActiveMatchJoinPumpAt)
+        {
+            nextActiveMatchJoinPumpAt = Time.unscaledTime + 2.5f;
+            activeMatchJoinPumpInFlight = true;
+            try
+            {
+                await AtlasBoardRtdbCasualLobbyTransport.PumpActiveMatchRejoinsAsync(
+                    lobbyBridge.CurrentLobbyId, lobbyBridge.CurrentAccountId,
+                    lobbyBridge.AuthTokenForOnlineSubsystems);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("ATB_RTDB_MATCH_REJOIN pump_error=" +
+                    e.GetType().Name);
+            }
+            finally { activeMatchJoinPumpInFlight = false; }
+        }
+
         // Gameplay-critical Host traffic is evaluated before maintenance.
         if (!hostIntentPollInFlight &&
             Time.unscaledTime >= nextIntentPollAt)
@@ -864,6 +894,10 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         locallyControlledHumanSlots.Clear();
         locallyControlledHumanSlots.AddRange(
             controlledSlots.Distinct());
+        if (AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession)
+            Debug.Log("ATB_LIVE_GUEST_SEAT_BOUND isHost=" + localIsHost +
+                " localSeatCount=" + locallyControlledHumanSlots.Count +
+                " validLobbyIdentity=" + !string.IsNullOrWhiteSpace(localAccountId));
 
 
 
@@ -1989,6 +2023,11 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
 
 
+
+        if (AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession)
+            Debug.Log("ATB_LIVE_GUEST_ROLL_INTENT submitted=" + result.Success +
+                " startingOrder=" + startingOrder +
+                " result=" + (result.Success ? "transport_accepted" : "transport_rejected"));
 
         if (!result.Success)
         {
@@ -3530,6 +3569,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
                 ? propertyDevelopmentManager.CaptureBankSnapshot(boardPath.TileCount) : Array.Empty<int>(),
             civicState = ResolveCivicManager() != null ? ResolveCivicManager().CaptureSnapshot() : Array.Empty<int>(),
             cityMemory = propertyDevelopmentManager != null ? propertyDevelopmentManager.CaptureCityMemorySnapshot() : Array.Empty<int>(),
+            careerDiceRolls = AtlasBoardProgressionMatchRecorder.HostDiceCounts(false),
+            careerDoublesRolled = AtlasBoardProgressionMatchRecorder.HostDiceCounts(true),
             matchResult =
                 turnManager.IsMatchFinished &&
                 matchResultManager != null
@@ -4089,6 +4130,9 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
 
 
+
+        AtlasBoardProgressionMatchRecorder.HydrateCareerDiceCounts(
+            frame.careerDiceRolls, frame.careerDoublesRolled);
 
         turnManager.ApplyOnlineFollowerTurnDiceFrame(
             frame.phase,
@@ -6144,6 +6188,30 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
 
 
+            return;
+        }
+
+        // Re-entry can restore the client before the authoritative seat has
+        // transitioned from reconnecting/temporary-bot back to connected
+        // Human. Submitting a pawn cosmetic during that window is guaranteed
+        // to be rejected and produces a noisy warning every rejoin. Wait for
+        // the same authoritative condition the server requires, then submit.
+        AtlasMatchNetworkSeat authoritativeLocalSeat =
+            authoritativeSnapshot.Seats != null
+                ? authoritativeSnapshot.Seats.FirstOrDefault(
+                    seat => seat != null && seat.SlotIndex == slotToSubmit)
+                : null;
+
+        bool connectedHuman =
+            authoritativeLocalSeat != null &&
+            string.Equals(authoritativeLocalSeat.ControllerKind, "human",
+                StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(authoritativeLocalSeat.ConnectionState, "connected",
+                StringComparison.OrdinalIgnoreCase);
+
+        if (!connectedHuman)
+        {
+            nextRemoteCosmeticSubmitAt = Time.unscaledTime + 0.75f;
             return;
         }
 

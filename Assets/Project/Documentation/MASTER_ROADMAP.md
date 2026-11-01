@@ -1,3 +1,276 @@
+## v5.49.12at — Rematch duplicate-host projection root-cause fix (2026-11-01; OWNER LIVE RETEST REQUIRED)
+
+**Scope:** this checkpoint changes only rematch/lobby identity presentation and keeps the already owner-PASS modern Auction untouched. Career, XP/Gold, emotes, reconnect transport, Firebase rules, bot decision logic, dice, store and lighting are unchanged. The Editor final-round/rematch QA shortcut from v5.49.12as is preserved so this regression can be retested without playing ten rounds.
+
+**New owner evidence:** v5.49.12as successfully reaches a stable Waiting roster and captures `P1=Guest...[guestUid] | P2=Vuartex[vuatexUid]`. The owner visually sees Guest correctly first, then P1 changes back to Vuartex. The log contains `ATB_REMATCH_ROSTER_REFRESH ... stable=true`, `applied=true`, and `ATB_REMATCH_ROSTER_IDENTITY_LOCK captured=true`, proving the initial resync/identity capture is working. No subsequent `ATB_REMATCH_ROSTER_NAME_GUARD corrected=true` appears in the supplied log. Therefore this is not simply a later wrong DisplayName passing through the existing guard.
+
+**Root cause found by full source inspection:** `AtlasBoardUnifiedProfilePresentation` is a second, independent presentation owner for lobby names. Its `LateUpdate()` calls `SynchronizeLocalLobbySeat()` continuously. `ResolveLocalLobbySlot()` used `snapshot.Members.FirstOrDefault(member.AccountId == localAccountId)`. During host migration/rematch the RTDB lobby can transiently project the promoted Vuartex host UID into both the outgoing Guest/P1 reconnecting slot and the real Vuartex/P2 HostLocal slot. `FirstOrDefault()` therefore selects P1 and the global profile presenter overwrites the correctly reconciled Guest row with `Vuartex (YOU)` a few frames after the private-lobby controller rendered Guest. This exactly explains the owner symptom “first Guest, then Vuartex”. The GitHub main copy of `AtlasBoardUnifiedProfilePresentation.cs` contains this same first-match behavior.
+
+**Secondary bug in v5.49.12as identity lock:** when a later poll changes a verified P1 AccountId from Guest UID to the promoted Host UID, `ApplyRematchVerifiedIdentityGuard()` treated every AccountId mismatch as a genuine new occupant and silently released the lock. That is unsafe for the known transient duplicate-host projection.
+
+**Fixes:**
+- `AtlasBoardUnifiedProfilePresentation.ResolveLocalLobbySlot()` now gathers **all** active rows matching the local UID. A unique row is used normally. If the UID appears in multiple seats and the local UID is the authoritative `HostAccountId`, the presenter selects the single `HostLocal`/`IsHost` row instead of the first array entry. Thus Vuartex/P2 remains the only row eligible for the global `Vuartex (YOU)` rewrite. If a non-host UID is malformed/ambiguous and no unique RemoteHuman row exists, the presenter fails closed and does not overwrite any seat label. Diagnostic: `ATB_PROFILE_LOBBY_SLOT ambiguous=true ... chosen_slot=... reason=authoritative_host|unique_remote_human|fail_closed`.
+- `AtlasBoardPrivateLobbyUIController.ApplyRematchVerifiedIdentityGuard()` now distinguishes a **transient duplicate-host projection** from a real account replacement. When a non-host slot previously verified as Guest suddenly carries `HostAccountId`, while the real authoritative host is another slot, the verified Guest AccountId/name cache is preserved instead of clearing the lock. Diagnostic: `ATB_REMATCH_ROSTER_ACCOUNT_GUARD preserved=true ... reason=duplicate_host_projection`. A genuinely different non-host account still releases the lock immediately.
+- No backend seat ownership is rewritten by this UI fix; host authority, readiness, connection state and real joins remain backend-authoritative.
+
+**Acceptance using the existing fast-forward QA:** Guest/P1 starts as host, Vuartex/P2 joins, Guest drops, Vuartex becomes host. Use `Atlas Board -> QA Diagnostics -> Match -> Finish After Current Turn For Rematch QA`, then Rematch. On Unity/Vuartex, P1 must stay Guest/reconnecting and P2 must stay the single `Vuartex (YOU) / HOST • LOCAL` for at least 15 seconds. If a duplicate-host transport projection occurs, `ATB_PROFILE_LOBBY_SLOT ... chosen_slot=1 reason=authoritative_host` and/or `ATB_REMATCH_ROSTER_ACCOUNT_GUARD preserved=true` may appear, but the visible roster must not flip. Guest client should remain canonical as before.
+
+**Validation boundary:** `phase19ba_rematch_duplicate_host_profile_guard.test.cjs` is a source/selection-contract guard only; it includes the exact P1+P2 duplicate-host UID scenario and requires P2 selection, but it does not execute Unity or RTDB. **UNITY COMPILE=NOT RUN HERE; TWO_CLIENT LIVE=NOT RUN HERE.** Firebase rules unchanged; no deploy. GitHub push remains pending owner live acceptance.
+
+---
+
+## v5.49.12as — Rematch verified identity lock + Editor final-round QA shortcut (2026-11-01; OWNER LIVE RETEST REQUIRED)
+
+**Owner-confirmed PASS preserved and not modified:** modern Auction is now PASS; both Guest and Unity/Steam receive Career XP, Overview stats, Match History and Achievement progress; reconnect works on both clients; Guest/Editor emotes work both directions; Private Table controls re-arm; pawn cosmetic reconnect warning is gone; tablet notifications no longer overlap; recent host-transfer room stability is PASS. This candidate does not touch Auction, Career, emotes, Firebase rules, bot auction/event logic, dice, store, lighting or reward logic.
+
+**Observed rematch evidence:** after Guest-host -> Vuartex-host -> Rematch, the new rematch verifier reports `ATB_REMATCH_ROSTER_REFRESH attempt=1 stable=true reason=unique_authoritative_roster members=3 host_slot=1` and immediately `applied=true host_slot=1 local_is_host=true`. The owner sees Guest correctly in P1 for a moment, then later polling repaints P1 as Vuartex while P2 remains the real Vuartex host. Therefore the prior UID-uniqueness resync is functioning, but it accepts a later snapshot whose AccountId/slot remain correct while only `DisplayName` regresses to the promoted host name.
+
+**Fix:** once the first stable rematch roster is accepted, `AtlasBoardPrivateLobbyUIController` captures the verified human `AccountId -> DisplayName` mapping per slot for the Waiting lobby. Subsequent polling snapshots are still authoritative for AccountId, seat mode, readiness, host ownership and connection state. However, while the exact same AccountId remains in the exact same slot, a later `DisplayName` regression cannot replace the verified name. If the AccountId genuinely changes, the lock for that slot is released immediately so a real join/replacement is never hidden. New diagnostics: `ATB_REMATCH_ROSTER_IDENTITY_LOCK captured=true ...` and `ATB_REMATCH_ROSTER_NAME_GUARD corrected=true slot=... incoming_name=... verified_name=...`. The identity lock is cleared on a new entry flow and when the room leaves Waiting for Starting/InMatch.
+
+**QA speed-up:** new Editor-only `AtlasBoardRematchFastForwardQA` adds:
+- `Atlas Board -> QA Diagnostics -> Match -> Set Current Match To Final Round`
+- `Atlas Board -> QA Diagnostics -> Match -> Finish After Current Turn For Rematch QA`
+
+Both work only in Play Mode. For a prepared online match they refuse to run on a follower and require the Unity Editor client to be the current authoritative Host. `Set Current Match To Final Round` sets the local authoritative TurnManager to its configured final round. `Finish After Current Turn For Rematch QA` additionally pre-completes the other active non-bankrupt slots for this round, so the normal `RegisterCompletedTurn -> EndMatch` path ends the match when the current turn resolves. It does not call `EndMatch()` directly and does not bypass normal match-result/rematch code. This is Editor QA only and is omitted from player builds.
+
+**Acceptance:** use the fast-forward command on the Editor host instead of replaying ten rounds. After the result screen choose Rematch. On both clients P1 must remain the Guest identity and P2 must remain the single Vuartex `HOST • LOCAL`; the verified Guest label must not flip back to Vuartex several seconds later. If a bad poll is received, `ATB_REMATCH_ROSTER_NAME_GUARD corrected=true` may appear and the UI must still remain correct. **UNITY COMPILE=NOT RUN HERE; TWO-CLIENT LIVE=NOT RUN HERE.** Firebase rules unchanged; no deploy. GitHub push remains pending owner acceptance.
+
+---
+
+## v5.49.12am — Modern Auction authoritative panel + migrated-host slot projection fix (2026-11-01; OWNER LIVE RETEST REQUIRED)
+
+**Owner-confirmed PASS preserved and not modified:** both Guest and Unity/Steam now receive Career XP, Overview stats, Match History and Achievement progress; reconnect works on both clients; Guest/Editor emote send/receive works; Private Table controls re-arm after menu soft reset; remote pawn cosmetic warning is gone; recent host migration no longer collapses the room; tablet notification overlap was not reproduced after the ownership fix.
+
+**Open defects driving this candidate:** (1) Auction briefly renders the correct modern cards, then can collapse to a blank shared `AÇIK ARTIRMA` tablet shell with `ATB_AUCTION_MODERN unavailable=true legacy_fallback=false blank_shell_suppressed=true`; (2) after Guest-host -> Vuartex-host migration + rematch, Guest client shows the canonical roster (Guest P1, Vuartex host P2) but Vuartex client can project Vuartex twice, with stale P1 shown as RECONNECTING.
+
+**Auction architecture correction:** `AtlasBoardAuctionPresentationPolish` now mounts `Phase14G_AuctionPolish` **inside the serialized `Panel_Auction` owned by `AuctionManager`**, not as a sibling under `TabletRoot` or a second root Canvas. `Panel_Auction` remains the one lifetime switch used by the existing auction engine; only its retired Graphic renderers are disabled. The authoritative legacy Button `interactable` values are deliberately preserved because modern buttons mirror them, while retired Graphics have `raycastTarget=false` so they cannot receive input. Any detached modern root left by older candidates is removed and a canonical child is rebuilt under `Panel_Auction`. The modern body fills that panel and the shared `TabletUIManager` title remains the single auction title. No AuctionManager bid order, bot strategy, money transfer, property ownership, current-bid calculation or close timing is changed.
+
+**Auction diagnostics:** new `ATB_AUCTION_BIND` log reports panel active state, auction active state, modern root parent, every required text/button binding and generation whenever the binding state changes. `ATB_AUCTION_MODERN ... canonical_parent=Panel_Auction` remains only as a hard failure signal after a rebuild attempt. This is intended to expose the exact missing reference if the owner can still reproduce a blank shell.
+
+**Migrated-host roster presentation:** `AtlasBoardPrivateLobbyUIController` keeps a per-lobby, per-slot presentation identity cache from verified non-duplicate snapshots. When the new host UID is transiently projected into both the old remote slot and the real authoritative host slot on the host client, the non-host duplicate is not rendered as a second copy of the host. The last verified occupant of that slot (for the reported case, Guest P1) remains visible as RECONNECTING until the backend emits its canonical identity. New diagnostic `ATB_LOBBY_SLOT_RECONCILE duplicate_host_projection=true ...` records host slot, stale slot and cached UID/name. This is presentation reconciliation only; it does not move seats, change host ownership, alter readiness, or write room state.
+
+**Acceptance:** rebuild Guest from this source. (A) On both clients run first-match auction, return to lobby/rematch and run another auction: only one modern auction body + one shared title; city/current bid/bidders/buttons remain populated; no blank shell; no `ATB_AUCTION_MODERN unavailable=true`. (B) Guest host -> disconnect -> Vuartex host -> rematch: Guest must remain P1/reconnecting on both clients and Vuartex must appear exactly once in its authoritative host slot P2. If either fails, capture `ATB_AUCTION_BIND` or `ATB_LOBBY_SLOT_RECONCILE`. **UNITY BUILD=NOT RUN HERE; TWO-CLIENT LIVE=NOT RUN HERE.** No Firebase rules change; no deploy. No GitHub push until owner acceptance.
+
+---
+
+## v5.49.12ai — Main Menu soft-reset gate + modern-only auction + Guest emote send + stable Steam Career presentation (2026-10-31; OWNER LIVE RETEST REQUIRED)
+
+**Owner evidence driving this package:** repeated rapid menu entry/exit can still expose serialized pre-network lobby state; Guest receives remote emotes but cannot send them; modern auction is visible on both clients but retired auction visuals remain behind it or return after re-entry; owner now confirms active-match reconnect works on both Guest and Unity Editor; ordinary gameplay logs repeat `ATB_HISTORY_RECEIPT pending=true status=401` even though wallet reads succeed; Steam/Vuartex Career history intermittently appears/disappears and has no usable XP/Overview while Guest local Career remains stable. Source QA counts are explicitly NOT accepted as evidence of live correctness. This candidate must be judged by Unity + two-client owner testing.
+
+**Changes — complete current source, no legacy rollback:**
+
+- Reuse the existing `AtlasBoardLoadingExperience` as a short **Main Menu soft-reset/input gate** (`MenuReset`) on returns from online lobby, Public Rooms, active match, Store and Career. This does NOT rerun the full startup bootstrap. It blocks rapid repeated navigation while room leave/close and local session reset settle, then reveals Main Menu. Private/Public Create/Join operations now carry navigation generations; a response that completes after the player already returned to Main Menu is discarded and its room is closed/left instead of reopening stale lobby UI. Public Rooms Back now routes through the same central Main Menu transition. This is the deliberate mitigation requested by the owner for async UI/state races; do not reintroduce blanket child hiding.
+- **Auction: modern-only presentation.** `AtlasBoardAuctionPresentationPolish` no longer creates/restores a runtime `CanvasGroup` on `Panel_Auction`. Every serialized legacy `Graphic` under the old auction panel is suppressed while the authoritative `AuctionManager` components/listeners remain alive. The modern auction remains on its independent sorting canvas and mirrors the live authoritative bid/buttons. Legacy visuals are never restored on disable/re-entry, eliminating old+new overlap and the reported `MissingComponentException` path. If modern presentation cannot build, log an error; never fall back to old auction UI.
+- **Guest emote send:** keep lobby UID/token identity. When the No-Steam QA Guest picker offers a bundled free emote but its persisted RTDB `emoteLoadout` is empty/stale, repair only that Guest account to canonical `FreeIds`, reread, and retry. Registered users' paid/custom loadouts are not overwritten. UI now logs `ATB_EMOTE_UI_SEND_FAILED reason=... guest=...` when a live send is refused so the next owner test exposes the exact stage rather than only “Emote gönderilemedi”. No emote RTDB rule change in this candidate.
+- **Economy receipt noise:** ordinary `AtlasBoardRtdbMetaEconomy.LoadAsync()` is now read-only for history. It no longer retries `TryWriteReceiptAsync()` for the most recent operation every time the wallet refreshes during gameplay. Immutable receipt writes remain at the actual successful mutation commit sites (purchase/daily/dev/reset and match reward). Thus `ATB_HISTORY_RECEIPT ... 401` should no longer appear merely because a wallet/profile refresh happened mid-match. This log belongs to Store/metaEconomy transaction audit, not Career match history.
+- **Steam/Vuartex Career continuity:** save a UID-scoped local Steam match observation *before* attempting the live RTDB claim. When the authoritative Career projection is still empty, merge that bounded observation into Overview/History/Achievements and show the same XP formula as **provisional local XP**. Background Career refresh now goes through `AtlasBoardProgressionBridge.GetProfileAsync()` instead of overwriting the UI with a server-only empty snapshot, fixing history flicker. A later verified RTDB match with the same `matchId` is not added twice. Provisional XP never credits metaEconomy Gold and never unlocks Steam achievements. Verified server data remains primary when present.
+- Owner-confirmed active-match reconnect PASS is preserved; no reconnect logic is changed in this candidate. Existing PASS for UID-scoped dice, pawn ownership controls, Guest BUY->login, premium-map popup, achievement target cap, five-map Career filter and lighting remains untouched.
+
+**Explicitly still OPEN / security boundary:** No-Steam QA Guest's visible Career XP is device-local/provisional and its canonical spendable Gold remains 0. Production Career/Gold rules currently exclude anonymous Guest reward claims; this package does not weaken those rules or invent spendable Gold. A verified two-account reward test remains required for authoritative Steam/Vuartex XP+Gold. No Firebase rules changed, therefore no deploy is required for v5.49.12ai.
+
+**Validation performed here:** targeted source guard `phase19aq_menu_reset_modern_auction_guest_emote_steam_career.test.cjs` PASS 22 checks and updated legacy source guard `phase19ao...` PASS 29 checks; `phase19ap` PASS 13, integrated Career/Gold source contract PASS 53, Gold formula 375 scenarios. These checks only confirm selected source invariants/literals. **UNITY BUILD=NOT RUN, TWO-CLIENT LIVE=NOT RUN, FIREBASE EMULATOR=NOT RUN (rules unchanged).** Owner live acceptance must verify: rapid lobby/public/store/career Main Menu returns; zero legacy lobby exposure; modern auction only on both clients across re-entry; Guest->Steam and Steam->Guest emotes; no routine mid-game receipt 401; Vuartex provisional History/Overview/XP stability after completed match.
+
+---
+
+## v5.49.12ag — Guest Windows build file-lock guard (2026-10-31; SOURCE FIX / UNITY BUILD RETEST OPEN)
+
+**Owner evidence:** `AtlasBoardTwoClientLobbyTestV1.BuildGuest()` logged `UnauthorizedAccessException: Access to the path 'AtlasBoardGuest.exe' is denied` at the `Directory.Delete(outputFolder, true)` cleanup step (editor line 108). This is an Editor build-output cleanup failure, not a C# compilation error, RTDB rule issue, or confirmed gameplay regression. A running standalone Guest EXE is a likely cause, although other file locks/permissions can produce the same error. Unused `AtlasBoardAuctionPresentationPolish.lastPresentedTile` CS0414 is warning-only; localization messages and `ATB_DICE_MODEL_BIND status=already_valid` are informational.
+
+**Full original file changed:** `Assets/Project/Editor/AtlasBoardTwoClientLobbyTestV1.cs` now checks whether `AtlasBoardGuest.exe` is running before attempting to remove its build folder. If it is running, it cancels without deleting any existing build files and displays an actionable Unity Editor dialog (`ATB_GUEST_BUILD_BLOCKED reason=guest_running`). `Directory.Delete` / output creation `UnauthorizedAccessException` and `IOException` are caught and reported clearly (`reason=folder_locked`) without a raw unhandled stack trace. No automatic process termination, no changes to Guest launch flags, project settings, Steam/native Auth, Unity scenes, shaders, gameplay, RTDB rules, or other scripts.
+
+**Acceptance gate OPEN:** Close the Guest window; confirm the process exited; rerun `Build Two-Client Guest Test v1`, then launch `Launch Live Spark Guest QA (No Steam)`. If antivirus/cloud sync keeps the output locked, inspect the reported folder access error. Static file inspection is NOT a Unity build PASS. No Firebase deploy and no GitHub push. All P0 items from v5.49.12af remain OPEN until genuine live two-client owner testing.
+
+---
+
+## v5.49.12ae — Owner real-game follow-up: tablet auction viewport, active host rejoin pump, emote identity, unverified Steam history, legacy UI ingress (2026-10-31; SOURCE QA / OWNER LIVE TEST OPEN)
+
+**Owner evidence:** Waiting-lobby reconnect to same seat PASS, emote artwork PASS, achievements capped PASS, premium map popup PASS. FAIL/OPEN: emote SEND denied although picker icons show; Phase14G auction appears as legacy sometimes or shrinks into an unusable central strip; Steam account has no recorded match/achievements when facing the anonymous No-Steam QA Guest; active match rejoin 24-attempt ATB212; stale UnityEvents can expose obsolete four-local-human lobby. P0 acceptance is OPEN until full Unity and two-client tests. Owner-approved PASS for per-UID equipped dice, own/host/bot pawn controls, Guest BUY-login, 5 maps, matte lighting remains unchanged.
+
+**Changes using complete v5.49.12ad sources:**
+
+- Modern `AtlasBoardAuctionPresentationPolish` remains the only active auction presentation. Fix size to independent canvas dimensions, center on the actual auction panel and ignore shrink-to-content layouts. Keep live `AuctionManager` fields/actions and 0.10s bid refresh. No legacy reactivation as a design choice; verify responsive tablet on both clients.
+- `AtlasBoardEmoteLoadoutService` now reads/writes loadout through the UID/token of the live lobby participant, not an unrelated cached native `FirebaseAuth` user. Free emotes may be safely seeded for anonymous QA Guest under its own existing RTDB rules; paid emotes still require ownership. Emote sender logs HTTP read/write status to distinguish server permission denial from local cooldown. Do NOT infer live emote success from source QA.
+- `AtlasBoardRtdbCasualLobbyTransport.PumpActiveMatchRejoinsAsync` + a bounded host-only 2.5s poll in `AtlasBoardTurnDiceNetworkCoordinator` processes *existing exact-UID RemoteHuman* rejoin requests during active gameplay, without depending on the lobby window. Existing active-match and membership checks, immutable join timestamp and no new-player authorization stay in force. No match migration or host-offline daemon is added.
+- Steam/Vuartex matches against an unqualified anonymous Guest remain **not eligible for verified XP/Gold** under production rules. The recorder now stores a real completed Steam match as a **UID-scoped, on-device, provisional observation** when reward claim is ineligible/pending. The Career UI merges unverified history without adding any server XP/Gold or double-counting verified match IDs. If there are no verified server stats or achievements it can show local provisional counters/achievement progress; these are NOT Steam-verified unlocks, cannot buy products, and do not establish secure online rewards. A verified two-account test remains mandatory.
+- Legacy-screen ingress remains OPEN: `OpenPrivateLobbyAfterRoomChoice` and `OpenPublicLobbyAfterRoomChoice` are also called by the *real* online lobby after a successful admission, so blindly redirecting them back to the entry screen would break legitimate online rooms. Preserve these transition methods until the scene hierarchy/button bindings and modern/legacy visibility can be verified in Unity. No unreliable speculative redirect is shipped.
+- Prior QA `phase19ak` stale literal assertions were updated for equivalent renamed Guest recorder. New `phase19an_owner_reconnect_emote_auction_steam_history.test.cjs` is a static source contract, NOT a Unity build, Firebase Emulator, paid security or live game PASS.
+
+**Deliver/test:** Full changed source files + this entire historical roadmap in one ZIP, no patch or PS1. In Unity ensure 0 compile errors, rebuild No-Steam Guest, test modern auction in 3 consecutive auctions at 16:9 and tablet layout, send each of 3 free emotes in both directions, reconnect same UID in active match, verify Vuartex provisional history/achievement without minting official XP/Gold, and inspect Private->Menu->Play / legacy bound events (still OPEN). If any emote HTTP status remains 401 or 403, capture `ATB_EMOTE_SEND` log and investigate RTDB `emoteEvents` rule with emulator before touching production rules. No Firebase deploy for this candidate, no GitHub push.
+
+---
+
+## v5.49.12ad — Owner Live QA regression follow-up: modern auction, rejoin same UID, achievements cap, emote identity, map notice (2026-10-31; SOURCE CONTRACT ONLY / OWNER BUILD OPEN)
+
+**Owner-confirmed previous PASS (v5.49.12ac):** Vuartex equipped dice shown correctly on Steam Editor and Guest; host own/bot/local and remote own pawn control; Guest Shop BUY buttons route to login; five Career maps; muted city tile lighting. Guest local match history, dice/achievement telemetry and provisional XP now appear; Steam/Vuartex has no verified Career award in an anonymous Guest-peer match. A single host may legitimately have multiple distinct rooms; same display name does NOT prove a duplicated room.
+
+**Owner-observed defects still under test:** polished auction was accidentally disabled by the prior rollback (legacy auction visible); 2/1 one-shot achievements; repeated ATB212 after leaving a match; Vuartex no authoritative Career progress with QA Guest witness; Kenney sprites missing from rebuilt Windows Guest; remote emotes not showing; stale/duplicate-looking local human labels and legacy fallback lobby; unowned Germany/Mexico map selection silently ignored; possible leftover public room directory entries.
+
+**Full original source changes in v5.49.12ad candidate:**
+
+- Re-activate the **existing modern Phase14G auction UI** in `AtlasBoardAuctionPresentationPolish`. Instead of placing the overlay behind its own active auction panel, mount it as the last child INSIDE the canonical auction panel. Use the existing authoritative `AuctionManager` city, purchase price, base rent, `CurrentBid`, current bidder and button actions on a 0.10-second refresh. Display all data and original modern card layout; no legacy auction rollback/fallback in the ordinary active path. Unity owner must check city/rent/current bid across at least three auctions; the engine and visual anchors were not executable here.
+- Fix `AtlasBoardCareerAchievementDisplay.MergeVerified` by capping every mapped 14-achievement progress to its canonical target. Unverified Guest achievement completion is a UI preview and NOT a Steam unlock.
+- Rejoin fix for same existing remote UID: waiting-host admission now reactivates a previously inactive exact `roomMembers` record even when its seat remains `Active` in the room snapshot, preserving immutable `joinedAt` and never creating a duplicate seat. Separate host-only InMatch recovery checks `roomMeta.activeMatchId`, active `matchState`, exact room/UID/remote seat and original `joinedAt` before restoring membership; refuses new players, changed UID or finished matches. Host must be online and polling; no host-independent rejoin daemon in RTDB/Spark.
+- Emote `AtlasBoardEmoteNetwork` uses the same Firebase UID/token as the authoritative lobby instead of a possibly different native-cached Auth user. `AtlasBoardEmoteHudRuntime` now uses that lobby UID for sender/self identification. Emote registry pre-build checks actual non-null Sprite references, forces import, and reports missing runtime Resources catalog explicitly. **Owner must rebuild Guest and inspect Player.log**; missing artwork is NOT claimed solved without image evidence.
+- `AtlasBoardMainMenuController.ShowPremiumMapNotOwned` reuses the existing modal (7 languages); Private online and normal map selection show why unowned Germany/Mexico cannot be chosen and roll back the selection. No entitlement bypass; remote players remain eligible to join a host's licensed map.
+- Main Menu online entry no longer silently redirects to the deprecated local 4-human lobby if an online browser/private controller component is missing. Secondary LOCAL human seats get their numbered local label instead of copying the host Steam nickname. Other explicit local/offline functions remain supported.
+
+**Security invariants:** No RTDB rules changed; no deploy. No new Functions/Firestore/Blaze, no Cloud services, no automatic spendable Gold, no false verified XP for QA anonymous Guest. Two independent qualified/registered UIDs are required by the current production Career claim rules for Vuartex's lasting XP/Gold. Guest local XP is distinct and unverified, not added to Vuartex RTDB stats. Previously successful real Auth+RTDB emulator tests are historic evidence for UNCHANGED rules, not re-run for this client source candidate.
+
+**Source verification:** `node Backend/Firebase/qa/phase19am_owner_auction_rejoin_career_emotes_maps.test.cjs` PASS 70 source/synthetic checks. Existing Phase19AL 39, AK 44, AJ 33, AI 53 and AH 375 formula scenarios PASS. Zip integrity verified. **Not verified here:** Unity compile/build, 2-client rejoin, production/emulator new live path, packaged sprite presence and real auction render. Do not label runtime PASS until owner tests.
+
+**Outstanding / next owner gate:** (1) Build Unity + new No-Steam Guest; (2) 3 consecutive modern auctions and exact center bid; (3) active match guest exit and SAME authenticated UID rejoin with host still online; (4) host rematch and multi-lobby flows, no legacy screen or duplicate Vuartex local label; (5) map ownership popup; (6) after two guest-local matches `first_match` stays 1/1; (7) send and receive emotes with actual sprite graphics on both builds; (8) record a legitimate match with **two reward-eligible accounts** and inspect RTDB Career/Gold. **Still open**: independent server anti-cheat, receipt-history HTTP 401, real production `emoteEvents` permission QA, expired public directory cleanup proof, Steam Career history for QA-only anonymous-peer matches, all legacy screen entry routes beyond missing-controller fallback.
+
+---
+
+## v5.49.12ac — Online Seat/Pawn, Dice, Auction Rollback, Guest UX and Career QA (2026-10-31; SOURCE QA / OWNER UNITY RETEST OPEN)
+
+**Owner real Windows/Unity evidence:** v5.49.12ab compiles on owner's machine. Confirmed: No-Steam Guest zero wallet and account-separated presentation; five Career maps; Guest completed match history (10-round result), 12 real dice rolls, 2 doubles and provisional achievement progress; duplicated YOU labels absent. FAIL/OPEN: Guest/host changes own pawn gets `Only the host can change this room`; 24-attempt rejoin ATB212 after voluntary leave; cosmetic dice slot swapped or white; Phase14G overlay visually lost the auction city/bid labels; bright white city tiles; ScriptableObject missing-script error for emote catalog; BUY inconsistencies for Guest board/map rows; local Guest XP shows zero; ordinary Guest still has no spendable Gold.
+
+**Source candidate, no false live PASS:**
+
+- `AtlasBoardRtdbCasualLobbyTransport` routes RemoteHuman pawn changes into existing authenticated `/intents/{room}/{uid}/{commandId}` (NOT a generic roomState grant). The waiting-room host validates exact owner UID, slot, SeatId, known cosmetic and immutable intent; commits via existing roomState host CAS and acknowledges after successful snapshot commit. Host may change own/LocalHuman and Bot slots, but NOT another active real Human. Guest's local paid-cosmetic guard prevents accidental unowned application; **a malicious modified client could still submit an unowned paid pawn ID because the host cannot independently read another UID's wallet: this cosmetic entitlement gap is OPEN, NOT security PASS**. RTDB rules unchanged; no independent server claim of ownership created.
+- A previously deactivated `roomMembers/{uid}` record retains immutable `joinedAt`. Host re-admission now reuses the original timestamp, preventing 401/ATB212 from changing that immutable field. This does NOT bypass a kicked seat, closed room, UID switch or host offline; real reconnect must be observed.
+- `DiceVisualController` now primes UID/slot-specific *public* equipped dice on a live online session/roster change (bounded 0.75s check), retaining bot Classic and offline resets. No RNG or number-face algorithm changes. Test Guest/Steam simultaneously, opposite seats, three matches and equipment changes. Source QA is not visual PASS.
+- `AtlasBoardAuctionPresentationPolish` no longer hides the canonical auction panel. The old working Tablet/AuctionManager city/purchase/rent/current bid/buttons are restored and the faulty optional overlay hidden; new prettier panel awaits separate visual QA. Do not mark the old polished overlay PASS.
+- Guest Store PreviewOnly board/map rows now have the same one BUY/login entry as profile/pawn/dice/emote; no fake purchase by an unverified Guest. Signed-in verified wallets retain the existing real checkout gate. This DOES NOT implement a universal buy gate across currently unimplemented non-Shop purchase menus.
+- `BoardGenerator` adjusts tile renderer property blocks on generated base city tiles (`_BaseColor`/`_Color` ×0.83, gloss/smoothness 0.08) without changing asset materials, economy or tile topology. All theme/map/device lighting acceptance remains owner-open.
+- Emote ScriptableObject `AtlasBoardEmoteSpriteCatalog` moved to its own matching `.cs` + `.meta`; existing Editor catalog builder regenerates only broken generated catalog references, preserving 29 Kenney sprite assets and stable emote IDs. Rebuild Guest EXE to test persistence.
+- Guest Career now shows **locally calculated, unverified XP** based on completed match and the existing canonical XP formula, with bounded 100 levels and original matchID de-duplication. No RTDB XP, Steam unlock, Gold wallet, store entitlement or unsafe Guest money mint was added. **Guest spendable Gold remains OPEN**: No-Steam QA is `rewards=false`, and anonymous credentials are not an independent anti-fraud proof. Local XP is erased if Guest UID/storage is lost. Registered/allowlisted peer-attested real XP/Gold conditions unchanged.
+- `database.rules.json` was **not changed**, therefore NO Firebase deployment is needed; no GitHub commit/push. The previous owner 34-check RTDB emulator PASS refers to v5.49.12y wallet rules and does NOT validate this new pawn-intent flow. New code requires owner Unity 6000.5.6f1 compilation and real dual-UID live tests.
+
+**Source QA (Node, not Unity):** `phase19al_owner_lobby_dice_auction_shop_regression.test.cjs`, `phase19ak_two_client_regressions.test.cjs`, `phase19aj_live_guest_wallet_maps_roll_contract.test.cjs`, `phase19ai_integrated_career_gold_contract.test.cjs` and `phase19ah_gold_formula_contract.test.cjs`. The 19AK contract was updated to assert the intentionally restored canonical auction UI and unverified Guest XP rather than the removed broken polished overlay.
+
+**OWNER ACCEPTANCE / OPEN:** (1) Editor compile 0 errors; rebuilt No-Steam Guest EXE; (2) Guest Map/Board BUY -> account login, no Gold/inventory grant; all other Shop categories same; (3) Host can modify own and Bot pawn but not Guest, Guest only its own pawn; different live UIDs; verify paid pawn ownership separately; (4) Guest sees exactly Vuartex's verified dice on Vuartex turn, Vuartex sees Guest Classic, bots Classic, across rematches; (5) three consecutive city auctions show name/purchase/base rent/current bid and buttons; (6) voluntarily Leave and rejoin same waiting room with same UID; no duplicate YOU, no ATB212; deliberate removal remains denied; (7) 29 emote sprites visible on fresh EXE launch and after Editor restart; (8) matte tiles on each map at night/day and on Android; (9) Guest history + provisional XP persists across clean restart, no spendable Gold, no forged Steam achievement; (10) verified two-human non-QA accounts complete Career/XP/Gold and disconnect replay tests. Any failure keeps the corresponding acceptance OPEN.
+
+---
+
+## v5.49.12ac — Online Seat/Pawn, Dice, Auction Rollback, Guest UX and Career QA (2026-10-31; SOURCE QA / OWNER UNITY RETEST OPEN)
+
+**Owner real Windows/Unity evidence:** v5.49.12ab compiles on owner's machine. Confirmed: No-Steam Guest zero wallet and account-separated presentation; five Career maps; Guest completed match history (10-round result), 12 real dice rolls, 2 doubles and provisional achievement progress; duplicated YOU labels absent. FAIL/OPEN: Guest/host changes own pawn gets `Only the host can change this room`; 24-attempt rejoin ATB212 after voluntary leave; cosmetic dice slot swapped or white; Phase14G overlay visually lost the auction city/bid labels; bright white city tiles; ScriptableObject missing-script error for emote catalog; BUY inconsistencies for Guest board/map rows; local Guest XP shows zero; ordinary Guest still has no spendable Gold.
+
+**Source candidate, no false live PASS:**
+
+- `AtlasBoardRtdbCasualLobbyTransport` routes RemoteHuman pawn changes into existing authenticated `/intents/{room}/{uid}/{commandId}` (NOT a generic roomState grant). The waiting-room host validates exact owner UID, slot, SeatId, known cosmetic and immutable intent; commits via existing roomState host CAS and acknowledges after successful snapshot commit. Host may change own/LocalHuman and Bot slots, but NOT another active real Human. Guest's local paid-cosmetic guard prevents accidental unowned application; **a malicious modified client could still submit an unowned paid pawn ID because the host cannot independently read another UID's wallet: this cosmetic entitlement gap is OPEN, NOT security PASS**. RTDB rules unchanged; no independent server claim of ownership created.
+- A previously deactivated `roomMembers/{uid}` record retains immutable `joinedAt`. Host re-admission now reuses the original timestamp, preventing 401/ATB212 from changing that immutable field. This does NOT bypass a kicked seat, closed room, UID switch or host offline; real reconnect must be observed.
+- `DiceVisualController` now primes UID/slot-specific *public* equipped dice on a live online session/roster change (bounded 0.75s check), retaining bot Classic and offline resets. No RNG or number-face algorithm changes. Test Guest/Steam simultaneously, opposite seats, three matches and equipment changes. Source QA is not visual PASS.
+- `AtlasBoardAuctionPresentationPolish` no longer hides the canonical auction panel. The old working Tablet/AuctionManager city/purchase/rent/current bid/buttons are restored and the faulty optional overlay hidden; new prettier panel awaits separate visual QA. Do not mark the old polished overlay PASS.
+- Guest Store PreviewOnly board/map rows now have the same one BUY/login entry as profile/pawn/dice/emote; no fake purchase by an unverified Guest. Signed-in verified wallets retain the existing real checkout gate. This DOES NOT implement a universal buy gate across currently unimplemented non-Shop purchase menus.
+- `BoardGenerator` adjusts tile renderer property blocks on generated base city tiles (`_BaseColor`/`_Color` ×0.83, gloss/smoothness 0.08) without changing asset materials, economy or tile topology. All theme/map/device lighting acceptance remains owner-open.
+- Emote ScriptableObject `AtlasBoardEmoteSpriteCatalog` moved to its own matching `.cs` + `.meta`; existing Editor catalog builder regenerates only broken generated catalog references, preserving 29 Kenney sprite assets and stable emote IDs. Rebuild Guest EXE to test persistence.
+- Guest Career now shows **locally calculated, unverified XP** based on completed match and the existing canonical XP formula, with bounded 100 levels and original matchID de-duplication. No RTDB XP, Steam unlock, Gold wallet, store entitlement or unsafe Guest money mint was added. **Guest spendable Gold remains OPEN**: No-Steam QA is `rewards=false`, and anonymous credentials are not an independent anti-fraud proof. Local XP is erased if Guest UID/storage is lost. Registered/allowlisted peer-attested real XP/Gold conditions unchanged.
+- `database.rules.json` was **not changed**, therefore NO Firebase deployment is needed; no GitHub commit/push. The previous owner 34-check RTDB emulator PASS refers to v5.49.12y wallet rules and does NOT validate this new pawn-intent flow. New code requires owner Unity 6000.5.6f1 compilation and real dual-UID live tests.
+
+**Source QA (Node, not Unity):** `phase19al_owner_lobby_dice_auction_shop_regression.test.cjs`, `phase19ak_two_client_regressions.test.cjs`, `phase19aj_live_guest_wallet_maps_roll_contract.test.cjs`, `phase19ai_integrated_career_gold_contract.test.cjs` and `phase19ah_gold_formula_contract.test.cjs`. The 19AK contract was updated to assert the intentionally restored canonical auction UI and unverified Guest XP rather than the removed broken polished overlay.
+
+**OWNER ACCEPTANCE / OPEN:** (1) Editor compile 0 errors; rebuilt No-Steam Guest EXE; (2) Guest Map/Board BUY -> account login, no Gold/inventory grant; all other Shop categories same; (3) Host can modify own and Bot pawn but not Guest, Guest only its own pawn; different live UIDs; verify paid pawn ownership separately; (4) Guest sees exactly Vuartex's verified dice on Vuartex turn, Vuartex sees Guest Classic, bots Classic, across rematches; (5) three consecutive city auctions show name/purchase/base rent/current bid and buttons; (6) voluntarily Leave and rejoin same waiting room with same UID; no duplicate YOU, no ATB212; deliberate removal remains denied; (7) 29 emote sprites visible on fresh EXE launch and after Editor restart; (8) matte tiles on each map at night/day and on Android; (9) Guest history + provisional XP persists across clean restart, no spendable Gold, no forged Steam achievement; (10) verified two-human non-QA accounts complete Career/XP/Gold and disconnect replay tests. Any failure keeps the corresponding acceptance OPEN.
+
+---
+
+## v5.49.12ab — CS0592 PublicDiceWire attribute correction (2026-10-31; OWNER UNITY COMPILE RETEST OPEN)
+
+**Owner-reported compiler error:** `Assets/Project/Scripts/Meta/AtlasBoardRtdbMetaEconomy.cs(738,6): error CS0592: Attribute 'Serializable' is not valid on this declaration type.` In v5.49.12aa, `[Serializable]` was inadvertently placed above the `private static string lastPublicDiceProjectionReconciledKey` field instead of the `PublicDiceWire` class; C# permits the attribute on the class, not the field in this usage.
+
+**Minimal source correction:** Preserve the existing static projection-reconciliation key as a normal field; move `[Serializable]` immediately above the existing `private sealed class PublicDiceWire` used by `JsonUtility` in public-dice reads/writes. No changes to UID identity, tokens, permissions, wallet, Gold/XP, lobby reconnect, dice ownership, dice materials, events, gameplay authority, serialized schema, Firebase rules, or existing assets. The original v5.49.12aa changes remain included as complete source files; no revert to an older build.
+
+**Evidence and remaining gate:** `phase19ak_two_client_regressions.test.cjs` extended with explicit CS0592/static-field guard and `PublicDiceWire` type-attribute assertion. The `node` source regression passes in the staged project; **Unity Editor actual compile, Windows Guest build, two-client live tests and runtime QA are still owner tests**. No Firebase deploy necessary because database.rules.json was not modified. No GitHub push. Full original-path source ZIP and one complete historical `MASTER_ROADMAP.md` only; no `.ps1`, no patch or alternate roadmap.
+
+---
+
+## v5.49.12aa — Guest Rejoin, Public Dice, Local Guest Career, Auction/UI, Emote Catalog, Theme Lighting (2026-10-31; SOURCE QA ONLY, OWNER RUNTIME RETEST OPEN)
+
+**Owner screenshots / reports:** Windows Live Spark No-Steam QA Guest now has 0 Gold/0 Atlas Coin and can roll, and five Career map choices show (owner visual PASS for these narrow features). New unresolved regressions: (1) Guest viewers see Classic dice rather than Vuartex's paid black die; (2) current bid hero occasionally remains at prior auction's amount while other bid text updates; (3) emote sprite buttons appear empty after restarting/building; (4) force-stopped client cannot return via private-room code (`ATB212` join request denied); (5) rematch lobby can show two local `(YOU)` markers without verified backend snapshot; (6) Live Guest History and achievements remain blank; (7) Guest Shop Board/Map rows are preview-only; (8) Vuartex XP/Gold not received with an ineligible anonymous co-player/disconnect; plus all maps/boards too bright. User wants one test package; do not imply all features verified or auto-close release gates.
+
+**Current source changes (complete files, no duplicate managers):**
+- Existing `AtlasBoardRtdbCasualLobbyTransport.JoinAsync` first checks **the caller's own authenticated UID** under `roomMembers` and a matching ACTIVE `roomState.snapshotJson` seat + unclosed room. If all agree, reuse the room snapshot without re-PUT on immutable `joinRequests` (which caused HTTP 401/ATB212 for reconnect). Missing seat, inactive UID, closed room still fail closed. This does NOT resurrect a voluntarily left/deleted seat or expired room; cannot circumvent join rules.
+- Existing `AtlasBoardRtdbMetaEconomy.ReadPublicDiceAsync` lets the No-Steam QA Guest use ONLY its independently authenticated RTDB lobby REST token to GET `/publicProfiles/{otherUid}/diceSkinId`, which server rules already allow for authenticated readers. It does NOT call the native wallet, grant a dice item, expose private inventory, or use another UID's credentials. The actual owner `LoadAsync` also reconciles a missing public dice projection once per UID/equipped item from the **server-verified equipped value**; never a fake entitlement. Bots remain classic and other seats show their owners' equipped skins. No RTDB rules change.
+- Existing `AtlasBoardAuctionPresentationPolish` resets cached bid and rebinds the visible text when the auction property changes or panel reopens; hero derives from existing authoritative `AuctionManager.CurrentBid`. No bid amount, auction authority or Gold changes. The sporadic UI failure needs real multi-auction retest; source cannot establish a reproduced cause independently.
+- Existing `AtlasBoardPhase19YEmoteCatalogSetup` is `InitializeOnLoad` and pre-build: if the Resources asset is missing/incomplete, it rebuilds the **single existing** `EmoteSpriteCatalog.asset` from the owner's already imported Kenney sprites, saves it, and preserves a prior complete catalog if individual imported PNGs are missing. A Windows build now explicitly fails early if no complete catalog exists instead of silently shipping empty emote buttons. Source ZIP never redistributes the third-party sprites. Manual build menu is preserved.
+- Existing `EnvironmentThemeManager` reduces configured directional light intensity to 82% and ambient light color to 90%, relative to a captured original baseline, for both default and changed environment themes. This is a subtle global brightness reduction, not an exponential darkening per rematch; visual acceptance across boards, imported shader materials, Android/Steam is OWNER OPEN.
+- Existing `AtlasBoardPrivateLobbyUIController` no longer presents an unverified fallback seat as `PLAYER (YOU)` in addition to a host seat. Only UID verified by the actual authoritative lobby snapshot may be marked local. Host migration/rematch identity, full seat restoration and intentional Leave/rejoin remain live-test dependent.
+- Existing `AtlasBoardProgressionBridge` + `AtlasBoardProgressionMatchRecorder` store and read a **device-local, exact REST UID-scoped**, idempotent Guest match summary (last 10/72h) and aggregate totals if the No-Steam Guest actually observes a completed online result. It includes true result snapshot data, counters available locally and 14 *local provisional* achievement progress indicators; it never writes RTDB Career or Gold, pays **ZERO XP and ZERO Gold**, never marks Steam achievements as verified, and does not inherit any other device's Guest history. Data is local PlayerPrefs, can be deleted by app data clear, and cannot reconstruct a result missed while the game was closed. This is intentional and not a server-verified Career claim. Premium map ownership remains separate from visible map stats.
+
+**Deliberately NOT changed / genuinely still OPEN:** Anonymous Live Guest has no purchase eligibility; Board/Map Store correctly displays `PREVIEW` rather than a fake BUY. Registered Firebase accounts and explicit developer-allowlisted UID only may spend Gold. A match containing one eligible user and one ordinary anonymous guest does not satisfy the existing **two eligible participants** Career proof requirement; therefore Vuartex's XP/Gold absence in that exact setup is expected per the currently deployed rules, not a bug repaired by this package. Do not relax peer-attestation/RTDB security as a shortcut. To test permanent RTDB XP/Gold use **two distinct eligible Firebase UIDs**, not an ineligible QA Guest. A Guest that disconnects before match completion cannot write a missing final result to local history without recovering a validated record; cannot fabricate one. Shop paid-board/map product availability and checkout for actual registered accounts remain to be tested separately. No game-safe solution to intentional signed-out session/UID loss is claimed.
+
+**QA and delivery:** `node Backend/Firebase/qa/phase19ak_two_client_regressions.test.cjs` is 42 source checks, NOT live Unity/Emulator. Existing Phase19AI, 19AJ and Phase19AH source/formula tests retained; user previously reported emulator 34/34 PASS and production RTDB rule release for v5.49.12x. This package does not change `Backend/Firebase/database.rules.json` (sha256 = `979fb4b3c2165193e47768680ccd2db4686971f7e10b49d89940bc58b5eaa72e`), so **NO Firebase deploy required**. Unity Editor compile, Guest/Steam two-client rejoin, per-player dice, dynamic auction, emotes in fresh build, local Guest history/achievements, brightness and other owner acceptance tests are OPEN. This package has complete changed original-path C# files + QA + exactly this canonical roadmap, no PS1/patch, no GitHub push, no Scene or asset overwrite.
+
+---
+
+## v5.49.12z — Live Guest Wallet Isolation / Five Career Maps / Roll Diagnostics (2026-10-31; OWNER RETEST OPEN)
+
+**Owner screenshot + live log:** Windows Development Live Guest (No Steam) displays an independently UID-bound `Guest...` name but the same `1,350 Gold / 6,500 Atlas Coin` as the Steam Editor owner. Native SDK `AtlasBoardRtdbMetaEconomy.CurrentUid` and `ResolveIdentityAsync()` were still consulted even when the Guest lobby Auth uses a separate HTTPS REST anonymous UID. The display alias is NOT proof of Wallet UID isolation. The owner also reports Germany/Mexico absent from Career Overview map filter and a Guest seat unable to roll; the supplied Editor log contains `join_confirmed` and a non-host cosmetic sync warning, but no Guest roll intent/failure evidence. **Do not assume the pawn cosmetic warning is the die failure root cause.**
+
+**Scoped code corrections:** Existing `AtlasBoardRtdbMetaEconomy` explicitly returns zero/unverified wallet and no purchased/equipped cosmetics for `IsLiveGuestQaSession`; registered/Steam wallet claims and ALL native Firebase UID wallet APIs refuse that QA Guest mode. The separate room/turn REST Guest UID and persisted secure DPAPI identity remain intact. Existing `AtlasBoardRtdbUserProfileMirror.SyncCurrentUserAsync` does not write the accidentally loaded native Firebase SDK user's profile in the Live Guest build. No Firebase credentials, user records, wallet balances or purchased items are deleted, moved or refunded. This is a fail-closed Live QA Guest isolation; ordinary Steam/registered wallets and current RTDB `MATCH_REWARD` rules remain unchanged. Actual owner-account UID and Guest REST UID must be confirmed distinct by runtime logs, not display names alone.
+
+**Career filter:** Existing `AtlasBoardProgressionUI` now lists the complete **Turkey, Colorado, USA, Germany, Mexico** selection before any premium-map Career games. `Germany`/`Mexico` and `map_germany`/`map_mexico` map ID variants compare as the same map, with seven-language names from the already shipped Shop catalog. Unplayed maps show zero stats; map visibility does NOT grant map entitlement, ownership or make an otherwise locked board playable.
+
+**Guest Roll, precise status:** Because only the Editor side log was supplied, cause remains **OPEN**, not fixed by unsafe changes to game authority. Existing `TurnManager` now logs **change-triggered** `ATB_LIVE_GUEST_ROLL_DIAG phase/activeSlot/localSeatCount/ownsActiveSeat/activeHuman/pending/management/canRoll` for the Live Windows QA Guest. Existing network coordinator logs `ATB_LIVE_GUEST_SEAT_BOUND` and `ATB_LIVE_GUEST_ROLL_INTENT` when a roll is submitted; host-authoritative roll, bot takeover, room membership, rules and dice RNG remain untouched. Inspect the **Guest Player.log** after it is actually that player's turn. `canRoll=false localSeatCount=0` indicates missing UID/slot binding; `canRoll=true submitted=false` suggests client send failure; `submitted=true` without host acceptance needs matching Editor host logs. Zero or repeated log entries never prove gameplay PASS.
+
+**Tests and boundaries:** New `Backend/Firebase/qa/phase19aj_live_guest_wallet_maps_roll_contract.test.cjs` is a **read-only source contract**. It does not execute Unity/Steam, perform a real two-client roll, or touch production. Existing Phase19AI Career/Gold and Phase19AH formula QA are run separately and must remain PASS. No Firebase rules changed, **NO deploy** for this package. No GitHub push. Source ZIP contains ONLY complete original-path C# files, new QA script, and the SINGLE full canonical roadmap. Owner must rebuild Guest EXE via `Build Two-Client Guest Test v1`, launch `Launch Live Spark Guest QA (No Steam)` and verify real wallet separation, five-map Career dropdown and Guest roll diagnostics with two distinct Firebase Auth identities. Actual Unity Editor compilation and live 2-client gameplay remain OWNER OPEN. Earlier v5.49.12w/x/y Career/Gold test successes are not rebranded as owner gameplay PASS.
+
+---
+
+## v5.49.12y — Phase 19AI Firebase Emulator Canonical User Fixture Correction (2026-10-30; OWNER EMULATOR RETEST OPEN)
+
+**Owner evidence:** Unity source compiled without error (owner PASS). Source contract 49/49 checks and Gold arithmetic 375 scenarios PASS. The actual Auth+RTDB emulator now starts successfully, so the previous unsupported `numChildren()` rules parse failure is RESOLVED. The full emulator test then fails at `initialize canonical zero Gold wallet` with HTTP 401. This is not a proven live game or wallet production failure.
+
+**Root cause:** `phase19ai_emulator_security.test.cjs` creates Firebase Auth Alice and completes Career participation/claims, but never creates canonical `/users/{alice.uid}` profile before the first `/users/{alice.uid}/metaEconomy` write. The existing parent `.validate` requires `userId`, `playerId`, `email`, `displayName`, `createdAt`, `updatedAt`, `lastDisplayNameChangeAt`, `general` even on nested writes. The older working `phase19c_rest_security.test.cjs` correctly seeds the user profile through the local emulator admin before INIT. The new fixture's empty parent caused permission denied. This is TEST FIXTURE ERROR, not authorization requiring relaxed rules.
+
+**Correction:** Full original-path `Backend/Firebase/qa/phase19ai_emulator_security.test.cjs` now returns the Auth signup email, constructs the full canonical user profile with registered account type for Alice, tests explicit denial of wallet initialization without a parent profile, seeds Alice's profile via **local emulator admin only**, then tests successful zero wallet INIT and all existing cross-UID/replay/Gold/DAILY/negative cases. Full original source-contract QA adds 4 regression checks for the mandatory parent schema, fixture shape, negative case, and correct seed-before-INIT order. **No Firebase database.rules.json change**, no Unity C# change, no live economy modification and no deploy required. Existing v5.49.12w and x source should remain installed; only the two QA files and this single full historical roadmap are replaced. All previous history is retained below verbatim.
+
+**Verification:** Local Node syntax and source/mock + Gold formula checks can be executed here. Authentic Firebase emulator and production remain OWNER OPEN; no PASS claimed until owner runs the entire `firebase.cmd emulators:exec --only auth,database --project demo-atlasboard "node qa/phase19ai_emulator_security.test.cjs"` and reports the final result. No GitHub push. Do NOT deploy production RTDB rules until full emulator security QA passes and owner reviews changes.
+
+---
+
+## v5.49.12x — Phase 19AI Firebase Database Emulator Rules Compatibility (2026-10-30; EMULATOR OWNER RETEST OPEN)
+
+**Owner evidence:** v5.49.12w Unity compilation and launch succeeded. `phase19ai_integrated_career_gold_contract.test.cjs` source test reported 45 checks PASS and parsed 395 rule expressions; `phase19ah_gold_formula_contract.test.cjs` reported 375 Gold examples PASS. But `firebase.cmd emulators:exec --only auth,database --project demo-atlasboard` stopped before tests: `database.rules.json:1249:67: No such method/property 'numChildren'`. Thus **Firebase emulator PASS is NOT established**, and the preceding source QA PASS must not be mistaken for rules compilation or security proof.
+
+**Targeted full-file correction:** In the EXISTING `Backend/Firebase/database.rules.json`, the final-proof `seats` validator now requires `newData.hasChildren(['0','1','2','3'])` without unsupported `newData.numChildren()`. The nested `$slot` validator already restricts keys to exactly `0`–`3` and rejects any fifth/unknown seat, so the original four-seat invariant remains intact. RTDB `parent()` is documented and unchanged. Existing UID/Gold/XP/participation protections, purchase permissions, balance math, property rules, host-result proof protocol and client sources remain byte-for-byte unchanged. The existing integrated source QA adds an explicit unsupported-method regression check and four-seat/missing-seat checks, and removes an inaccurate `numChildren` method from its local test mock.
+
+**Validation distinction:** Node syntax/source QA is runnable locally; Firebase Database Emulator initialization and the authentic security cases require the owner environment's installed Firebase CLI/emulator. This environment cannot download or run that emulator, so do not report emulator PASS. **Production Firebase Rules deploy remains BLOCKED until** `firebase.cmd emulators:exec --only auth,database --project demo-atlasboard "node qa/phase19ai_emulator_security.test.cjs"` fully finishes and its security assertions PASS; then owner reviews before deploying. Do not push GitHub or automatically deploy. Existing v5.49.12w client files need no further replacement. Full-file ZIP includes the corrected entire `database.rules.json`, updated full source QA and this single full canonical roadmap, preserving the entire historical record. The owner must report any subsequent emulator failures separately; no assumptions of all runtime scenarios passing.
+
+---
+
+## v5.49.12w — Phase 19AI Integrated Career / Disconnect / Match Gold RTDB Candidate (2026-10-30)
+
+**Status: FULL SOURCE CANDIDATE / OWNER AND FIREBASE EMULATOR TEST OPEN.** This entry is appended to the ONLY canonical roadmap. All 4,112 prior lines and previously owner-accepted Events/Shop/Dice/Pawn/Emote/Maps behavior remain preserved. Do not call the phase finished, verified against colluding clients, or deployed. User-provided canonical baseline: `Scripts(6).zip`, `Editor(1).zip`, `Backend.zip`, `MASTER_ROADMAP(20261030-171250).md`; GitHub main was independently checked earlier but the uploaded *later local files* are the authoritative source for this release. Do not replace them with older GitHub copies. No GitHub push, Firebase deploy, Unity compile or real two-client test performed by the assistant.
+
+### Unified rules and recovery design
+
+- **RTDB only; no Firestore, Functions, Blaze or parallel Gold wallet.** Only genuine online participants whose Firebase Auth is registered, or whose exact UID is administrator-authorized in `devWalletTesters`, may participate in Career reward proofs. Ordinary anonymous guests, one-human-plus-bots, local and offline sessions receive no live progression payout. A Steam persona without a trusted Firebase account link does not imply registered Firebase Auth; only the deliberate admin tester allowlist provides that QA exception.
+- During a running match, after at least 30 seconds from server match creation, each authenticated human independently writes ONE immutable UID/slot/lobby/role receipt to `/careerParticipation/{uid}/{matchId}`. The host later publishes ONE immutable `/careerFinalProofs/{matchId}` only while the canonical RTDB match is complete, with the exact final `snapshotJson`, digest/revision, two distinct previously signed human slots, aggregate round/turn/map data and per-slot outcome/dice/count numbers. These extra host fields are copied from the canonical host final frame; they are NOT an independent authoritative server replay. An eligible disconnecting player remains represented by their immutable pre-final receipt even after their `roomMembers.active` becomes false or the lobby rematches.
+- `careerAttestations/{matchId}/{uid}` are immutable, exact-final-digest signed confirmations. For an uninterrupted two-human completion, both clients independently sign; `/careerClaims/{uid}/{matchId}` records one immutable full XP+Gold claim per UID+match. For a disconnected/restarted account, the SAME UID reads its persistent participation receipt and original final proof, then may recover a full claim against the present former host's final attestation; no other UID can write its reward. If there is not yet a valid final witness attestation, a separate immutable `/careerParticipationCredits/{uid}/{matchId}` gives **exactly 1 provisional XP** (zero Gold), which is replaced in the Career projection by any later full claim for that match rather than added to it. No reward for merely joining and quitting before a canonical completed match or when the peer never signed during play. Full Gold is recovered on account re-entry after the completed proof and required witness attestation exist; it cannot be credited to a principal who never signs in again.
+- Historic XP formula unchanged: `25 + win 50 / tie 20 / loss 0 + min(100,rounds*3) + min(50,properties*5) + min(75,developmentLevels*3)`, 25–300 XP; normal Level 1→2 500 XP, +10% rounded per level, max 100. User-approved Gold candidate: win 50 / tie 20 / loss 5 + min(30,rounds) + min(20,properties*2) + min(20,developments*2), **max 120 Gold per eligible completed match**. Partial-only participation gets 1 XP but NO Gold, and must not generate wins or achievements as if a full result were verified.
+- **Gold persistence and idempotency:** existing `/users/{uid}/metaEconomy` ETag-protected full-document PUT supports `MATCH_REWARD` only when a matching server-validated immutable `careerClaims/{uid}/{matchId}` exists. `wallet.gold` must increase by EXACT `goldAwarded` (5..120); Atlas Coin, purchased items, equipment, other counters and inventory may not change. `rewardHistory` is a strictly append-only primitive string embedded in the SAME atomic wallet object: each match marker `|matchId|` can only be appended ONCE. All original purchases/equipment/DEV_GRANT/DAILY/RESET operations are required to retain the prior marker byte-for-byte; older installed clients that omit the marker will be REJECTED instead of erasing it. Concurrent clients retry through ETag 412; wallet receipt in existing `metaHistory` and History display is best-effort secondary and never independently mints currency. Maximum ledger string length 1,000,000 characters; future server-managed archival/migration would be needed for extraordinary lifetime match counts. The stored schema remains 1 with an additive `rewardHistory` field; no second wallet or Gold outside RTDB.
+- **Achievements and history:** host's actually committed non-starting-order dice events now enter the existing version-13 online frame as slot-indexed `careerDiceRolls` / `careerDoublesRolled`; follower copies the counters forward for later host migration. Career `dice_100`/`doubles_10` derive from immutable peer-attested full receipts, not guessed numbers. The other 12 existing achievement IDs use aggregate claims as before. All 14 remain CLIENT-SIDE PROVISIONAL indicators, NOT Steamworks or independently server-verified unlocks. Match history displays max 10 recent / 72 hours, shows the seven-language 1-XP participation-pending status distinctly from a loss, and is isolated to exact Firebase UID. Older claims without dice telemetry are never backfilled as invented rolls. Signed-out/account switch clears the previous UID's snapshot; async reads recheck identity before display.
+- **Explicit trust limit:** two cooperating modified clients may create fictitious host match frames, signed participation and false per-seat outcomes. Realtime Database Security Rules cannot replay AtlasBoard's client-authored game deterministically. No claim of cheat-proof anti-fraud; particularly important before real-money/competitive rewards. No protected Atlas Coin or premium inventory is granted from peer-reported data. Production deployment is barred until emulator deny/allow tests and user authorization; this is a source candidate not a published secure reward system.
+
+### QA distinction and package contents
+
+- **Source/MOCK (executed):** `node Backend/Firebase/qa/phase19ai_integrated_career_gold_contract.test.cjs` checks 395 RTDB rule expressions and 45 targeted deny/allow cases (UID, anonymous, no second human, final signed result, recovery, 1 XP, Gold match-id replay, anti-coin, purchase isolation); `phase19ah_gold_formula_contract.test.cjs` checks 375 combinations and 120 cap. `phase19af_rtdb_career_claim_contract.test.cjs` forwards to the revised integrated contract, and `phase19ae_release_backlog_contract.test.cjs` is updated for existing newer source. **These tests are NOT the Firebase emulator, Unity Editor compile or live gameplay.** The original unrelated old Phase 19U/19K source mocks may require fixture updates because the uploaded repository has evolved; do not advertise those old scripts as PASS in this release.
+- **Emulator security test added but NOT RUN here:** `Backend/Firebase/qa/phase19ai_emulator_security.test.cjs` is strictly guarded for `GCLOUD_PROJECT=demo-atlasboard` and auth/database emulator environment variables. It uses local emulator Auth and RTDB REST with admin-seeded simulated final match states. It checks immutable pre-final signatures, forged UID, duplicate claim, Gold ETag and Daily compatibility. The admin-seeded final proves rules enforcement only, not real host gameplay. Local CLI steps from a Windows PowerShell terminal after inspecting rules:
+
+```powershell
+Set-Location "C:\Users\crazy\AtlasBoardPrototype\Backend\Firebase"
+node .\qa\phase19ai_integrated_career_gold_contract.test.cjs
+node .\qa\phase19ah_gold_formula_contract.test.cjs
+firebase.cmd emulators:exec --only auth,database --project demo-atlasboard "node qa/phase19ai_emulator_security.test.cjs"
+```
+
+- **Only if ALL emulator tests PASS, and after owner authorizes PRODUCTION RTDB rule change**, deploy with:
+
+```powershell
+Set-Location "C:\Users\crazy\AtlasBoardPrototype\Backend\Firebase"
+Get-Content .\database.rules.json -Raw | ConvertFrom-Json | Out-Null
+firebase.cmd deploy --only database --project atlasboard-usa
+```
+
+- **OWNER LIVE MANUAL TESTS, not yet PASS:** verify Unity 6000.5.6f1 compilation (0 errors); two distinct registered/allowlisted UIDs participate for >30 s in a real Private/Public online match; two-player final with 50 winner base and Gold extras ≤120, loser's 5+extras, history XP/levels/14 achievements, direct current-wallet balance and transaction history; repeat Career opening, 2 devices same UID and cold app restart must NEVER repeat Gold/XP; disconnect player B late, host A completes and writes proof, B reconnects/reopens Career to receive at least the signed 1 XP while proof pending and then full XP/Gold once host's final attestation exists, same match must NOT double-add 1 XP; run 2nd/3rd consecutive completed matches, new match ID earns new one-off reward; switch UID A→B→A and ensure no cross-account history/wallet/achievement leak; one human + 3 bots, local offline and ordinary guest get zero permanent reward; bought map/frame/dice/pawn, inventory/equip, Daily+50, authorized Dev grant and paid Store checkout unchanged; follower/host migration dice counts, 7 languages, Android/Windows/Steam QA. Never use production database to experiment with tampered admin seed data or tests. Do not confuse source checks, emulator checks and true two-device real match results.
+
+**Delivered full-file paths (only modified files):** `Scripts/Progression/AtlasBoardRtdbCareerJournal.cs`, `Scripts/Progression/AtlasBoardProgressionMatchRecorder.cs`, `Scripts/Progression/AtlasBoardProgressionBridge.cs`, `Scripts/Meta/AtlasBoardRtdbMetaEconomy.cs`, `Scripts/Platform/AtlasBoardRtdbCareerReadModel.cs`, `Scripts/Online/AtlasBoardTurnDiceNetworkCoordinator.cs`, `Scripts/UI/Progression/AtlasBoardProgressionUI.cs`, `Backend/Firebase/database.rules.json`, four updated/new source QA scripts plus emulator acceptance test, and THIS one `Assets/Project/Documentation/MASTER_ROADMAP.md`. Existing `Editor` files were inspected but do not require replacement; no imported assets, scene, Firebase Functions, deployment or GitHub push.
+
+---
+
 ## v5.49.12f — Phase 19O Imported Dice UV Texture + Classic/Bot Original Die Recovery (2026-10-27; OWNER RUNTIME RETEST OPEN)
 
 **Owner observed:** v5.49.12e fixed imported FBX links (`modelAvailable=True`) and server-side Ruby Red equip and UID/slot resolution are correct. But both bot and human dice appeared as untextured blank ivory models; **bot must always use the original, pre-Phase19K black-pipped White/Classic mesh**. RTDB/Steam `ready=true guest=False steam=True` verifies identity; Gold=325. This is a rendering regression, not a purchase, equipped UID, RNG or Steam issue. Owner screenshot proves untextured blank imported mesh, including bot.
@@ -4109,3 +4382,310 @@ XP = 25 (completed eligible match)
 5. Once those Owner tests pass, finish license audit, security and Android/Steam release QA before launch. Never declare release-ready prematurely.
 
 **Handoff status:** DOCUMENTATION-ONLY update; no CS0103 fix, no Events visual fix, no XP/Match History live implementation, no Unity test, no Firebase deploy, no GitHub push performed in this handoff. Owner PASS claims are limited to the user's previously reported specific observations. All older roadmap history intentionally preserved.
+
+
+## v5.49.12af — Owner-blocker source correction: reconnect, lobby, auction, Guest emotes (2026-10-31)
+
+**Delivery state: SOURCE CANDIDATE — NOT owner-accepted, NOT Unity-compiled here, NOT a live two-client or Firebase Emulator PASS.** This builds on the owner's installed `v5.49.12ae_Integrated_Auction_Rejoin_Emotes_ProvisionalCareer_FullFiles.zip` and retains the full earlier roadmap without rewriting history. Do not push or deploy until explicitly authorized.
+
+### Observed owner failures (all remain OWNER-TEST-OPEN)
+- Remote Steam/Unity follower (Vuartex) exits active match hosted by No-Steam Guest: rejoin never approved (`ATB_RTDB_REMOTE_QA join_timeout attempts=24`, `ATB212`). Guest host can return but Steam follower cannot, causing no Steam History/stat/verified XP for that match. Do not present this as resolved without both client logs and matching matchId/UID.
+- Old local lobby flashes on menu navigation; online entry must never route to or render the old four-local-player panel.
+- Auction renders two concurrent surfaces in Unity and obsolete surface in Guest build; target exactly ONE current Modern Auction with live property/name, bid and controls, readable at tablet scale. A source check is not visual QA.
+- Steam Editor emotes can transmit/arrive; No-Steam Guest emote selector renders but its sends fail. This could be missing server-persisted Guest free loadout or a distinct HTTP rejection; only Guest-side `ATB_EMOTE_SEND` diagnostics and live reception prove root cause.
+- `ATB_HISTORY_RECEIPT pending=true status=401` is a meta-economy receipt path failure and MUST NOT be conflated with missing Career Match History/XP. It remains OPEN for isolated investigation. Native Steam wallet successfully read at logged UID is not evidence of a Career reward commit.
+
+### Source changes in af (safety constraints)
+- `AtlasBoardRtdbCasualLobbyTransport`: restore exact-UID active-match seat while room snapshot remains **Starting** (actual live phase), not just hypothetical `InMatch`. Preserve matchState active, roomMeta activeMatchId, host UID, immutable joinedAt, remote-human owned seat and member authorization checks. Reuse a still-fresh immutable joinRequest on retry; host clears stale/invalid joinRequests instead of leaving an impossible overwrite. Log filtered rejection reasons. Do NOT admit a third player, relabel a seat by display name or grant rewards.
+- `AtlasBoardAuctionPresentationPolish`: modern UI is a root-Canvas sibling of the old `auctionPanel`, with explicit higher sorting and raycaster. Keep `AuctionManager` alive for true CurrentBid, property and existing button handlers; alpha-hide the entire old panel CanvasGroup while modern view is active, then restore safely when closed. Migrate a pre-existing old child overlay to independent canvas. Both Guest build and Editor must display exactly one modern overlay.
+- `AtlasBoardMainMenuController`: preserve the existing modern-only missing-component fallback from 12ad, and hide every legacy child of serialized `Lobby` other than existing `PrivateOnlineRoot` on actual room transition and rematch return. Do not destroy serialized model objects or use a new parallel lobby controller.
+- `AtlasBoardEmoteNetwork`: before Guest sending, read/seed only free equipped emotes in *that authenticated lobby UID's* `/users/{uid}/emoteLoadout`, and confirm the requested emote is in a server slot. Preserve `/emoteEvents` UID/membership, 3s cooldown and server 20-in-180s controls; do not grant or bypass paid-emote ownership. Record stage-specific HTTP denial for Guest reproduction.
+- Reuse matching `AtlasBoardTurnDiceNetworkCoordinator` active-match pump, `AtlasBoardEmoteLoadoutService` UID-scoped persistence and the exact modern `AtlasBoardEmoteHudRuntime` from 12ad; no hidden rollback to older bundled code.
+
+### af source checks and owner acceptance
+- `Backend/Firebase/qa/phase19ao_owner_dual_client_release_gates.test.cjs`: 26 SOURCE-only assertions. Existing reconstructed full source fixture: phase19an 32, phase19ak 44, phase19ai 53 source checks. **None** constitutes Unity compiler, Firebase Emulator, screenshots, performance, authentication security, actual dynamic ownership or real two-client PASS. No RTDB rules changed, no deploy performed, no GitHub push.
+- OWNER must rebuild Guest executable from the current Unity editor after applying this ZIP; stale older EXE cannot test modern auction. Log must include `ATB_MODERN_AUCTION overlay=true` on **both** clients during auction; zero visible legacy, one copy of every control, bid changes while bidding.
+- Guest HOST / Steam FOLLOWER: start match, disconnect Steam, retry same UID while Guest host stays live; confirm `ATB_RTDB_MATCH_REJOIN recovered_existing_seat=true` on HOST and Join confirmed/authoritative snapshot on FOLLOWER, then test dice/ownership after return. Swap roles and repeat. Distinct account never steals a seat. Repeated join timeout remains FAIL.
+- Three separate Guest emote taps 3+ seconds apart: `ATB_EMOTE_SENT` on sender and matching bubble at correct foreign HUD on receiver; reverse Steam→Guest. Test 3-second throttle, 20-in-180s mute, and paid emote not equipped. Guest failures require Guest's `ATB_EMOTE_SEND` lines. Keep server checks active.
+- Menu flow: Private entry→room→Main Menu→Public Play→room→Main Menu→Private→rematch; old `Player N / HUMAN dropdown` panel must never display, including one-frame flashes. Verify both clients independently.
+- After reconnect complete match: two UID-specific results, History, achievements, Stats; verified XP/Gold only when rules genuinely allow it. Anonymous Guest and single-human/bot restrictions remain unchanged. **Career permanent XP/Gold and receipt 401 are still open until separately proven with eligible accounts and Rules/Emulator validation.**
+
+
+## v5.49.12ah — CRITICAL modern lobby scaffold restoration (2026-10-31)
+
+**SOURCE-ONLY HOTFIX, owner Unity/Guest acceptance OPEN.** Built as a minimal add-on above the installed v5.49.12af + v5.49.12ag stack. No GitHub push and no Firebase deploy.
+
+**Reproduction:** Creating a real online room displays a blank gray lobby with only the room code and bottom controls; settings and player cards disappear. Owner screenshot confirms this. This was introduced by `v5.49.12af` `AtlasBoardMainMenuController.SuppressRetiredLobbyChildren()`, which disabled ALL siblings of `PrivateOnlineRoot`. The existing `AtlasBoardPrivateLobbyUIV1Setup` creates `PrivateOnlineRoot` solely for online room code/ready controls, but REUSES `Panel_GameSettings`, `Panel_Players`, `LobbyModeTitle`, `Button_Back`, `Button_StartMatch` directly under the serialized `Lobby` hierarchy. Those are not replaceable by `PrivateOnlineRoot`.
+
+**Change:** Remove blanket sibling suppression and instead require `PrivateOnlineRoot` + `Panel_GameSettings` + `Panel_Players` before opening an authorized room. Explicitly enable these exact required scene children and original lobby title/navigation controls. Block obsolete local-screen fallback when online controller or online scaffold is missing. Keep the existing match/session/UID authorization logic untouched. No new lobby screen or duplicated controller.
+
+**Acceptance:** Rebuild BOTH Unity Editor runtime and current Windows No-Steam Guest EXE. In both: Private -> create/join -> complete settings, 4 player cards, title and room code visible; public-host flow; leave -> main menu -> re-enter -> panels consistently present. Never show the obsolete bare four-HUMAN local lobby; online join must still be authorized. Lobby visual pass is NOT inferred from Node test. No RTDB rules change.
+
+`phase19ao` source-contract checks are updated to match the actual hierarchy (previous assertions rewarded the regression); new `phase19ap_lobby_scaffold_regression.test.cjs` checks no sibling suppression and required Editor composition. **Reconnect, Guest emote send, modern auction visual QA, Steam Career remain separately OPEN**. Do not mark them fixed by this UI hotfix.
+
+## v5.49.12aj — Auction legacy hard-disable, Private entry re-arm, Guest free emote rule, pawn reconnect sync gate (2026-11-01)
+
+**DELIVERY CANDIDATE — owner Unity/Guest acceptance OPEN.** Built directly on the owner's installed v5.49.12ai stack. No GitHub push. This candidate changes RTDB rules only for the three universally free emotes; production rules MUST NOT be deployed until the local Auth+Database emulator test passes.
+
+### Owner observations carried forward
+- Reconnect itself is OWNER PASS in both directions for the latest test: Guest can leave/rejoin and Steam/Unity can leave/rejoin. Do not reopen that logic in this hotfix.
+- Main-menu soft-reset/loading gate successfully prevents the old lobby flash in the tested Play-back flow, but v5.49.12ai introduced a new Private Table entry regression: after returning from a room, Create Room, Join Room, join code and password remain disabled while Cancel/Play Local Offline still work.
+- Both Editor and Guest now show the modern auction, but the retired legacy auction title/background is still visible behind it. Exactly one modern auction is required; the legacy visual must never render.
+- Editor emote send works and Guest receives it, but Guest sender still reports "Emote could not be sent." The three bundled free emotes must work for authenticated anonymous live-Guest room members without requiring a separately persisted loadout; paid/custom emotes remain ownership/loadout gated.
+- After re-entry, remote pawn cosmetic synchronization can warn `This seat is not currently controlled by a connected Human.` This is a race between restored client state and authoritative seat metadata, not a reason to reject the rejoin itself.
+- One Guest-host leave caused a one-off room-close/host-transfer failure, but immediate reproduction later behaved correctly. Keep host-migration reliability OPEN for repeated QA; no host migration code change in this hotfix.
+
+### Source changes
+1. **Modern auction only:** `AtlasBoardAuctionPresentationPolish` now owns a persistent safe `CanvasGroup` on serialized `Panel_Auction`. While an auction is active, legacy panel alpha is `0`, interaction/raycasting are disabled, and its Graphics are suppressed. `AuctionManager` and serialized legacy controls remain alive only as authoritative data/click-handler sources. Modern overlay remains an independent root-Canvas sibling. Do not restore legacy visuals on close/re-entry.
+2. **Private entry re-arm:** `AtlasBoardPrivateLobbyUIController.PrepareRoomEntryChooser()` explicitly re-enables Create, Join, code and password controls for the new navigation epoch after the main-menu reset invalidated stale operations. Stale Create/Join callbacks remain rejected by epoch checks.
+3. **Remote pawn reconnect race:** `AtlasBoardTurnDiceNetworkCoordinator` waits until the authoritative match seat for the locally controlled slot reports `ControllerKind=human` and `ConnectionState=connected` before submitting pawn-cosmetic intent. During reconnect/temporary-bot transition it retries quietly instead of generating a guaranteed rejection warning.
+4. **Guest free emote send:** `AtlasBoardEmoteNetwork` sends the three bundled free IDs without first requiring `/users/{uid}/emoteLoadout`; paid/custom IDs still require authoritative equipped loadout. `database.rules.json` mirrors this exact distinction: free IDs may be written only by the authenticated active room member during an active match and still retain UID, membership, room-closed, active-match, timestamp, sequence, cooldown, rolling-window and mute validation. Paid/custom IDs still require a matching equipped server slot.
+5. **Security scope:** no Gold/XP, wallet, Career, map ownership, seat ownership or host-transfer rule was loosened. Anonymous Guest is NOT granted paid emotes or any spendable reward by this change.
+
+### Validation boundary
+- Local JSON parse of `database.rules.json`: PASS.
+- `phase19ar_hotfix_source_guard.test.cjs`: source-only PASS; explicitly NOT Unity/two-client/emulator evidence.
+- Updated `phase19aq_menu_reset_modern_auction_guest_emote_steam_career.test.cjs`: source-only PASS; explicitly NOT runtime evidence.
+- `phase19as_guest_emote_emulator.test.cjs` added for the required real local Firebase Auth+Database emulator proof: anonymous active member free-emote allow; paid emote without equipped loadout deny; free loadout persistence allow. This emulator test was NOT runnable in the assistant container because Firebase CLI is not installed there. Owner must run it locally before any rules deployment.
+
+### Required owner acceptance after install
+1. Unity + freshly rebuilt Guest: open several auctions before and after leave/re-entry. Exactly ONE modern auction; zero legacy title/frame/background, zero CanvasGroup exception, current bid updates.
+2. Private room -> Main Menu -> Private Table: Create, Join, 6-digit code and password must all be interactable immediately; repeat after joining/leaving a real room on both clients.
+3. Reconnect both directions remains PASS and no repeated `Remote pawn cosmetic sync failed: This seat is not currently controlled by a connected Human` warning during normal restore.
+4. Run `phase19as_guest_emote_emulator.test.cjs` under local Firebase Auth+Database emulator. Only after PASS deploy full `database.rules.json`. Then rebuild/relaunch Guest and verify Guest -> Editor bundled free emote and Editor -> Guest, 3+ seconds apart, visible on the correct player HUD. Paid unequipped emote remains denied.
+5. Repeat Guest-host leave/host-transfer at least three times. The single previously observed room-close incident remains OPEN until repetition proves stable.
+
+**Do not mark v5.49.12aj runtime PASS from Node/source checks. Owner screenshots/logs from Unity and Guest are authoritative for visual and multiplayer acceptance.**
+
+
+## v5.49.12ak — Guest free-emote emulator hotfix (2026-11-01)
+
+- Corrected Phase 19AS emulator acceptance: bundled free Guest emotes are intentionally sent directly through `/emoteEvents/{roomId}/{uid}` and **do not require** a persistent `/users/{uid}/emoteLoadout` write. The prior emulator test incorrectly asserted that unrelated persistence step after the direct free-emote rule had already passed.
+- `AtlasBoardEmoteNetwork.SendAsync()` was structurally cleaned so the free/direct and paid/loadout branches share one valid `try/catch` and no Guest free-emote path calls `SaveAsync()` first.
+- Paid/custom emotes still require the authoritative server loadout/ownership rules; no permission was widened for paid content.
+- Production RTDB deployment remains blocked until `phase19as_guest_emote_emulator.test.cjs` passes against `demo-atlasboard`.
+- LIVE UNITY / TWO CLIENT status remains NOT RUN for this hotfix.
+
+## v5.49.12al — Release-candidate UI ownership cleanup: single modern Auction, migrated-host slot fidelity, tablet notification exclusivity (2026-11-01)
+
+**DELIVERY CANDIDATE — owner live acceptance required before GitHub push.** Built on the owner-tested v5.49.12ak stack. This update does **not** change Firebase RTDB rules, Career reward rules, reconnect transport, emote transport, wallet logic, pawn/dice cosmetics, map ownership, or lighting.
+
+### Owner PASS state carried forward (do not reopen without new evidence)
+- Career on BOTH No-Steam Guest and Steam/Unity: XP/progression presentation, Overview stats, Match History, and Achievement progress reported working by owner in the latest live two-client test.
+- Private Table entry controls after menu soft-reset: Create, Join, room code and password re-arm correctly.
+- Reconnect: Guest and Unity/Steam can leave and rejoin the active match; reconnect pawn-cosmetic warning regression reported resolved.
+- Emotes: Guest→Editor and Editor→Guest both send/receive successfully after the free-emote rule/hotfix.
+- Host transfer: repeated latest Guest-host departure tests did not collapse the room; current owner result PASS, while broader long-run migration stress remains normal release QA.
+- Pawn permissions, per-player dice visibility, premium-map ownership popup, five-map Career filter, Guest BUY→sign-in behavior, achievement target clamping, and reduced board lighting remain prior owner PASS items.
+
+### Remaining owner-reported blockers targeted in v5.49.12al
+1. **Auction must have exactly one presentation.** Older candidates created an independent root Canvas for `Phase14G_AuctionPolish` while the shared Tablet shell stayed visible, producing duplicate AUCTION/AÇIK ARTIRMA headers/backgrounds. After re-entry the runtime-created modern root could also be stale/incomplete, causing `ATB_AUCTION_MODERN unavailable=true legacy_fallback=false` and a blank tablet shell.
+2. **Host migration/rematch lobby duplicate identity.** When Guest/P1 host disconnects and Vuartex/P2 becomes host, backend authority correctly remains on Vuartex's original slot. The lobby UI nevertheless hard-coded slot 0 as `HOST • LOCAL`, so Vuartex could render in both P1 and P2 on the new host's screen.
+3. **Tablet notifications overlap decision tablets.** Join/leave/reconnect lifecycle notice could render over auction/trade/event/special-result tablets. Gameplay decision state must remain authoritative and must not be destroyed just to hide a notification.
+
+### Source changes
+- `AtlasBoardAuctionPresentationPolish.cs`
+  - Modern auction is now a **single content sibling under `TabletUIManager.tabletRoot`**, not a second standalone root Canvas.
+  - Shared Tablet shell owns the one canonical auction title; runtime `ModernAuctionTitle` is disabled to prevent double headers.
+  - Retired serialized `Panel_Auction` remains headless only because `AuctionManager` still uses its serialized fields as authoritative state/button-availability sources; its Graphics remain non-rendering/non-interactive. No legacy visual fallback is permitted.
+  - Old runtime modern roots created under the root Canvas are migrated into TabletRoot instead of duplicated.
+  - Incomplete/stale modern roots are rebuilt in place. If binding still cannot complete, the modern content is hidden and retried; a half-empty auction is not intentionally presented and legacy fallback remains false.
+- `AtlasBoardPrivateLobbyUIController.cs`
+  - Host row is resolved from authoritative `HostAccountId`/`member.IsHost` and **keeps the backend slot after migration**. Slot 0 is no longer synthesized as a second host.
+  - Host seat protection, backend seat-policy serialization, local-human counts, open-online-seat checks, legacy MatchSetup projection, and seat action handlers use the actual migrated host slot.
+  - Seat action callbacks are bound for all four indices but authoritative host-slot mutation is blocked, allowing a non-host slot 0 to remain a valid remote/open seat after migration without duplicating the new host.
+- `TabletUIManager.cs`
+  - Gameplay decision panels are canonical tablet owners. Online seat lifecycle notices never stack above them.
+  - Latest lifecycle notice is queued while a gameplay panel is active, then displayed after that panel closes. Existing auction/trade/event state is not destroyed by the notice.
+
+### Validation boundary
+- `phase19at_release_candidate_source_guard.test.cjs`: **19/19 source guards PASS**, explicitly `LIVE_UNITY=NOT_RUN TWO_CLIENT=NOT_RUN`.
+- Existing v5.49.12ai source guard: **23/23 PASS** after these changes.
+- Existing v5.49.12aj/ak hotfix source guard: **14/14 PASS** after these changes.
+- These checks are regression/static guards only and are **not** accepted as visual or multiplayer proof.
+- No `database.rules.json` change in v5.49.12al; **no Firebase deploy is required** for this package.
+
+### Final owner acceptance before GitHub publication
+1. Fresh Unity + freshly rebuilt Guest: first auction, second auction, leave/re-entry then auction. At all times exactly ONE auction shell/title and ONE modern content layout; never legacy body/title behind it; no `ATB_AUCTION_MODERN unavailable=true` persistence or blank shell.
+2. Guest starts as host, disconnects, Vuartex becomes host, rematch returns to lobby. Both clients must show the same four-slot roster: Vuartex only in its actual authoritative host slot, Guest only in its own reconnecting/returned slot; no duplicate Vuartex identity.
+3. While auction/trade/event is open, trigger join/leave/reconnect lifecycle notice. The decision tablet remains alone; notice does not overlap and may appear only after the decision closes.
+4. Re-smoke existing owner PASS gates only for accidental regression: reconnect, two-way emotes, Career XP/History/Stats/Achievements, Private Table Create/Join controls, pawn/dice identity.
+5. **Do not push GitHub until the owner confirms the above live acceptance.** Once accepted, stage only intended source/QA/roadmap files; do not use `git add .`, do not include generated builds/logs/Library/credentials/ZIPs.
+
+## v5.49.12an — Auction binding-path hotfix after owner runtime log (2026-11-01)
+
+**MINIMAL HOTFIX — owner Unity/Guest acceptance required.** Built directly on v5.49.12am. No Firebase rules change, no reconnect change, no Career/emote/menu/pawn/dice/host-transfer logic change.
+
+### Owner runtime evidence
+- Owner reported the Auction regression remained after v5.49.12am: the modern layout appears briefly, then the tablet falls back to a blank Auction shell.
+- New `ATB_AUCTION_BIND` diagnostics isolated the fault. Every runtime rebuild showed `panel=True`, `auctionActive=True`, `root=True`, `rootParent=Panel_Auction`, but `property=False`, `meta=False`, and `bid=False`; bidder/leader/status/buttons remained present. The generation counter then incremented continuously because `LateUpdate()` treated the binding as incomplete and rebuilt the modern presentation every frame.
+
+### Root cause
+`BuildModernPresentation()` creates the three missing text groups under nested containers:
+- `PropertyCard/PropertyName`
+- `PropertyCard/PropertyMeta`
+- `CurrentBidHero/CurrentBidLabel`
+- `CurrentBidHero/CurrentBidValue`
+
+But `ResolveExistingPolish()` incorrectly searched for `PropertyName`, `PropertyMeta`, `CurrentBidLabel`, and `CurrentBidValue` as direct children of `Phase14G_AuctionPolish`. `Transform.Find()` is path-based and not recursive; therefore the fields were immediately overwritten with null after creation/rebuild. The modern layout could flash once from the direct references assigned during creation, then the resolver invalidated those references and triggered an endless rebuild loop.
+
+### Fix
+- Correct only the four resolver paths above. Keep AuctionManager, authoritative serialized controls, modern Panel_Auction ownership, bidder/leader/status/buttons, bot bidding, balances, input handlers, and all gameplay logic unchanged.
+- Keep `ATB_AUCTION_BIND` diagnostics. A healthy runtime bind must now report `property=True`, `meta=True`, `bid=True`, with the existing bidder/leader/status/button fields also true; the generation counter must not climb continuously during one auction.
+- Add `phase19av_auction_binding_path_hotfix.test.cjs` as a SOURCE guard that specifically prevents the four incorrect direct-child paths from returning. It is not Unity visual proof.
+
+### Acceptance
+1. Fresh Editor and freshly rebuilt Guest: first auction must remain fully modern and populated for its entire lifetime; no brief modern flash followed by blank shell.
+2. Observe `ATB_AUCTION_BIND`: expected complete fields include `property=True|meta=True|bid=True`; `generation` must remain stable instead of increasing every frame.
+3. Repeat after lobby/rematch/re-entry and on both clients. One modern auction only; no retired Auction body, no blank shell.
+4. v5.49.12am host-slot projection remains unchanged in this hotfix. Test it separately; do not infer PASS or FAIL from this Auction change.
+5. No Firebase deploy required. Do not push GitHub until owner live Auction acceptance is confirmed.
+
+---
+
+## v5.49.12ao — Auction TabletRoot responsive restore + bounded Bot decision recovery (2026-11-01; OWNER LIVE RETEST REQUIRED)
+
+**Built directly on v5.49.12an. No Firebase rules/deploy, Career, reconnect, emote, host-transfer, wallet, pawn/dice, map, or economy formula changes.**
+
+### Owner evidence and correction
+- v5.49.12an fixed the missing modern binding paths: owner log now reports `property=True`, `meta=True`, `bid=True`, all bidder/leader/status/buttons `True`, `generation=0`; therefore the previous endless rebuild/null-binding defect is no longer the active problem.
+- Owner screenshots show the modern auction content compressed into a narrow center column while the canonical Tablet shell remains full width. This matches the v5.49.12am architectural regression: the modern renderer was moved inside serialized legacy `Panel_Auction`, whose RectTransform is intentionally narrow/legacy.
+- The earlier v5.49.12al roadmap contract was correct for layout ownership: `Phase14G_AuctionPolish` is again a single sibling under `TabletUIManager.tabletRoot`. `Panel_Auction` remains AuctionManager's authoritative lifetime/state/button source but is visually/headlessly suppressed. The modern root uses the known responsive tablet body anchors `(0.035,0.035) -> (0.965,0.815)`. Shared Tablet header remains the only AUCTION title.
+- The v5.49.12an nested binding-path fix is preserved (`PropertyCard/...`, `CurrentBidHero/...`), so returning to TabletRoot must not reintroduce the old blank-shell rebuild loop. Detached runtime roots under old parents are removed before binding.
+
+### Bot progression hardening
+- Owner reports an intermittent Bot stall around purchase/event-style decisions. The supplied BUY sample itself completes normally (`TryResolveBotPurchase -> BuyPendingTile -> CompleteResolution -> next turn`), so this candidate does **not** bypass TileResolution/Auction/Event authority and does not force an arbitrary PASS/SKIP.
+- `BotPlayerController` now tracks the currently running decision coroutine. If a one-shot Bot decision coroutine remains non-null for more than **8 realtime seconds while gameplay time is running**, it is stopped and cleared so the existing authoritative manager can be re-evaluated on the next Update. This is a bounded stale-coroutine recovery, not a gameplay-state mutation. Local pause (`Time.timeScale == 0`) does not trigger recovery.
+- Event/Special continue logs are now truthful: `continued ...` is logged only when the manager returns success. Rejected/not-yet-ready actions emit `ATB_BOT_DECISION_RETRY ...` and are retried through the normal Update flow. Purchase/Auction/Travel/Development/Trade rejection paths also emit targeted retry diagnostics.
+- New watchdog diagnostic: `ATB_BOT_DECISION_WATCHDOG recovered=true player=... slot=... kind=... elapsed=... pending=...`. If this appears in live testing, keep the surrounding log; it identifies which exact decision coroutine became stale.
+
+### Validation boundary / owner acceptance
+1. **Auction layout:** Unity + freshly rebuilt Guest, at least three auctions including one after lobby/rematch re-entry. Modern body must span the normal tablet body width; no compressed center column, no legacy body, no second title, no blank shell. `ATB_AUCTION_BIND ... rootParent=TabletRoot ... property=True meta=True bid=True ... generation=0` is expected during a stable auction.
+2. **Auction behavior:** Human and Bot bid/pass; current bid, bidder, leader and buttons update; AuctionManager ordering/money/property award unchanged.
+3. **Bot progression:** run Host+Bots long enough to cover city BUY/PASS, declined-purchase auction, Event continue, Special continue and ordinary roll. No bot may remain indefinitely on one pending decision. A watchdog recovery may occur, but the next authoritative action/turn must proceed; capture the diagnostic if it does.
+4. **No false PASS:** source guard only checks the intended wiring and safety boundaries. **Unity compile = NOT RUN HERE; real gameplay = OWNER RETEST REQUIRED; two-client = OWNER RETEST REQUIRED.**
+5. No Firebase rules change; **no Firebase deploy**. No GitHub push until owner accepts Auction layout and Bot progression.
+
+
+
+---
+
+## 1 Kasım 2026 — v5.49.12ap RECENT-WORKING-AUCTION-GEOMETRY RESTORE + BINDING HOTFIX
+
+> **DURUM: SOURCE CANDIDATE / OWNER LIVE RETEST OPEN.** Bu checkpoint eski Phase 14G tarihsel tasarımına geri dönüş değildir. Referans, 31 Ekim–1 Kasım yakın tarihli paket zinciridir: `v5.49.12z` Auction dosyasını değiştirmiyordu; `aa/ab` ile başlayan Auction değişikliklerinden önce owner modern layout'un geniş ve kullanılabilir olduğunu, yalnız Current Bid hero'nun bazı auction'larda stale kalabildiğini bildirdi. Sonraki `al→ao` parent/reparent/layout katmanları dar-sütun regresyonu yarattı.
+
+### Auction düzeltmesi
+- `AtlasBoardAuctionPresentationPolish` yakın tarihli son geniş TabletRoot geometrisine geri döndürüldü: `Phase14G_AuctionPolish` doğrudan `TabletUIManager.tabletRoot` altında full-stretch (`anchor 0..1`, offset 0) kullanır.
+- Re-entry/reparent kalıntısı nedeniyle RectTransform ölçeği taşınmasın diye her görünür presentation'da `localScale=1`, identity rotation ve full-stretch geometry yeniden normalize edilir.
+- `an` ile kanıtlanan nested binding yolları korunur: `PropertyCard/PropertyName`, `PropertyCard/PropertyMeta`, `CurrentBidHero/CurrentBidLabel`, `CurrentBidHero/CurrentBidValue`.
+- `aa` ile eklenen tile/bid invalidation korunur: property değişiminde visible TMP binding yeniden çözülür ve Current Bid hero stale kalmaz.
+- Yeni development log: `ATB_AUCTION_LAYOUT stage=auction_or_tile_change parent=... tablet=WxH polish=WxH scale=1,1`. Owner retestte `polish` genişliği tablet genişliğiyle eşleşmeli; dar sütun kabul edilmez.
+- AuctionManager'ın para, bidder order, bot action, ownership ve resolution kuralları değiştirilmedi.
+
+### Bot decision resilience
+- `v5.49.12ao` bounded decision-routine watchdog korunur. Normal BUY örneğinde `TryResolveBotPurchase -> BuyPendingTile -> CompleteResolution -> next turn` zinciri owner logunda sağlıklı çalışmıştır; bu nedenle satın alma kuralı veya turn authority değiştirilmedi.
+- Gerçek coroutine stall >8s olursa `ATB_BOT_DECISION_WATCHDOG` stale coroutine'i temizler ve mevcut authoritative pending manager'ın bir sonraki Update'te kararı tekrar değerlendirmesine izin verir. `Time.timeScale=0` iken çalışmaz; state'i zorla ilerletmez.
+- Event/special/purchase/auction resolve başarısızlığı doğru `ATB_BOT_DECISION_RETRY` ile loglanır.
+
+### Kabul
+1. Unity + Guest: ilk auction, ikinci auction ve lobby/rematch sonrası auction tam tablet genişliğinde modern layout; dar sütun yok.
+2. `ATB_AUCTION_LAYOUT` tablet/polish width değerleri aynı büyüklükte ve scale `1,1`.
+3. Current Bid en az 3 teklif boyunca ilerler; sonraki auction eski değerle başlamaz.
+4. Bot purchase/event/auction doğal ilerler. Takılma olursa watchdog/retry logu karar tipini göstermeli; log yokken bot davranışını zorla değiştirme.
+5. Bu source checkpoint Unity/iki-client owner retesti olmadan PASS/CLOSED sayılmaz.
+
+---
+
+## 1 Kasım 2026 — v5.49.12aq NESTED-EVENT BOT DECISION + HOST-MIGRATION SLOT IDENTITY HOTFIX
+
+> **DURUM: SOURCE CANDIDATE / OWNER LIVE RETEST OPEN.** Bu checkpoint `v5.49.12ap` üzerine kuruludur. Auction geometry/binding değiştirilmedi; son owner logunda `ATB_AUCTION_LAYOUT ... parent=TabletRoot tablet=980x700 polish=980x700 scale=1,1` ile responsive geometry doğrulanmıştır. Açık kalan problem Auction görünümünden değil, Event→destination karar sırasından kaynaklanmaktadır.
+
+### Owner runtime kanıtı — Bot Event → Auction stall
+- BOT 2 Event karesinde `Market Opportunity` ile bir sonraki Auction karesine taşındı.
+- Event henüz destination resolution tamamlanmadan `ATB_BOT_DECISION_RETRY kind=event_continue reason=not_ready_or_rejected` üretti.
+- Ardından BOT 2 Auction karesine indi ve `Auction started for Manisa ... Starting bidder: BOT 2` logu oluştu.
+- `BotPlayerController.Update()` Event Continue kararını Auction kararından önce değerlendiriyor ve yalnız `HasPendingEventFor()` kontrol ediyordu. Event dış state'i destination Auction tamamlanana kadar pending kaldığı için bot her update'te tekrar Event Continue coroutine'i başlatabiliyor ve gerçek Auction bidder kararını starve edebiliyordu.
+
+### Düzeltme — nested destination authority
+- `EventCardManager.CanBotContinueEventFor(player)` eklendi. Bir Event yalnızca:
+  - gerçekten o oyuncu için pending ise,
+  - oyuncu bot ise,
+  - **`effectExecutionCompleted == true`** ise Continue-ready kabul edilir.
+- `TryResolveBotContinue()` aynı readiness API'sini kullanır.
+- `BotPlayerController.TryStartEventContinue()` artık yalnız pending Event gördüğü için coroutine başlatmaz; Event destination Purchase/Auction/Travel/Development çözülürken outer Event state bot karar kuyruğunu bloke etmez.
+- Existing 8-second watchdog korunur ancak bu hotfix'te birincil çözüm değildir; yanlış decision coroutine'i artık baştan oluşturulmamalıdır.
+- Auction UI geometry, bid logic, money/ownership, AuctionManager participant order ve current-bid presentation değiştirilmedi.
+
+### Owner runtime kanıtı — migrated host duplicate identity
+- Guest/P1 host ayrıldıktan sonra Vuartex/P2 host oluyor. Guest istemcisinde roster doğru: P1 Guest/reconnecting, P2 Vuartex/host.
+- Vuartex host istemcisinde P1 geçici olarak `Vuartex (YOU) / RECONNECTING`, P2 ise `Vuartex (YOU) / HOST • LOCAL` görünüyordu.
+- Önceki cache guard transient host projection'u atlamaya çalışsa da migration/rematch ara snapshot'ı eski P1 cache'ini yeni host UID ile zehirleyebiliyordu veya rematch lobby-id geçişinde cache temizlenebiliyordu.
+
+### Düzeltme — previous authoritative seat identity
+- `ApplyBackendSnapshot()` incoming snapshot'ı uygulamadan önce `previousSnapshot` referansını korur.
+- Host slot çözümü artık önce `SeatMode == HostLocal && AccountId == HostAccountId` eşleşmesini tercih eder; ardından `IsHost`, sonra genel HostAccountId fallback gelir.
+- Incoming snapshot'ta Host UID non-host slotta tekrar görünürse o slot cache'i **asla** yeni Host UID ile overwrite edilmez.
+- Aynı lobby veya synchronized rematch continuity sırasında önceki snapshot'ın aynı slotunda farklı doğrulanmış AccountId/DisplayName varsa eski occupant geri yüklenir. Development log: `ATB_LOBBY_SLOT_IDENTITY_RECOVERED source=previous_snapshot ...`.
+- Rematch sırasında backend lobby id dönse bile `Starting/InMatch + previous MatchId` → `Waiting + empty MatchId` geçişi aynı roster continuity kabul edilir; doğrulanmış seat identity cache korunur.
+- Beklenen migrated-host görünümü: P1 eski Guest kimliği / RECONNECTING, P2 Vuartex / HOST • LOCAL. Vuartex aynı istemcide iki slotta görünmemelidir.
+
+### Kabul sınırı
+1. BOT Event hareketi Auction/Purchase gibi nested destination'a giderse bot önce destination kararını tamamlamalı; `event_continue` retry spam'i destination çözülmeden başlamamalı. Auction current bidder BOT ise 1–2 saniye içinde bid/pass logu görülmeli ve oyun ilerlemeli.
+2. Guest host → disconnect → Vuartex/P2 host → rematch. Guest ve Vuartex istemcilerinde roster aynı slot kimliklerini göstermeli. Vuartex host istemcisinde duplicate Vuartex yasaktır.
+3. `ATB_LOBBY_SLOT_IDENTITY_RECOVERED` yalnız transient duplicate-host projection görülürse çıkmalıdır; normal lobby snapshotlarında spam üretmemelidir.
+4. `phase19ax_nested_event_host_identity_guard.test.cjs` source guard'dır; Unity/two-client PASS değildir.
+5. Firebase rules değişmedi; **deploy yok**. GitHub push owner canlı kabulü sonrası.
+
+---
+
+## 1 Kasım 2026 — v5.49.12ar REMATCH AUTHORITATIVE ROSTER RESYNC HOTFIX
+
+> **DURUM: SOURCE CANDIDATE / OWNER TWO-CLIENT RETEST REQUIRED.** `v5.49.12aq` üzerine kuruludur. Owner, modern Auction ekranını canlı testte PASS olarak onayladı; Auction geometry/binding/manager koduna bu checkpointte dokunulmaz. Nested Event→Auction bot state hotfixi de korunur.
+
+### Owner sonucu — Auction
+- Modern Auction artık owner canlı testinde **PASS**. Bu sürüm Auction tarafını değiştirmez.
+
+### Açık hata — host migration/rematch sonrası yalnız host client'ta duplicate player
+- Senaryo: Guest/P1 ilk host → Guest bağlantısı düşer → Vuartex/P2 yeni host olur → rematch ile lobby'ye dönülür.
+- Guest istemcisinde roster doğru kalırken Vuartex host istemcisinde P1 `Vuartex (YOU) / RECONNECTING`, P2 `Vuartex (YOU) / HOST • LOCAL` görünebiliyordu.
+- Önceki cache/projection korumaları transient snapshot'ı maskelemeye çalıştı ancak owner canlı testinde duplicate görünüm devam etti.
+
+### Yeni yaklaşım — first rematch snapshot'a güvenme, authoritative roster'ı yeniden doğrula
+- `HandleBackendSnapshotChanged()` synchronized rematch return algıladığında lobby hemen gösterilir ancak ilk roster final/authoritative kabul edilmez.
+- Ardından `BeginRematchRosterVerification()` kontrollü bir roster resync başlatır.
+- Backend lobby snapshot 350ms, +650ms, +1000ms, +1500ms aralıklarla yeniden okunur. Bu bounded bir doğrulama turudur; sonsuz polling değildir.
+- `IsAuthoritativeRosterStable()` yalnız `Waiting` lifecycle snapshotını kabul eder ve human seat AccountId'lerinin benzersiz olduğunu doğrular. Aynı UID iki human slotta görünürse snapshot `duplicate_human_uid` ile reddedilir.
+- `HostAccountId` human roster içinde tam bir kez görünmelidir ve authoritative host slot çözülebilmelidir.
+- İlk stabil snapshot geldiğinde `RebuildRosterFromAuthoritativeSnapshot()` eski rematch presentation cache'ini tamamen temizler, backend snapshot'ı tekrar uygular ve host/guest player rows'u sıfırdan repaint eder.
+- Bu işlem **yalnız presentation/read refresh** yapar. Backend seat ownership, host migration, ready state veya lobby data yazılmaz.
+- Main Menu / yeni room navigation başlarsa epoch guard eski async roster refresh'i iptal eder; eski rematch sonucu yeni odaya uygulanamaz.
+
+### Diagnostics
+- Her doğrulama denemesi: `ATB_REMATCH_ROSTER_REFRESH attempt=N stable=... reason=... members=... host_slot=...`
+- Başarılı rebuild: `ATB_REMATCH_ROSTER_REFRESH applied=true host_slot=... local_is_host=...`
+- Dört okumadan sonra backend hâlâ duplicate roster döndürürse: `ATB_REMATCH_ROSTER_REFRESH exhausted=true action=keep_last_rendered_roster`. Bu durumda log backend/transport problemini açıkça gösterecek; UI sahte seat yazmayacak.
+
+### Owner kabul testi
+1. Guest/P1 host ile başlat; Vuartex/P2 ikinci gerçek oyuncu olsun.
+2. Guest'i düşür; Vuartex host migration ile P2'de host olsun.
+3. Match sonu Rematch → lobby.
+4. İlk geçici frame önemli değil; **en geç birkaç saniye içinde** iki istemcide de roster aynı olmalı: P1 Guest/reconnecting, P2 Vuartex/host-local. Vuartex host client'ta duplicate Vuartex yasaktır.
+5. Console'da `ATB_REMATCH_ROSTER_REFRESH ... stable=true ...` ve ardından `applied=true` beklenir. `duplicate_human_uid` görülürse sonraki retry'nin stable roster'a geçtiği doğrulanır.
+6. Auction owner PASS korunmalı; bu hotfix Auction dosyasını değiştirmez.
+7. `phase19ay_rematch_roster_resync_guard.test.cjs` yalnız source wiring guard'dır; Unity/two-client PASS değildir.
+8. Firebase rules değişmedi; **deploy yok**. GitHub push owner canlı kabulü sonrası.
+
+
+---
+
+## v5.49.12au — Rematch Unity-Only Duplicate Name: Fail-Closed Local Seat Presentation (2026-11-01; OWNER RETEST OPEN)
+
+**Owner observation:** After synchronized rematch/host migration, the Unity Editor client first renders the correct roster (`P1=Guest...`, `P2=Vuartex HOST • LOCAL`) and then P1 changes back to `Vuartex`, while the separate Guest build remains correct. Auction is OWNER PASS and is not modified by this package.
+
+**Log evidence:** The rematch roster resync itself succeeds and captures the correct verified identities (`P1=Guest252CEB90D34DF3E7[guest UID]`, `P2=Vuartex[Vuartex UID]`). Therefore this is a post-resync presentation overwrite, not proof that the authoritative roster refresh failed.
+
+**Verified source defect:** `AtlasBoardUnifiedProfilePresentation.ResolveLocalLobbySlot()` still contained the historical host fallback `return localIsHost ? 0 : -1`. The prior v5.49.12at guard covered a *duplicate UID* projection (P1 and P2 both carrying the promoted host UID), but did not cover the distinct transient state where the Editor is the promoted host and the current lobby snapshot temporarily contains **zero exact matches** for `backendLocalAccountId`. In that state only the Editor takes the host fallback and rewrites P1 as the local canonical Steam/profile name (`Vuartex (YOU)`). The Guest process does not take that fallback because `localIsHost=false`, matching the owner-observed client asymmetry. The v5.49.12at source QA mirrored this same fallback and therefore could pass while the live Unity bug remained.
+
+**Fix:** Online P1..P4 seat names/statuses now have one presentation owner: `AtlasBoardPrivateLobbyUIController`. `AtlasBoardUnifiedProfilePresentation` continues to synchronize the Main Menu/shared profile cards but no longer calls its lobby-seat writer from `LateUpdate`. Its resolver is also hardened so any future caller with no exact UID match returns `-1`; host status never implies slot 0. Duplicate UID resolution still prefers the authoritative HostLocal/IsHost row, but unresolved/zero-match states fail closed and write nothing. No RTDB data, host migration, seat ownership, ready state, gameplay logic, Auction, Career, economy, Firebase Rules, Functions or Steam authentication semantics are changed.
+
+**Acceptance:** Build both clients from the same source. Run Guest-host → Guest disconnect → Vuartex host migration → fast-forward final round → Rematch. On Unity, wait at least 15 seconds. P1 must remain the verified Guest/reconnecting identity and P2 must remain `Vuartex (YOU) / HOST • LOCAL`; P1 must not flicker back to Vuartex. `ATB_PROFILE_LOBBY_SLOT ... reason=missing_local_uid_fail_closed` or `no_local_uid_match_fail_closed` may appear during transient polls and is expected; it means the profile presenter refused to guess a slot. `phase19bb_rematch_unresolved_host_fail_closed.test.cjs` is source-only and must not be reported as live two-client PASS. Firebase deploy is not required.
