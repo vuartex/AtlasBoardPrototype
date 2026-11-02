@@ -740,9 +740,63 @@
       ],
       "$roomId": {
         ".write": "auth != null && root.child('roomMeta').child($roomId).child('hostUid').val() === auth.uid && root.child('roomMeta').child($roomId).child('mode').val() === 'publicCasualOnline'",
-        ".validate": "!newData.exists() || (newData.hasChildren(['roomId','hostDisplayName','mapId','roundLimit','maxPlayers','occupiedPlayers','openOnlineSeatCount','createdAt','updatedAt','joinable']) && newData.child('roomId').val() === $roomId && newData.child('hostDisplayName').isString() && newData.child('mapId').isString() && newData.child('roundLimit').isNumber() && newData.child('maxPlayers').isNumber() && newData.child('occupiedPlayers').isNumber() && newData.child('openOnlineSeatCount').isNumber() && newData.child('createdAt').isNumber() && newData.child('updatedAt').isNumber() && newData.child('joinable').isBoolean())",
+        ".validate": "!newData.exists() || newData.hasChildren(['roomId','hostDisplayName','mapId','themeId','regionId','gameVersion','contentVersion','roundLimit','maxPlayers','occupiedPlayers','openOnlineSeatCount','protocolVersion','rulesVersion','settingsRevision','createdAt','updatedAt','joinable','hasPassword'])",
+        "roomId": {
+          ".validate": "newData.isString() && newData.val() === $roomId && newData.val().length >= 20 && newData.val().length <= 64"
+        },
+        "hostDisplayName": {
+          ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 32 && newData.val() === root.child('roomMembers').child($roomId).child(auth.uid).child('displayName').val()"
+        },
+        "mapId": {
+          ".validate": "newData.isString() && newData.val() === root.child('roomMeta').child($roomId).child('mapId').val()"
+        },
+        "themeId": {
+          ".validate": "newData.isString() && newData.val() === root.child('roomMeta').child($roomId).child('themeId').val() && newData.val().length >= 1 && newData.val().length <= 64"
+        },
+        "regionId": {
+          ".validate": "newData.isString() && newData.val().length <= 64"
+        },
+        "gameVersion": {
+          ".validate": "newData.isString() && newData.val().length <= 64"
+        },
+        "contentVersion": {
+          ".validate": "newData.isString() && newData.val().length <= 64"
+        },
+        "roundLimit": {
+          ".validate": "newData.isNumber() && newData.val() === root.child('roomMeta').child($roomId).child('roundLimit').val() && newData.val() >= 1 && newData.val() <= 100 && newData.val() % 1 === 0"
+        },
+        "maxPlayers": {
+          ".validate": "newData.isNumber() && newData.val() === root.child('roomMeta').child($roomId).child('maxPlayers').val() && newData.val() >= 2 && newData.val() <= 4 && newData.val() % 1 === 0"
+        },
+        "occupiedPlayers": {
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= newData.parent().child('maxPlayers').val() && newData.val() % 1 === 0"
+        },
+        "openOnlineSeatCount": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= newData.parent().child('maxPlayers').val() && newData.val() % 1 === 0"
+        },
+        "protocolVersion": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000 && newData.val() % 1 === 0"
+        },
+        "rulesVersion": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000 && newData.val() % 1 === 0"
+        },
+        "settingsRevision": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000000 && newData.val() % 1 === 0"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber() && newData.val() === root.child('roomMeta').child($roomId).child('createdAt').val() && (!data.exists() || newData.val() === data.val())"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber() && newData.val() >= now - 300000 && newData.val() <= now + 60000"
+        },
+        "joinable": {
+          ".validate": "newData.isBoolean() && (newData.val() === false || (root.child('roomMeta').child($roomId).child('closed').val() === false && newData.parent().child('openOnlineSeatCount').val() > 0))"
+        },
+        "hasPassword": {
+          ".validate": "newData.isBoolean() && ((newData.val() === false && (!root.child('roomMeta').child($roomId).child('passwordHash').exists() || root.child('roomMeta').child($roomId).child('passwordHash').val() === '')) || (newData.val() === true && root.child('roomMeta').child($roomId).child('passwordHash').isString() && root.child('roomMeta').child($roomId).child('passwordHash').val().length === 64))"
+        },
         "$other": {
-          ".validate": true
+          ".validate": false
         }
       }
     },
