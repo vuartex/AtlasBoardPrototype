@@ -78,7 +78,9 @@ public static class AtlasOnlineDefaults
     public const int ReconnectWindowSeconds = 300;
     public const float HumanRollTimeoutSeconds = 10f;
     public const int AfkConsecutiveAutoRollLimit = 10;
-    public const int ProtocolVersion = 1;
+    // Version 0.5.0 is a compatibility boundary with older 0.1.0 builds.
+    // Do not accept a peer using ProtocolVersion 1 in 0.5.0.
+    public const int ProtocolVersion = 2;
     public const int RulesVersion = 1;
     public const int InitialLobbySettingsRevision = 1;
 }

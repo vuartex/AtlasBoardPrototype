@@ -46,6 +46,10 @@ public class AtlasBoardOnlineFoundation : MonoBehaviour
     private void Awake()
     {
         crossplayEnabled = AtlasCrossplayPreference.Enabled;
+        // Unity scenes can retain serialized ProtocolVersion=1 even when
+        // AtlasOnlineDefaults was upgraded. Release 0.5.0 is protocol 2.
+        protocolVersion = AtlasOnlineDefaults.ProtocolVersion;
+        rulesVersion = AtlasOnlineDefaults.RulesVersion;
     }
 
     public AtlasSessionStateMachine CreateLocalStateModel(

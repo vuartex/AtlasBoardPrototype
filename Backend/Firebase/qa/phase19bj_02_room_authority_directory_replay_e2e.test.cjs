@@ -48,7 +48,11 @@ async function run(){
  q.allow(await q.db('GET',`intents/${room.roomId}/${bob.uid}/${iid}`,alice,undefined,{label:'intent.host_read'}),'host can read intent');
  q.allow(await q.db('DELETE',`intents/${room.roomId}/${bob.uid}/${iid}`,alice,undefined,{label:'intent.host_delete'}),'host consumes/deletes intent');
  q.setStage('match_and_host_migration_security');
- const match=await q.createMatch(room,{createdAt:q.now()-30000});
+ // Preserve the aged match creation fixture, but seed a genuinely fresh Host heartbeat.
+ // Otherwise matchState() inherits the 30s-old createdAt for hostHeartbeatAt,
+ // making the supposed 'fresh heartbeat' takeover an authorized stale takeover.
+ const match=await q.createMatch(room,{createdAt:q.now()-30000,hostHeartbeatAt:q.now()});
+ q.ok(q.now()-match.state.hostHeartbeatAt < 12000,'fresh-heartbeat QA fixture is younger than the 12-second migration threshold');
  q.deny(await q.db('PUT',`matchState/${match.matchId}`,bob,{...match.state,hostUid:bob.uid,revision:2,authorityEpoch:2,updatedAt:q.now()},{label:'match.remote_steal'}),'remote cannot steal active host authority');
  q.deny(await q.db('PUT',`matchState/${match.matchId}`,attacker,{...match.state,hostUid:attacker.uid,revision:2,authorityEpoch:2,updatedAt:q.now()},{label:'match.outsider_steal'}),'outsider cannot steal match authority');
  const bobTakeFresh={...room.meta,hostUid:bob.uid,authorityEpoch:2,updatedAt:q.now()};

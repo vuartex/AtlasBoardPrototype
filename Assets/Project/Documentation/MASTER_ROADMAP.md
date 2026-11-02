@@ -1,3 +1,139 @@
+## v5.49.12bi — Player Help / Credits + Owner QA Console Security and Readable Beta Version (2026-11-02; SOURCE CANDIDATE / UNITY OWNER QA OPEN)
+
+**Authority / complete history:** Base is the user-supplied canonical `MASTER_ROADMAP(20261102-065222).md` (10,691 lines). Its prior bytes are appended unchanged. GitHub `main` was last verified at `4c9886a0345cd7802a88e548d09c6a8d990c0228` (older than owner-local bh); this checkpoint intentionally uses the uploaded newer bh source/roadmap, not an older GitHub rollback. Single canonical `Assets/Project/Documentation/MASTER_ROADMAP.md`, no alternative roadmap, code patch, PowerShell modifier, Firebase deployment or GitHub push.
+
+### Owner request and design (screenshot-backed)
+
+- **Release label:** `v0.9.0-beta.1`, reflecting advanced feature-complete pre-release testing while production/legal/platform gates remain OPEN. The previously `v0.5.0` badge was too faint (pale blue/white against sky-blue Main Menu). Reuse the exact existing `AtlasBoardReleaseVersionBadge`, right-bottom anchor; change text to nearly black, full opacity, bold 20pt. Its exact `GameVersion` equality check now expects `0.9.0-beta.1`; existing `AtlasOnlineDefaults.ProtocolVersion=2`, `RulesVersion=1`, `ContentVersion=1` remain unchanged. Unity Editor-only updater upgrades recognized `0.5.0` and `0.1.0` to new version and raises Android versionCode to at least 9, but never overwrites newer user-set versions. Rebuild BOTH Unity and Guest from same version; old Guest EXE cannot pass new version guard by design. `SERVER_VERSION_ENFORCEMENT=OPEN` from bh remains unresolved; no backend version schema was silently modified.
+- **Onboarding:** Do not force a Monopoly tutorial. Add nonblocking, scrollable **Help/FAQ** and **Credits & Licenses** entry controls near bottom-left of existing Main Menu, away from centered rotating tip and bottom-right version. Help explains six-digit Private Table room codes/Public Rooms, reconnect exact UID, temporary bots, Rematch, Career/XP/Gold, premium cosmetic ownership, incompatible version, and AtlasBoard-specific Pulse/Bank/Civic. UI has EN/TR/ES/FR/DE/KO/RU text. `FRONTEND_ERROR_CODEBOOK` remains authoritative; players are advised to share only ATB support codes, never credentials.
+- **Credits:** Display condensed project, Kenney CC0, Poly Haven CC0, Noto OFL and named Unity Asset Store creator acknowledgements. Full new `Assets/Project/Documentation/ATLASBOARD_LEGAL_CREDITS.md` points to the **existing** `Assets/Project/ThirdPartyLicenses/README_ThirdPartyLicenses.txt` and individual existing license records. Free Unity Store packages are NOT CC0. Music/audio/font/binary inclusion and commercial license review remain OPEN; this is NOT a clearance certificate.
+- **Secret/session design:** One high-entropy, mixed-letter/digit **owner session unlock code** is required once per process run (not for every command). Six independently random command codes authorize existing QA actions within that session; no plaintext codes occur in project sources, `.meta`, Git or project ZIP. Code SHA256 digests + salt are inside the client, actual plaintext commands in separately delivered owner-private TXT OUTSIDE Unity Assets and ZIP. A restart/session exit or authenticated account UID switch requires unlock again; no passwords or session state are saved in PlayerPrefs. Eight invalid inputs lock until restart. Open console via backquote or Ctrl+F10. The extra code is a *local UX factor*, not cryptographic/server anti-cheat; IL2CPP/Mono can be patched and reverse-engineered. The real economy authorization is verified Firebase UID + server-managed `/devWalletTesters` allowlist + RTDB validation. Never promise that a client-side code is unextractable.
+- **Hotkey conflict:** existing `AtlasBoardDevelopmentMatchFastForwardQA` and `AtlasBoardPhase14JRuntimeHarness` both intercept F8/F9. The new early-execution-order owner console disables direct QA components in Editor/Development Build and invokes existing final-round/finish-after-turn method by reflection only following session+UID authorization. The existing Phase14J panel opens from a console command only and its F8–F12 direct shortcuts are suppressed on their key-down frames by the early guard. No second game result/turn manager is created. These methods are **not** compiled into ordinary non-Development public releases (safety); an internal Development build is a real Windows client for QA. Console stays available in retail but privileged commands are explicitly refused. Unity live tests still required to confirm execution order and panel interaction.
+- **Gold:** exact-UID owner-authorized internal QA command reuses `AtlasBoardRtdbMetaEconomy.GrantDevAsync()` and existing immutable, price/entitlement/ETag-validated RTDB `DEV_GRANT`: +5,000 Gold and +500 Atlas Coin per authorized grant, only if current authenticated account is admin allowlisted. **No arbitrary Gold amount or client-owned wallet write.** Admin code does not grant tester role, which only the administrator can set in Firebase.
+- **XP:** `XP_PERSISTENT_GRANT=NOT_IMPLEMENTED`. Current Career progression grants are derived from verified immutable match evidence. There is no safe client-authorized arbitrary XP mint endpoint. An internal console command provides explicit **local-only +100 XP preview/status**, with NO persistent XP/achievement/Gold effect. An actual XP-admin mutation would require a separately designed trusted backend audit/authorization (not added here). Do not lie about persistent XP grant, fabricate a claim or relax `database.rules.json`.
+
+### Scope / validation
+
+- Full changed original file: `Assets/Project/Scripts/UI/Menu/AtlasBoardReleaseVersionBadge.cs`; `Assets/Project/Editor/AtlasBoardReleaseVersionEditor.cs`.
+- Additive single runtime components: `Assets/Project/Scripts/UI/Menu/AtlasBoardPlayerHelpCredits.cs` + `.meta`, `Assets/Project/Scripts/UI/Menu/AtlasBoardOwnerConsole.cs` + `.meta`. These are a lightweight Main Menu presentation and owner-only QA access surface, NOT duplicate game/online/wallet managers.
+- New `Assets/Project/Documentation/ATLASBOARD_LEGAL_CREDITS.md`, QA script `Backend/Firebase/qa/phase19bi_owner_console_help_credits_contract.test.cjs` + `.meta`, and complete canonical roadmap.
+- The private owner code TXT is delivered separately in the chat's sandbox. It **must NOT** be copied under Assets, Backend or into GitHub. If leaked, rotate verifiers in a new owner build and audit the allowlist; the server allowlist remains the real security control.
+- `DATABASE_RULES_CHANGED=NO`, `FIREBASE_DEPLOY=NOT_REQUIRED`, `GITHUB_PUSH=NOT_DONE`. Prior 280-check Phase19BJ Auth+RTDB emulator hardening PASS, 36-check Career/Gold regression and all owner-PASS two-client gameplay remain CLOSED for their actual scope. Existing unresolved Host semantic forgery, authenticated intent flood, production App Check and legacy-client server-side version admission remain OPEN.
+- `SOURCE_QA` must run against the staged complete files; lexical source QA is NOT a Unity compile, runtime screen check, real tester-wallet grant or Admin Console security penetration test. `UNITY_COMPILE=NOT_RUN`, `EDITOR_PLAY=NOT_RUN`, `DEVELOPMENT_GUEST_BUILD=NOT_RUN`, `TWO_CLIENT_LIVE=NOT_RUN`, `ANDROID_BUILD=NOT_RUN`, `PRODUCTION=NOT_TOUCHED`.
+
+### Owner acceptance / remaining release requirements
+
+1. Overlay ZIP in `C:\Users\crazy\AtlasBoardPrototype` preserving paths. Open Unity 6000.5.6f1, save `ProjectSettings`, verify **no compiler errors**, Main Menu shows **black `v0.9.0-beta.1`** at bottom-right, **Help/FAQ** and **Credits & Licenses** at bottom-left without overlap at 1920x1080 and mobile 16:9; check seven languages and scroll/touch.
+2. With Unity Editor and rebuilt Development Guest using the same version, run normal Private/Public create/join/reconnect/rematch/Host Migration; confirm no false version rejection. Old 0.5.0 Guest should be refused by new current-client guard; old client to new room still needs future server-side enforcement.
+3. Before console unlock, F8/F9/F10/F11/F12 must NOT speed the game, change resolution or expose the Phase14J panel. Enter separate private one-time session code via backquote console on an exact Firebase admin-allowlisted UID. Wrong UID or wrong code must fail. Session unlock then enter private command codes to request final round, finish-after-current-turn and Phase14J popup in **Editor/Development build** only. Restart must require session unlock again; switching UIDs must lock. Do not test cheats using ordinary public release players.
+4. QA Dev Gold command must be refused for non-allowlisted accounts even if client is modified. Existing `DEV_GRANT` should credit exactly +5000 Gold and +500 Atlas Coin for authorized test UID only, visible in canonical wallet, no purchases/equipment changes. XP preview must NEVER affect persisted Career/Gold/achievements. Retest wallet emulator if economy code or rules change; this candidate changes neither.
+5. Prior unresolved gates remain: production App Check/RTDB release decisions, remote version admission enforcement, 3/4-real-human multiplayer, sustained S20 FE/Android FPS, actual Steam identity/Windows distribution, Google Play listing and **all third-party license/credits approvals**. Release GO/NO-GO remains OPEN.
+
+---
+
+## v5.49.12bh — Firebase Security Emulator Acceptance + v0.5.0 Client Version Compatibility (2026-11-02; EMULATOR HARDENING PASS / UNITY OWNER QA REQUIRED / RELEASE GATES OPEN)
+
+**Source checkpoint and authority:** Current verified GitHub `main` before this candidate: `4c9886a0345cd7802a88e548d09c6a8d990c0228` (owner backup included Phase19BJ security files and the prior bg1 roadmap). The complete later local `v5.49.12bg2` roadmap is the base for this checkpoint and its entire previous history is preserved below. This candidate does not restore older gameplay/Unity source, commit to GitHub, or deploy Firebase rules. Owner supplied real PowerShell logs after installing the `bg2` Test 02 heartbeat fixture fix.
+
+### Phase19BJ owner acceptance — real Firebase Auth + RTDB Emulator evidence
+
+| Check | Owner evidence and disposition |
+| --- | --- |
+| Rules preflight `phase19bj_00` | **PASS — static**, 1,325 checks; not interchangeable with the emulator |
+| `phase19bj_01_identity_privacy_profiles_e2e` | **PASS — real Auth+RTDB Emulator**, 44 checks / 44 HTTP operations |
+| `phase19bj_02_room_authority_directory_replay_e2e` | **PASS — real Auth+RTDB Emulator**, 62 checks / 61 HTTP operations; fresh Host heartbeat takeover DENIED; stale heartbeat migration, epoch/revision and old-Host/outsider rejection validated. The original `bg` test's mistaken 30-second-old heartbeat is corrected in `bg2` and no longer blocks this gate |
+| `phase19bj_03_chat_emote_abuse_e2e` | **PASS — real Auth+RTDB Emulator**, 59 checks / 59 HTTP operations; chat throttle and emote ownership/rate controls |
+| `phase19bj_04_wallet_inventory_fuzz_e2e` | **PASS — real Auth+RTDB Emulator**, 95 checks / 92 HTTP operations; 54 inventory mutation attempts, correct anonymous purchase restriction and HTTP 412 ETag concurrency |
+| Canonical `phase19ai_emulator_security` | **PASS — real Auth+RTDB Emulator**, 36 checks, 3 Career claims, double-credit denied, registered and authenticated anonymous Guest reward paths; production untouched |
+| `phase19bj_05_trust_boundaries_probe_e2e` | **REPRODUCED EXPECTED OPEN BOUNDARIES**, 20 checks / 139 HTTP operations, exit 0; this is **not** anti-cheat closure |
+| `phase19bj_full_security_suite.cjs` | **HARDENING_PASS — real Auth+RTDB Emulator**, 280 checks, 395 HTTP operations, `phase19ai=PASS`, final exit code 0, `production=NOT_TOUCHED`; all components verified in a single emulator session |
+| Repeat individual owner runs | Test 03: 59 PASS; Test 04: 95 PASS; Phase19AI: 36 PASS; Test 05: reproduced expected boundaries and exited 0 |
+
+**Gate CLOSED for the tested scope:** Phase19BJ `01–04`, existing `phase19ai` regression and integrated Auth+RTDB emulator hardening suite all passed. No need to rerun individual scripts for unchanged source/rules merely to repeat the same evidence. Retest is mandatory after any related backend or Rules change. The previous `bg2` NOT RUN/FAIL status is historic and is superseded by this owner evidence, not erased.
+
+**Known boundaries remain explicit and are not represented as resolved:**
+
+`SECURITY_OPEN_BOUNDARIES modifiedHostSemanticTrust=OPEN authenticatedIntentRateLimit=OPEN appCheckProductionEnforcement=NOT_VERIFIED`
+
+- `OPEN_BOUNDARY modified_host_gameplay_semantics_not_server_validated=true`: a modified current Host can inject semantically forged gameplay state into syntactically valid `snapshotJson`; RTDB Rules do not replay Unity gameplay. A peer-authoritative Casual/Spark release must explicitly accept this architecture or replace it with independent trusted server validation.
+- `OPEN_BOUNDARY authenticated_intent_rate_limit_absent=true acceptedBurst=120`: tested 120 different authenticated member intents were accepted. Network abuse, quota/cost exhaustion and hostile clients remain a release-risk assessment; client deduplication alone does not close this boundary.
+- Production Firebase App Check enforcement was **NOT VERIFIED**, and the new RTDB hardening rules were **NOT DEPLOYED** in this checkpoint. Emulator success is not a production deployment, server anti-cheat guarantee, or App Check proof. `RELEASE_SECURITY_STATUS=OPEN` pending owner risk decision, App Check client/Console QA and explicitly approved rule rollout.
+
+### v0.5.0 release version and online compatibility — new Unity source candidate
+
+**User-facing release version:** `v0.5.0`, deliberately not `0.01`/`0.1.0`. The canonical existing Main Menu now receives one compact, right-anchored runtime TMPro version badge at the bottom-right, without repurposing the rotating localized `FooterVersion` tip or creating a parallel menu manager. It displays `Application.version`, not a fabricated independent UI version. This badge is attached only once to the existing `AtlasBoardMainMenuController` GameObject and disappears naturally when the Main Menu panel is hidden.
+
+**Unity version settings:** new Editor-only `AtlasBoardReleaseVersionEditor` upgrades only known legacy `PlayerSettings.bundleVersion=0.1.0` or `0.1` to `0.5.0` on script import and bumps Android `bundleVersionCode` from less than 5 to 5. It deliberately does not overwrite an owner-set future release version. Unity must actually reimport scripts and serialize ProjectSettings before the game or Android/Windows builds display the new version; the Assistant did not compile Unity or build an AAB/EXE.
+
+**Compatibility version contract (updated clients):** existing `AtlasOnlineDefaults.ProtocolVersion` advances **1 -> 2** for this deliberate cross-client compatibility boundary; `RulesVersion=1` and `ContentVersion=1` remain unchanged because RTDB Rules and content format are unchanged. The existing `AtlasBoardLobbyRuntimeBridge` already supplies `Application.version`, ProtocolVersion, RulesVersion and ContentVersion when creating rooms and joining public/private rooms. A lightweight `AtlasBoardReleaseVersionBadge` subscribes to that same bridge's `SnapshotChanged`, validates **all four** values exactly on current and subsequent snapshots (including resumed/reconnected snapshots), and fails closed on a mismatch: the current Host closes its incompatible room or a follower leaves; then local lobby state is cleared and the main menu reopens with an UPDATE REQUIRED marker localized for TR/EN/ES/FR/DE/KO/RU. Log prefix `ATB_VERSION_COMPATIBLE false` records both version tuples; the app does not silently blend an old game's save/snapshot schema with a new one.
+
+**SERVER_VERSION_ENFORCEMENT=OPEN — release blocker, do not mislabel as solved.** This implementation is a cooperative current-client compatibility guard, **not** an enforced claim that all versions are rejected by Firebase RTDB. Existing Spark `roomMeta` does not currently require a signed `gameVersion/protocolVersion/contentVersion` tuple and existing joinRequests/roomMembers do not verify a joiner's exact build version in RTDB Rules before admission. An **older unmodified 0.1.0 client** therefore has no new client-side mismatch guard and may still try to join a 0.5.0 Host; the Host cannot reliably authenticate its remote software build from the current schema. Also, `Application.version` does not prove identical code/assets across platforms if a developer forgets to bump it. Fully guaranteed same-update admission requires a **separate deliberate backend contract change** (version-bound room metadata, join-request validation, host acceptance gate and public/private/reconnect tests), full Auth+RTDB emulator regression **again**, and an owner-approved production rollout plan. Do not patch RTDB Rules opportunistically or call this complete from a source smoke.
+
+**Version scope:** GameVersion `0.5.0` means cross-platform compatible update; ProtocolVersion 2 is the gameplay/lobby networking compatibility epoch, not an individual device build GUID. Changing the networking frame/serialized economy/rules in a future update requires a deliberate epoch/version bump, not a UI-only label change. Android `versionCode` is a monotonically increasing Play Store build counter, separate from the visible marketing version.
+
+### Files and validation / release test matrix
+
+- Complete modified original files: `Assets/Project/Scripts/Online/AtlasOnlineTypes.cs`, `Assets/Project/Scripts/Online/AtlasBoardOnlineFoundation.cs`. The latter synchronizes serialized protocol fields with the new constant on Awake so pre-upgrade scene values cannot silently remain at protocol 1.
+- New original-path C# UI + Editor scripts and `.meta`: `Assets/Project/Scripts/UI/Menu/AtlasBoardReleaseVersionBadge.cs`, `Assets/Project/Editor/AtlasBoardReleaseVersionEditor.cs`.
+- New read-only source contract QA: `Backend/Firebase/qa/phase19bh_version_compatibility_contract.test.cjs`, plus `.meta`.
+- One complete canonical `Assets/Project/Documentation/MASTER_ROADMAP.md` containing this section and **all** earlier history. No patch/diff/PS1 or duplicate managers.
+- Local Node source contract and ZIP path/integrity checks are valid **SOURCE QA only**. `UNITY_COMPILE=NOT_RUN`, `WINDOWS/ANDROID_BUILD=NOT_RUN`, `TWO_CLIENT_LIVE=NOT_RUN`, `PRODUCTION=NOT_TOUCHED`, `GITHUB_PUSH=NOT_DONE`.
+- Owner QA to accept visible badge: Unity Editor compile with **zero errors**, project version `0.5.0`, main-menu badge bottom-right at 1920x1080 and 1280x720, no collision with tip/modal, seven-language UI and Android touch; rebuild Windows Guest from matching `0.5.0` source and verify badge on both clients.
+- Owner QA to accept cooperative compatibility: two v0.5.0 clients join Public and Private rooms, play, reconnect, Host Migration and Rematch without false version rejection; test v0.1.0 Host -> v0.5.0 guest mismatch leads to clean local exit and visible warning. Separately confirm backend-enforced rejection of a legacy guest attempting to join a current Host **only after the server contract is implemented**; no claim of guarantee now.
+- Previous owner-PASS: 2-real-client Phase18 gameplay/balance, both Host migration directions, canonical UID roster/pawn, Result->Career/Gold, durable rewards, achievements and Store. These are **not reopened** by a new menu badge or a security emulator acceptance record. Extended 3/4-real-human multiplayer, Android sustained FPS (especially S20 FE), Steam/Windows release and Play Store legal/privacy/packaging remain later release gates.
+
+**Next actions:** (1) owner Unity compile and v0.5.0 visual + two-client compatibility testing; (2) explicit server admission-version contract if full mixed-version exclusion is required; (3) security threat-model acceptance and App Check/RTDB Production release gate; (4) extended multiplayer/Android/Steam/Google Play release checks. No Firebase deploy is required for this package because `database.rules.json` was not edited. No GitHub push without explicit owner permission.
+
+---
+
+## v5.49.12bg2 — Firebase Security Gate 02 false-negative fixture correction (2026-11-01 local / 2026-11-02 UTC; OWNER EMULATOR RETEST REQUIRED)
+
+**Current verified source:** The owner updated GitHub `vuartex/AtlasBoardPrototype` `main` to `4c9886a0345cd7802a88e548d09c6a8d990c0228`. The complete canonical GitHub roadmap at `Assets/Project/Documentation/MASTER_ROADMAP.md` matches the prior `bg1` roadmap byte-for-byte. The exact unmodified GitHub Test 02 blob SHA is `bb191edef8f64746ca5572edd060009edd81f08b`. The present checkpoint is additive to that verified source; no prior history or accepted Unity functionality is overwritten.
+
+### Owner Test 02 result — QA FAIL, cause isolated; NOT a proven fresh-heartbeat authorization bypass
+
+The owner executed the real Auth+Database Emulator command:
+
+```powershell
+Set-Location "C:\Users\crazy\AtlasBoardPrototype\Backend\Firebase"
+firebase.cmd emulators:exec --only auth,database --project demo-atlasboard "node qa/phase19bj_02_room_authority_directory_replay_e2e.test.cjs"
+```
+
+- Emulators started, the `demo-atlasboard` project was used, and six security stages were reached: `auth_public_room`, `public_directory_hardening`, `room_authority_and_premium_map`, `room_state_monotonicity`, `intent_immutability_and_cross_uid`, `match_and_host_migration_security`.
+- The first unexpected result occurred at `migration.fresh_heartbeat_steal`: `new host cannot crash-takeover while heartbeat fresh: expected DENY HTTP 200`. Node exited code 1, so **Test 02 = FAIL / INCOMPLETE** and no final Test 02 PASS is claimed. Earlier assertions before this step did not throw, but the suite stopped before later migration assertions.
+- **Confirmed fixture defect:** the test called `q.createMatch(room,{createdAt:q.now()-30000})`; the existing shared helper `matchState()` sets both `createdAt` and fallback `hostHeartbeatAt` to `opts.createdAt` unless `hostHeartbeatAt` is provided. Consequently the supposedly fresh Host heartbeat was 30 seconds old **before** the attempted takeover. The actual `roomMeta/$roomId` rule authorizes the active remote member's Host takeover when the old `matchState.hostHeartbeatAt <= now - 12000` and the normal authority/epoch/member checks hold. HTTP 200 is consistent with that stale-heartbeat branch, not proof of a live Host takeover vulnerability.
+- **Minimal complete-file QA correction:** change only `Backend/Firebase/qa/phase19bj_02_room_authority_directory_replay_e2e.test.cjs` to set `hostHeartbeatAt:q.now()` explicitly while preserving the existing `createdAt:q.now()-30000` fixture and all allow/deny security assertions. A new `q.ok` fixture assertion verifies the heartbeat age is below 12 seconds before any takeover attempt. The existing admin-only later fixture still sets `hostHeartbeatAt:q.now()-13000` to test the legitimate stale-heartbeat migration. No broadening of authorization is permitted to make a test PASS.
+- **Validation performed for this package:** the copied Test 02 baseline matches the exact GitHub file blob SHA, the corrected full `.cjs` passes `node --check`, and the ZIP has complete canonical paths. **Auth+RTDB Emulator Test 02 was NOT RE-RUN by ChatGPT**, so rejection of a fresh takeover and successful stale takeover remain OWNER RETEST OPEN. Unity compilation/gameplay and production deployment were NOT RUN; no C#, RTDB rules, Firebase config or other QA file was changed.
+
+### Current security release-gate truth
+
+| Gate | Status | Evidence |
+| --- | --- | --- |
+| Rules preflight 00 | **PASS — owner static** | 1,325 checks |
+| Identity/privacy/profile 01 | **PASS — owner actual Auth+RTDB Emulator** | 44 checks; 44 HTTP ops; 5 Auth users; production untouched |
+| Room authority/directory/replay 02 | **FAIL — original QA fixture; corrected full-file candidate; OWNER RETEST REQUIRED** | Fresh-heartbeat assertion received HTTP 200 because fixture supplied a 30-second-stale heartbeat; later migration cases not reached |
+| Chat/emote abuse 03 | **NOT RUN** | Sequence blocked pending Test 02 PASS |
+| Wallet/inventory/commerce fuzz 04 | **NOT RUN** | Sequence blocked pending Test 02/03 PASS |
+| Canonical `phase19ai` regression in current security pass | **NOT RUN YET** | Historical emulator PASS preserved, not substituted for current run |
+| Trust-boundary probe 05 | **NOT RUN** | Host-authored gameplay `snapshotJson` and unique-intent abuse remain unproven/unmitigated |
+| Full security suite | **NOT RUN** | Blocked pending individual suites |
+| Production RTDB rules / App Check enforcement | **BLOCKED / NOT VERIFIED** | Requires full evidence and explicit owner authorization; no production writes made |
+
+### Accepted gameplay is not reopened
+
+The latest `bd` owner-accepted stabilization explicitly closes both Host-migration directions, stable roster/Rematch identity, Human/Bot control, UID pawn selections, durable Career Gold/XP/History/Details, Main Menu, lobby and Atlas Store presentation. Later `bf` security checkpoint records the Phase 18 two-real-client gameplay/balance regression as OWNER CLOSED and all 14 achievements as OWNER PASS (including real Auth+RTDB achievement emulator 392 checks/295 HTTP operations and Phase18R 1,737 checks/1,291 HTTP operations). An Auth+RTDB *security fixture* failure does not automatically reopen any of these gameplay PASS items.
+
+Broader work stays OPEN as **release gates**, not known regressions: remaining adversarial Firebase suites and architectural trust decisions; Production App Check and secure client compatibility; 3/4-real-Human extended multiplayer; sustained Android device performance (especially S20 FE); Steam/Windows release identity/build checks; Google Play assets, privacy/legal/credits, localization and final store compliance. No Steam or Play Store publication is implied.
+
+### Next action, authority and delivery
+
+1. Extract the provided ZIP over the current local project so `Backend/Firebase/qa/phase19bj_02_room_authority_directory_replay_e2e.test.cjs` and this single canonical roadmap are replaced; do **not** restore any old `bd`/`bf` backend files.
+2. Rerun **only** the exact Test 02 Auth+Database Emulator command above. PASS is possible only after the fresh-heartbeat denial, simulated stale-heartbeat acceptance, epoch/revision transition and old-Host/outsider rejection assertions all pass in one run.
+3. If the rerun fails again, preserve the full terminal output and analyze the next exact assertion against current source. Do not skip to 03 or Full Suite.
+4. No production Firebase deploy, GitHub commit/push, gameplay code mutation, new manager, PS1/BAT, patch or diff artifact is part of this package. The owner handles any GitHub backup separately and explicitly.
+
+---
+
 ## v5.49.12bg1 — Firebase Security Gate 01 Owner Emulator PASS (2026-11-01; ROADMAP-ONLY CHECKPOINT)
 
 **Checkpoint precedence:** This is the current security execution status, after the existing `v5.49.12bg` rules compiler hotfix. It supersedes the historical `OWNER EMULATOR RETEST REQUIRED` label **only for the static preflight and security suite 01**. The older `bg`, `bf` and all previous roadmap sections are preserved in full below. This is a documentation-only checkpoint; it is **not** a new Unity, RTDB-rules or QA-script source revision.
