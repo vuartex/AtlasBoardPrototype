@@ -24,7 +24,7 @@ yes(/OnApplicationQuit\(\)/.test(consoleSrc),'session reset on process end');
 yes(!/PlayerPrefs\.Set/.test(consoleSrc),'secret/session not in playerprefs');
 yes(/SHA256.Create\(\)/.test(consoleSrc),'hash verifiers');
 yes(/failures >= 8/.test(consoleSrc),'limited attempts');
-yes(/#if UNITY_EDITOR \|\| DEVELOPMENT_BUILD/.test(consoleSrc),'QA cheats only internal builds');
+yes(consoleSrc.trim().startsWith('#if UNITY_EDITOR || DEVELOPMENT_BUILD'),'entire QA console omitted in retail');
 yes(/AtlasBoardRtdbMetaEconomy.GrantDevAsync\(\)/.test(consoleSrc),'existing RTDB validated grant');
 yes(!/wallet.gold\s*[+\-=]/.test(consoleSrc),'no raw currency writes');
 yes(!/careerClaims\//.test(consoleSrc),'no fabricated XP claims');
@@ -35,7 +35,7 @@ yes(/ApplyFinalRoundState/.test(consoleSrc),'same existing QA final-round code')
 yes(/ShowPanel/.test(consoleSrc),'existing Phase14J popup');
 yes(/private void DrawHelp\(/.test(help),'QA help questions');
 yes(/private void DrawCredits\(/.test(help),'in-game credits');
-yes(/showHelp = false; showCredits = false/.test(help),'help/credits main menu only');
+yes(/menuRoot.gameObject.activeInHierarchy/.test(help),'help/credits main menu only');
 for(const l of ['tr','es','fr','de','ko','ru'])yes(help.includes('case "'+l+'"'),'localization '+l);
 yes(credits.includes('Kenney') && credits.includes('Poly Haven'),'attribution ledger');
 yes(credits.includes('Unity Asset Store EULA') && credits.includes('not CC0'),'licensed assets distinguished');

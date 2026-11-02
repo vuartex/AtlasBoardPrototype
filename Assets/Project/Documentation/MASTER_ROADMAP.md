@@ -1,3 +1,46 @@
+## v5.49.12bj — Modern Player Help/Credits, Retail QA Compile-Out, Google Play Reviewer Account Plan (2026-11-02; SOURCE QA / OWNER UNITY QA OPEN)
+
+**Authority:** This checkpoint is additive to owner-local `v5.49.12bi` package and full 10,724-line canonical roadmap, NOT a rollback to GitHub's older `bg1` code. Every prior history line remains intact. The original Main Menu and previously accepted Phase 18/Career/Shop/Rematch/Host Migration behavior is unchanged. No extra gameplay or wallet owner was introduced.
+
+### Modern Help and Credits: real UI revision, not just new text
+
+- Replaced the `AtlasBoardPlayerHelpCredits` prototype-style **IMGUI** buttons/`GUI.Box` with canonical existing Main Menu Canvas **Unity uGUI + TextMeshPro** UI. Two bottom-left 48px-tall, high-contrast rounded buttons; one centered responsive dark-blue modal with a dimmed backdrop, gold accent stripe, Help/Credits tabs, a visible close/X action, rounded information cards, vertical scroll/touch via `ScrollRect`/`RectMask2D`, retained seven-language localization and canonical Kenney/Poly Haven/Noto/Unity Asset Store attribution categories.
+- Rounded geometry is generated once from an in-memory 9-slice sprite; no external font binary, third-party images, duplicated Canvas or old title/footer replacement. Text uses the actual existing menu TMP font/fallback. The popup exists only under `MainMenu` and is hidden automatically on scene/menu transitions; no gameplay input leakage. Close via X, Close button, backdrop or Escape. A localized popup changes language without replacing game state.
+- Runtime UI is structurally checked by source QA; **Unity Editor compile, tap/scroll/resize, 7-language font glyphs and actual visual position at 1920x1080/1280x720/Android remain OWNER OPEN**. Do not call a source check a visual PASS.
+
+### QA console and retail anti-cheat boundary
+
+- `AtlasBoardOwnerConsole.cs` is now wrapped at the **entire compilation-unit level** in `#if UNITY_EDITOR || DEVELOPMENT_BUILD`. A non-Development public retail Windows/Steam/Android build contains **no owner QA console class, no secret digest constants, no console entry point or runtime debug commands** from this script. Existing `AtlasBoardDevelopmentMatchFastForwardQA` and `AtlasBoardPhase14JRuntimeHarness` also already compile only in Editor/Development builds.
+- Internal Editor/Development QA retains single-session owner unlock, salted 28-character command verifiers and exact Firebase UID/`devWalletTesters` verified-wallet check, while binding the real QA classes with `typeof(...)` rather than fragile unqualified `Type.GetType`. Live money grants still reuse existing server-verified `DEV_GRANT`: +5000 Gold/+500 Atlas Coin to the allowlisted tester only. No client-side arbitrary Gold, premium asset, or XP mutation; the same private codes from `bi` remain owner-controlled outside Git.
+- **XP_PERSISTENT_GRANT=NOT_IMPLEMENTED** by design: Career/XP is sourced from attested match evidence, and no independently trusted arbitrary-XP grant authority is present in the current Spark RTDB backend. Internal fast-finish of a legitimate complete test match remains the QA route to real earned XP; synthetic owner XP adjustments need a separate server-audited workflow, emulator and explicit owner approval. Do **not** grant persistent XP just because a local console says admin.
+- The owner requested an admin membership option in regular builds but also accepted omitting cheats from public release; this checkpoint selects **RETAIL_CHEATS=COMPILED_OUT**, not a client-editable admin bypass. There is no Firebase Rules change or production deployment.
+
+### Existing Firebase accountType contract, confirmed from source
+
+- Existing `AtlasBoardRtdbUserProfileMirror.cs` already writes `/users/{uid}/general.accountType` as Firebase `IsAnonymous ? "guest" : "registered"` on sync. Existing `Backend/Firebase/database.rules.json` validates **exactly** `guest` for anonymous providers, **exactly** `registered` for non-anonymous providers. There is no missing registration member type to create. For user-friendly copy, `registered` means Normal Member / Normal Üye; the storage value is intentionally stable. This is not an authorization role.
+- **DO NOT manually change accountType to "admin"** in Firebase Console. It violates current RTDB validation and the profile writer overwrites it on sync. `devWalletTesters/$uid` is already owner-managed and non-client-writable but is a **developer wallet tester allowlist, NOT an administrative role**. For future true live admin access use server-asserted Firebase custom claims or separate protected role ACL with deny-by-default rules and actual Auth+RTDB emulator negative tests before deploying. No pretend admin role or insecure self-edit path was added here.
+
+### Google Play reviewer account provision — owner action, not performed here
+
+- Created `Assets/Project/Documentation/GOOGLE_PLAY_REVIEW_ACCOUNT_SETUP.md` with exact Firebase Console Email/Password reviewer-user creation steps, verified `registered` profile sync, comprehensive current user-visible screen walkthrough, legitimate owned-item entitlement setup and English Play Console **Policy and programs → App content → Sign-in details** instructions. Test reviewer must be a **normal registered user**, not an owner-admin or developer-test account. No pre-created Firebase account, password or secret is placed in the source ZIP; owner must create one in Firebase Authentication and enter the credentials exclusively in Play Console.
+- Reviewer access to all signed-in UI and purchase-restricted content must be actually tested on the signed AAB. A second independent account may be necessary for online 2-human tests; do not promise auto-populated remote multiplayer. Google Play requires always-valid login, no expiring OTP or location-based access, and English instructions. Exact official references are included in the setup document.
+
+### Delivered source and verification
+
+- Complete changed existing files: `Assets/Project/Scripts/UI/Menu/AtlasBoardPlayerHelpCredits.cs`, `Assets/Project/Scripts/UI/Menu/AtlasBoardOwnerConsole.cs`, `Backend/Firebase/qa/phase19bi_owner_console_help_credits_contract.test.cjs` (updated for the new UI and full retail class gate).
+- New complete files: `Backend/Firebase/qa/phase19bj_player_info_retail_gate_contract.test.cjs` plus `.meta`; `Assets/Project/Documentation/GOOGLE_PLAY_REVIEW_ACCOUNT_SETUP.md` plus `.meta`; one full canonical `MASTER_ROADMAP.md`.
+- Source QA is static only. `UNITY_COMPILE=NOT_RUN`, `EDITOR_PLAY=NOT_RUN`, `DEVELOPMENT_WINDOWS_GUEST_BUILD=NOT_RUN`, `RETAIL_ANDROID_AAB=NOT_BUILT`, `PLAY_REVIEWER_USER=NOT_CREATED`, `PRODUCTION_APP_CHECK=NOT_VERIFIED`, `PRODUCTION_FIREBASE=NOT_TOUCHED`, `GITHUB_PUSH=NOT_DONE`. No `database.rules.json` change; **NO FIREBASE DEPLOY**. Historical emulator hardening owner PASS (280/395) remains valid for unchanged server rules; unresolved Host snapshot semantic forgery, unique-intent flooding, real server-enforced version admission, 3/4 humans, Android sustained FPS, Steam identity and license release gates remain OPEN.
+
+### Owner acceptance checklist
+
+1. Overlay full-file ZIP on current local project; Unity 6000.5.6f1 actual compile must show **zero** errors. Main Menu at 1920x1080 and 1280x720: two bottom-left modern pill buttons, bottom-right dark beta version, rotating center tip visible and no overlaps. Help and Credits modal must look modern, scroll with mouse and touch, not obstruct the lobby or game after closing.
+2. Switch all 7 languages (including KO/RU font fallback), close via backdrop/X/Escape, return from Career/Store/Game repeatedly, ensure no duplicate menus/panels.
+3. In a non-development Android/Windows release build, backquote/Ctrl+F10/F8/F9 do NOT reveal or execute any owner console/Phase14J/fast-forward shortcut. Internal Development Guest is the only build retaining QA actions after proper admin tester authorization. Do not publicly ship the Development Guest.
+4. Firebase Console Auth create a dedicated review email/password account; sign in on release Android candidate, confirm `general.accountType=registered` with exact UID, test every normal screen, Story/Shop/Inventory/private/public access and copy English instructions into Play Console. Do not assign `admin` to profile accountType; no plaintext credentials in GitHub.
+5. Confirm current Firebase emulator rules and economy are unchanged; no deploy. If a future trusted admin XP/role backend is added, require new Auth+RTDB regression tests and production risk approval.
+
+---
+
 ## v5.49.12bi — Player Help / Credits + Owner QA Console Security and Readable Beta Version (2026-11-02; SOURCE CANDIDATE / UNITY OWNER QA OPEN)
 
 **Authority / complete history:** Base is the user-supplied canonical `MASTER_ROADMAP(20261102-065222).md` (10,691 lines). Its prior bytes are appended unchanged. GitHub `main` was last verified at `4c9886a0345cd7802a88e548d09c6a8d990c0228` (older than owner-local bh); this checkpoint intentionally uses the uploaded newer bh source/roadmap, not an older GitHub rollback. Single canonical `Assets/Project/Documentation/MASTER_ROADMAP.md`, no alternative roadmap, code patch, PowerShell modifier, Firebase deployment or GitHub push.

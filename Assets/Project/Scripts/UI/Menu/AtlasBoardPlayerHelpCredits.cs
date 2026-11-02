@@ -1,43 +1,88 @@
 using System;
-using System.Text;
+using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 /// <summary>
-/// Lightweight help/FAQ and third-party credits on the existing Main Menu.
-/// This is presentation only: no parallel menu, wallet or game logic.
-/// All entries fit a scrollable panel. No tutorial interrupts gameplay.
+/// Main Menu player help and license presentation, built from Unity UI and TMP.
+/// No IMGUI window, second menu authority or gameplay effects. The main menu
+/// canvas owns all surfaces; ScrollRect works with touch, mouse and controllers.
 /// </summary>
 [DefaultExecutionOrder(32001)]
 public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
 {
     private static AtlasBoardPlayerHelpCredits instance;
     private AtlasBoardMainMenuController menu;
-    private Transform menuRoot;
-    private Vector2 scroll;
-    private bool showHelp;
-    private bool showCredits;
-    private GUIStyle button;
-    private GUIStyle paragraph;
-    private GUIStyle heading;
+    private RectTransform menuRoot;
+    private RectTransform overlay;
+    private RectTransform contents;
+    private TextMeshProUGUI helpButtonLabel;
+    private TextMeshProUGUI creditsButtonLabel;
+    private TextMeshProUGUI titleLabel;
+    private TextMeshProUGUI subtitleLabel;
+    private TextMeshProUGUI helpTabLabel;
+    private TextMeshProUGUI creditsTabLabel;
+    private TextMeshProUGUI closeLabel;
+    private Image helpTabBackground;
+    private Image creditsTabBackground;
+    private TMP_FontAsset menuFont;
+    private static Sprite roundedSprite;
+    private bool showingHelp = true;
+    private string currentLanguage = string.Empty;
+
+    private static readonly Color Ink = Hex("#F0F6FF");
+    private static readonly Color Secondary = Hex("#A9BED5");
+    private static readonly Color Midnight = Hex("#102239");
+    private static readonly Color Panel = Hex("#162E49");
+    private static readonly Color Card = Hex("#213C5A");
+    private static readonly Color Cyan = Hex("#39C7E5");
+    private static readonly Color Gold = Hex("#F7B928");
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
     {
         if (instance != null) return;
-        GameObject root = new GameObject("AtlasBoard_Help_Credits_Presentation");
-        DontDestroyOnLoad(root);
-        instance = root.AddComponent<AtlasBoardPlayerHelpCredits>();
+        GameObject host = new GameObject("AtlasBoard_Help_Credits_Presentation");
+        DontDestroyOnLoad(host);
+        instance = host.AddComponent<AtlasBoardPlayerHelpCredits>();
+    }
+
+    private void OnDestroy() { if (instance == this) instance = null; }
+
+    private void Update()
+    {
+        if (overlay == null || !overlay.gameObject.activeSelf) return;
+#if ENABLE_INPUT_SYSTEM
+        if (UnityEngine.InputSystem.Keyboard.current != null &&
+            UnityEngine.InputSystem.Keyboard.current.escapeKey.wasPressedThisFrame)
+            Close();
+#elif ENABLE_LEGACY_INPUT_MANAGER
+        if (Input.GetKeyDown(KeyCode.Escape)) Close();
+#endif
     }
 
     private void LateUpdate()
     {
-        if (menu != null && menuRoot != null) return;
-        menu = UnityEngine.Object.FindAnyObjectByType<AtlasBoardMainMenuController>();
-        if (menu == null) return;
-        foreach (Transform child in menu.GetComponentsInChildren<Transform>(true))
+        if (menu == null || menuRoot == null || !menuRoot)
         {
-            if (child.name == "MainMenu") { menuRoot = child; break; }
+            menu = UnityEngine.Object.FindAnyObjectByType<AtlasBoardMainMenuController>();
+            if (menu == null) return;
+            foreach (RectTransform child in menu.GetComponentsInChildren<RectTransform>(true))
+                if (child != null && child.name == "MainMenu") { menuRoot = child; break; }
+            if (menuRoot == null) return;
         }
+        if (overlay == null || !overlay) BuildUi();
+        string language = Language;
+        if (!string.Equals(language, currentLanguage, StringComparison.Ordinal))
+        {
+            currentLanguage = language;
+            RefreshText();
+        }
+        // The menu resets visibility between matches. An open modal may never
+        // bleed over the lobby, game, Career or Store.
+        if (!menuRoot.gameObject.activeInHierarchy && overlay != null)
+            overlay.gameObject.SetActive(false);
     }
 
     private string Language
@@ -49,7 +94,8 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
         }
     }
 
-    private static string Tr(string lang, string en, string tr, string es, string fr, string de, string ko, string ru)
+    private static string Tr(string lang, string en, string tr, string es,
+        string fr, string de, string ko, string ru)
     {
         switch (lang)
         {
@@ -65,51 +111,306 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
 
     private string HelpTitle => Tr(Language, "HELP / FAQ", "YARDIM / SSS", "AYUDA / PREGUNTAS", "AIDE / FAQ", "HILFE / FAQ", "도움말 / FAQ", "ПОМОЩЬ / FAQ");
     private string CreditsTitle => Tr(Language, "CREDITS & LICENSES", "KATKIDA BULUNANLAR / LİSANSLAR", "CRÉDITOS Y LICENCIAS", "CRÉDITS ET LICENCES", "MITWIRKENDE & LIZENZEN", "제작진 / 라이선스", "АВТОРЫ И ЛИЦЕНЗИИ");
-    private string CloseLabel => Tr(Language,"CLOSE","KAPAT","CERRAR","FERMER","SCHLIESSEN","닫기","ЗАКРЫТЬ");
+    private string CloseLabel => Tr(Language, "CLOSE", "KAPAT", "CERRAR", "FERMER", "SCHLIESSEN", "닫기", "ЗАКРЫТЬ");
 
-    private void OnGUI()
+    private static Color Hex(string value)
     {
-        if (menuRoot == null || !menuRoot.gameObject.activeInHierarchy)
-        {
-            showHelp = false; showCredits = false;
-            return;
-        }
-        if (button == null)
-        {
-            button = new GUIStyle(GUI.skin.button) { fontSize = 14, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter };
-            paragraph = new GUIStyle(GUI.skin.label) { fontSize = 15, wordWrap = true, richText = false };
-            heading = new GUIStyle(GUI.skin.label) { fontSize = 17, fontStyle = FontStyle.Bold, wordWrap = true };
-        }
-        GUI.depth = -130;
-        if (!showHelp && !showCredits)
-        {
-            // Bottom-left, away from the existing centered rotating tip and
-            // the v0.9.0 beta badge at bottom-right.
-            if (GUI.Button(new Rect(18, Screen.height - 48, 142, 32), HelpTitle, button))
-            { showHelp = true; scroll = Vector2.zero; }
-            if (GUI.Button(new Rect(168, Screen.height - 48, 155, 32), CreditsTitle, button))
-            { showCredits = true; scroll = Vector2.zero; }
-            return;
-        }
-        float width = Mathf.Min(850f, Screen.width - 24f);
-        float height = Mathf.Min(680f, Screen.height - 24f);
-        Rect panel = new Rect((Screen.width-width)/2f, (Screen.height-height)/2f, width, height);
-        GUI.Box(panel, showHelp ? HelpTitle : CreditsTitle);
-        GUILayout.BeginArea(new Rect(panel.x+20f, panel.y+44f, width-40f, height-60f));
-        scroll = GUILayout.BeginScrollView(scroll);
-        if (showHelp) DrawHelp(); else DrawCredits();
-        GUILayout.EndScrollView();
-        GUILayout.Space(8f);
-        if (GUILayout.Button(CloseLabel, button, GUILayout.Height(35f)))
-        { showHelp = false; showCredits = false; }
-        GUILayout.EndArea();
+        ColorUtility.TryParseHtmlString(value, out Color color);
+        return color;
     }
 
-    private void Entry(string q, string a)
+    private static RectTransform Rect(Transform parent, string name)
     {
-        GUILayout.Label(q, heading);
-        GUILayout.Label(a, paragraph);
-        GUILayout.Space(14);
+        GameObject obj = new GameObject(name, typeof(RectTransform));
+        RectTransform rect = obj.GetComponent<RectTransform>();
+        rect.SetParent(parent, false);
+        rect.localScale = Vector3.one;
+        return rect;
+    }
+
+    // One generated, reusable 9-slice sprite. No imported textures or font files.
+    // Rounded cards/buttons are actual Unity UI geometry, not IMGUI boxes.
+    private static Sprite RoundedSprite()
+    {
+        if (roundedSprite != null) return roundedSprite;
+        const int side = 64;
+        const float radius = 14f;
+        Texture2D texture = new Texture2D(side, side, TextureFormat.RGBA32, false);
+        texture.name = "AtlasBoard_Runtime_Ui_Rounded_64";
+        texture.wrapMode = TextureWrapMode.Clamp;
+        for (int y = 0; y < side; y++)
+        for (int x = 0; x < side; x++)
+        {
+            float px = Mathf.Max(Mathf.Abs(x + 0.5f - 32f) - (32f - radius), 0f);
+            float py = Mathf.Max(Mathf.Abs(y + 0.5f - 32f) - (32f - radius), 0f);
+            float distance = Mathf.Sqrt(px * px + py * py);
+            float alpha = Mathf.Clamp01(radius - distance + 0.5f);
+            texture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
+        }
+        texture.Apply(false, true);
+        roundedSprite = Sprite.Create(texture,
+            new Rect(0f, 0f, side, side), new Vector2(0.5f, 0.5f),
+            100f, 0, SpriteMeshType.FullRect, new Vector4(17f, 17f, 17f, 17f));
+        roundedSprite.name = "AtlasBoard_Runtime_Ui_Rounded";
+        return roundedSprite;
+    }
+
+    private static Image Background(RectTransform rect, Color color)
+    {
+        Image image = rect.gameObject.AddComponent<Image>();
+        image.color = color;
+        if (rect.name != "AtlasBoard_Information_Modal" && rect.name != "AccentBar")
+        {
+            image.sprite = RoundedSprite();
+            image.type = Image.Type.Sliced;
+        }
+        image.raycastTarget = true;
+        return image;
+    }
+
+    private TextMeshProUGUI Text(RectTransform parent, string name,
+        string value, int size, Color color, FontStyles weight = FontStyles.Normal,
+        TextAlignmentOptions alignment = TextAlignmentOptions.Left)
+    {
+        RectTransform child = Rect(parent, name);
+        TextMeshProUGUI label = child.gameObject.AddComponent<TextMeshProUGUI>();
+        label.font = menuFont != null ? menuFont : TMP_Settings.defaultFontAsset;
+        label.fontSize = size;
+        label.fontStyle = weight;
+        label.color = color;
+        label.text = value;
+        label.alignment = alignment;
+        label.textWrappingMode = TextWrappingModes.Normal;
+        label.overflowMode = TextOverflowModes.Overflow;
+        label.raycastTarget = false;
+        return label;
+    }
+
+    private TextMeshProUGUI Button(RectTransform parent, string name,
+        Vector2 anchoredPosition, Vector2 size, Color color,
+        string label, Action clicked, int textSize = 19)
+    {
+        RectTransform rect = Rect(parent, name);
+        rect.anchorMin = rect.anchorMax = new Vector2(0f, 0f);
+        rect.pivot = new Vector2(0f, 0f);
+        rect.anchoredPosition = anchoredPosition;
+        rect.sizeDelta = size;
+        Image bg = Background(rect, color);
+        Outline outline = rect.gameObject.AddComponent<Outline>();
+        outline.effectColor = new Color(0.75f, 0.9f, 1f, 0.16f);
+        outline.effectDistance = new Vector2(1f, -1f);
+        UnityEngine.UI.Button button = rect.gameObject.AddComponent<UnityEngine.UI.Button>();
+        button.targetGraphic = bg;
+        button.transition = Selectable.Transition.ColorTint;
+        ColorBlock colors = button.colors;
+        colors.normalColor = Color.white;
+        colors.highlightedColor = new Color(0.83f, 0.93f, 1f, 1f);
+        colors.pressedColor = new Color(0.68f, 0.87f, 0.95f, 1f);
+        button.colors = colors;
+        button.onClick.AddListener(() => clicked());
+        TextMeshProUGUI caption = Text(rect, "Label", label, textSize, Ink,
+            FontStyles.Bold, TextAlignmentOptions.Center);
+        caption.rectTransform.anchorMin = Vector2.zero;
+        caption.rectTransform.anchorMax = Vector2.one;
+        caption.rectTransform.offsetMin = new Vector2(10f, 4f);
+        caption.rectTransform.offsetMax = new Vector2(-10f, -4f);
+        caption.enableAutoSizing = true;
+        caption.fontSizeMin = 12f;
+        caption.fontSizeMax = textSize;
+        return caption;
+    }
+
+    private void BuildUi()
+    {
+        TMP_Text sample = null;
+        foreach (TMP_Text entry in menuRoot.GetComponentsInChildren<TMP_Text>(true))
+            if (entry != null && entry.font != null) { sample = entry; break; }
+        menuFont = sample != null ? sample.font : TMP_Settings.defaultFontAsset;
+
+        helpButtonLabel = Button(menuRoot, "AtlasBoard_Help_Entry",
+            new Vector2(20f, 18f), new Vector2(188f, 48f), Panel,
+            "HELP / FAQ", () => Open(true));
+        creditsButtonLabel = Button(menuRoot, "AtlasBoard_Credits_Entry",
+            new Vector2(220f, 18f), new Vector2(228f, 48f), Panel,
+            "CREDITS & LICENSES", () => Open(false), 18);
+
+        overlay = Rect(menuRoot, "AtlasBoard_Information_Modal");
+        overlay.anchorMin = Vector2.zero; overlay.anchorMax = Vector2.one;
+        overlay.offsetMin = Vector2.zero; overlay.offsetMax = Vector2.zero;
+        Image dim = Background(overlay, new Color(0.02f, 0.055f, 0.11f, 0.83f));
+        UnityEngine.UI.Button backdrop = overlay.gameObject.AddComponent<UnityEngine.UI.Button>();
+        backdrop.targetGraphic = dim;
+        backdrop.onClick.AddListener(Close);
+
+        RectTransform panel = Rect(overlay, "InformationDialog");
+        panel.anchorMin = panel.anchorMax = new Vector2(0.5f, 0.5f);
+        panel.pivot = new Vector2(0.5f, 0.5f);
+        panel.sizeDelta = new Vector2(920f, 728f);
+        Background(panel, Midnight);
+        Shadow shadow = panel.gameObject.AddComponent<Shadow>();
+        shadow.effectColor = new Color(0f, 0f, 0f, 0.45f);
+        shadow.effectDistance = new Vector2(0f, -12f);
+        Outline border = panel.gameObject.AddComponent<Outline>();
+        border.effectColor = new Color(0.35f, 0.65f, 0.85f, 0.42f);
+        border.effectDistance = new Vector2(2f, -2f);
+
+        RectTransform accent = Rect(panel, "AccentBar");
+        accent.anchorMin = new Vector2(0f, 1f);
+        accent.anchorMax = new Vector2(1f, 1f);
+        accent.pivot = new Vector2(0.5f, 1f);
+        accent.sizeDelta = new Vector2(0f, 7f);
+        Background(accent, Gold).raycastTarget = false;
+
+        RectTransform titleArea = Rect(panel, "TitleArea");
+        titleArea.anchorMin = new Vector2(0f, 1f);
+        titleArea.anchorMax = new Vector2(1f, 1f);
+        titleArea.pivot = new Vector2(0.5f, 1f);
+        titleArea.anchoredPosition = new Vector2(0f, -29f);
+        titleArea.sizeDelta = new Vector2(-60f, 82f);
+        titleLabel = Text(titleArea, "Title", HelpTitle, 36, Ink, FontStyles.Bold);
+        titleLabel.rectTransform.anchorMin = new Vector2(0f, 0.46f);
+        titleLabel.rectTransform.anchorMax = new Vector2(0.86f, 1f);
+        titleLabel.rectTransform.offsetMin = titleLabel.rectTransform.offsetMax = Vector2.zero;
+        subtitleLabel = Text(titleArea, "Subtitle", "", 16, Secondary);
+        subtitleLabel.rectTransform.anchorMin = new Vector2(0f, 0f);
+        subtitleLabel.rectTransform.anchorMax = new Vector2(1f, 0.43f);
+        subtitleLabel.rectTransform.offsetMin = subtitleLabel.rectTransform.offsetMax = Vector2.zero;
+        Button(titleArea, "CloseX", new Vector2(776f, 35f), new Vector2(62f, 44f), Card,
+            "X", Close, 23);
+
+        RectTransform tabs = Rect(panel, "Tabs");
+        tabs.anchorMin = new Vector2(0f, 1f);
+        tabs.anchorMax = new Vector2(1f, 1f);
+        tabs.pivot = new Vector2(0.5f, 1f);
+        tabs.sizeDelta = new Vector2(-60f, 50f);
+        tabs.anchoredPosition = new Vector2(0f, -130f);
+        helpTabLabel = Button(tabs, "HelpTab", new Vector2(0f, 0f), new Vector2(250f, 48f), Card,
+            "HELP / FAQ", () => SelectTab(true), 17);
+        creditsTabLabel = Button(tabs, "CreditsTab", new Vector2(262f, 0f), new Vector2(300f, 48f), Card,
+            "CREDITS & LICENSES", () => SelectTab(false), 17);
+        helpTabBackground = helpTabLabel.GetComponentInParent<Image>();
+        creditsTabBackground = creditsTabLabel.GetComponentInParent<Image>();
+
+        RectTransform viewport = Rect(panel, "ScrollViewport");
+        viewport.anchorMin = new Vector2(0f, 0f);
+        viewport.anchorMax = new Vector2(1f, 1f);
+        viewport.offsetMin = new Vector2(30f, 90f);
+        viewport.offsetMax = new Vector2(-30f, -194f);
+        Background(viewport, Panel);
+        viewport.gameObject.AddComponent<RectMask2D>();
+        ScrollRect scroll = viewport.gameObject.AddComponent<ScrollRect>();
+        scroll.horizontal = false;
+        scroll.vertical = true;
+        scroll.movementType = ScrollRect.MovementType.Clamped;
+        scroll.scrollSensitivity = 22f;
+        contents = Rect(viewport, "ScrollContent");
+        contents.anchorMin = new Vector2(0f, 1f);
+        contents.anchorMax = new Vector2(1f, 1f);
+        contents.pivot = new Vector2(0.5f, 1f);
+        contents.sizeDelta = Vector2.zero;
+        contents.anchoredPosition = Vector2.zero;
+        VerticalLayoutGroup list = contents.gameObject.AddComponent<VerticalLayoutGroup>();
+        list.padding = new RectOffset(16, 16, 16, 16);
+        list.spacing = 12f;
+        list.childAlignment = TextAnchor.UpperCenter;
+        list.childControlWidth = true;
+        list.childControlHeight = true;
+        list.childForceExpandWidth = true;
+        list.childForceExpandHeight = false;
+        ContentSizeFitter fitter = contents.gameObject.AddComponent<ContentSizeFitter>();
+        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        scroll.content = contents;
+        scroll.viewport = viewport;
+
+        RectTransform foot = Rect(panel, "Footer");
+        foot.anchorMin = new Vector2(0f, 0f);
+        foot.anchorMax = new Vector2(1f, 0f);
+        foot.pivot = new Vector2(0.5f, 0f);
+        foot.sizeDelta = new Vector2(-60f, 72f);
+        foot.anchoredPosition = new Vector2(0f, 12f);
+        TextMeshProUGUI caption = Text(foot, "Note", "ATLAS BOARD  /  PLAYER INFORMATION", 14, Secondary);
+        caption.rectTransform.anchorMin = new Vector2(0f, 0f);
+        caption.rectTransform.anchorMax = new Vector2(0.67f, 1f);
+        caption.rectTransform.offsetMin = caption.rectTransform.offsetMax = Vector2.zero;
+        closeLabel = Button(foot, "Close", new Vector2(660f, 14f), new Vector2(195f, 44f),
+            Hex("#1689B2"), CloseLabel, Close, 18);
+        overlay.gameObject.SetActive(false);
+        RefreshText();
+    }
+
+    private void RefreshText()
+    {
+        if (helpButtonLabel == null) return;
+        helpButtonLabel.text = HelpTitle;
+        creditsButtonLabel.text = CreditsTitle;
+        helpTabLabel.text = HelpTitle;
+        creditsTabLabel.text = CreditsTitle;
+        closeLabel.text = CloseLabel;
+        if (overlay != null && overlay.gameObject.activeSelf) RenderContent();
+    }
+
+    private void Open(bool help)
+    {
+        if (overlay == null) return;
+        showingHelp = help;
+        overlay.gameObject.SetActive(true);
+        overlay.SetAsLastSibling();
+        RenderContent();
+    }
+
+    private void SelectTab(bool help)
+    {
+        showingHelp = help;
+        RenderContent();
+    }
+
+    private void Close()
+    {
+        if (overlay != null) overlay.gameObject.SetActive(false);
+    }
+
+    private void RenderContent()
+    {
+        if (contents == null) return;
+        titleLabel.text = showingHelp ? HelpTitle : CreditsTitle;
+        subtitleLabel.text = showingHelp
+            ? Tr(Language,"Quick answers for online play, reconnect and AtlasBoard systems.","Oyun, bağlantı ve AtlasBoard sistemleri hakkında kısa yanıtlar.","Ayuda rápida para jugar y reconectar.","Conseils pour jouer et se reconnecter.","Kurze Hilfe zu Spielen und Verbindungen.","게임과 연결에 관한 빠른 도움말.","Ответы об игре и подключении.")
+            : Tr(Language,"The creators and licenses behind Atlas Board.","Atlas Board'un arkasındaki üreticiler ve lisanslar.","Autores y licencias de Atlas Board.","Créateurs et licences d'Atlas Board.","Urheber und Lizenzen von Atlas Board.","제작진 및 라이선스.","Авторы и лицензии Atlas Board.");
+        helpTabBackground.color = showingHelp ? Hex("#177EAA") : Card;
+        creditsTabBackground.color = showingHelp ? Card : Hex("#177EAA");
+        for (int i = contents.childCount - 1; i >= 0; i--)
+        {
+            Transform child = contents.GetChild(i);
+            child.gameObject.SetActive(false);
+            Destroy(child.gameObject);
+        }
+        if (showingHelp) DrawHelp(); else DrawCredits();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(contents);
+        contents.anchoredPosition = Vector2.zero;
+    }
+
+    private void Entry(string question, string answer)
+    {
+        RectTransform card = Rect(contents, "InformationCard");
+        Background(card, Card);
+        VerticalLayoutGroup group = card.gameObject.AddComponent<VerticalLayoutGroup>();
+        group.padding = new RectOffset(20, 20, 17, 19);
+        group.spacing = 7f;
+        group.childControlWidth = true; group.childControlHeight = true;
+        group.childForceExpandWidth = true; group.childForceExpandHeight = false;
+        ContentSizeFitter fit = card.gameObject.AddComponent<ContentSizeFitter>();
+        fit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        TextMeshProUGUI heading = Text(card, "Heading", question, 22, Gold, FontStyles.Bold);
+        heading.margin = Vector4.zero;
+        heading.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        TextMeshProUGUI paragraph = Text(card, "Details", answer, 18, Ink);
+        paragraph.margin = Vector4.zero;
+        paragraph.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+    }
+
+    private void Note(string message)
+    {
+        Entry(Tr(Language,"IMPORTANT","ÖNEMLİ","IMPORTANTE","IMPORTANT","WICHTIG","중요","ВАЖНО"), message);
     }
 
     private void DrawHelp()
@@ -129,8 +430,7 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
             Tr(l,"Online rooms require compatible game, protocol, rules and content versions. Install the current build on every device.","Çevrim içi odalar uyumlu oyun, protokol, kural ve içerik sürümleri ister. Tüm cihazlara güncel sürümü kur.","Todos los dispositivos necesitan versiones compatibles de juego, protocolo, reglas y contenido.","Tous les appareils doivent utiliser des versions compatibles du jeu et du protocole.","Alle Geräte benötigen kompatible Spiel-, Protokoll-, Regel- und Inhaltsversionen.","모든 기기에 호환되는 게임 및 프로토콜 버전을 설치하세요.","Установите совместимые версии игры и протокола на всех устройствах."));
         Entry(Tr(l,"What do Pulse, Bank and Civic do?","Pulse, Bank ve Civic ne işe yarar?","¿Qué son Pulse, Bank y Civic?","À quoi servent Pulse, Bank et Civic ?","Was sind Pulse, Bank und Civic?","Pulse, Bank, Civic는 무엇인가요?","Что такое Pulse, Bank и Civic?"),
             Tr(l,"Pulse develops owned cities; Bank manages loans and mortgages; Civic projects offer separate investments through travel or events.","Pulse şehir geliştirmelerini, Bank kredi ve ipotekleri yönetir. Civic projeleri seyahat ve etkinliklerle ulaşılabilen ayrı yatırımlardır.","Pulse mejora ciudades; Bank gestiona préstamos; Civic ofrece inversiones por viajes y eventos.","Pulse développe les villes, Bank gère les prêts et Civic les projets spéciaux.","Pulse entwickelt Städte, Bank verwaltet Kredite und Civic bietet Sonderprojekte.","Pulse는 도시 개발, Bank는 대출, Civic은 별도 투자를 담당합니다.","Pulse развивает города, Bank управляет кредитами, Civic предлагает отдельные проекты."));
-        GUILayout.Space(6);
-        GUILayout.Label(Tr(l,"Support: quote the ATB error code shown on screen; never share passwords or authentication tokens.","Destek için ekrandaki ATB hata kodunu paylaş; şifre veya giriş token'ını paylaşma.","Para soporte, indica el código ATB; no compartas contraseñas.","Pour l'assistance, indiquez le code ATB, jamais vos identifiants.","Für Support den ATB-Code angeben, keine Passwörter teilen.","지원 시 ATB 오류 코드를 전달하고 비밀번호는 공유하지 마세요.","Для поддержки сообщите код ATB, но не пароли."), paragraph);
+        Note(Tr(l,"Support: quote the ATB error code shown on screen; never share passwords or authentication tokens.","Destek için ekrandaki ATB hata kodunu paylaş; şifre veya giriş token'ını paylaşma.","Para soporte, indica el código ATB; no compartas contraseñas.","Pour l'assistance, indiquez le code ATB, jamais vos identifiants.","Für Support den ATB-Code angeben, keine Passwörter teilen.","지원 시 ATB 오류 코드를 전달하고 비밀번호는 공유하지 마세요.","Для поддержки сообщите код ATB, но не пароли."));
     }
 
     private void DrawCredits()
@@ -143,6 +443,6 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
         Entry("GOOGLE / NOTO — SIL OPEN FONT LICENSE 1.1", "Noto Sans and Noto Sans KR; multilingual UI font support. fonts.google.com/noto");
         Entry("UNITY ASSET STORE — LICENSED ASSETS", "Ferocious Industries — PBR Little Games Pack dice; SR Studios Kerala — Little Ghost; OlyPoly — Cartoon Cars; Low Poly Simple Urban City. Each is subject to its applicable Unity Asset Store EULA, not CC0.");
         Entry("OPEN SOURCE / ENGINE", "Unity Engine, TextMesh Pro, Firebase and other dependencies retain their respective licenses and trademarks.");
-        GUILayout.Label(Tr(l,"Full source/license ledger: Assets/Project/ThirdPartyLicenses/ and Assets/Project/Documentation/ATLASBOARD_LEGAL_CREDITS.md. Verify all imported assets before publishing.","Ayrıntılı lisans kayıtları: Assets/Project/ThirdPartyLicenses/ ve Assets/Project/Documentation/ATLASBOARD_LEGAL_CREDITS.md. Yayından önce tüm ithal varlıkları doğrula.","Registro de licencias en Assets/Project/ThirdPartyLicenses/.","Registre des licences dans Assets/Project/ThirdPartyLicenses/.","Lizenzregister unter Assets/Project/ThirdPartyLicenses/.","라이선스 기록: Assets/Project/ThirdPartyLicenses/.","Лицензии: Assets/Project/ThirdPartyLicenses/."), paragraph);
+        Note(Tr(l,"Full source/license ledger: Assets/Project/ThirdPartyLicenses/ and Assets/Project/Documentation/ATLASBOARD_LEGAL_CREDITS.md. Verify all imported assets before publishing.","Ayrıntılı lisans kayıtları: Assets/Project/ThirdPartyLicenses/ ve Assets/Project/Documentation/ATLASBOARD_LEGAL_CREDITS.md. Yayından önce tüm ithal varlıkları doğrula.","Registro de licencias en Assets/Project/ThirdPartyLicenses/.","Registre des licences dans Assets/Project/ThirdPartyLicenses/.","Lizenzregister unter Assets/Project/ThirdPartyLicenses/.","라이선스 기록: Assets/Project/ThirdPartyLicenses/.","Лицензии: Assets/Project/ThirdPartyLicenses/."));
     }
 }

@@ -1,3 +1,4 @@
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -97,13 +98,13 @@ public sealed class AtlasBoardOwnerConsole : MonoBehaviour
         // Pre-existing QA components have their own F8/F9/F10... hotkeys.
         // Keep them disabled unless the current console action needs the UI.
         // Our early execution order prevents direct keys reaching the harness.
-        Type fastType = Type.GetType("AtlasBoardDevelopmentMatchFastForwardQA");
+        Type fastType = typeof(AtlasBoardDevelopmentMatchFastForwardQA);
         if (fastType != null)
         {
             Behaviour fast = UnityEngine.Object.FindAnyObjectByType(fastType) as Behaviour;
             if (fast != null && fast.enabled) fast.enabled = false;
         }
-        Type harnessType = Type.GetType("AtlasBoardPhase14JRuntimeHarness");
+        Type harnessType = typeof(AtlasBoardPhase14JRuntimeHarness);
         if (harnessType != null)
         {
             Behaviour harness = UnityEngine.Object.FindAnyObjectByType(harnessType) as Behaviour;
@@ -218,7 +219,7 @@ public sealed class AtlasBoardOwnerConsole : MonoBehaviour
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
     private void RunFastForward(bool finish)
     {
-        Type t = Type.GetType("AtlasBoardDevelopmentMatchFastForwardQA");
+        Type t = typeof(AtlasBoardDevelopmentMatchFastForwardQA);
         MethodInfo method = t?.GetMethod("ApplyFinalRoundState", BindingFlags.Static | BindingFlags.NonPublic);
         if (method == null) { status = "QA FAST FORWARD NOT AVAILABLE"; return; }
         try { method.Invoke(null, new object[] { finish }); status = finish ? "FINAL TURN QA REQUESTED" : "FINAL ROUND QA REQUESTED"; }
@@ -227,7 +228,7 @@ public sealed class AtlasBoardOwnerConsole : MonoBehaviour
 
     private void OpenPhaseHarness()
     {
-        Type t = Type.GetType("AtlasBoardPhase14JRuntimeHarness");
+        Type t = typeof(AtlasBoardPhase14JRuntimeHarness);
         MethodInfo method = t?.GetMethod("ShowPanel", BindingFlags.Static | BindingFlags.Public);
         if (method == null) { status = "PHASE14J HARNESS NOT AVAILABLE"; return; }
         harnessVisible = true;
@@ -250,3 +251,5 @@ public sealed class AtlasBoardOwnerConsole : MonoBehaviour
         return diff == 0;
     }
 }
+
+#endif // Public release builds contain no owner QA console class.
