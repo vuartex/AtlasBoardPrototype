@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+
 
 [Serializable]
 public sealed class AtlasBoardCareerStats
@@ -32,12 +33,14 @@ public sealed class AtlasBoardCareerStats
     public int mapWinsOther;
 }
 
+
 [Serializable]
 public sealed class AtlasBoardMapCareerStats
 {
     public string mapId;
     public AtlasBoardCareerStats stats = new AtlasBoardCareerStats();
 }
+
 
 [Serializable]
 public sealed class AtlasBoardProgressionAchievement
@@ -49,6 +52,7 @@ public sealed class AtlasBoardProgressionAchievement
     public int progress;
     public bool unlocked;
 }
+
 
 [Serializable]
 public sealed class AtlasBoardProgressionParticipant
@@ -67,6 +71,7 @@ public sealed class AtlasBoardProgressionParticipant
     public int developmentValue;
     public int netWorth;
 }
+
 
 [Serializable]
 public sealed class AtlasBoardProgressionMatchSummary
@@ -98,10 +103,12 @@ public sealed class AtlasBoardProgressionMatchSummary
     public int totalDiceValue;
     public int highestRoll;
     public int xpAwarded;
+    public int goldAwarded;
     public int levelAfter;
     public long finishedAtEpochMs;
     public AtlasBoardProgressionParticipant[] participants;
 }
+
 
 [Serializable]
 public sealed class AtlasBoardProgressionSnapshot
@@ -128,6 +135,7 @@ public sealed class AtlasBoardProgressionSnapshot
         new List<AtlasBoardProgressionMatchSummary>();
 }
 
+
 [Serializable]
 public sealed class AtlasBoardProgressionSlotTelemetry
 {
@@ -137,6 +145,7 @@ public sealed class AtlasBoardProgressionSlotTelemetry
     public int totalDiceValue;
     public int highestRoll;
 }
+
 
 [Serializable]
 public sealed class AtlasBoardProgressionRecordResult

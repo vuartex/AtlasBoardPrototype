@@ -6,6 +6,7 @@ using Firebase.Auth;
 using UnityEngine;
 using UnityEngine.Networking;
 
+
 [DisallowMultipleComponent]
 public sealed class AtlasBoardProgressionBridge : MonoBehaviour
 {
@@ -13,9 +14,11 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
     private const string Region = "europe-west1";
     private const int FunctionsPort = 5001;
 
+
     private AtlasBoardLobbyRuntimeBridge lobbyBridge;
     private string lastErrorKey = string.Empty;
     private string lastTechnicalMessage = string.Empty;
+
 
     public string CurrentAccountId
     {
@@ -28,12 +31,15 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
         }
     }
 
+
     public event Action<AtlasBoardProgressionSnapshot> ProfileChanged;
+
 
     private void Awake()
     {
         ResolveLobbyBridge();
     }
+
 
     public async Task<AtlasBoardProgressionSnapshot> GetProfileAsync()
     {
@@ -42,27 +48,33 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
             return FailedSnapshot();
         }
 
+
         string uid = lobbyBridge.CurrentAccountId;
         string token = lobbyBridge.AuthTokenForOnlineSubsystems;
-        if (AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession)
+        bool liveGuest = AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession;
+
+        // A Guest is still an authenticated Firebase UID. Local observation is
+        // only an immediate presentation fallback; durable Career recovery, XP,
+        // achievements, history and match Gold use the same RTDB UID pipeline
+        // as a registered player. Do not short-circuit the server read merely
+        // because the provider is anonymous/REST-backed.
+        string fallbackDisplayName = liveGuest
+            ? AtlasBoardGuestIdentity.DisplayName
+            : string.Empty;
+        if (!liveGuest)
         {
-            AtlasBoardProgressionSnapshot guest = ReadLocalGuestProfile(uid);
-            if (lobbyBridge.CurrentAccountId != uid) return FailedSnapshot();
-            ProfileChanged?.Invoke(guest);
-            return guest;
+            try
+            {
+                FirebaseUser user = FirebaseAuth.DefaultInstance.CurrentUser;
+                if (user != null)
+                    fallbackDisplayName = user.DisplayName ?? string.Empty;
+            }
+            catch
+            {
+                fallbackDisplayName = string.Empty;
+            }
         }
 
-        string fallbackDisplayName = string.Empty;
-        try
-        {
-            FirebaseUser user = FirebaseAuth.DefaultInstance.CurrentUser;
-            if (user != null)
-                fallbackDisplayName = user.DisplayName ?? string.Empty;
-        }
-        catch
-        {
-            fallbackDisplayName = string.Empty;
-        }
 
         if (string.IsNullOrWhiteSpace(fallbackDisplayName))
         {
@@ -76,14 +88,17 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
             }
         }
 
+
         if (string.IsNullOrWhiteSpace(fallbackDisplayName))
             fallbackDisplayName = "Atlas Player";
+
 
         AtlasBoardProgressionSnapshot snapshot =
             await AtlasBoardRtdbCareerReadModel.ReadProfileAsync(
                 uid,
                 token,
                 fallbackDisplayName);
+
 
         if (snapshot == null || !snapshot.Success)
         {
@@ -99,27 +114,30 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
             return FailedSnapshot();
         }
 
+
         // An earlier account's asynchronous read must never be rendered after
         // a sign-out/account switch, even if its token was valid at request time.
         if (uid != lobbyBridge.CurrentAccountId ||
             AtlasBoardRtdbMetaEconomy.CurrentUid != uid)
             return FailedSnapshot();
-        if (!AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession)
-            MergeObservedSteamMatches(snapshot, uid);
+        MergeLocalObservedMatches(snapshot, uid, liveGuest);
         lastErrorKey = string.Empty;
         lastTechnicalMessage = string.Empty;
+
 
         ProfileChanged?.Invoke(snapshot);
         return snapshot;
     }
 
-    private void MergeObservedSteamMatches(AtlasBoardProgressionSnapshot verified,
-        string uid)
+
+    private void MergeLocalObservedMatches(AtlasBoardProgressionSnapshot verified,
+        string uid, bool isGuest)
     {
         if (verified == null || !verified.Success ||
             string.IsNullOrWhiteSpace(uid) ||
             uid != lobbyBridge.CurrentAccountId) return;
-        AtlasBoardProgressionSnapshot observed = ReadLocalGuestProfile(uid, false);
+        AtlasBoardProgressionSnapshot observed =
+            ReadLocalGuestProfile(uid, isGuest);
         bool anyUnverified = false;
         foreach (AtlasBoardProgressionMatchSummary match in observed.RecentMatches)
         {
@@ -157,10 +175,15 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
         }
         verified.TechnicalMessage = serverHasVerifiedProgress
             ? "unverified_local_match_history_plus_verified_rewards"
-            : "local_steam_provisional_progress_no_spendable_gold";
-        Debug.Log("ATB_STEAM_CAREER local_history_visible=true provisional_xp=" +
-            (!serverHasVerifiedProgress) + " account_uid_scoped=true");
+            : isGuest
+                ? "local_guest_provisional_progress_server_recovery_pending"
+                : "local_steam_provisional_progress_no_spendable_gold";
+        Debug.Log((isGuest ? "ATB_GUEST_CAREER" : "ATB_STEAM_CAREER") +
+            " local_history_visible=true provisional_xp=" +
+            (!serverHasVerifiedProgress) +
+            " account_uid_scoped=true server_recovery_enabled=true");
     }
+
 
     // No-Steam QA Guest: private, device-local, UID-scoped presentation only.
     // This is intentionally NOT a verified claim, Gold reward or Steam unlock.
@@ -173,11 +196,14 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
             new List<AtlasBoardProgressionMatchSummary>();
     }
 
+
     private static string GuestCareerKey(string uid) =>
         "ATB.GuestCareer.Local.v1." + uid;
 
+
     private static string ObservedSteamCareerKey(string uid) =>
         "ATB.SteamCareer.Observed.v1." + uid;
+
 
     public static void RecordLocalGuestMatch(string uid,
         AtlasBoardProgressionMatchSummary match)
@@ -185,11 +211,13 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
         RecordLocallyObservedMatch(uid, match, true);
     }
 
+
     public static void RecordLocalSteamObservation(string uid,
         AtlasBoardProgressionMatchSummary match)
     {
         RecordLocallyObservedMatch(uid, match, false);
     }
+
 
     private static void RecordLocallyObservedMatch(string uid,
         AtlasBoardProgressionMatchSummary match, bool isGuest)
@@ -259,12 +287,14 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
             (isGuest ? "guest" : "steam") + " matches=" + data.stats.matchesPlayed);
     }
 
+
     private static int GuestLevel(int totalXp)
     {
         int level, start, next;
         GuestLevelBoundaries(totalXp, out level, out start, out next);
         return level;
     }
+
 
     private static void GuestLevelBoundaries(int totalXp, out int level,
         out int threshold, out int next)
@@ -283,6 +313,7 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
                 (long)threshold + Mathf.RoundToInt(500f * Mathf.Pow(1.1f, level - 1)));
     }
 
+
     private static GuestCareerLocalData LoadLocalGuestCareer(string uid,
         bool isGuest = true)
     {
@@ -300,6 +331,7 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
         if (data.history == null) data.history = new List<AtlasBoardProgressionMatchSummary>();
         return data;
     }
+
 
     private AtlasBoardProgressionSnapshot ReadLocalGuestProfile(string uid,
         bool isGuest = true)
@@ -384,6 +416,7 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
         return snap;
     }
 
+
     private static void AddGuestAchievement(
         List<AtlasBoardProgressionAchievement> items, string id, int progress)
     {
@@ -392,6 +425,7 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
             achievementId = id, progress = Mathf.Max(0, progress), unlocked = false
         });
     }
+
 
     public async Task<AtlasBoardProgressionRecordResult>
         RecordCompletedMatchAsync(
@@ -414,6 +448,7 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
             return FailedRecordResult(matchId);
         }
 
+
         List<AtlasBoardProgressionSlotTelemetry> rows =
             new List<AtlasBoardProgressionSlotTelemetry>();
         if (telemetry != null)
@@ -428,6 +463,7 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
             }
         }
 
+
         RecordEnvelope envelope =
             await CallFunctionAsync<RecordRequest, RecordEnvelope>(
                 "progressionRecordCompletedMatch",
@@ -438,12 +474,14 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
                     telemetry = rows.ToArray()
                 });
 
+
         if (envelope == null ||
             envelope.result == null ||
             !envelope.result.ok)
         {
             return FailedRecordResult(matchId);
         }
+
 
         return new AtlasBoardProgressionRecordResult
         {
@@ -455,6 +493,7 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
         };
     }
 
+
     private async Task<bool> EnsureIdentityAsync()
     {
         ResolveLobbyBridge();
@@ -465,6 +504,7 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
                 "AtlasBoardLobbyRuntimeBridge was not found.";
             return false;
         }
+
 
         bool ready = await lobbyBridge.EnsureOnlineIdentityAsync();
         if (!ready ||
@@ -478,29 +518,15 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
             return false;
         }
 
-#if UNITY_ANDROID && !UNITY_EDITOR
-        // Firebase Anonymous proves an RTDB room UID, NOT a trusted
-        // XP/Gold/Steam reward. Server-side security acceptance stays OPEN.
-        try
-        {
-            FirebaseUser user = FirebaseAuth.DefaultInstance.CurrentUser;
-            if (user == null || user.IsAnonymous)
-            {
-                lastErrorKey = "progression.error.identity_unavailable";
-                lastTechnicalMessage =
-                    "Android Casual is not eligible for trusted progression.";
-                return false;
-            }
-        }
-        catch (Exception)
-        {
-            lastErrorKey = "progression.error.identity_unavailable";
-            lastTechnicalMessage = "Android identity validation unavailable.";
-            return false;
-        }
-#endif
+
+        // Provider type is not reward authority. Registered, Firebase Anonymous
+        // and the REST-backed Development Guest all use an exact authenticated
+        // UID; RTDB participation/archive/attestation/claim rules decide whether
+        // that UID earned persistent progression.
+
         return true;
     }
+
 
     private void ResolveLobbyBridge()
     {
@@ -508,6 +534,7 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
         {
             return;
         }
+
 
         AtlasBoardLobbyRuntimeBridge[] candidates =
             Resources.FindObjectsOfTypeAll<AtlasBoardLobbyRuntimeBridge>();
@@ -521,6 +548,7 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
         }
     }
 
+
     private async Task<TEnvelope> CallFunctionAsync<TRequest, TEnvelope>(
         string functionName,
         TRequest payload)
@@ -529,14 +557,17 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
         lastErrorKey = string.Empty;
         lastTechnicalMessage = string.Empty;
 
+
         string url = lobbyBridge.UsingLocalEmulators
             ? $"http://{lobbyBridge.EmulatorHostForOnlineSubsystems}:{FunctionsPort}/" +
               $"{ProjectId}/{Region}/{functionName}"
             : $"https://{Region}-{ProjectId}.cloudfunctions.net/" +
               functionName;
 
+
         string requestJson = JsonUtility.ToJson(payload);
         string callableJson = "{\"data\":" + requestJson + "}";
+
 
         using UnityWebRequest request =
             new UnityWebRequest(url, UnityWebRequest.kHttpVerbPOST);
@@ -549,10 +580,12 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
             "Bearer " + lobbyBridge.AuthTokenForOnlineSubsystems);
         request.timeout = 20;
 
+
         await SendRequestAsync(request);
         string body = request.downloadHandler != null
             ? request.downloadHandler.text
             : string.Empty;
+
 
         if (request.result != UnityWebRequest.Result.Success)
         {
@@ -574,6 +607,7 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
             return null;
         }
 
+
         TEnvelope envelope = SafeFromJson<TEnvelope>(body);
         if (envelope == null)
         {
@@ -581,8 +615,10 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
             lastTechnicalMessage = "Callable response could not be parsed.";
         }
 
+
         return envelope;
     }
+
 
     private AtlasBoardProgressionSnapshot FailedSnapshot()
     {
@@ -595,6 +631,7 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
             TechnicalMessage = lastTechnicalMessage ?? string.Empty
         };
     }
+
 
     private AtlasBoardProgressionRecordResult FailedRecordResult(
         string matchId)
@@ -610,6 +647,7 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
         };
     }
 
+
     private static async Task SendRequestAsync(UnityWebRequest request)
     {
         await AtlasBoardAppCheckRequestSecurity.ApplyAsync(request);
@@ -620,6 +658,7 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
         }
     }
 
+
     private static T SafeFromJson<T>(string json)
         where T : class
     {
@@ -627,6 +666,7 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
         {
             return null;
         }
+
 
         try
         {
@@ -639,6 +679,8 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
     }
 
 
+
+
     [Serializable]
     private sealed class RecordRequest
     {
@@ -648,11 +690,14 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
     }
 
 
+
+
     [Serializable]
     private sealed class RecordEnvelope
     {
         public RecordWire result;
     }
+
 
     [Serializable]
     private sealed class RecordWire
@@ -664,11 +709,13 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
         public int affectedAccountCount;
     }
 
+
     [Serializable]
     private sealed class CallableErrorEnvelope
     {
         public CallableError error;
     }
+
 
     [Serializable]
     private sealed class CallableError
@@ -676,6 +723,7 @@ public sealed class AtlasBoardProgressionBridge : MonoBehaviour
         public string message;
         public CallableErrorDetails details;
     }
+
 
     [Serializable]
     private sealed class CallableErrorDetails

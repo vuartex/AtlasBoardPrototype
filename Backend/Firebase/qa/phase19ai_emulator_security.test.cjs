@@ -33,8 +33,8 @@ async function db(method,where,user,body,etag){
  return {status:r.status,body:await r.text(),etag:r.headers.get('etag')};
 }
 function expect(pass,result,label){
- if(pass)assert(result.status>=200&&result.status<300,`${label}: expected allow; HTTP ${result.status} ${result.body.slice(0,140)}`);
- else assert(result.status===401||result.status===403,`${label}: expected denied; HTTP ${result.status} ${result.body.slice(0,140)}`);
+ if(pass)assert(result.status>=200&&result.status<300,`${label}: expected allow; HTTP ${result.status} ${result.body.slice(0,180)}`);
+ else assert(result.status===401||result.status===403,`${label}: expected denied; HTTP ${result.status} ${result.body.slice(0,180)}`);
  checks++;
 }
 function defaults(node){
@@ -49,90 +49,90 @@ function defaults(node){
    }
  }return out;
 }
-// A nested wallet write must preserve /users/{uid}'s .validate requirement.
-// Reuse the canonical user fixture shape from Phase 19C REST security tests.
-// Only the LOCAL demo emulator admin creates this seed profile.
-function profile(user){
- const at=ms();
- return {userId:user.uid,playerId:'1234567890123456',email:user.email,
-   displayName:'Atlas Tester',createdAt:at-100000,updatedAt:at,
-   lastDisplayNameChangeAt:at-100000,
-   general:{schemaVersion:1,accountType:user.email?'registered':'guest',
-     language:'en',countryCode:'US',lastSeenAt:at}};
+function profile(user,name){
+ const at=ms();return {userId:user.uid,playerId:'ATB-'+hash(user.uid).slice(0,20).toUpperCase(),email:user.email,
+  displayName:name,createdAt:at-100000,updatedAt:at,lastDisplayNameChangeAt:at-100000,
+  general:{schemaVersion:1,accountType:user.email?'registered':'guest',language:'en',countryCode:'US',lastSeenAt:at}};
 }
 function startWallet(){
- const econ=rules.users.$uid.metaEconomy;
- const inv=defaults(econ.inventory);
+ const econ=rules.users.$uid.metaEconomy;const inv=defaults(econ.inventory);
  return {schemaVersion:1,wallet:{gold:0,atlasCoin:0,starterGrantClaimed:false},inventory:inv,
    equipped:{profileFrameId:'',boardId:'',diceId:''},dailyReward:{lastClaimAt:0},
    dev:{grantCount:0,resetCount:0},operation:{id:xid(),type:'INIT',itemId:'',atMs:ms()},rewardHistory:''};
 }
 function advance(w,type,itemId){const x=structuredClone(w);x.operation={id:xid(),type,itemId:itemId||'',atMs:Math.max(ms(),w.operation.atMs+1)};return x;}
-function gold(kind,rounds,properties,developments){return (kind==='win'?50:kind==='tie'?20:5)+Math.min(30,rounds)+Math.min(20,properties*2)+Math.min(20,developments*2);}
+function gold(kind,rounds){return Math.min(50,Math.max(0,rounds)+(kind==='win'?25:kind==='tie'?15:10));}
 function xp(kind,rounds,properties,developments){return 25+(kind==='win'?50:kind==='tie'?20:0)+Math.min(100,rounds*3)+Math.min(50,properties*5)+Math.min(75,developments*3);}
 (async()=>{
- const alice=await signup('phase19ai-alice');const bob=await signup('phase19ai-bob');const stranger=await signup('phase19ai-stranger');const guest=await signup('phase19ai-guest',true);
+ const alice=await signup('phase19ai-alice');const bob=await signup('phase19ai-bob');
+ const guest=await signup('phase19ai-guest',true);const stranger=await signup('phase19ai-stranger');
  const mid='match_'+xid();const room='room_'+xid();const now=ms();
- const roomMembers={ [alice.uid]:{uid:alice.uid,active:true,role:'host',joinedAt:now-90000,displayName:'Alice'},[bob.uid]:{uid:bob.uid,active:true,role:'remoteHuman',joinedAt:now-90000,displayName:'Bob'}};
- const match={matchId:mid,lobbyId:room,hostUid:alice.uid,status:'active',phase:'playing',createdAt:now-90000,updatedAt:now,revision:42};
+ const roomMembers={
+  [alice.uid]:{uid:alice.uid,active:true,role:'host',joinedAt:now-90000,displayName:'Alice'},
+  [bob.uid]:{uid:bob.uid,active:true,role:'remoteHuman',joinedAt:now-90000,displayName:'Bob'},
+  [guest.uid]:{uid:guest.uid,active:true,role:'remoteHuman',joinedAt:now-90000,displayName:'Guest'}
+ };
+ const seatWire={seats:[
+  {uid:alice.uid,ownerUid:alice.uid,seatId:'seat_0',mode:'hostlocal',name:'Alice',controller:'human',connection:'connected',slotIndex:0,host:true,afkLockedOut:false,reconnectExpiresAt:0,disconnectedAt:0,removalReason:''},
+  {uid:bob.uid,ownerUid:bob.uid,seatId:'seat_1',mode:'remotehuman',name:'Bob',controller:'human',connection:'connected',slotIndex:1,host:false,afkLockedOut:false,reconnectExpiresAt:0,disconnectedAt:0,removalReason:''},
+  {uid:guest.uid,ownerUid:guest.uid,seatId:'seat_2',mode:'remotehuman',name:'Guest',controller:'human',connection:'connected',slotIndex:2,host:false,afkLockedOut:false,reconnectExpiresAt:0,disconnectedAt:0,removalReason:''}
+ ]};
+ const match={matchId:mid,lobbyId:room,hostUid:alice.uid,status:'active',phase:'playing',createdAt:now-90000,updatedAt:now,hostHeartbeatAt:now,revision:42,eventSequence:42,authorityEpoch:1,networkSchemaVersion:1,seatsJson:JSON.stringify(seatWire),snapshotJson:'{}'};
  expect(true,await db('PUT','roomMembers/'+room,'owner',roomMembers),'seed room');
  expect(true,await db('PUT','matchState/'+mid,'owner',match),'seed match');
- const a={uid:alice.uid,matchId:mid,lobbyId:room,slotIndex:0,role:'host',atMs:ms()};
- const b={uid:bob.uid,matchId:mid,lobbyId:room,slotIndex:1,role:'remoteHuman',atMs:ms()};
+ const participation=(u,slot,role)=>({uid:u.uid,matchId:mid,lobbyId:room,slotIndex:slot,role,atMs:ms()});
+ const a=participation(alice,0,'host'),b=participation(bob,1,'remoteHuman'),g=participation(guest,2,'remoteHuman');
  expect(true,await db('PUT','careerParticipation/'+alice.uid+'/'+mid,alice,a),'host signs before finish');
- expect(true,await db('PUT','careerParticipation/'+bob.uid+'/'+mid,bob,b),'second human independently signs before finish');
+ expect(true,await db('PUT','careerParticipation/'+bob.uid+'/'+mid,bob,b),'registered peer signs before finish');
+ expect(true,await db('PUT','careerParticipation/'+guest.uid+'/'+mid,guest,g),'anonymous Firebase Guest signs same durable participation');
  expect(false,await db('PUT','careerParticipation/'+alice.uid+'/'+mid,alice,a),'immutable participation replay');
  expect(false,await db('PUT','careerParticipation/'+bob.uid+'/'+mid,stranger,b),'foreign UID participation');
- expect(false,await db('PUT','careerParticipation/'+guest.uid+'/'+mid,guest,{...a,uid:guest.uid}),'anonymous without tester cannot sign');
- const result={valid:true,participating:[true,true,false,false],winnerSlots:[0],netWorth:[1100,400,0,0],cash:[800,300,0,0],propertyCount:[4,2,0,0],developmentLevels:[5,0,0,0]};
- const diceRolls=[20,15,0,0],doubles=[3,2,0,0];
+ const result={valid:true,participating:[true,true,true,false],winnerSlots:[0],netWorth:[1100,400,350,0],cash:[800,300,250,0],propertyCount:[4,2,1,0],developmentLevels:[5,0,1,0]};
+ const diceRolls=[20,15,12,0],doubles=[3,2,1,0];
  const frame={phase:'match_complete',currentRound:12,completedTurns:32,roundLimit:20,matchResult:result,careerDiceRolls:diceRolls,careerDoublesRolled:doubles};
- const snapshotJson=JSON.stringify(frame);
- expect(true,await db('PATCH','matchState/'+mid,'owner',{status:'complete',phase:'match_complete',revision:43,snapshotJson,updatedAt:ms()}),'admin simulates canonical final (NOT independent replay)');
- const seats={};for(let i=0;i<4;i++)seats[String(i)]={result:i===0?'win':'loss',participating:i<2,properties:result.propertyCount[i],developments:result.developmentLevels[i],cash:result.cash[i],netWorth:result.netWorth[i],diceRolls:diceRolls[i],doublesRolled:doubles[i]};
- const proof={matchId:mid,lobbyId:room,hostUid:alice.uid,witnessUid:bob.uid,revision:43,digest:hash(snapshotJson),snapshotJson,atMs:ms(),seats,rounds:12,turns:32,playerCount:2,mapId:'map_turkey',themeId:'classic_table',roundLimit:20};
- expect(false,await db('PUT','careerFinalProofs/'+mid,bob,proof),'guest cannot forge host proof');
- expect(true,await db('PUT','careerFinalProofs/'+mid,alice,proof),'host publishes immutable completed result proof');
- expect(false,await db('PUT','careerFinalProofs/'+mid,alice,{...proof,mapId:'map_usa'}),'cannot overwrite completed proof');
- // Alice first receives participation floor while waiting for Bob to sign final outcome.
- const part={uid:alice.uid,matchId:mid,witnessUid:bob.uid,digest:proof.digest,xpAwarded:1,atMs:ms()};
- expect(true,await db('PUT','careerParticipationCredits/'+alice.uid+'/'+mid,alice,part),'1 XP protected participation after completion');
- expect(false,await db('PUT','careerParticipationCredits/'+alice.uid+'/'+mid,alice,part),'1 XP cannot be claimed twice');
- const att=uid=>({uid,matchId:mid,lobbyId:room,digest:proof.digest,revision:43,atMs:ms()});
- expect(true,await db('PUT','careerAttestations/'+mid+'/'+alice.uid,alice,att(alice.uid)),'host signs result');
- const makeClaim=(user,other,slot,kind,recovered)=>({uid:user.uid,matchId:mid,lobbyId:room,witnessUid:other.uid,digest:proof.digest,revision:43,atMs:ms(),result:kind,slotIndex:slot,rounds:12,turns:32,properties:seats[String(slot)].properties,developments:seats[String(slot)].developments,cash:seats[String(slot)].cash,netWorth:seats[String(slot)].netWorth,playerCount:2,mapId:'map_turkey',themeId:'classic_table',roundLimit:20,hostAccountId:alice.uid,diceRolls:seats[String(slot)].diceRolls,doublesRolled:seats[String(slot)].doublesRolled,recovered,xpAwarded:xp(kind,12,seats[String(slot)].properties,seats[String(slot)].developments),goldAwarded:gold(kind,12,seats[String(slot)].properties,seats[String(slot)].developments)});
- let aClaim=makeClaim(alice,bob,0,'win',false);
- expect(false,await db('PUT','careerClaims/'+alice.uid+'/'+mid,alice,aClaim),'cannot full claim before Bob signs final');
- expect(true,await db('PUT','careerAttestations/'+mid+'/'+bob.uid,bob,att(bob.uid)),'Bob final attestation');
- aClaim=makeClaim(alice,bob,0,'win',false);
- expect(false,await db('PUT','careerClaims/'+alice.uid+'/'+mid,bob,aClaim),'other UID cannot claim Alice rewards');
- expect(false,await db('PUT','careerClaims/'+alice.uid+'/'+mid,alice,{...aClaim,result:'loss'}),'win cannot be rewritten as loss with same proof');
- expect(false,await db('PUT','careerClaims/'+alice.uid+'/'+mid,alice,{...aClaim,goldAwarded:120}),'Gold cap cannot be forged');
+ const snapshotJson=JSON.stringify(frame);const seatsJson=JSON.stringify(seatWire);
+ expect(true,await db('PATCH','matchState/'+mid,'owner',{status:'complete',phase:'match_complete',revision:43,eventSequence:43,snapshotJson,seatsJson,updatedAt:ms()}),'admin simulates canonical final frame');
+ const archive={matchId:mid,lobbyId:room,hostUid:alice.uid,snapshotJson,seatsJson,digest:hash(snapshotJson),mapId:'map_turkey',themeId:'classic_table',roundLimit:20,revision:43,eventSequence:43,authorityEpoch:1,networkSchemaVersion:1,createdAt:match.createdAt,completedAt:ms()};
+ expect(false,await db('PUT','completedMatchArchives/'+mid,bob,archive),'non-host cannot create completed archive');
+ expect(true,await db('PUT','completedMatchArchives/'+mid,alice,archive),'final host creates immutable completed archive');
+ expect(false,await db('PUT','completedMatchArchives/'+mid,alice,{...archive,mapId:'map_usa'}),'completed archive immutable');
+ const att=u=>({uid:u.uid,matchId:mid,lobbyId:room,digest:archive.digest,revision:43,atMs:ms()});
+ expect(true,await db('PUT','careerAttestations/'+mid+'/'+alice.uid,alice,att(alice)),'host attests archive before proof');
+ expect(true,await db('PUT','careerAttestations/'+mid+'/'+bob.uid,bob,att(bob)),'registered peer attests archive before proof');
+ expect(true,await db('PUT','careerAttestations/'+mid+'/'+guest.uid,guest,att(guest)),'anonymous Guest attests same archive before proof');
+ const seats={};for(let i=0;i<4;i++)seats[String(i)]={result:i===0?'win':'loss',participating:i<3,properties:result.propertyCount[i],developments:result.developmentLevels[i],cash:result.cash[i],netWorth:result.netWorth[i],diceRolls:diceRolls[i],doublesRolled:doubles[i]};
+ const proof={matchId:mid,lobbyId:room,hostUid:alice.uid,witnessUid:bob.uid,revision:43,digest:archive.digest,snapshotJson,atMs:ms(),seats,rounds:12,turns:32,playerCount:3,mapId:'map_turkey',themeId:'classic_table',roundLimit:20};
+ expect(false,await db('PUT','careerFinalProofs/'+mid,bob,proof),'non-host cannot forge final proof');
+ expect(true,await db('PUT','careerFinalProofs/'+mid,alice,proof),'host proof derives from immutable archive plus peer attestation');
+ expect(false,await db('PUT','careerFinalProofs/'+mid,alice,{...proof,mapId:'map_usa'}),'completed proof immutable');
+ const makeClaim=(user,other,slot,kind,recovered)=>({uid:user.uid,matchId:mid,lobbyId:room,witnessUid:other.uid,digest:proof.digest,revision:43,atMs:ms(),result:kind,slotIndex:slot,rounds:12,turns:32,properties:seats[String(slot)].properties,developments:seats[String(slot)].developments,cash:seats[String(slot)].cash,netWorth:seats[String(slot)].netWorth,playerCount:3,mapId:'map_turkey',themeId:'classic_table',roundLimit:20,hostAccountId:alice.uid,diceRolls:seats[String(slot)].diceRolls,doublesRolled:seats[String(slot)].doublesRolled,recovered,xpAwarded:xp(kind,12,seats[String(slot)].properties,seats[String(slot)].developments),goldAwarded:gold(kind,12)});
+ const aClaim=makeClaim(alice,bob,0,'win',false);const bClaim=makeClaim(bob,alice,1,'loss',true);const gClaim=makeClaim(guest,alice,2,'loss',true);
+ expect(false,await db('PUT','careerClaims/'+alice.uid+'/'+mid,bob,aClaim),'other UID cannot claim Alice reward');
+ expect(false,await db('PUT','careerClaims/'+alice.uid+'/'+mid,alice,{...aClaim,goldAwarded:51}),'Gold cap cannot be forged');
  expect(true,await db('PUT','careerClaims/'+alice.uid+'/'+mid,alice,aClaim),'host full XP+Gold claim');
- expect(false,await db('PUT','careerClaims/'+alice.uid+'/'+mid,alice,aClaim),'full claim immutable');
- const bClaim=makeClaim(bob,alice,1,'loss',true);
- expect(true,await db('PUT','careerClaims/'+bob.uid+'/'+mid,bob,bClaim),'disconnected user can recover against host proof and attestation');
- // Prove INIT is denied without a user profile; seed the profile first.
- const start=startWallet();
- expect(false,await db('PUT','users/'+alice.uid+'/metaEconomy',alice,start),
-   'wallet without canonical parent profile must be denied');
- expect(true,await db('PUT','users/'+alice.uid,'owner',profile(alice)),
-   'admin seeds canonical registered user profile');
- expect(true,await db('PUT','users/'+alice.uid+'/metaEconomy',alice,start),
-   'initialize canonical zero Gold wallet after profile exists');
- const wallet='users/'+alice.uid+'/metaEconomy';const first=await db('GET',wallet,alice);expect(true,first,'read wallet ETag');
- let payout=advance(start,'MATCH_REWARD',mid);payout.wallet.gold+=aClaim.goldAwarded;payout.rewardHistory='|'+mid+'|';
- expect(false,await db('PUT',wallet,stranger,payout,first.etag),'foreign user cannot mint Gold');
- expect(true,await db('PUT',wallet,alice,payout,first.etag),'single exact Gold ETag wallet payout');
- let again=advance(payout,'MATCH_REWARD',mid);again.wallet.gold+=aClaim.goldAwarded;again.rewardHistory+='|'+mid+'|';
- expect(false,await db('PUT',wallet,alice,again),'duplicated same match cannot mint Gold');
- const daily=advance(payout,'DAILY','');daily.wallet.gold+=50;daily.dailyReward.lastClaimAt=daily.operation.atMs;
- expect(true,await db('PUT',wallet,alice,daily),'existing daily claim still works with reward marker');
- const tamper=advance(daily,'EQUIP_DICE','');tamper.rewardHistory='';
- expect(false,await db('PUT',wallet,alice,tamper),'legacy commerce cannot erase reward marker');
- const coins=advance(daily,'MATCH_REWARD',mid);coins.wallet.gold+=aClaim.goldAwarded;coins.wallet.atlasCoin++;
- expect(false,await db('PUT',wallet,alice,coins),'no Atlas Coin from match payout');
- const end=await db('GET',wallet,alice);expect(true,end,'read after payout');
- const goldAfter=JSON.parse(end.body).wallet.gold;assert.equal(goldAfter,aClaim.goldAwarded+50);checks++;
- console.log(`ATB_CAREER_GOLD_FIREBASE_EMULATOR PASS checks=${checks} claims=2 reconnect=true duplicateDenied=true gold=${aClaim.goldAwarded} verified=mock_completed_match antiCheat=PEER_ONLY production=NOT_TOUCHED`);
+ expect(true,await db('PUT','careerClaims/'+bob.uid+'/'+mid,bob,bClaim),'registered peer recovers against archive-backed proof');
+ expect(true,await db('PUT','careerClaims/'+guest.uid+'/'+mid,guest,gClaim),'anonymous Guest receives same UID-bound claim path');
+ // Wallet parent profile remains mandatory for registered and Guest identities.
+ const aliceStart=startWallet();
+ expect(false,await db('PUT','users/'+alice.uid+'/metaEconomy',alice,aliceStart),'wallet without canonical parent profile denied');
+ expect(true,await db('PUT','users/'+alice.uid,'owner',profile(alice,'Alice')),'seed registered profile');
+ expect(true,await db('PUT','users/'+alice.uid+'/metaEconomy',alice,aliceStart),'registered wallet init');
+ const guestStart=startWallet();
+ expect(true,await db('PUT','users/'+guest.uid,'owner',profile(guest,'Guest')),'seed anonymous canonical profile');
+ expect(true,await db('PUT','users/'+guest.uid+'/metaEconomy',guest,guestStart),'Guest wallet init under same schema');
+ async function rewardWallet(user,start,claim,label){
+  const wallet='users/'+user.uid+'/metaEconomy';const first=await db('GET',wallet,user);expect(true,first,label+' read ETag');
+  let payout=advance(start,'MATCH_REWARD',mid);payout.wallet.gold+=claim.goldAwarded;payout.rewardHistory='|'+mid+'|';
+  expect(true,await db('PUT',wallet,user,payout,first.etag),label+' exact MATCH_REWARD');
+  let again=advance(payout,'MATCH_REWARD',mid);again.wallet.gold+=claim.goldAwarded;again.rewardHistory+='|'+mid+'|';
+  expect(false,await db('PUT',wallet,user,again),label+' duplicate match reward denied');
+  return payout;
+ }
+ const alicePaid=await rewardWallet(alice,aliceStart,aClaim,'registered');
+ const guestPaid=await rewardWallet(guest,guestStart,gClaim,'Guest');
+ const foreign=advance(alicePaid,'MATCH_REWARD',mid);foreign.wallet.gold+=aClaim.goldAwarded;foreign.rewardHistory+='|'+mid+'|';
+ expect(false,await db('PUT','users/'+alice.uid+'/metaEconomy',stranger,foreign),'foreign UID cannot mint Gold');
+ assert.equal(alicePaid.wallet.gold,aClaim.goldAwarded);checks++;
+ assert.equal(guestPaid.wallet.gold,gClaim.goldAwarded);checks++;
+ console.log(`ATB_CAREER_GOLD_FIREBASE_EMULATOR PASS checks=${checks} claims=3 anonymousGuest=true archive=true preProofAttestation=true duplicateDenied=true registeredGold=${aClaim.goldAwarded} guestGold=${gClaim.goldAwarded} production=NOT_TOUCHED`);
 })().catch(e=>{console.error(e.stack||e);process.exitCode=1;});

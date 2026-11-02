@@ -1,10 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+
 
 public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
 {
@@ -16,6 +17,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         Redeem,
         History
     }
+
 
     private static readonly Color BackgroundBlue =
         new Color32(151, 205, 232, 255);
@@ -36,7 +38,9 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
     private static readonly Color PanelBlue =
         new Color32(226, 239, 245, 255);
 
+
     private const float OperationCooldownSeconds = 1.5f;
+
 
     private AtlasBoardMetaEconomyBridge bridge;
     private Canvas canvas;
@@ -70,6 +74,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
     private readonly Dictionary<string, string> operationKeys =
         new Dictionary<string, string>(StringComparer.Ordinal);
 
+
     private AtlasBoardMetaEconomySnapshot snapshot;
     private AtlasBoardSeasonalOverview seasonalOverview;
     private AtlasBoardStorefrontItem pendingItem;
@@ -84,6 +89,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
     private string lastLiveWalletUid = string.Empty;
     private float nextLiveWalletPollAt;
 
+
     private void Awake()
     {
         bridge = GetComponent<AtlasBoardMetaEconomyBridge>();
@@ -95,12 +101,14 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         AtlasBoardLocalizationManager.LanguageChanged += HandleLanguageChanged;
     }
 
+
     private async void Start()
     {
         if (bridge == null)
         {
             return;
         }
+
 
         string requestedUid = AtlasBoardRtdbMetaEconomy.CurrentUid;
         AtlasBoardMetaEconomySnapshot initial = await bridge.RefreshAsync();
@@ -112,10 +120,12 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         UpdateWalletText();
     }
 
+
     private void OnDestroy()
     {
         AtlasBoardLocalizationManager.LanguageChanged -= HandleLanguageChanged;
     }
+
 
     private void Update()
     {
@@ -125,17 +135,20 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
              Time.unscaledTime >= nextLiveWalletPollAt))
             PollLiveWalletAsync();
 
+
         if (!shopCardBound && Time.unscaledTime >= nextBindAttemptAt)
         {
             nextBindAttemptAt = Time.unscaledTime + 1f;
             TryBindExistingShopCard();
         }
 
+
         if (storeRoot != null && storeRoot.activeSelf)
         {
             CloseLegacyShopModal();
         }
     }
+
 
     private async void PollLiveWalletAsync()
     {
@@ -167,6 +180,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         finally { liveWalletPolling = false; }
     }
 
+
     private void TryBindExistingShopCard()
     {
         Button[] buttons = Resources.FindObjectsOfTypeAll<Button>();
@@ -182,6 +196,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
                 continue;
             }
 
+
             button.onClick.AddListener(OpenFromMainMenu);
             shopCardBound = true;
             Debug.Log(
@@ -191,6 +206,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return;
         }
     }
+
 
     private void OpenFromMainMenu()
     {
@@ -204,6 +220,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         RefreshAsync();
     }
 
+
     private void CloseStore()
     {
         if (busy)
@@ -214,6 +231,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return;
         }
 
+
         confirmRoot.SetActive(false);
         resultRoot.SetActive(false);
         framePreviewRoot.SetActive(false);
@@ -223,6 +241,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         menu?.ShowMainMenu();
     }
 
+
     private static void CloseLegacyShopModal()
     {
         AtlasBoardMainMenuController controller =
@@ -230,10 +249,12 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         controller?.CloseModal();
     }
 
+
     private void HandleLanguageChanged()
     {
         ApplyResolvedStoreFonts();
         UpdateWalletText();
+
 
         if (storeRoot != null && storeRoot.activeSelf)
         {
@@ -241,6 +262,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             ApplyResolvedStoreFonts();
         }
     }
+
 
     private void RefreshLanguageAndPage()
     {
@@ -261,9 +283,11 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             resultOkText.text = T("store.purchase.result_ok");
         }
 
+
         RefreshFramePreviewLanguage();
         ApplyResolvedStoreFonts();
     }
+
 
     private bool CanStartOperation()
     {
@@ -275,6 +299,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return false;
         }
 
+
         if (Time.unscaledTime < nextOperationAllowedAt)
         {
             ShowMessagePopup(
@@ -283,8 +308,10 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return false;
         }
 
+
         return true;
     }
+
 
     private void BeginOperation(string statusKey)
     {
@@ -292,6 +319,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         busy = true;
         SetUiInteractable(false);
     }
+
 
     private void EndOperation()
     {
@@ -301,12 +329,14 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         SetUiInteractable(true);
     }
 
+
     private void SetUiInteractable(bool value)
     {
         if (storeRoot == null)
         {
             return;
         }
+
 
         Button[] buttons = storeRoot.GetComponentsInChildren<Button>(true);
         foreach (Button button in buttons)
@@ -317,11 +347,13 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             }
         }
 
+
         if (redeemInput != null)
         {
             redeemInput.interactable = value;
         }
     }
+
 
     private async void RefreshAsync()
     {
@@ -337,6 +369,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             ? await bridge.GetSeasonalOverviewAsync()
             : null;
         EndOperation();
+
 
         if (requestedUid != AtlasBoardRtdbMetaEconomy.CurrentUid)
         {
@@ -356,6 +389,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return;
         }
 
+
         snapshot = result;
         if (seasonal != null)
         {
@@ -364,6 +398,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         UpdateWalletText();
         RebuildCurrentPage();
     }
+
 
     // RTDB authorization belongs to the Firebase UID, not the Steam overlay.
     // The administrator allowlists exact tester UIDs in /devWalletTesters.
@@ -378,6 +413,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             snapshot != null && snapshot.Success && snapshot.WalletVerified &&
             snapshot.IsDeveloperTester;
     }
+
 
     private bool RequireEmulatorForDevelopmentEconomy()
     {
@@ -413,6 +449,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         return false;
     }
 
+
     private async void SeedWalletAsync()
     {
         if (!RequireEmulatorForDevelopmentEconomy()) return;
@@ -421,10 +458,12 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return;
         }
 
+
         BeginOperation("store.response.processing");
         AtlasBoardMetaEconomyOperationResult result =
             await bridge.SeedDevelopmentWalletAsync();
         EndOperation();
+
 
         if (!result.Success)
         {
@@ -434,11 +473,13 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return;
         }
 
+
         ShowMessagePopup(
             "store.popup.dev_title",
             T("store.response.dev_wallet_done"));
         RefreshAfterOperationAsync();
     }
+
 
     private async void ResetDevelopmentPurchasesAsync()
     {
@@ -448,10 +489,12 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return;
         }
 
+
         BeginOperation("store.response.processing");
         AtlasBoardMetaEconomyOperationResult result =
             await bridge.ResetDevelopmentPurchasesAsync();
         EndOperation();
+
 
         if (!result.Success)
         {
@@ -460,6 +503,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
                 LocalizeError(result.ErrorKey));
             return;
         }
+
 
         ShowMessagePopup(
             "store.popup.dev_title",
@@ -469,6 +513,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         RefreshAfterOperationAsync();
     }
 
+
     private async void ClaimDailyAsync()
     {
         if (!RequireEmulatorForDevelopmentEconomy()) return;
@@ -477,10 +522,12 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return;
         }
 
+
         BeginOperation("store.response.processing");
         AtlasBoardMetaEconomyOperationResult result =
             await bridge.ClaimDailyDevelopmentRewardAsync();
         EndOperation();
+
 
         if (!result.Success)
         {
@@ -490,6 +537,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return;
         }
 
+
         ShowMessagePopup(
             "store.popup.daily_title",
             result.AlreadyClaimed
@@ -498,11 +546,13 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         RefreshAfterOperationAsync();
     }
 
+
     private async void RefreshAfterOperationAsync()
     {
         await System.Threading.Tasks.Task.Delay(1600);
         RefreshAsync();
     }
+
 
     private void AskPurchase(
         AtlasBoardStorefrontItem item,
@@ -515,11 +565,13 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return;
         }
 
+
         pendingItem = item;
         pendingCurrency = currency;
         int price = currency == "gold"
             ? item.GoldPrice
             : item.AtlasCoinPrice;
+
 
         confirmTitleText.text = T("store.purchase.confirm_title");
         confirmBodyText.text =
@@ -528,6 +580,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             T("store.purchase.confirm_body");
         confirmRoot.SetActive(true);
     }
+
 
     private async void ConfirmPurchaseAsync()
     {
@@ -538,9 +591,11 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return;
         }
 
+
         string operationName =
             $"purchase:{pendingItem.ItemId}:{pendingCurrency}";
         string operationId = GetOrCreateOperationKey(operationName);
+
 
         confirmRoot.SetActive(false);
         BeginOperation("store.response.processing");
@@ -550,6 +605,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             ? attemptedItem.GoldPrice
             : attemptedItem.AtlasCoinPrice;
 
+
         AtlasBoardMetaEconomyOperationResult result =
             await bridge.PurchaseAsync(
                 attemptedItem.ItemId,
@@ -557,14 +613,17 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
                 operationId);
         EndOperation();
 
+
         if (!result.Success)
         {
             string localizedError = LocalizeError(result.ErrorKey);
+
 
             if (IsDeterministicBusinessFailure(result.ErrorKey))
             {
                 operationKeys.Remove(operationName);
             }
+
 
             ShowPurchaseResult(
                 false,
@@ -574,15 +633,18 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
                 -1,
                 localizedError);
 
+
             pendingItem = null;
             pendingCurrency = string.Empty;
             return;
         }
 
+
         operationKeys.Remove(operationName);
         int balanceAfter = attemptedCurrency == "gold"
             ? result.Gold
             : result.AtlasCoin;
+
 
         ShowPurchaseResult(
             true,
@@ -592,10 +654,12 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             balanceAfter,
             string.Empty);
 
+
         pendingItem = null;
         pendingCurrency = string.Empty;
         RefreshAfterOperationAsync();
     }
+
 
     private async void RedeemAsync()
     {
@@ -603,6 +667,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         {
             return;
         }
+
 
         string code = (redeemInput.text ?? string.Empty).Trim().ToUpperInvariant();
         if (code.Length < 4)
@@ -613,13 +678,16 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return;
         }
 
+
         string operationName = "redeem:" + code;
         string operationId = GetOrCreateOperationKey(operationName);
+
 
         BeginOperation("store.response.processing");
         AtlasBoardMetaEconomyOperationResult result =
             await bridge.RedeemCodeAsync(code, operationId);
         EndOperation();
+
 
         if (!result.Success)
         {
@@ -628,6 +696,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
                 LocalizeError(result.ErrorKey));
             return;
         }
+
 
         operationKeys.Remove(operationName);
         redeemInput.text = string.Empty;
@@ -639,6 +708,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         RefreshAfterOperationAsync();
     }
 
+
     private string GetOrCreateOperationKey(string operationName)
     {
         if (!operationKeys.TryGetValue(operationName, out string value) ||
@@ -648,8 +718,10 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             operationKeys[operationName] = value;
         }
 
+
         return value;
     }
+
 
     private void ChangePage(StorePage page)
     {
@@ -658,16 +730,19 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return;
         }
 
+
         currentPage = page;
         RebuildNavigation();
         RebuildCurrentPage();
     }
+
 
     private void ChangeCategory(string category)
     {
         activeCategory = category;
         RebuildItemsPage();
     }
+
 
     private void RebuildCurrentPage()
     {
@@ -676,11 +751,13 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return;
         }
 
+
         ClearChildren(contentRoot);
         itemContent = null;
         historyContent = null;
         redeemHistoryContent = null;
         redeemInput = null;
+
 
         switch (currentPage)
         {
@@ -702,9 +779,11 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         }
     }
 
+
     private void RebuildHomePage()
     {
         CreateSectionTitle(contentRoot, T("store.home.title"));
+
 
         GameObject daily =
             CreateCard(
@@ -785,6 +864,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
               DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() -
               snapshot.DailyClaimedAtMs >= 86400000L));
 
+
         GameObject featured =
             CreateCard(
                 contentRoot,
@@ -807,6 +887,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             new Vector2(0f, -62f));
         browse.onClick.AddListener(() => ChangePage(StorePage.Event));
 
+
         GameObject redeem =
             CreateCard(
                 contentRoot,
@@ -822,6 +903,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             Blue,
             new Vector2(0f, -62f));
         redeemButton.onClick.AddListener(() => ChangePage(StorePage.Redeem));
+
 
         GameObject dev =
             CreateCard(
@@ -853,6 +935,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         devWallet.interactable = bridge != null &&
             (bridge.IsLocalEmulatorMode || snapshot != null && snapshot.IsDeveloperTester);
 
+
         Button resetPurchases = CreateSmallButton(
             dev.transform,
             T("store.home.dev_reset"),
@@ -863,7 +946,9 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             ResetDevelopmentPurchasesAsync);
         resetPurchases.interactable = devWallet.interactable;
 
+
     }
+
 
     private static string StoreAccountText(
         string en, string tr, string es, string fr,
@@ -884,6 +969,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         }
     }
 
+
     private void OpenStoreSignIn()
     {
         if (!AtlasBoardAccountAccessUI.OpenLoginForStore())
@@ -903,16 +989,19 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         storeRoot.SetActive(false);
     }
 
+
     private void RebuildItemsPage()
     {
         ClearChildren(contentRoot);
         CreateSectionTitle(contentRoot, T("store.items.title"));
+
 
         string[] categories =
         {
             "all", "pawn", "dice_skin", "board_theme",
             "profile_frame", "emote", "map"
         };
+
 
         string[] keys =
         {
@@ -921,6 +1010,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             "store.category.profile", "store.category.emotes",
             "store.category.maps"
         };
+
 
         float startX = -486f;
         for (int i = 0; i < categories.Length; i++)
@@ -935,12 +1025,14 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             button.onClick.AddListener(() => ChangeCategory(captured));
         }
 
+
         itemContent = BuildScrollList(
             contentRoot,
             "StoreItems",
             new Vector2(0f, -35f),
             new Vector2(1110f, 390f),
             new Color32(235, 240, 243, 245));
+
 
         // Never hide unshipped drafts merely because an unrelated backend
         // catalog entry exists. The backend wins each identical ItemId.
@@ -952,6 +1044,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         // A page-wide "Purchases disabled" banner is misleading whenever
         // verified profile frames can be purchased in the same list.
 
+
         if (activeCategory != "all")
         {
             items = items.Where(item =>
@@ -960,6 +1053,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
                     activeCategory,
                     StringComparison.OrdinalIgnoreCase));
         }
+
 
         List<AtlasBoardStorefrontItem> list = items.ToList();
         if (list.Count == 0)
@@ -973,11 +1067,13 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return;
         }
 
+
         foreach (AtlasBoardStorefrontItem item in list)
         {
             AddStoreItemRow(itemContent, item);
         }
     }
+
 
     private void AddStoreItemRow(
         Transform parent,
@@ -985,12 +1081,14 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
     {
         GameObject row = CreateListRow(parent, 108f, Cream);
 
+
         CreatePanel(
             row.transform,
             "ItemAccent",
             new Vector2(-515f, 0f),
             new Vector2(8f, 92f),
             ItemAccentColor(item.ItemType));
+
 
         TMP_Text name = CreateText(
             row.transform,
@@ -1007,6 +1105,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         name.fontSizeMax = 19f;
         name.text = LocalizeItemName(item);
 
+
         TMP_Text type = CreateText(
             row.transform,
             12f,
@@ -1017,9 +1116,13 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             type.rectTransform,
             new Vector2(-300f, -23f),
             new Vector2(410f, 30f));
-        type.text =
-            T(ItemTypeKey(item.ItemType)) +
-            $"  •  catalog v{Mathf.Max(1, item.CatalogVersion)}";
+        type.enableAutoSizing = true;
+        type.fontSizeMin = 9f;
+        type.fontSizeMax = 12f;
+        type.textWrappingMode = TextWrappingModes.NoWrap;
+        type.overflowMode = TextOverflowModes.Ellipsis;
+        type.text = ItemTypeDescriptor(item.ItemType);
+
 
         // Profile art remains a dedicated inspect action; purchasing uses a
         // separate visible button on the same row.
@@ -1087,6 +1190,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             inspect.onClick.AddListener(() => ShowFramePreview(item.ItemId));
         }
 
+
         if (item.PreviewOnly)
         {
             bool isFrame = item.ItemType == "profile_frame" &&
@@ -1146,6 +1250,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return;
         }
 
+
         if (item.Owned)
         {
             GameObject ownedPlate = CreatePanel(
@@ -1154,6 +1259,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
                 new Vector2(360f, 0f),
                 new Vector2(300f, 54f),
                 new Color32(234, 242, 213, 255));
+
 
             TMP_Text owned = CreateText(
                 ownedPlate.transform,
@@ -1165,6 +1271,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             owned.text = T("store.items.owned");
             return;
         }
+
 
         // One checkout button per row. Prefer the Gold price when available;
         // Atlas Coin is used only for catalog entries that have no Gold price.
@@ -1185,6 +1292,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         }
     }
 
+
     private async void ClaimSeasonalChallengeAsync(string challengeId)
     {
         if (!CanStartOperation() || bridge == null) return;
@@ -1201,6 +1309,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         RefreshAfterOperationAsync();
     }
 
+
     private async void ClaimSeasonalTrackAsync(string tierId)
     {
         if (!CanStartOperation() || bridge == null) return;
@@ -1216,6 +1325,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         ShowMessagePopup("seasonal.popup.track_title", T("seasonal.response.track_claimed"));
         RefreshAfterOperationAsync();
     }
+
 
     private async void BuySeasonalItemAsync(AtlasBoardSeasonalLimitedItem item)
     {
@@ -1242,6 +1352,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         RefreshAfterOperationAsync();
     }
 
+
     private void RebuildEventPage()
     {
         CreateSectionTitle(contentRoot, T("seasonal.page.title"));
@@ -1251,6 +1362,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             BuildEventComingSoonPanel(seasonalOverview != null && seasonalOverview.Success);
             return;
         }
+
 
         GameObject summary = CreateCard(
             contentRoot,
@@ -1272,10 +1384,12 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             seasonalOverview.EventXp,
             FormatSeasonalEnd(seasonalOverview.Event.EndsAtEpochMs));
 
+
         BuildSeasonalChallenges();
         BuildSeasonalTrack();
         BuildSeasonalLimitedItems();
     }
+
 
     // Calm, seven-language showcase rather than one isolated "service unavailable" row.
     // The existing LIVE event path below remains unchanged if an event is active.
@@ -1290,10 +1404,12 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         Stretch(header.rectTransform, 12f);
         header.text = AtlasBoardReleaseUiText.EventsComingSoonTitle();
 
+
         TMP_Text symbol = CreateText(card.transform, 46f, FontStyles.Bold,
             TextAlignmentOptions.Center, Orange);
         SetAnchored(symbol.rectTransform, new Vector2(0f, 44f), new Vector2(200f, 65f));
         symbol.text = "★";
+
 
         TMP_Text body = CreateText(card.transform, 20f, FontStyles.Normal,
             TextAlignmentOptions.Center, TextDark);
@@ -1303,6 +1419,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         body.fontSizeMax = 20f;
         body.text = AtlasBoardReleaseUiText.EventsComingSoonBody();
 
+
         TMP_Text footer = CreateText(card.transform, 12f, FontStyles.Normal,
             TextAlignmentOptions.Center, TextDark);
         SetAnchored(footer.rectTransform, new Vector2(0f, -128f),
@@ -1310,6 +1427,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         footer.text = statusKnown ? AtlasBoardReleaseUiText.EventsComingSoonFooter() :
             AtlasBoardReleaseUiText.EventsStatusPendingFooter();
     }
+
 
     private void BuildSeasonalChallenges()
     {
@@ -1350,6 +1468,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         }
     }
 
+
     private void BuildSeasonalTrack()
     {
         GameObject card = CreateCard(
@@ -1384,6 +1503,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         }
     }
 
+
     private void BuildSeasonalLimitedItems()
     {
         GameObject card = CreateCard(
@@ -1416,6 +1536,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         }
     }
 
+
     private static string LocalizeSeasonalItemName(
         AtlasBoardSeasonalLimitedItem item)
     {
@@ -1427,6 +1548,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             : localized;
     }
 
+
     private string SeasonalRewardLabel(string rewardType)
     {
         switch (rewardType)
@@ -1436,6 +1558,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             default: return T("seasonal.ticket");
         }
     }
+
 
     private static string FormatSeasonalEnd(long epochMs)
     {
@@ -1453,9 +1576,11 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         }
     }
 
+
     private void RebuildRedeemPage()
     {
         CreateSectionTitle(contentRoot, T("store.redeem.title"));
+
 
         GameObject left = CreateCard(
             contentRoot,
@@ -1473,6 +1598,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             T("store.redeem.enter_body"),
             new Vector2(0f, 82f));
 
+
         redeemInput = CreateInput(
             left.transform,
             T("store.redeem.placeholder"),
@@ -1481,6 +1607,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         redeemInput.characterLimit = 32;
         redeemInput.contentType = TMP_InputField.ContentType.Standard;
 
+
         Button redeem = CreateWideButton(
             left.transform,
             T("store.redeem.button"),
@@ -1488,6 +1615,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             new Vector2(0f, -90f),
             new Vector2(300f, 58f));
         redeem.onClick.AddListener(RedeemAsync);
+
 
         TMP_Text safety = CreateText(
             left.transform,
@@ -1501,6 +1629,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             new Vector2(430f, 52f));
         safety.text = T("store.redeem.audit_note");
 
+
         GameObject right = CreateCard(
             contentRoot,
             "RedeemHistory",
@@ -1513,12 +1642,14 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             Orange,
             165f);
 
+
         redeemHistoryContent = BuildScrollList(
             right.transform,
             "RedeemHistoryList",
             new Vector2(0f, -35f),
             new Vector2(455f, 300f),
             new Color32(241, 236, 225, 255));
+
 
         List<AtlasBoardMetaHistoryItem> redeemed =
             snapshot != null
@@ -1527,11 +1658,13 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
                     .ToList()
                 : new List<AtlasBoardMetaHistoryItem>();
 
+
         if (redeemed.Count == 0)
         {
             AddInfoRow(redeemHistoryContent, T("store.redeem.history_empty"));
             return;
         }
+
 
         foreach (AtlasBoardMetaHistoryItem item in redeemed)
         {
@@ -1539,9 +1672,11 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         }
     }
 
+
     private void RebuildHistoryPage()
     {
         CreateSectionTitle(contentRoot, T("store.history.title"));
+
 
         TMP_Text note = CreateText(
             contentRoot,
@@ -1552,6 +1687,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         SetAnchored(note.rectTransform, new Vector2(0f, 175f), new Vector2(980f, 48f));
         note.text = T("store.history.audit_note");
 
+
         historyContent = BuildScrollList(
             contentRoot,
             "UnifiedHistory",
@@ -1559,17 +1695,20 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             new Vector2(1110f, 430f),
             new Color32(235, 240, 243, 245));
 
+
         if (snapshot == null || snapshot.History.Count == 0)
         {
             AddInfoRow(historyContent, AtlasBoardReleaseUiText.NoTransactions());
             return;
         }
 
+
         foreach (AtlasBoardMetaHistoryItem item in snapshot.History)
         {
             AddHistoryRow(historyContent, item, false);
         }
     }
+
 
     private void AddHistoryRow(
         Transform parent,
@@ -1582,7 +1721,9 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         float detailY = compact ? 3f : -13f;
         float idY = compact ? -39f : -40f;
 
+
         GameObject row = CreateListRow(parent, rowHeight, Cream);
+
 
         TMP_Text header = CreateText(
             row.transform,
@@ -1601,6 +1742,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             HistoryTypeLabel(item.Type) +
             "  |  " + FormatServerTime(item.CreatedAtUtc);
 
+
         TMP_Text detail = CreateText(
             row.transform,
             compact ? 12f : 13f,
@@ -1615,6 +1757,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         detail.fontSizeMin = 9f;
         detail.fontSizeMax = compact ? 12f : 13f;
         detail.text = HistoryDetail(item);
+
 
         TMP_Text id = CreateText(
             row.transform,
@@ -1634,6 +1777,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             (item.TransactionId ?? string.Empty);
     }
 
+
     private void BuildUi()
     {
         GameObject canvasObject = new GameObject(
@@ -1644,14 +1788,17 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             typeof(GraphicRaycaster));
         canvasObject.transform.SetParent(transform, false);
 
+
         canvas = canvasObject.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 560;
+
 
         CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920f, 1080f);
         scaler.matchWidthOrHeight = 0.5f;
+
 
         storeRoot = CreatePanel(
             canvasObject.transform,
@@ -1661,6 +1808,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             BackgroundBlue);
         Stretch(storeRoot.GetComponent<RectTransform>());
         storeRoot.AddComponent<AtlasBoardEscapeBlocker>();
+
 
         GameObject ribbon = CreatePanel(
             storeRoot.transform,
@@ -1672,6 +1820,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         outline.effectColor = new Color32(169, 112, 0, 255);
         outline.effectDistance = new Vector2(4f, -4f);
 
+
         titleText = CreateText(
             ribbon.transform,
             36f,
@@ -1680,6 +1829,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             Color.white);
         Stretch(titleText.rectTransform, 8f);
 
+
         GameObject profileCard = CreateCard(
             storeRoot.transform,
             "ProfileCard",
@@ -1687,12 +1837,14 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             new Vector2(455f, 120f),
             Cream);
 
+
         GameObject avatar = CreatePanel(
             profileCard.transform,
             "Avatar",
             new Vector2(-160f, 0f),
             new Vector2(88f, 88f),
             new Color32(68, 153, 203, 255));
+
 
         storeAvatarInitialText = CreateText(
             avatar.transform,
@@ -1702,6 +1854,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             Color.white);
         storeAvatarInitialText.gameObject.name = "AvatarInitial";
         Stretch(storeAvatarInitialText.rectTransform, 4f);
+
 
         storeProfileNameText = CreateText(
             profileCard.transform,
@@ -1715,6 +1868,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             new Vector2(70f, -34f),
             new Vector2(235f, 30f));
 
+
         storeGoldText = CreateText(
             profileCard.transform,
             16f,
@@ -1724,8 +1878,9 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         storeGoldText.gameObject.name = "ProfileCash";
         SetAnchored(
             storeGoldText.rectTransform,
-            new Vector2(70f, 3f),
+            new Vector2(70f, 36f),
             new Vector2(235f, 26f));
+
 
         storeCoinText = CreateText(
             profileCard.transform,
@@ -1736,8 +1891,9 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         storeCoinText.gameObject.name = "ProfileGold";
         SetAnchored(
             storeCoinText.rectTransform,
-            new Vector2(70f, 36f),
+            new Vector2(70f, 3f),
             new Vector2(235f, 26f));
+
 
         Button close = CreateSmallButton(
             storeRoot.transform,
@@ -1747,6 +1903,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             new Vector2(82f, 70f));
         close.onClick.AddListener(CloseStore);
 
+
         GameObject nav = CreatePanel(
             storeRoot.transform,
             "Navigation",
@@ -1754,7 +1911,9 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             new Vector2(1180f, 72f),
             new Color32(233, 233, 239, 245));
 
+
         BuildNavigationButtons(nav.transform);
+
 
         GameObject content = CreatePanel(
             storeRoot.transform,
@@ -1765,11 +1924,14 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         contentRoot = content.GetComponent<RectTransform>();
 
 
+
+
         BuildConfirmation(storeRoot.transform);
         BuildResultPopup(storeRoot.transform);
         BuildFramePreview(storeRoot.transform);
         ApplyResolvedStoreFonts();
     }
+
 
     private void BuildNavigationButtons(Transform parent)
     {
@@ -1791,6 +1953,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             "store.tab.history"
         };
 
+
         for (int i = 0; i < pages.Length; i++)
         {
             StorePage captured = pages[i];
@@ -1805,6 +1968,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         }
     }
 
+
     private void RebuildNavigation()
     {
         GameObject nav = storeRoot != null
@@ -1815,9 +1979,11 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return;
         }
 
+
         ClearChildren(nav.transform);
         BuildNavigationButtons(nav.transform);
     }
+
 
     private void BuildConfirmation(Transform parent)
     {
@@ -1832,6 +1998,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         outline.effectColor = Orange;
         outline.effectDistance = new Vector2(3f, -3f);
 
+
         confirmTitleText = CreateText(
             confirmRoot.transform,
             25f,
@@ -1839,6 +2006,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             TextAlignmentOptions.Center,
             TextDark);
         SetAnchored(confirmTitleText.rectTransform, new Vector2(0f, 120f), new Vector2(520f, 48f));
+
 
         confirmBodyText = CreateText(
             confirmRoot.transform,
@@ -1849,6 +2017,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         SetAnchored(confirmBodyText.rectTransform, new Vector2(0f, 28f), new Vector2(520f, 140f));
         confirmBodyText.overflowMode = TextOverflowModes.Overflow;
 
+
         Button buy = CreateSmallButton(
             confirmRoot.transform,
             T("store.purchase.buy"),
@@ -1857,6 +2026,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             new Vector2(220f, 58f));
         confirmBuyText = buy.GetComponentInChildren<TMP_Text>();
         buy.onClick.AddListener(ConfirmPurchaseAsync);
+
 
         Button cancel = CreateSmallButton(
             confirmRoot.transform,
@@ -1867,6 +2037,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         confirmCancelText = cancel.GetComponentInChildren<TMP_Text>();
         cancel.onClick.AddListener(() => confirmRoot.SetActive(false));
     }
+
 
     private void BuildFramePreview(Transform parent)
     {
@@ -1886,11 +2057,13 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         framePreviewTitle.fontSizeMin = 17f;
         framePreviewTitle.fontSizeMax = 26f;
 
+
         GameObject previewWell = CreatePanel(card.transform,
             "FramePreviewWell", new Vector2(0f, 16f),
             new Vector2(290f, 290f), PanelBlue);
         framePreviewArtSlot =
             previewWell.GetComponent<RectTransform>();
+
 
         framePreviewPrice = CreateText(card.transform,
             16f, FontStyles.Bold, TextAlignmentOptions.Center, DarkBlue);
@@ -1900,12 +2073,14 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         framePreviewPrice.fontSizeMin = 11f;
         framePreviewPrice.fontSizeMax = 16f;
 
+
         framePreviewClose = CreateSmallButton(card.transform,
             T("store.common.cancel"), Blue,
             new Vector2(0f, -255f), new Vector2(255f, 55f));
         framePreviewClose.onClick.AddListener(() =>
             framePreviewRoot.SetActive(false));
     }
+
 
     private void ShowFramePreview(string itemId)
     {
@@ -1942,6 +2117,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         framePreviewRoot.transform.SetAsLastSibling();
     }
 
+
     private void RefreshFramePreviewLanguage()
     {
         if (framePreviewRoot == null ||
@@ -1971,6 +2147,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         }
     }
 
+
     private void BuildResultPopup(Transform parent)
     {
         resultRoot = CreatePanel(
@@ -1981,9 +2158,11 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             Cream);
         resultRoot.AddComponent<AtlasBoardEscapeBlocker>();
 
+
         Outline outline = resultRoot.AddComponent<Outline>();
         outline.effectColor = Blue;
         outline.effectDistance = new Vector2(3f, -3f);
+
 
         resultTitleText = CreateText(
             resultRoot.transform,
@@ -1995,6 +2174,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             resultTitleText.rectTransform,
             new Vector2(0f, 125f),
             new Vector2(620f, 52f));
+
 
         resultBodyText = CreateText(
             resultRoot.transform,
@@ -2008,6 +2188,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             new Vector2(610f, 160f));
         resultBodyText.overflowMode = TextOverflowModes.Overflow;
 
+
         Button ok = CreateSmallButton(
             resultRoot.transform,
             T("store.purchase.result_ok"),
@@ -2017,6 +2198,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         resultOkText = ok.GetComponentInChildren<TMP_Text>(true);
         ok.onClick.AddListener(() => resultRoot.SetActive(false));
     }
+
 
     private void ShowPurchaseResult(
         bool success,
@@ -2032,8 +2214,10 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return;
         }
 
+
         string itemName = LocalizeItemName(item);
         string currencyLabel = CurrencyLabel(currency);
+
 
         if (success)
         {
@@ -2044,6 +2228,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
                 price,
                 currencyLabel);
 
+
             if (balanceAfter >= 0)
             {
                 body += "\n\n" +
@@ -2052,6 +2237,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
                         balanceAfter,
                         currencyLabel);
             }
+
 
             resultBodyText.text = body;
         }
@@ -2065,14 +2251,17 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
                 "\n\n" + T("store.purchase.no_charge");
         }
 
+
         if (resultOkText != null)
         {
             resultOkText.text = T("store.purchase.result_ok");
         }
 
+
         resultRoot.SetActive(true);
         resultRoot.transform.SetAsLastSibling();
     }
+
 
     private void UpdateWalletText()
     {
@@ -2082,31 +2271,37 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
                 ? snapshot.DisplayName.Trim()
                 : T("menu.player");
 
+
         bool walletVerified = snapshot != null && snapshot.Success &&
             ((bridge != null && bridge.IsLocalEmulatorMode) || snapshot.WalletVerified);
         int gold = walletVerified ? snapshot.Gold : 0;
         int coin = walletVerified ? snapshot.AtlasCoin : 0;
         string initial = GetProfileInitial(displayName);
 
+
         if (storeProfileNameText != null)
         {
             storeProfileNameText.text = displayName;
         }
+
 
         if (storeGoldText != null)
         {
             storeGoldText.text = $"{T("store.wallet.gold")}: {gold:N0}";
         }
 
+
         if (storeCoinText != null)
         {
             storeCoinText.text = $"{T("store.wallet.coin")}: {coin:N0}";
         }
 
+
         if (storeAvatarInitialText != null)
         {
             storeAvatarInitialText.text = initial;
         }
+
 
         // Verified balances are shared immediately. During auth/network
         // readiness, every menu uses the neutral initial zero display.
@@ -2118,6 +2313,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             initial);
     }
 
+
     private static void SyncSharedProfileCards(
         string displayName,
         int gold,
@@ -2128,11 +2324,13 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             UnityEngine.Object.FindAnyObjectByType<
                 AtlasBoardMainMenuController>();
 
+
         if (menuController != null)
         {
             const System.Reflection.BindingFlags flags =
                 System.Reflection.BindingFlags.Instance |
                 System.Reflection.BindingFlags.NonPublic;
+
 
             Type controllerType = menuController.GetType();
             controllerType.GetField("profileName", flags)
@@ -2140,8 +2338,10 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             menuController.ApplyVerifiedMetaWallet(gold, coin);
         }
 
+
         TMP_Text[] texts =
             Resources.FindObjectsOfTypeAll<TMP_Text>();
+
 
         foreach (TMP_Text text in texts)
         {
@@ -2150,6 +2350,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             {
                 continue;
             }
+
 
             switch (text.gameObject.name)
             {
@@ -2171,6 +2372,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         }
     }
 
+
     private static string GetProfileInitial(string displayName)
     {
         if (string.IsNullOrWhiteSpace(displayName))
@@ -2178,11 +2380,13 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return "A";
         }
 
+
         string trimmed = displayName.Trim();
         return trimmed.Length > 0
             ? trimmed.Substring(0, 1).ToUpperInvariant()
             : "A";
     }
+
 
     private void ShowMessagePopup(
         string titleKey,
@@ -2195,17 +2399,21 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return;
         }
 
+
         resultTitleText.text = T(titleKey);
         resultBodyText.text = body ?? string.Empty;
+
 
         if (resultOkText != null)
         {
             resultOkText.text = T("store.purchase.result_ok");
         }
 
+
         resultRoot.SetActive(true);
         resultRoot.transform.SetAsLastSibling();
     }
+
 
     private string LocalizeItemName(AtlasBoardStorefrontItem item)
     {
@@ -2213,6 +2421,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         {
             return string.Empty;
         }
+
 
         if (item.PreviewOnly)
         {
@@ -2223,12 +2432,14 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
                 item.ItemId, language);
         }
 
+
         string key = "store.item." + item.ItemId;
         string localized = T(key);
         return string.Equals(localized, key, StringComparison.Ordinal)
             ? item.DisplayName ?? item.ItemId
             : localized;
     }
+
 
     private static string ItemTypeKey(string itemType)
     {
@@ -2244,6 +2455,58 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         }
     }
 
+
+    // Customer-facing store metadata must never expose catalog revisions or
+    // localization/backend keys. Keep the descriptor short enough for every
+    // supported language and useful enough to identify the product family.
+    private static string ItemTypeDescriptor(string itemType)
+    {
+        switch (itemType)
+        {
+            case "pawn":
+                return StoreAccountText(
+                    "PAWN • COSMETIC", "PİYON • KOZMETİK",
+                    "PEÓN • COSMÉTICO", "PION • COSMÉTIQUE",
+                    "SPIELFIGUR • KOSMETIK", "말 • 꾸미기",
+                    "ФИШКА • КОСМЕТИКА");
+            case "dice_skin":
+                return StoreAccountText(
+                    "DICE • COSMETIC", "ZAR • KOZMETİK",
+                    "DADOS • COSMÉTICO", "DÉS • COSMÉTIQUE",
+                    "WÜRFEL • KOSMETIK", "주사위 • 꾸미기",
+                    "КУБИКИ • КОСМЕТИКА");
+            case "board_theme":
+                return StoreAccountText(
+                    "BOARD • THEME", "TAHTA • TEMA",
+                    "TABLERO • TEMA", "PLATEAU • THÈME",
+                    "SPIELBRETT • THEMA", "보드 • 테마",
+                    "ПОЛЕ • ТЕМА");
+            case "profile_frame":
+                return StoreAccountText(
+                    "PROFILE • FRAME", "PROFİL • ÇERÇEVE",
+                    "PERFIL • MARCO", "PROFIL • CADRE",
+                    "PROFIL • RAHMEN", "프로필 • 프레임",
+                    "ПРОФИЛЬ • РАМКА");
+            case "emote":
+                return StoreAccountText(
+                    "EMOTE • EXPRESSION", "EMOTE • İFADE",
+                    "EMOTE • EXPRESIÓN", "EMOTE • EXPRESSION",
+                    "EMOTE • AUSDRUCK", "이모트 • 표현",
+                    "ЭМОЦИЯ • ВЫРАЖЕНИЕ");
+            case "map":
+                return StoreAccountText(
+                    "MAP • COUNTRY BOARD", "HARİTA • ÜLKE TAHTASI",
+                    "MAPA • TABLERO DE PAÍS", "CARTE • PLATEAU PAYS",
+                    "KARTE • LÄNDERSPIELBRETT", "지도 • 국가 보드",
+                    "КАРТА • ПОЛЕ СТРАНЫ");
+            default:
+                return StoreAccountText(
+                    "ITEM", "ÜRÜN", "ARTÍCULO", "ARTICLE",
+                    "ARTIKEL", "아이템", "ПРЕДМЕТ");
+        }
+    }
+
+
     private static Color ItemAccentColor(string itemType)
     {
         switch (itemType)
@@ -2258,12 +2521,14 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         }
     }
 
+
     private static string CurrencyLabel(string currency)
     {
         return currency == "atlas_coin"
             ? T("store.wallet.coin")
             : T("store.wallet.gold");
     }
+
 
     private static string HistoryTypeLabel(string type)
     {
@@ -2278,27 +2543,67 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         }
     }
 
+
+    private AtlasBoardStorefrontItem FindHistoryCatalogItem(string itemId)
+    {
+        if (string.IsNullOrWhiteSpace(itemId))
+            return null;
+
+        AtlasBoardStorefrontItem serverItem = snapshot != null
+            ? snapshot.Items.FirstOrDefault(entry =>
+                entry != null &&
+                string.Equals(entry.ItemId, itemId, StringComparison.Ordinal))
+            : null;
+        if (serverItem != null)
+            return serverItem;
+
+        return AtlasBoardShopContentDraft.CreatePreview().FirstOrDefault(entry =>
+            entry != null &&
+            string.Equals(entry.ItemId, itemId, StringComparison.Ordinal));
+    }
+
+
+    private static string InferHistoryItemType(string itemId)
+    {
+        if (AtlasBoardRtdbMetaEconomy.IsPremiumMap(itemId)) return "map";
+        if (AtlasBoardEmotes.IsEmote(itemId)) return "emote";
+        if (AtlasBoardRtdbMetaEconomy.IsPaidPawn(itemId)) return "pawn";
+        if (AtlasBoardRtdbMetaEconomy.IsDice(itemId)) return "dice_skin";
+        if (AtlasBoardRtdbMetaEconomy.IsBoard(itemId)) return "board_theme";
+        if (!string.IsNullOrWhiteSpace(itemId) &&
+            itemId.StartsWith("frame_", StringComparison.Ordinal))
+            return "profile_frame";
+        return string.Empty;
+    }
+
+
     private string HistoryDetail(AtlasBoardMetaHistoryItem item)
     {
         if (item.Type == "PURCHASE")
         {
-            string itemName = item.Detail;
-            AtlasBoardStorefrontItem catalogItem =
-                snapshot != null
-                    ? snapshot.Items.FirstOrDefault(entry =>
-                        string.Equals(
-                            entry.ItemId,
-                            item.Detail,
-                            StringComparison.Ordinal))
-                    : null;
-            if (catalogItem != null)
-            {
-                itemName = LocalizeItemName(catalogItem);
-            }
+            string itemId = !string.IsNullOrWhiteSpace(item.ReferenceId)
+                ? item.ReferenceId
+                : item.Detail;
+            AtlasBoardStorefrontItem catalogItem = FindHistoryCatalogItem(itemId);
+            string itemName = catalogItem != null
+                ? LocalizeItemName(catalogItem)
+                : StoreAccountText(
+                    "Purchased item", "Satın alınan ürün",
+                    "Artículo comprado", "Article acheté",
+                    "Gekaufter Artikel", "구매한 아이템",
+                    "Купленный предмет");
+            string itemType = catalogItem != null
+                ? catalogItem.ItemType
+                : InferHistoryItemType(itemId);
+            int paid = Mathf.Abs(item.Amount);
 
-            return $"{itemName}  |  {item.Amount:N0} " +
-                   $"{CurrencyLabel(item.CurrencyId)}  |  {item.Status}";
+
+            return ItemTypeDescriptor(itemType) +
+                   "  •  " + itemName +
+                   "  •  " + paid.ToString("N0") + " " +
+                   CurrencyLabel(item.CurrencyId);
         }
+
 
         if (item.Type == "DAILY" || item.Type == "DEV_GRANT")
             return "+" + item.Amount.ToString("N0") + " " + CurrencyLabel(item.CurrencyId);
@@ -2306,6 +2611,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return "Development test inventory reset";
         return item.Detail ?? string.Empty;
     }
+
 
     private static string FormatServerTime(string utc)
     {
@@ -2318,6 +2624,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return T("store.history.time_pending");
         }
 
+
         DateTime local = parsed.ToLocalTime();
         TimeSpan offset = TimeZoneInfo.Local.GetUtcOffset(local);
         string sign = offset < TimeSpan.Zero ? "-" : "+";
@@ -2326,9 +2633,11 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             ? $"UTC{sign}{absolute.Hours}"
             : $"UTC{sign}{absolute.Hours}:{absolute.Minutes:00}";
 
+
         return local.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) +
                $" ({offsetText})";
     }
+
 
     private static string DescribeOperationRewards(
         List<AtlasBoardMetaRewardLine> rewards)
@@ -2337,6 +2646,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         {
             return T("store.redeem.reward_generic");
         }
+
 
         List<string> output = new List<string>();
         foreach (AtlasBoardMetaRewardLine reward in rewards)
@@ -2357,10 +2667,12 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             }
         }
 
+
         return output.Count > 0
             ? string.Join(", ", output)
             : T("store.redeem.reward_generic");
     }
+
 
     private static bool IsDeterministicBusinessFailure(string key)
     {
@@ -2371,6 +2683,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
                key == "commerce.error.price_missing" ||
                key == "commerce.error.price_invalid";
     }
+
 
     private static string LocalizeError(string key)
     {
@@ -2432,10 +2745,12 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         }
     }
 
+
     private static string T(string key, params object[] args)
     {
         return AtlasBoardL.T(key, args);
     }
+
 
     private static GameObject CreatePanel(
         Transform parent,
@@ -2459,6 +2774,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         return root;
     }
 
+
     private static GameObject CreateCard(
         Transform parent,
         string name,
@@ -2473,6 +2789,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         return card;
     }
 
+
     private static void CreateSectionTitle(Transform parent, string value)
     {
         TMP_Text title = CreateText(
@@ -2484,6 +2801,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         SetAnchored(title.rectTransform, new Vector2(0f, 260f), new Vector2(900f, 52f));
         title.text = value;
     }
+
 
     private static void AddCardTitle(
         Transform parent,
@@ -2501,6 +2819,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
                 width = Mathf.Max(180f, measuredWidth - 24f);
             }
         }
+
 
         GameObject bar = CreatePanel(
             parent,
@@ -2521,6 +2840,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         text.text = value;
     }
 
+
     private static void AddCardBody(
         Transform parent,
         string value,
@@ -2540,6 +2860,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         text.text = value;
     }
 
+
     private static Button CreateWideButton(
         Transform parent,
         string label,
@@ -2554,6 +2875,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             position,
             size ?? new Vector2(320f, 52f));
     }
+
 
     private static Button CreateSmallButton(
         Transform parent,
@@ -2576,6 +2898,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         rect.sizeDelta = size;
         root.GetComponent<Image>().color = color;
 
+
         Button button = root.GetComponent<Button>();
         TMP_Text text = CreateText(
             root.transform,
@@ -2590,6 +2913,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         text.fontSizeMax = 16f;
         return button;
     }
+
 
     private static TMP_InputField CreateInput(
         Transform parent,
@@ -2611,6 +2935,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         rect.sizeDelta = size;
         root.GetComponent<Image>().color = Color.white;
 
+
         TMP_Text text = CreateText(
             root.transform,
             18f,
@@ -2618,6 +2943,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             TextAlignmentOptions.MidlineLeft,
             TextDark);
         Stretch(text.rectTransform, 14f);
+
 
         TMP_Text hint = CreateText(
             root.transform,
@@ -2628,11 +2954,13 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         Stretch(hint.rectTransform, 14f);
         hint.text = placeholder;
 
+
         TMP_InputField input = root.GetComponent<TMP_InputField>();
         input.textComponent = text;
         input.placeholder = hint;
         return input;
     }
+
 
     private static RectTransform BuildScrollList(
         Transform parent,
@@ -2655,6 +2983,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         rootRect.sizeDelta = size;
         root.GetComponent<Image>().color = color;
 
+
         GameObject viewport = new GameObject(
             "Viewport",
             typeof(RectTransform),
@@ -2664,6 +2993,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         RectTransform viewportRect = viewport.GetComponent<RectTransform>();
         Stretch(viewportRect);
         viewport.GetComponent<Image>().color = Color.clear;
+
 
         GameObject content = new GameObject(
             "Content",
@@ -2678,6 +3008,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         contentRect.offsetMin = new Vector2(8f, 0f);
         contentRect.offsetMax = new Vector2(-8f, 0f);
 
+
         VerticalLayoutGroup layout = content.GetComponent<VerticalLayoutGroup>();
         layout.spacing = 7f;
         layout.padding = new RectOffset(8, 8, 8, 8);
@@ -2686,8 +3017,10 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         layout.childForceExpandHeight = false;
         layout.childForceExpandWidth = true;
 
+
         ContentSizeFitter fitter = content.GetComponent<ContentSizeFitter>();
         fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
 
         ScrollRect scroll = root.GetComponent<ScrollRect>();
         scroll.viewport = viewportRect;
@@ -2698,6 +3031,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         scroll.scrollSensitivity = 24f;
         return contentRect;
     }
+
 
     private static GameObject CreateListRow(
         Transform parent,
@@ -2717,6 +3051,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         return row;
     }
 
+
     private static void AddInfoRow(Transform parent, string value)
     {
         GameObject row = CreateListRow(parent, 64f, Cream);
@@ -2729,6 +3064,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         Stretch(text.rectTransform, 8f);
         text.text = value;
     }
+
 
     private static TMP_Text CreateText(
         Transform parent,
@@ -2744,12 +3080,14 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         root.transform.SetParent(parent, false);
         TextMeshProUGUI text = root.GetComponent<TextMeshProUGUI>();
 
+
         AtlasBoardLocalizationManager localization =
             AtlasBoardLocalizationManager.Instance;
         if (localization != null)
         {
             text.font = localization.ResolveFont(text.font);
         }
+
 
         text.fontSize = size;
         text.fontStyle = style;
@@ -2760,18 +3098,22 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         return text;
     }
 
+
     private void ApplyResolvedStoreFonts()
     {
         AtlasBoardLocalizationManager localization =
             AtlasBoardLocalizationManager.Instance;
+
 
         if (localization == null || canvas == null)
         {
             return;
         }
 
+
         TMP_Text[] texts =
             canvas.GetComponentsInChildren<TMP_Text>(true);
+
 
         foreach (TMP_Text text in texts)
         {
@@ -2780,8 +3122,10 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
                 continue;
             }
 
+
             TMP_FontAsset resolved =
                 localization.ResolveFont(text.font);
+
 
             if (resolved != null && text.font != resolved)
             {
@@ -2789,6 +3133,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             }
         }
     }
+
 
     private static void SetAnchored(
         RectTransform rect,
@@ -2802,6 +3147,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         rect.sizeDelta = size;
     }
 
+
     private static void Stretch(RectTransform rect, float padding = 0f)
     {
         rect.anchorMin = Vector2.zero;
@@ -2809,6 +3155,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         rect.offsetMin = new Vector2(padding, padding);
         rect.offsetMax = new Vector2(-padding, -padding);
     }
+
 
     private static GameObject FindDirectChild(Transform parent, string name)
     {
@@ -2821,8 +3168,10 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             }
         }
 
+
         return null;
     }
+
 
     private static void ClearChildren(Transform parent)
     {
@@ -2831,11 +3180,13 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             return;
         }
 
+
         for (int i = parent.childCount - 1; i >= 0; i--)
         {
             UnityEngine.Object.Destroy(parent.GetChild(i).gameObject);
         }
     }
+
 
     private static string Escape(string value)
     {

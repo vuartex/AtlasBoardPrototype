@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
 
+
 /// <summary>
 /// Spark-only, client-hosted Casual match transport.
 /// The host alone writes authoritative frames. Authenticated remote seats send
@@ -17,6 +18,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
     private const string Database =
         "https://atlasboard-usa-default-rtdb.europe-west1.firebasedatabase.app";
 
+
     [Serializable]
     private sealed class MatchState
     {
@@ -24,6 +26,17 @@ public static class AtlasBoardSparkRtdbMatchTransport
         public string snapshotJson, seatsJson;
         public int revision, eventSequence, authorityEpoch, networkSchemaVersion;
         public long createdAt, updatedAt, hostHeartbeatAt;
+    }
+
+    [Serializable]
+    private sealed class CompletedMatchArchive
+    {
+        public string matchId, lobbyId, hostUid;
+        public string snapshotJson, seatsJson, digest;
+        public string mapId, themeId;
+        public int roundLimit;
+        public int revision, eventSequence, authorityEpoch, networkSchemaVersion;
+        public long createdAt, completedAt;
     }
     [Serializable]
     private sealed class IntentWire
@@ -89,6 +102,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
         public bool Ok => Status >= 200 && Status < 300;
     }
 
+
     private const long HostCrashLeaseMs = 12000L;
     private const long AuthorityCandidatePresenceMs = 10000L;
     private static long Now => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
@@ -104,6 +118,8 @@ public static class AtlasBoardSparkRtdbMatchTransport
     private static string EscapeJson(string raw) => (raw ?? string.Empty)
         .Replace("\\", "\\\\").Replace("\"", "\\\"");
     private static string StatePath(string match) => "matchState/" + PathKey(match);
+    private static string ArchivePath(string match) =>
+        "completedMatchArchives/" + PathKey(match);
     private static string IntentRoot(string lobby) => "intents/" + PathKey(lobby);
     private static string AckRoot(string lobby) => "intentAcks/" + PathKey(lobby);
     private static string FailReason(Response r) =>
@@ -112,6 +128,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
         r.Status == 0 ? "connection_failed" : "http_" + r.Status;
     private static AtlasMatchNetworkResult Failure(string detail) =>
         AtlasMatchNetworkResult.Fail("match.error.service_unavailable", detail);
+
 
     private static string EncodeController(AtlasLobbyMemberSnapshot member)
     {
@@ -136,6 +153,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
         return string.Empty;
     }
 
+
     private static string EncodeConnection(AtlasSeatConnectionState state)
     {
         switch (state)
@@ -148,6 +166,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
             default: return string.Empty;
         }
     }
+
 
     private static string NormalizeController(string wire, string mode)
     {
@@ -162,6 +181,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
             return "temporary_bot";
         return wire ?? string.Empty;
     }
+
 
     public static bool ValidateSeatWireContract()
     {
@@ -182,12 +202,14 @@ public static class AtlasBoardSparkRtdbMatchTransport
             EncodeConnection(AtlasSeatConnectionState.Connected) == "connected";
     }
 
+
     internal static async Task<bool> CreateFromLobbyAsync(
         AtlasLobbySnapshot lobby, string token)
     {
         if (lobby == null || string.IsNullOrWhiteSpace(lobby.MatchId) ||
             string.IsNullOrWhiteSpace(lobby.LobbyId) ||
             string.IsNullOrWhiteSpace(token)) return false;
+
 
         List<SeatWire> seats = new List<SeatWire>();
         if (lobby.Members != null)
@@ -223,6 +245,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
         RoomMetaWire existingMeta = Decode<RoomMetaWire>(metaRead.Body);
         if (metaRead.Ok && existingMeta != null)
             initialAuthorityEpoch = Math.Max(1, existingMeta.authorityEpoch + 1);
+
 
         MatchState initial = new MatchState {
             matchId = lobby.MatchId,
@@ -294,11 +317,13 @@ public static class AtlasBoardSparkRtdbMatchTransport
         return result.Ok;
     }
 
+
     internal static async Task<bool> DeleteCreatedMatchAsync(string matchId, string token)
     {
         if (string.IsNullOrWhiteSpace(matchId)) return true;
         return (await Send("DELETE", StatePath(matchId), token)).Ok;
     }
+
 
     internal static async Task<AtlasMatchNetworkResult> SnapshotAsync(
         string matchId, string accountId, string token)
@@ -313,6 +338,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
             Snapshot = ToSnapshot(state, accountId)
         };
     }
+
 
     internal static async Task<AtlasMatchNetworkResult> PublishAsync(
         string matchId, string uid, string token, int expectedRevision,
@@ -342,8 +368,25 @@ public static class AtlasBoardSparkRtdbMatchTransport
         if (!written.Ok)
             return AtlasMatchNetworkResult.Fail(
                 "match.error.stale_client_state", "RTDB publish rejected: " + FailReason(written));
+
+        if (string.Equals(state.phase, "match_complete", StringComparison.Ordinal) &&
+            string.Equals(state.status, "complete", StringComparison.Ordinal))
+        {
+            bool archived =
+                await EnsureCompletedArchiveAsync(state, uid, token);
+
+            if (!archived)
+            {
+                Debug.LogWarning(
+                    "ATB_MATCH_ARCHIVE ready=false stage=publish_complete " +
+                    "match=" + state.matchId +
+                    " revision=" + state.revision);
+            }
+        }
+
         return new AtlasMatchNetworkResult { Success = true, Revision = state.revision };
     }
+
 
     internal static async Task<AtlasMatchNetworkResult> SubmitAsync(
         string matchId, string uid, string token, string commandId,
@@ -410,6 +453,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
         }
         return Failure("RTDB intent rejected: " + FailReason(result));
     }
+
 
     internal static async Task<AtlasMatchNetworkResult> PendingAsync(
         string matchId, string uid, string token, string verifiedLobbyId = "")
@@ -485,6 +529,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
         return new AtlasMatchNetworkResult { Success = true, Intents = list.ToArray() };
     }
 
+
     internal static async Task<AtlasMatchNetworkResult> AcknowledgeAsync(
         string matchId, string uid, string token, IEnumerable<string> ids)
     {
@@ -518,6 +563,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
         return new AtlasMatchNetworkResult { Success = true, Acknowledged = processed };
     }
 
+
     internal static async Task<AtlasMatchNetworkResult> TouchAsync(
         string matchId, string uid, string token)
     {
@@ -530,11 +576,13 @@ public static class AtlasBoardSparkRtdbMatchTransport
         return state;
     }
 
+
     internal static async Task<AtlasMatchNetworkResult> LeaveAsync(
         string matchId, string uid, string token)
     {
         AtlasMatchNetworkResult state = await SnapshotAsync(matchId, uid, token);
         if (!state.Success || state.Snapshot == null) return state;
+
 
         if (state.Snapshot.LocalIsHost)
         {
@@ -547,11 +595,13 @@ public static class AtlasBoardSparkRtdbMatchTransport
                 matchId, uid, token);
         }
 
+
         Response result = await Send("PUT", "matchPresence/" + PathKey(matchId) +
             "/" + PathKey(uid), token,
             "{\"online\":false,\"lastSeenAt\":" + Now + "}");
         if (!result.Ok)
             return Failure("RTDB departure: " + FailReason(result));
+
 
         // This is an EXPLICIT Leave Match, not a transient disconnect or a
         // cold app restart. RTDB rules permit this UID to deactivate only
@@ -575,6 +625,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
         return state;
     }
 
+
     private static async Task<AtlasMatchNetworkResult>
         PrepareGracefulHostDepartureAsync(
             string matchId, string uid, string token)
@@ -582,8 +633,10 @@ public static class AtlasBoardSparkRtdbMatchTransport
         long now = Now;
         string matchPath = StatePath(matchId);
 
+
         Response matchRead = await Send(
             "GET", matchPath, token, null, null, true);
+
 
         MatchState state = Decode<MatchState>(matchRead.Body);
         if (!matchRead.Ok ||
@@ -595,6 +648,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
                 FailReason(matchRead));
         }
 
+
         if (!string.Equals(
                 state.hostUid,
                 uid,
@@ -605,9 +659,11 @@ public static class AtlasBoardSparkRtdbMatchTransport
                 "Only the current Host can arm graceful handoff.");
         }
 
+
         SeatsWire roster = Decode<SeatsWire>(state.seatsJson);
         Dictionary<string, PresenceWire> presence =
             await ReadPresenceAsync(matchId, token);
+
 
         SeatWire successor =
             FindEligibleAuthoritySeat(
@@ -616,12 +672,14 @@ public static class AtlasBoardSparkRtdbMatchTransport
                 presence,
                 now);
 
+
         if (successor == null)
         {
             return AtlasMatchNetworkResult.Fail(
                 "match.error.host_migration_not_safe",
                 "No connected Remote Human is eligible to become Host.");
         }
+
 
         // This write is still performed while the old Host owns roomMeta.
         // Only the lease is retired here; authority itself is NOT transferred.
@@ -632,12 +690,14 @@ public static class AtlasBoardSparkRtdbMatchTransport
         state.hostHeartbeatAt =
             now - HostCrashLeaseMs - 1000L;
 
+
         Response armed = await Send(
             "PUT",
             matchPath,
             token,
             JsonUtility.ToJson(state),
             matchRead.ETag);
+
 
         if (!armed.Ok)
         {
@@ -648,10 +708,12 @@ public static class AtlasBoardSparkRtdbMatchTransport
                     "The safe checkpoint changed while graceful handoff was arming.");
             }
 
+
             return Failure(
                 "RTDB graceful handoff checkpoint: " +
                 FailReason(armed));
         }
+
 
         Response presenceWrite = await Send(
             "PUT",
@@ -659,6 +721,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
                 "/" + PathKey(uid),
             token,
             "{\"online\":false,\"lastSeenAt\":" + now + "}");
+
 
         if (!presenceWrite.Ok)
         {
@@ -668,16 +731,19 @@ public static class AtlasBoardSparkRtdbMatchTransport
                 FailReason(presenceWrite));
         }
 
+
         string maintenanceKey = matchId + ":" + uid;
         LastMaintenanceCheck.Remove(maintenanceKey);
         LastMaintenanceResult.Remove(maintenanceKey);
         LastHostPresenceWrite.Remove(maintenanceKey);
+
 
         Debug.Log(
             "ATB_RTDB_AUTHORITY_HANDOFF armed=true " +
             "successor_slot=" + successor.slotIndex +
             " epoch=" + state.authorityEpoch +
             " takeover=pending_successor_cas");
+
 
         return new AtlasMatchNetworkResult
         {
@@ -687,11 +753,13 @@ public static class AtlasBoardSparkRtdbMatchTransport
         };
     }
 
+
     internal static async Task<AtlasMatchNetworkResult> RecoverCrashedHostAsync(
         string matchId, string uid, string token)
     {
         return await TransferAuthorityAsync(matchId, uid, token);
     }
+
 
     private static SeatWire FindEligibleAuthoritySeat(
         SeatsWire roster, string uid, Dictionary<string, PresenceWire> presence, long now)
@@ -722,6 +790,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
         return best != null && (uid == null ||
             string.Equals(best.uid, uid, StringComparison.Ordinal)) ? best : null;
     }
+
 
     public static bool ValidateHostMigrationElectionContract()
     {
@@ -768,6 +837,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
         return FindEligibleAuthoritySeat(roster, null, online, now) == null;
     }
 
+
     // Owner-safe, no-network regression: genuine second successor selection.
     public static bool ValidateMultiHopAuthorityContract()
     {
@@ -803,6 +873,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
             roster.seats[2].seatId == "seat_2" &&
             FindEligibleAuthoritySeat(roster, null, new Dictionary<string, PresenceWire>(), now) == null;
     }
+
 
     // Read-only authority proof for the two-client QA. Read the RTDB room lock
     // and match frame separately, not only the client's displayed HUD role.
@@ -854,6 +925,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
         };
     }
 
+
     private static async Task<Dictionary<string, PresenceWire>> ReadPresenceAsync(
         string matchId, string token)
     {
@@ -869,6 +941,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
         }
         return result;
     }
+
 
     private static void ApplyAuthoritySeatTransfer(
         SeatsWire roster, string oldHostUid, string newHostUid, long now)
@@ -905,10 +978,12 @@ public static class AtlasBoardSparkRtdbMatchTransport
         }
     }
 
+
     private static async Task<bool> RepairLobbyAuthorityAsync(
         MatchState state, string oldHostUid, string newHostUid, string token)
     {
         if (state == null || string.IsNullOrEmpty(state.lobbyId)) return false;
+
 
         // Roles are presentation/lobby metadata. The room authority lock has
         // already changed, so only the new host is allowed to repair them.
@@ -929,6 +1004,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
                 "/" + PathKey(oldHostUid), token, "{\"role\":\"remoteHuman\"}");
         await Send("PATCH", "roomMembers/" + PathKey(state.lobbyId) +
             "/" + PathKey(newHostUid), token, "{\"role\":\"host\"}");
+
 
         Response roomRead = await Send("GET",
             "roomState/" + PathKey(state.lobbyId), token, null, null, true);
@@ -988,6 +1064,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
         return saved.Ok;
     }
 
+
     private static async Task<AtlasMatchNetworkResult> TransferAuthorityAsync(
         string matchId, string requesterUid, string token)
     {
@@ -997,6 +1074,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
         MatchState state = Decode<MatchState>(matchRead.Body);
         if (!matchRead.Ok || state == null || string.IsNullOrEmpty(matchRead.ETag))
             return Failure("RTDB authority match read: " + FailReason(matchRead));
+
 
         string oldHostUid = state.hostUid ?? "";
         if (oldHostUid == requesterUid)
@@ -1011,6 +1089,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
         Dictionary<string, PresenceWire> presence =
             await ReadPresenceAsync(matchId, token);
 
+
         SeatWire successor =
             FindEligibleAuthoritySeat(
                 roster,
@@ -1021,6 +1100,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
             return AtlasMatchNetworkResult.Fail(
                 "match.error.host_migration_not_safe",
                 "No connected Remote Human is eligible to become host.");
+
 
         string newHostUid = successor.uid;
         Response metaRead = await Send("GET",
@@ -1034,10 +1114,12 @@ public static class AtlasBoardSparkRtdbMatchTransport
                 "match.error.host_migration_not_safe",
                 "Room authority anchor no longer matches this match.");
 
+
         bool resumePendingSync =
             meta.hostUid == requesterUid &&
             state.hostUid != requesterUid &&
             meta.authorityEpoch == state.authorityEpoch + 1;
+
 
         int nextEpoch;
         if (resumePendingSync)
@@ -1052,10 +1134,12 @@ public static class AtlasBoardSparkRtdbMatchTransport
                     "match.error.host_migration_not_safe",
                     "Another client already changed room authority.");
 
+
             if (now - state.hostHeartbeatAt < HostCrashLeaseMs)
                 return AtlasMatchNetworkResult.Fail(
                     "match.error.host_migration_not_safe",
                     "Host heartbeat lease is still valid.");
+
 
             nextEpoch = Math.Max(1, state.authorityEpoch + 1);
             meta.hostUid = newHostUid;
@@ -1074,6 +1158,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
                 return Failure("RTDB authority lock write: " + FailReason(metaWrite));
             }
         }
+
 
         // roomMeta is the authority lock. Once it moves, rules immediately
         // reject stale old-host publishes, intents cleanup and lobby writes.
@@ -1097,13 +1182,16 @@ public static class AtlasBoardSparkRtdbMatchTransport
                 "Authority lock moved, but match synchronization must retry.");
         }
 
+
         await Send("PUT", "matchPresence/" + PathKey(matchId) +
             "/" + PathKey(newHostUid), token,
             "{\"online\":true,\"lastSeenAt\":" + now + "}");
 
+
         if (requesterUid == newHostUid &&
             await RepairLobbyAuthorityAsync(state, oldHostUid, newHostUid, token))
             AuthorityRepairCompleted.Add(matchId + ":" + nextEpoch);
+
 
         string oldKey = matchId + ":" + oldHostUid;
         string newKey = matchId + ":" + newHostUid;
@@ -1114,6 +1202,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
         LastMaintenanceResult.Remove(newKey);
         LastHostPresenceWrite.Remove(newKey);
 
+
         Debug.Log(
             "ATB_RTDB_AUTHORITY_TRANSFER committed=true mode=takeover " +
             "epoch=" + nextEpoch);
@@ -1123,6 +1212,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
             Revision = state.revision
         };
     }
+
 
 #if UNITY_EDITOR
     // Explicit Live Spark QA only. Runs the SAME expiry transition used by
@@ -1136,6 +1226,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
             string.IsNullOrWhiteSpace(uid) || string.IsNullOrWhiteSpace(token))
             return Failure("qa_identity_or_match_missing");
 
+
         string matchPath = StatePath(matchId);
         Response read = await Send("GET", matchPath, token, null, null, true);
         MatchState state = Decode<MatchState>(read.Body);
@@ -1144,6 +1235,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
             state.status != "active")
             return Failure("qa_requires_current_live_match_host");
 
+
         Response roomRead = await Send("GET",
             "roomMeta/" + PathKey(state.lobbyId), token);
         RoomMetaWire room = Decode<RoomMetaWire>(roomRead.Body);
@@ -1151,6 +1243,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
             room.hostUid != uid || room.activeMatchId != matchId ||
             room.authorityEpoch != state.authorityEpoch)
             return Failure("qa_authority_epoch_anchor_mismatch");
+
 
         SeatsWire roster = Decode<SeatsWire>(state.seatsJson);
         if (roster == null || roster.seats == null)
@@ -1172,6 +1265,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
         if (pending != 1)
             return Failure("qa_requires_exactly_one_unexpired_temporary_human");
 
+
         Response presenceRead = await Send("GET",
             "matchPresence/" + PathKey(matchId) + "/" +
             PathKey(candidate.uid), token);
@@ -1184,11 +1278,13 @@ public static class AtlasBoardSparkRtdbMatchTransport
             now - presence.lastSeenAt <= RemotePresenceTimeoutMs)
             return Failure("qa_remote_human_already_reconnected");
 
+
         long simulatedNow = candidate.reconnectExpiresAt + 1L;
         if (!AdvanceRemoteSeat(candidate, null, simulatedNow, state.createdAt) ||
             candidate.controller != "permanent_bot" ||
             candidate.connection != "reconnect_expired")
             return Failure("qa_canonical_expiry_transition_rejected");
+
 
         state.seatsJson = JsonUtility.ToJson(roster);
         state.revision++;
@@ -1207,8 +1303,10 @@ public static class AtlasBoardSparkRtdbMatchTransport
     }
 #endif
 
+
     private const long RemotePresenceTimeoutMs = 20000L;
     private const long ReconnectWindowMs = 5L * 60L * 1000L;
+
 
     // A single canonical transition helper is used by live host maintenance
     // AND Editor regression QA. No GameObject or second bot controller here.
@@ -1259,6 +1357,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
         return false;
     }
 
+
     public static bool ValidatePresenceTransitionContract()
     {
         const long now = 1000000L;
@@ -1287,6 +1386,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
         return true;
     }
 
+
     internal static async Task<AtlasMatchNetworkResult> HostMaintenanceAsync(
         string matchId, string uid, string token)
     {
@@ -1298,6 +1398,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
             LastMaintenanceResult.TryGetValue(key, out AtlasMatchNetworkResult cached) &&
             cached != null && cached.Success) return cached;
 
+
         string path = StatePath(matchId);
         Response read = await Send("GET",path,token,null,null,true);
         MatchState state = Decode<MatchState>(read.Body);
@@ -1305,6 +1406,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
             return Failure("RTDB maintenance read: " + FailReason(read));
         if (state.hostUid != uid)
             return AtlasMatchNetworkResult.Fail("match.error.access_denied","Host required.");
+
 
         // Backfill/repair the room authority anchor. This makes matches that
         // started before the migration-capable client safe after rules update.
@@ -1334,6 +1436,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
                 AuthorityRepairCompleted.Add(repairKey);
         }
 
+
         SeatsWire roster = Decode<SeatsWire>(state.seatsJson);
         if (roster == null || roster.seats == null)
             return Failure("RTDB maintenance seats are missing.");
@@ -1341,6 +1444,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
         foreach (SeatWire seat in roster.seats)
             hasRemote |= seat != null && seat.mode == "remotehuman" &&
                 !seat.afkLockedOut && seat.controller != "permanent_bot";
+
 
         Dictionary<string,PresenceWire> presenceByUid =
             new Dictionary<string,PresenceWire>(StringComparer.Ordinal);
@@ -1400,6 +1504,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
         return result;
     }
 
+
     internal static async Task<AtlasMatchNetworkResult> HostRemoveAfkAsync(
         string matchId, string uid, string token, int slotIndex)
     {
@@ -1440,6 +1545,146 @@ public static class AtlasBoardSparkRtdbMatchTransport
             : Failure("RTDB AFK CAS rejected: " + FailReason(updated));
     }
 
+
+    private static async Task<bool> EnsureCompletedArchiveAsync(
+        MatchState state, string uid, string token)
+    {
+        if (state == null ||
+            string.IsNullOrWhiteSpace(state.matchId) ||
+            string.IsNullOrWhiteSpace(state.lobbyId) ||
+            string.IsNullOrWhiteSpace(state.hostUid) ||
+            !string.Equals(state.hostUid, uid, StringComparison.Ordinal) ||
+            !string.Equals(state.status, "complete", StringComparison.Ordinal) ||
+            !string.Equals(state.phase, "match_complete", StringComparison.Ordinal) ||
+            string.IsNullOrWhiteSpace(state.snapshotJson) ||
+            string.IsNullOrWhiteSpace(state.seatsJson))
+        {
+            return false;
+        }
+
+        string digest = Digest(state.snapshotJson ?? string.Empty);
+        Response existingRead = await Send(
+            "GET", ArchivePath(state.matchId), token);
+
+        CompletedMatchArchive existing =
+            existingRead.Ok
+                ? Decode<CompletedMatchArchive>(existingRead.Body)
+                : null;
+
+        if (existing != null &&
+            string.Equals(existing.matchId, state.matchId, StringComparison.Ordinal) &&
+            string.Equals(existing.lobbyId, state.lobbyId, StringComparison.Ordinal) &&
+            string.Equals(existing.hostUid, state.hostUid, StringComparison.Ordinal) &&
+            existing.revision == state.revision &&
+            string.Equals(existing.digest, digest, StringComparison.Ordinal) &&
+            string.Equals(existing.snapshotJson, state.snapshotJson,
+                StringComparison.Ordinal))
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.Log(
+                "ATB_MATCH_ARCHIVE ready=true source=existing match=" +
+                state.matchId +
+                " revision=" + state.revision);
+#endif
+            return true;
+        }
+
+        string mapId = "unknown";
+        string themeId = "classic_table";
+        int roundLimit = 1;
+
+        Response roomRead = await Send(
+            "GET",
+            "roomState/" + PathKey(state.lobbyId),
+            token);
+
+        RoomWire roomWire =
+            roomRead.Ok
+                ? Decode<RoomWire>(roomRead.Body)
+                : null;
+
+        AtlasLobbySnapshot roomSnapshot =
+            roomWire != null
+                ? Decode<AtlasLobbySnapshot>(roomWire.snapshotJson)
+                : null;
+
+        if (roomSnapshot != null && roomSnapshot.Settings != null)
+        {
+            if (!string.IsNullOrWhiteSpace(roomSnapshot.Settings.MapId))
+                mapId = roomSnapshot.Settings.MapId;
+            if (!string.IsNullOrWhiteSpace(roomSnapshot.Settings.ThemeId))
+                themeId = roomSnapshot.Settings.ThemeId;
+            roundLimit = Mathf.Clamp(roomSnapshot.Settings.RoundLimit, 1, 100);
+        }
+
+        CompletedMatchArchive archive = new CompletedMatchArchive
+        {
+            matchId = state.matchId,
+            lobbyId = state.lobbyId,
+            hostUid = state.hostUid,
+            snapshotJson = state.snapshotJson,
+            seatsJson = state.seatsJson,
+            digest = digest,
+            mapId = mapId,
+            themeId = themeId,
+            roundLimit = roundLimit,
+            revision = state.revision,
+            eventSequence = state.eventSequence,
+            authorityEpoch = state.authorityEpoch,
+            networkSchemaVersion = state.networkSchemaVersion,
+            createdAt = state.createdAt,
+            completedAt = Now
+        };
+
+        Response written = await Send(
+            "PUT",
+            ArchivePath(state.matchId),
+            token,
+            JsonUtility.ToJson(archive),
+            "null_etag");
+
+        if (!written.Ok && written.Status != 412)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.LogWarning(
+                "ATB_MATCH_ARCHIVE ready=false stage=write http=" +
+                written.Status +
+                " match=" + state.matchId);
+#endif
+            return false;
+        }
+
+        Response verifyRead = await Send(
+            "GET", ArchivePath(state.matchId), token);
+
+        CompletedMatchArchive verified =
+            verifyRead.Ok
+                ? Decode<CompletedMatchArchive>(verifyRead.Body)
+                : null;
+
+        bool ready =
+            verified != null &&
+            string.Equals(verified.matchId, state.matchId, StringComparison.Ordinal) &&
+            string.Equals(verified.lobbyId, state.lobbyId, StringComparison.Ordinal) &&
+            string.Equals(verified.hostUid, state.hostUid, StringComparison.Ordinal) &&
+            verified.revision == state.revision &&
+            string.Equals(verified.digest, digest, StringComparison.Ordinal) &&
+            string.Equals(verified.snapshotJson, state.snapshotJson,
+                StringComparison.Ordinal);
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Debug.Log(
+            "ATB_MATCH_ARCHIVE ready=" +
+            ready.ToString().ToLowerInvariant() +
+            " source=" + (written.Ok ? "created" : "concurrent") +
+            " match=" + state.matchId +
+            " revision=" + state.revision);
+#endif
+
+        return ready;
+    }
+
+
     internal static async Task<AtlasMatchNetworkResult> HostRematchAsync(
         string matchId, string uid, string token)
     {
@@ -1451,6 +1696,43 @@ public static class AtlasBoardSparkRtdbMatchTransport
             !string.Equals(current.Snapshot.Status,"complete",StringComparison.Ordinal))
             return AtlasMatchNetworkResult.Fail("match.error.not_complete",
                 "Cannot reset an active match to Waiting before match completion.");
+        // Gameplay Rematch must not depend on whether Career/Gold currently
+        // has an eligible peer witness. Persist one immutable completion
+        // archive first, then the reward pipeline can finalize/recover from
+        // that archive independently after either player leaves or returns.
+        Response completedRead = await Send(
+            "GET", StatePath(matchId), token);
+
+        MatchState completedState =
+            completedRead.Ok
+                ? Decode<MatchState>(completedRead.Body)
+                : null;
+
+        bool archiveReady =
+            await EnsureCompletedArchiveAsync(
+                completedState,
+                uid,
+                token);
+
+        if (!archiveReady)
+        {
+            Debug.LogWarning(
+                "ATB_REMATCH_ARCHIVE_BARRIER blocked=true " +
+                "reason=completed_match_archive_missing match=" +
+                matchId);
+
+            return AtlasMatchNetworkResult.Fail(
+                "match.error.not_complete",
+                "Completed match archive is not durable yet. Retry Rematch.");
+        }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Debug.Log(
+            "ATB_REMATCH_ARCHIVE_BARRIER ready=true match=" +
+            matchId +
+            " reward_pipeline_independent=true");
+#endif
+
         // Read the room ETag for an atomic rematch transition. A delayed
         // concurrent host update must not overwrite a newer room state.
         Response read = await Send("GET", "roomState/" + PathKey(current.Snapshot.LobbyId), token,
@@ -1494,6 +1776,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
                     oldPresence != null && !oldPresence.online &&
                     oldPresence.lastSeenAt > 0)
                     voluntaryPresenceOffline = true;
+
 
                 // Check the exact authenticated member record, not a
                 // snapshot display name. A missing/inaccessible member read
@@ -1614,6 +1897,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
         return current;
     }
 
+
     private static AtlasMatchNetworkSnapshot ToSnapshot(MatchState state, string uid)
     {
         AtlasMatchNetworkSnapshot result = new AtlasMatchNetworkSnapshot {
@@ -1660,6 +1944,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
         return result;
     }
 
+
     private static async Task<Response> Send(string verb, string path, string token,
         string json = null, string ifMatch = null, bool wantEtag = false)
     {
@@ -1687,6 +1972,7 @@ public static class AtlasBoardSparkRtdbMatchTransport
             };
         }
     }
+
 
     private static T Decode<T>(string json) where T:class
     {

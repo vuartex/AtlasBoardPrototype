@@ -6,6 +6,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
 
+
 /// <summary>
 /// Canonical RTDB Career reader. Server projection remains primary; when no
 /// authoritative projection exists, includes bounded peer-attested, non-currency
@@ -33,6 +34,7 @@ public sealed class AtlasBoardRtdbCareerReadModel : MonoBehaviour
     private string lastState = "no_server_record";
     public string LastReadState => lastState;
 
+
     [Serializable]
     private sealed class CareerWire
     {
@@ -51,6 +53,7 @@ public sealed class AtlasBoardRtdbCareerReadModel : MonoBehaviour
         public int historyRetentionHours = 72;
         public int historyLimit = 10;
     }
+
 
     public static async Task<AtlasBoardProgressionSnapshot> ReadProfileAsync(
         string uid, string idToken, string fallbackDisplayName)
@@ -126,6 +129,7 @@ public sealed class AtlasBoardRtdbCareerReadModel : MonoBehaviour
         }
     }
 
+
     private static AtlasBoardProgressionSnapshot FailedProfile(string errorKey, string technicalMessage)
     {
         return new AtlasBoardProgressionSnapshot {
@@ -136,6 +140,7 @@ public sealed class AtlasBoardRtdbCareerReadModel : MonoBehaviour
         };
     }
 
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Bootstrap()
     {
@@ -145,11 +150,13 @@ public sealed class AtlasBoardRtdbCareerReadModel : MonoBehaviour
         host.AddComponent<AtlasBoardRtdbCareerReadModel>();
     }
 
+
     private void Awake()
     {
         if (instance != null && instance != this) { Destroy(gameObject); return; }
         instance = this;
     }
+
 
     private void Update()
     {
@@ -185,6 +192,7 @@ public sealed class AtlasBoardRtdbCareerReadModel : MonoBehaviour
         }
     }
 
+
     private static RectTransform FindCareerRoot()
     {
         foreach (RectTransform candidate in Resources.FindObjectsOfTypeAll<RectTransform>())
@@ -193,8 +201,21 @@ public sealed class AtlasBoardRtdbCareerReadModel : MonoBehaviour
         return null;
     }
 
+
     private static string IdentityKey()
     {
+        // The standalone Development Guest authenticates through the REST Auth
+        // path and may not exist in FirebaseAuth.DefaultInstance. Its persistent
+        // Firebase UID is still the canonical Career identity and must trigger
+        // the same recovery/read path after Leave, Rematch or app restart.
+        if (AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession &&
+            AtlasBoardLobbyRuntimeBridge.TryGetLiveGuestRewardIdentity(
+                out string guestUid, out _) &&
+            !string.IsNullOrWhiteSpace(guestUid))
+        {
+            return "uid:" + guestUid;
+        }
+
         FirebaseUser user = null;
         try { user = FirebaseAuth.DefaultInstance.CurrentUser; } catch { }
         if (user != null && !string.IsNullOrWhiteSpace(user.UserId))
@@ -206,8 +227,12 @@ public sealed class AtlasBoardRtdbCareerReadModel : MonoBehaviour
         return "guest:" + AtlasBoardGuestIdentity.DisplayName;
     }
 
+
     private static string DisplayName(string identity)
     {
+        if (AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession &&
+            identity.StartsWith("uid:", StringComparison.Ordinal))
+            return AtlasBoardGuestIdentity.DisplayName;
         if (identity.StartsWith("steam:", StringComparison.Ordinal))
             return AtlasBoardPlatformRuntime.Instance != null
                 ? (AtlasBoardPlatformRuntime.Instance.SteamPersonaName ?? "Steam Player")
@@ -227,6 +252,7 @@ public sealed class AtlasBoardRtdbCareerReadModel : MonoBehaviour
         return "Atlas Player";
     }
 
+
     private static void ApplyEmptyCareer(AtlasBoardProgressionUI career, string identity)
     {
         if (career == null || SnapshotField == null) return;
@@ -239,17 +265,29 @@ public sealed class AtlasBoardRtdbCareerReadModel : MonoBehaviour
         RebuildMethod?.Invoke(career, null);
     }
 
+
     private async Task ReadCareerAsync(AtlasBoardProgressionUI career, string uid)
     {
         fetching = true;
         string identityAtStart = lastIdentity;
         try
         {
-            FirebaseUser user = FirebaseAuth.DefaultInstance.CurrentUser;
-            if (user == null || user.UserId != uid ||
+            string token = string.Empty;
+            if (AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession)
+            {
+                if (!AtlasBoardLobbyRuntimeBridge.TryGetLiveGuestRewardIdentity(
+                        out string guestUid, out token) ||
+                    !string.Equals(guestUid, uid, StringComparison.Ordinal))
+                    return;
+            }
+            else
+            {
+                FirebaseUser user = FirebaseAuth.DefaultInstance.CurrentUser;
+                if (user == null || user.UserId != uid) return;
+                token = await user.TokenAsync(false);
+            }
+            if (string.IsNullOrEmpty(token) ||
                 !await AtlasBoardRtdbMetaEconomy.IsCareerRewardEligibleAsync()) return;
-            string token = await user.TokenAsync(false);
-            if (string.IsNullOrEmpty(token)) return;
             AtlasBoardProgressionBridge progression =
                 UnityEngine.Object.FindAnyObjectByType<AtlasBoardProgressionBridge>();
             AtlasBoardProgressionSnapshot snapshot = progression != null

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
+
 [DisallowMultipleComponent]
 public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
 {
@@ -13,6 +14,7 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
     private TurnManager turnManager;
     private MatchResultManager matchResultManager;
 
+
     private readonly AtlasBoardProgressionSlotTelemetry[] telemetry =
     {
         new AtlasBoardProgressionSlotTelemetry { slotIndex = 0 },
@@ -20,6 +22,7 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
         new AtlasBoardProgressionSlotTelemetry { slotIndex = 2 },
         new AtlasBoardProgressionSlotTelemetry { slotIndex = 3 }
     };
+
 
     private string observedMatchId = string.Empty;
     private string recordedMatchId = string.Empty;
@@ -29,6 +32,7 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
     private float nextParticipationAttemptAt;
     private string registeredParticipationKey = string.Empty;
     private bool participationInFlight;
+
 
     // Mirror already-committed host totals while a follower. On a legitimate
     // host migration the new host resumes counters instead of losing the
@@ -48,6 +52,7 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
         }
     }
 
+
     public static int[] HostDiceCounts(bool doubles)
     {
         var result = new int[4];
@@ -60,17 +65,20 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
         return result;
     }
 
+
     private void Awake()
     {
         currentRecorder = this;
         progressionBridge = GetComponent<AtlasBoardProgressionBridge>();
     }
 
+
     private void OnDestroy()
     {
         UnsubscribeTurnManager();
         if (currentRecorder == this) currentRecorder = null;
     }
+
 
     private void Update()
     {
@@ -80,11 +88,13 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
             ResolveReferences();
         }
 
+
         string matchId = ResolveCurrentMatchId();
         if (!string.Equals(matchId, observedMatchId, StringComparison.Ordinal))
         {
             BeginObservedMatch(matchId);
         }
+
 
         if (!string.IsNullOrWhiteSpace(matchId) && coordinator != null &&
             coordinator.IsOnlineSessionActive &&
@@ -95,6 +105,7 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
             RegisterParticipationAsync(matchId);
         }
 
+
         if (string.IsNullOrWhiteSpace(matchId) ||
             recordInFlight ||
             string.Equals(recordedMatchId, matchId, StringComparison.Ordinal) ||
@@ -102,6 +113,7 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
         {
             return;
         }
+
 
         if (coordinator == null ||
             !coordinator.IsOnlineSessionActive ||
@@ -111,14 +123,10 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
             return;
         }
 
-        // No-Steam Guest earns no server XP/Gold, but may retain an honest,
-        // UID-scoped local history and achievement progress on this device.
-        if (AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession)
-        {
-            SaveLocallyObservedMatch(matchId, true);
-            recordedMatchId = matchId;
-            return;
-        }
+
+        // Every authenticated Firebase UID, including the persistent REST-only
+        // Windows Guest, enters the same durable Career/Gold pipeline. Local
+        // history is still saved first so UI/navigation cannot erase the match.
 
         // Non-currency, two-human Career claims. A transient remote-human
         // disconnect must not permanently close our recorder. It still cannot
@@ -128,13 +136,15 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
             // Persist this account's completed observation before the remote
             // claim. A denied/delayed peer-attested claim must not make the
             // match disappear from Steam Career on the next UI refresh.
-            SaveLocallyObservedMatch(matchId, false);
+            SaveLocallyObservedMatch(
+                matchId, AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession);
             RecordLiveRtdbMatchAsync(matchId);
             return;
         }
         // Retain the legacy emulator-only verification path for QA.
         if (coordinator.LocalIsHost) RecordCompletedMatchAsync(matchId);
     }
+
 
     private void SaveLocallyObservedMatch(string matchId, bool isGuest)
     {
@@ -165,7 +175,7 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
             mapId = settings != null ? settings.MapId : "unknown",
             themeId = settings != null ? settings.ThemeId : "classic_table",
             roundLimit = settings != null ? settings.RoundLimit : 0,
-            result = kind, place = kind == "win" ? 1 : 2,
+            result = kind, place = kind == "loss" ? 2 : 1,
             playerCount = result.participating != null ?
                 Array.FindAll(result.participating, participating => participating).Length : 0,
             localSlotIndex = slot,
@@ -186,6 +196,7 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
             highestRoll = telemetry[slot].highestRoll,
             finishedAtEpochMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             xpAwarded = 0,
+            goldAwarded = 0,
             levelAfter = 1
         };
         if (isGuest)
@@ -195,6 +206,7 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
         if (progressionBridge != null) _ = progressionBridge.GetProfileAsync();
     }
 
+
     private void ResolveReferences()
     {
         if (progressionBridge == null)
@@ -202,20 +214,24 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
             progressionBridge = GetComponent<AtlasBoardProgressionBridge>();
         }
 
+
         if (lobbyBridge == null)
         {
             lobbyBridge = FindSceneObject<AtlasBoardLobbyRuntimeBridge>();
         }
+
 
         if (matchBridge == null)
         {
             matchBridge = FindSceneObject<AtlasBoardMatchRuntimeBridge>();
         }
 
+
         if (coordinator == null)
         {
             coordinator = FindSceneObject<AtlasBoardTurnDiceNetworkCoordinator>();
         }
+
 
         TurnManager nextTurnManager = FindSceneObject<TurnManager>();
         if (nextTurnManager != turnManager)
@@ -225,11 +241,13 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
             SubscribeTurnManager();
         }
 
+
         if (matchResultManager == null)
         {
             matchResultManager = FindSceneObject<MatchResultManager>();
         }
     }
+
 
     private void SubscribeTurnManager()
     {
@@ -238,9 +256,11 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
             return;
         }
 
+
         turnManager.AuthoritativeDiceCommitted -= HandleAuthoritativeDiceCommitted;
         turnManager.AuthoritativeDiceCommitted += HandleAuthoritativeDiceCommitted;
     }
+
 
     private void UnsubscribeTurnManager()
     {
@@ -249,6 +269,7 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
             turnManager.AuthoritativeDiceCommitted -= HandleAuthoritativeDiceCommitted;
         }
     }
+
 
     private void HandleAuthoritativeDiceCommitted(
         PlayerGameState player,
@@ -264,6 +285,7 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
             return;
         }
 
+
         int slot = Mathf.Clamp(player.PlayerSlotIndex, 0, 3);
         AtlasBoardProgressionSlotTelemetry item = telemetry[slot];
         int total = Mathf.Clamp(dieOne + dieTwo, 0, 12);
@@ -276,6 +298,7 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
         }
     }
 
+
     private string ResolveCurrentMatchId()
     {
         if (matchBridge != null &&
@@ -284,14 +307,17 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
             return matchBridge.CurrentMatchId;
         }
 
+
         if (lobbyBridge != null &&
             lobbyBridge.CurrentSnapshot != null)
         {
             return lobbyBridge.CurrentSnapshot.MatchId ?? string.Empty;
         }
 
+
         return string.Empty;
     }
+
 
     private void BeginObservedMatch(string matchId)
     {
@@ -303,6 +329,7 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
         registeredParticipationKey = string.Empty;
         participationInFlight = false;
 
+
         for (int slot = 0; slot < telemetry.Length; slot++)
         {
             telemetry[slot].slotIndex = slot;
@@ -313,6 +340,7 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
         }
     }
 
+
     private async void RegisterParticipationAsync(string matchId)
     {
         string account = lobbyBridge != null ? lobbyBridge.CurrentAccountId : "";
@@ -320,7 +348,7 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
         if (string.Equals(registeredParticipationKey, key, StringComparison.Ordinal))
             return;
         participationInFlight = true;
-        nextParticipationAttemptAt = Time.unscaledTime + 20f;
+        nextParticipationAttemptAt = Time.unscaledTime + 2f;
         try
         {
             bool ok = await AtlasBoardRtdbCareerJournal.RegisterParticipationAsync(
@@ -336,6 +364,7 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
         finally { participationInFlight = false; }
     }
 
+
     private async void RecordLiveRtdbMatchAsync(string matchId)
     {
         recordInFlight = true;
@@ -345,17 +374,31 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
                 await AtlasBoardRtdbCareerJournal.RecordAsync(matchId,
                     lobbyBridge, coordinator, matchResultManager, turnManager,
                     telemetry);
-            if (result.Applied)
+            if (result.Applied &&
+                string.Equals(result.Reason,
+                    "career_and_gold_saved",
+                    StringComparison.Ordinal))
             {
                 recordedMatchId = matchId;
+                Debug.Log("ATB_CAREER_MATCH_FINALIZED career=true gold=true match=" +
+                    matchId);
                 if (progressionBridge != null)
                     await progressionBridge.GetProfileAsync();
+            }
+            else if (result.Applied)
+            {
+                // Defensive compatibility: an Applied result that is not the
+                // complete Career+Gold terminal state must remain retryable.
+                SaveLocallyObservedMatch(matchId, AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession);
+                nextRecordAttemptAt = Time.unscaledTime + 0.75f;
+                Debug.Log("ATB_CAREER_RTDB_CLAIM retry=true reason=" +
+                    result.Reason + " match=" + matchId);
             }
             else if (result.Reason == "not_eligible")
             {
                 // Still display an actual, completed match as UNVERIFIED
                 // local Steam history. Never mint server XP or Gold here.
-                SaveLocallyObservedMatch(matchId, false);
+                SaveLocallyObservedMatch(matchId, AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession);
                 recordedMatchId = matchId;
                 Debug.Log("ATB_CAREER_RTDB_CLAIM ineligible=" + result.Reason +
                     " xp=0 match=" + matchId);
@@ -366,18 +409,29 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
                 // the finish. Retry instead of marking the match permanently
                 // recorded. The RTDB rules still decide whether a claim can
                 // ever be rewarded; no local/host-only XP fallback is granted.
-                SaveLocallyObservedMatch(matchId, false);
-                nextRecordAttemptAt = Time.unscaledTime + 15f;
-                Debug.Log("ATB_CAREER_RTDB_CLAIM pending=" + result.Reason);
+                SaveLocallyObservedMatch(matchId, AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession);
+                float retryDelay =
+                    result.Reason == "final_proof_pending" ||
+                    result.Reason == "local_attestation_pending" ||
+                    result.Reason == "waiting_for_peer" ||
+                    result.Reason == "xp_saved_gold_pending"
+                        ? 0.75f
+                        : 3f;
+                nextRecordAttemptAt = Time.unscaledTime + retryDelay;
+                Debug.Log("ATB_CAREER_RTDB_CLAIM pending=" + result.Reason +
+                    " retry_seconds=" + retryDelay.ToString("0.00") +
+                    " match=" + matchId);
             }
         }
         catch (Exception ex)
         {
-            nextRecordAttemptAt = Time.unscaledTime + 15f;
-            Debug.LogWarning("ATB_CAREER_RTDB_CLAIM error=" + ex.Message);
+            nextRecordAttemptAt = Time.unscaledTime + 1.5f;
+            Debug.LogWarning("ATB_CAREER_RTDB_CLAIM error=" + ex.Message +
+                " retry_seconds=1.50 match=" + matchId);
         }
         finally { recordInFlight = false; }
     }
+
 
     private async void RecordCompletedMatchAsync(string matchId)
     {
@@ -386,6 +440,7 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
             nextRecordAttemptAt = Time.unscaledTime + 2f;
             return;
         }
+
 
         recordInFlight = true;
         try
@@ -404,14 +459,17 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
                 });
             }
 
+
             int completedTurns =
                 turnManager != null ? turnManager.CompletedTurns : 0;
+
 
             AtlasBoardProgressionRecordResult result =
                 await progressionBridge.RecordCompletedMatchAsync(
                     matchId,
                     completedTurns,
                     copy);
+
 
             if (result.Success)
             {
@@ -422,9 +480,11 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
                     $"replay={result.IdempotentReplay}.",
                     this);
 
+
                 await progressionBridge.GetProfileAsync();
                 return;
             }
+
 
             nextRecordAttemptAt = Time.unscaledTime +
                 (string.Equals(
@@ -433,6 +493,7 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
                     StringComparison.OrdinalIgnoreCase)
                     ? 1.5f
                     : 4f);
+
 
             Debug.LogWarning(
                 "AtlasBoard Phase 10 match progression finalize retry. " +
@@ -444,6 +505,7 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
             recordInFlight = false;
         }
     }
+
 
     private static T FindSceneObject<T>()
         where T : UnityEngine.Object
@@ -457,6 +519,7 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
                 return item;
             }
         }
+
 
         return null;
     }

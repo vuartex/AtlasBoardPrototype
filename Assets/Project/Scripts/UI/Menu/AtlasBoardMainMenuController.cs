@@ -1,10 +1,11 @@
-using System.Collections;
+﻿using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
+
 
 public class AtlasBoardMainMenuController : MonoBehaviour
 {
@@ -13,14 +14,17 @@ public class AtlasBoardMainMenuController : MonoBehaviour
     [SerializeField] private GameObject lobbyPanel;
     [SerializeField] private GameObject modalPanel;
 
+
     [Header("Modal")]
     [SerializeField] private TMP_Text modalTitle;
     [SerializeField] private TMP_Text modalBody;
+
 
     [Header("Profile")]
     [SerializeField] private TMP_Text profileNameText;
     [SerializeField] private TMP_Text profileCashText;
     [SerializeField] private TMP_Text profileGoldText;
+
 
     [Header("Lobby")]
     [SerializeField] private TMP_Text lobbyTitleText;
@@ -32,25 +36,31 @@ public class AtlasBoardMainMenuController : MonoBehaviour
     [SerializeField] private ToggleProxy doublesToggle;
     [SerializeField] private ToggleProxy tripleDoublePenaltyToggle;
 
+
     [SerializeField] private TMP_Dropdown player1TypeDropdown;
     [SerializeField] private TMP_Dropdown player2TypeDropdown;
     [SerializeField] private TMP_Dropdown player3TypeDropdown;
     [SerializeField] private TMP_Dropdown player4TypeDropdown;
 
+
     [SerializeField] private GameObject player3Row;
     [SerializeField] private GameObject player4Row;
+
 
     [Header("Existing Game UI")]
     [SerializeField] private GameObject existingMatchSetupCanvas;
     [SerializeField] private GameObject existingTabletCanvas;
     [SerializeField] private GameObject existingGameplayOverlayCanvas;
 
+
     [Header("Bridge")]
     [SerializeField] private AtlasBoardMatchSetupBridge matchSetupBridge;
+
 
     private GameObject boardControlsCanvas;
     private bool gameplayUIStateCaptured;
     private bool tabletWasActive;
+
 
     [Header("Temporary Local Profile")]
     [SerializeField] private string profileName = "PLAYER";
@@ -59,13 +69,22 @@ public class AtlasBoardMainMenuController : MonoBehaviour
     [SerializeField] private int profileCash = 0;
     [SerializeField] private int profileGold = 0;
 
+
     private string currentLobbyMode = "PLAY";
     private Coroutine mainMenuReturnRoutine;
     private int navigationGeneration;
 
+    // Customer-facing footer. The serialized scene still carries an old
+    // prototype/version label; runtime presentation replaces it with a small
+    // localized Atlas Board tip and a localized Main Menu caption.
+    private TMP_Text mainMenuFooterText;
+    private int mainMenuFooterTipIndex = -1;
+
+
     public int NavigationGeneration => navigationGeneration;
     public bool IsNavigationGenerationCurrent(int generation) =>
         generation == navigationGeneration;
+
 
     public void ApplyVerifiedMetaWallet(int gold, int atlasCoin)
     {
@@ -75,12 +94,14 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         RefreshProfile();
     }
 
+
     public void ClearMetaWallet()
     {
         profileCash = 0;
         profileGold = 0;
         RefreshProfile();
     }
+
 
     private void Awake()
     {
@@ -90,6 +111,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         profileGold = 0;
         AtlasBoardLocalizationManager.LanguageChanged +=
             HandleLanguageChanged;
+
 
         ResolveGameplayUIReferences();
         // The runtime lobby dropdown may be recreated from an old 3-map scene.
@@ -102,16 +124,20 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         ShowMainMenuImmediate();
     }
 
+
     private void OnDestroy()
     {
         AtlasBoardLocalizationManager.LanguageChanged -=
             HandleLanguageChanged;
     }
 
+
     private void HandleLanguageChanged()
     {
         AtlasBoardPremiumMapDropdownLabels.EnsureOptions(mapDropdown);
         RefreshProfile();
+        RefreshMainMenuFooter(false);
+
 
         if (lobbyPanel != null &&
             lobbyPanel.activeSelf &&
@@ -140,10 +166,12 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         }
     }
 
+
     private void Update()
     {
         Canvas ownerCanvas =
             GetComponent<Canvas>();
+
 
         if (ownerCanvas != null &&
             !ownerCanvas.enabled)
@@ -151,15 +179,18 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             return;
         }
 
+
         if (!WasEscapePressedThisFrame())
         {
             return;
         }
 
+
         if (HasActiveEscapeBlocker())
         {
             return;
         }
+
 
         if (modalPanel != null &&
             modalPanel.activeSelf)
@@ -168,6 +199,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             return;
         }
 
+
         if (lobbyPanel != null &&
             lobbyPanel.activeSelf)
         {
@@ -175,11 +207,13 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         }
     }
 
+
     private static bool HasActiveEscapeBlocker()
     {
         AtlasBoardEscapeBlocker[] blockers =
             UnityEngine.Object.FindObjectsByType<AtlasBoardEscapeBlocker>(
                 FindObjectsInactive.Include);
+
 
         foreach (AtlasBoardEscapeBlocker blocker in blockers)
         {
@@ -189,8 +223,10 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             }
         }
 
+
         return false;
     }
+
 
     private static bool WasEscapePressedThisFrame()
     {
@@ -204,16 +240,19 @@ public class AtlasBoardMainMenuController : MonoBehaviour
 #endif
     }
 
+
     public void OpenPlayLobby()
     {
         AtlasBoardPublicLobbyBrowserController publicBrowser =
             GetComponent<AtlasBoardPublicLobbyBrowserController>();
+
 
         if (publicBrowser != null)
         {
             publicBrowser.HostPublicRoomFromMainMenu();
             return;
         }
+
 
         // Do not open the pre-networking 4-local-player lobby as a fallback.
         // A missing public-room controller is a real setup error, not an
@@ -223,12 +262,15 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             "The online lobby could not be opened. Please restart and try again.");
     }
 
+
     public void OpenPrivateLobby()
     {
         currentLobbyMode = "PRIVATE TABLE";
 
+
         AtlasBoardPrivateLobbyUIController privateLobby =
             GetComponent<AtlasBoardPrivateLobbyUIController>();
+
 
         if (privateLobby != null)
         {
@@ -236,11 +278,13 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             return;
         }
 
+
         // Never expose the obsolete local-player lobby on an online flow.
         Debug.LogError("ATB_ONLINE_LOBBY_BLOCKED private_controller_missing=true legacy_fallback=false");
         ShowModal("ONLINE ROOM UNAVAILABLE",
             "The private online lobby is unavailable. Please restart and try again.");
     }
+
 
     public void OpenPrivateLobbyAfterRoomChoice()
     {
@@ -248,11 +292,13 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         OpenLobby();
     }
 
+
     public void OpenPublicLobbyAfterRoomChoice()
     {
         currentLobbyMode = "PUBLIC TABLE";
         OpenLobby();
     }
+
 
     public void OpenShop()
     {
@@ -263,6 +309,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
                 "menu.shop_body"));
     }
 
+
     public void OpenSettings()
     {
         ShowModal(
@@ -271,6 +318,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             AtlasBoardL.T(
                 "settings.audio_title"));
     }
+
 
     public void OpenProfile()
     {
@@ -283,6 +331,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
                         "menu.player")
                     : profileName;
 
+
         ShowModal(
             AtlasBoardL.T(
                 "menu.profile"),
@@ -293,6 +342,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
                 Mathf.Max(0, profileGold).ToString("N0")));
     }
 
+
     public void QuitGame()
     {
 #if UNITY_EDITOR
@@ -302,10 +352,12 @@ public class AtlasBoardMainMenuController : MonoBehaviour
 #endif
     }
 
+
     public void ShowMainMenu()
     {
         BeginMainMenuReturn(false);
     }
+
 
     private void ShowMainMenuImmediate()
     {
@@ -313,7 +365,9 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         SetActive(mainMenuPanel, true);
         SetActive(lobbyPanel, false);
         SetActive(modalPanel, false);
+        RefreshMainMenuFooter(true);
     }
+
 
     private void BeginMainMenuReturn(bool resetGameplay)
     {
@@ -323,12 +377,14 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         // blocker until the online controllers have settled.
         if (mainMenuReturnRoutine != null) return;
 
+
         navigationGeneration++;
         int generation = navigationGeneration;
         AtlasBoardLoadingExperience.BeginMenuReturnReset();
         mainMenuReturnRoutine = StartCoroutine(
             MainMenuReturnRoutine(resetGameplay, generation));
     }
+
 
     private IEnumerator MainMenuReturnRoutine(bool resetGameplay, int generation)
     {
@@ -337,9 +393,11 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         AtlasBoardPublicLobbyBrowserController publicBrowser =
             GetComponent<AtlasBoardPublicLobbyBrowserController>();
 
+
         publicBrowser?.InvalidateForMainMenuReturn();
         privateLobby?.InvalidatePendingRoomOperations();
         privateLobby?.NotifyMainMenuShown();
+
 
         if (resetGameplay)
         {
@@ -349,6 +407,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             SetActive(existingGameplayOverlayCanvas, false);
             SetActive(boardControlsCanvas, false);
         }
+
 
         const float timeoutSeconds = 8f;
         float started = Time.unscaledTime;
@@ -362,12 +421,14 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             yield return null;
         }
 
+
         if (privateLobby != null && !privateLobby.IsMainMenuTransitionSettled)
         {
             Debug.LogWarning(
                 "ATB_MENU_RESET timeout=true lobby_cleanup_pending=true generation=" +
                 generation);
         }
+
 
         // Only the latest transition may reveal Main Menu. Old async lobby
         // callbacks carry an older generation and are discarded by their
@@ -378,15 +439,18 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             Debug.Log("ATB_MENU_RESET stale_callbacks_blocked=true generation=" + generation);
         }
 
+
         AtlasBoardLoadingExperience.CompleteMenuReturnReset();
         mainMenuReturnRoutine = null;
     }
+
 
     public void ReturnOnlineMatchToLobby()
     {
         ResolveGameplayUIReferences();
         ResetReusableGameplaySession();
         SetMainMenuCanvasRendering(true);
+
 
         SetActive(mainMenuPanel, false);
         if (!HasModernLobbyScaffold())
@@ -399,9 +463,11 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         RestoreOnlineLobbyScaffold();
         SetActive(modalPanel, false);
 
+
         SetActive(existingTabletCanvas, false);
         SetActive(existingGameplayOverlayCanvas, false);
         SetActive(boardControlsCanvas, false);
+
 
         Debug.Log(
             "AtlasBoard synchronized online rematch returned this client " +
@@ -409,10 +475,12 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             this);
     }
 
+
     public void ShowMainMenuAfterActiveMatchExit()
     {
         BeginMainMenuReturn(true);
     }
+
 
     private static void ResetReusableGameplaySession()
     {
@@ -420,13 +488,16 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             FindSceneComponentIncludingInactive<MatchSetupManager>();
         setup?.ResetForNewMatchSession();
 
+
         TurnManager turn =
             FindSceneComponentIncludingInactive<TurnManager>();
         turn?.ResetForOnlineLobbySession();
 
+
         DiceVisualController dice =
             FindSceneComponentIncludingInactive<DiceVisualController>();
         dice?.ResetForNewMatchSession();
+
 
         PlayerHudPanel[] hudPanels =
             Resources.FindObjectsOfTypeAll<PlayerHudPanel>();
@@ -438,44 +509,54 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             }
         }
 
+
         TileResolutionManager resolution =
             FindSceneComponentIncludingInactive<TileResolutionManager>();
         resolution?.ResetForNewMatchSession();
+
 
         SpecialTileManager special =
             FindSceneComponentIncludingInactive<SpecialTileManager>();
         special?.ResetForNewMatchSession();
 
+
         EventCardManager events =
             FindSceneComponentIncludingInactive<EventCardManager>();
         events?.ResetForNewMatchSession();
+
 
         AuctionManager auction =
             FindSceneComponentIncludingInactive<AuctionManager>();
         auction?.ResetForNewMatchSession();
 
+
         TradeManager trade =
             FindSceneComponentIncludingInactive<TradeManager>();
         trade?.ResetForNewMatchSession();
+
 
         MatchResultManager result =
             FindSceneComponentIncludingInactive<MatchResultManager>();
         result?.ResetForNewMatchSession();
 
+
         TabletUIManager tablet =
             FindSceneComponentIncludingInactive<TabletUIManager>();
         tablet?.ResetForNewMatchSession();
+
 
         PropertyDevelopmentManager development =
             FindSceneComponentIncludingInactive<PropertyDevelopmentManager>();
         development?.ResetAllDevelopmentsForNewMatch();
     }
 
+
     private static T FindSceneComponentIncludingInactive<T>()
         where T : Component
     {
         T[] all =
             Resources.FindObjectsOfTypeAll<T>();
+
 
         foreach (T item in all)
         {
@@ -486,23 +567,28 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             }
         }
 
+
         return null;
     }
+
 
     public void BackFromLobby()
     {
         ShowMainMenu();
     }
 
+
     public void CloseModal()
     {
         SetActive(modalPanel, false);
     }
 
+
     public void OnPlayerCountChanged(int _)
     {
         RefreshPlayerRows();
     }
+
 
     public void StartMatch()
     {
@@ -512,6 +598,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             AtlasBoardPrivateLobbyUIController privateLobby =
                 GetComponent<AtlasBoardPrivateLobbyUIController>();
 
+
             if (privateLobby != null &&
                 privateLobby.HandleHostStartRequested())
             {
@@ -519,23 +606,28 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             }
         }
 
+
         StartMatchCore();
     }
+
 
     public void StartMatchAfterPrivateBackendAuthorization()
     {
         StartMatchCore();
     }
 
+
     public AtlasBoardLobbySelection GetCurrentLobbySelection()
     {
         return ReadLobbySelection();
     }
 
+
     private void StartMatchCore()
     {
         AtlasBoardLobbySelection selection =
             ReadLobbySelection();
+
 
         string premiumId = AtlasBoardRtdbMetaEconomy.MapEntitlementId(selection.MapId);
         // Joined remote humans may play the host-owned map without owning it.
@@ -552,8 +644,10 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             return;
         }
 
+
         ApplySelectedTheme(
             selection.ThemeId);
+
 
         Debug.Log(
             "Lobby selection: " +
@@ -566,15 +660,18 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             $"Doubles={selection.DoublesEnabled}, " +
             $"TriplePenalty={selection.TripleDoublePenaltyEnabled}");
 
+
         if (matchSetupBridge != null)
         {
             bool started =
                 matchSetupBridge.TryStartExistingMatch(
                     selection);
 
+
             if (started)
             {
                 RestoreGameplayUIForMatch();
+
 
                 // Phase 5 networking lives on Canvas_MainMenu components.
                 // Hide rendering/raycasting but keep the GameObject active so
@@ -585,6 +682,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             }
         }
 
+
         // v1.1 deliberately does NOT expose the legacy Match Setup screen.
         // If mapping ever fails, stay in the new lobby and show a clear error.
         ShowModal(
@@ -593,10 +691,12 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             AtlasBoardL.T(
                 "menu.start_match_error_body"));
 
+
         Debug.LogWarning(
             "AtlasBoard Main Menu v1.1 blocked the legacy Match Setup " +
             "screen because automatic mapping/start did not complete.");
     }
+
 
     private void SetMainMenuCanvasRendering(
         bool visible)
@@ -604,19 +704,23 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         Canvas canvas =
             GetComponent<Canvas>();
 
+
         if (canvas != null)
         {
             canvas.enabled = visible;
         }
 
+
         GraphicRaycaster raycaster =
             GetComponent<GraphicRaycaster>();
+
 
         if (raycaster != null)
         {
             raycaster.enabled = visible;
         }
     }
+
 
     private void ApplySelectedTheme(
         string themeId)
@@ -625,14 +729,17 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             FindAnyObjectByType<
                 EnvironmentThemeManager>();
 
+
         if (manager == null)
         {
             Debug.LogWarning(
                 "EnvironmentThemeManager was not found. " +
                 "The match will start without applying the selected theme.");
 
+
             return;
         }
+
 
         if (!manager.ApplyThemeById(themeId))
         {
@@ -640,6 +747,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
                 $"Could not apply environment theme '{themeId}'.");
         }
     }
+
 
     // PrivateOnlineRoot owns the room code/online controls, but the actual
     // online settings and player cards are serialized siblings beneath Lobby.
@@ -654,6 +762,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             lobbyPanel.transform.Find("Panel_Players") != null;
     }
 
+
     private void RestoreOnlineLobbyScaffold()
     {
         if (!HasModernLobbyScaffold())
@@ -661,6 +770,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             Debug.LogError("ATB_MODERN_LOBBY missing_scaffold=true legacy_fallback=false");
             return;
         }
+
 
         // These were deactivated by the previous blanket-hiding regression.
         // They are the SAME live online room widgets (used by the private-room
@@ -677,8 +787,10 @@ public class AtlasBoardMainMenuController : MonoBehaviour
                 child.gameObject.SetActive(true);
         }
 
+
         Debug.Log("ATB_MODERN_LOBBY scaffold_restored=true settings=true players=true legacy_fallback=false");
     }
+
 
     private void OpenLobby()
     {
@@ -697,6 +809,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         SetActive(lobbyPanel, true);
         RestoreOnlineLobbyScaffold();
 
+
         if (lobbyTitleText != null)
         {
             if (currentLobbyMode == "PRIVATE TABLE")
@@ -713,8 +826,10 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             }
         }
 
+
         RefreshPlayerRows();
     }
+
 
     // Shared account-entitlement notice for offline, private and public
     // selectors. Do not silently discard a premium map selection.
@@ -748,6 +863,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         if (modalPanel != null) modalPanel.transform.SetAsLastSibling();
     }
 
+
     private void ShowModal(
         string title,
         string body)
@@ -757,12 +873,183 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             modalTitle.text = title;
         }
 
+
         if (modalBody != null)
         {
             modalBody.text = body;
         }
 
+
         SetActive(modalPanel, true);
+    }
+
+
+    private void RefreshMainMenuFooter(bool advanceTip)
+    {
+        if (mainMenuFooterText == null)
+        {
+            TMP_Text[] labels = mainMenuPanel != null
+                ? mainMenuPanel.GetComponentsInChildren<TMP_Text>(true)
+                : GetComponentsInChildren<TMP_Text>(true);
+
+            foreach (TMP_Text label in labels)
+            {
+                if (label != null &&
+                    string.Equals(
+                        label.gameObject.name,
+                        "FooterVersion",
+                        System.StringComparison.Ordinal))
+                {
+                    mainMenuFooterText = label;
+                    break;
+                }
+            }
+
+            if (mainMenuFooterText == null && mainMenuPanel != null)
+            {
+                foreach (TMP_Text label in
+                         GetComponentsInChildren<TMP_Text>(true))
+                {
+                    if (label != null &&
+                        string.Equals(
+                            label.gameObject.name,
+                            "FooterVersion",
+                            System.StringComparison.Ordinal))
+                    {
+                        mainMenuFooterText = label;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (mainMenuFooterText == null)
+        {
+            return;
+        }
+
+        if (advanceTip || mainMenuFooterTipIndex < 0)
+        {
+            mainMenuFooterTipIndex =
+                (mainMenuFooterTipIndex + 1) % 4;
+        }
+
+        string tip =
+            LocalizedMainMenuTip(mainMenuFooterTipIndex);
+        string caption =
+            LocalizedMainMenuCaption();
+
+        mainMenuFooterText.text =
+            tip + "\n<b>" + caption + "</b>";
+        mainMenuFooterText.enableAutoSizing = true;
+        mainMenuFooterText.fontSizeMin = 11f;
+        mainMenuFooterText.fontSizeMax = 18f;
+        mainMenuFooterText.textWrappingMode =
+            TextWrappingModes.Normal;
+        mainMenuFooterText.overflowMode =
+            TextOverflowModes.Truncate;
+        mainMenuFooterText.alignment =
+            TextAlignmentOptions.Center;
+
+        RectTransform footerRect =
+            mainMenuFooterText.rectTransform;
+        if (footerRect != null)
+        {
+            footerRect.sizeDelta =
+                new Vector2(
+                    Mathf.Max(
+                        footerRect.sizeDelta.x,
+                        760f),
+                    68f);
+        }
+    }
+
+    private static string LocalizedMainMenuCaption()
+    {
+        string language =
+            AtlasBoardLocalizationManager.Instance != null
+                ? AtlasBoardLocalizationManager.Instance.CurrentLanguageCode
+                : "en";
+
+        switch ((language ?? "en").ToLowerInvariant())
+        {
+            case "tr": return "ANA MENÜ";
+            case "es": return "MENÚ PRINCIPAL";
+            case "fr": return "MENU PRINCIPAL";
+            case "de": return "HAUPTMENÜ";
+            case "ko": return "메인 메뉴";
+            case "ru": return "ГЛАВНОЕ МЕНЮ";
+            default: return "MAIN MENU";
+        }
+    }
+
+    private static string LocalizedMainMenuTip(int index)
+    {
+        int tipIndex = Mathf.Abs(index) % 4;
+        string language =
+            AtlasBoardLocalizationManager.Instance != null
+                ? AtlasBoardLocalizationManager.Instance.CurrentLanguageCode
+                : "en";
+
+        switch ((language ?? "en").ToLowerInvariant())
+        {
+            case "tr":
+                return tipIndex switch
+                {
+                    0 => "Şehirlerini geliştir, ekonomini büyüt ve en yüksek net değere ulaş.",
+                    1 => "Açık artırmalar doğru zamanda güçlü bir yatırıma dönüşebilir.",
+                    2 => "Dengeli geliştirme, aynı mülk grubunda planlı büyümeyi ödüllendirir.",
+                    _ => "Etkinlikler, ticaret ve geliştirmeler her maçı farklı bir stratejiye dönüştürür."
+                };
+            case "es":
+                return tipIndex switch
+                {
+                    0 => "Desarrolla tus ciudades, haz crecer tu economía y termina con el mayor patrimonio.",
+                    1 => "Una subasta en el momento adecuado puede convertirse en tu mejor inversión.",
+                    2 => "El desarrollo equilibrado premia el crecimiento planificado de un grupo de propiedades.",
+                    _ => "Eventos, intercambios y mejoras pueden cambiar por completo la estrategia de cada partida."
+                };
+            case "fr":
+                return tipIndex switch
+                {
+                    0 => "Développez vos villes, renforcez votre économie et terminez avec la plus grande valeur nette.",
+                    1 => "Une enchère au bon moment peut devenir votre meilleur investissement.",
+                    2 => "Le développement équilibré récompense une croissance planifiée de tout un groupe de propriétés.",
+                    _ => "Événements, échanges et améliorations peuvent transformer la stratégie de chaque partie."
+                };
+            case "de":
+                return tipIndex switch
+                {
+                    0 => "Baue deine Städte aus, stärke deine Wirtschaft und erreiche das höchste Nettovermögen.",
+                    1 => "Eine Auktion zum richtigen Zeitpunkt kann deine beste Investition werden.",
+                    2 => "Ausgewogene Entwicklung belohnt geplantes Wachstum innerhalb einer Grundstücksgruppe.",
+                    _ => "Ereignisse, Handel und Ausbauten können die Strategie jeder Partie verändern."
+                };
+            case "ko":
+                return tipIndex switch
+                {
+                    0 => "도시를 개발하고 경제를 키워 가장 높은 순자산으로 경기를 마치세요.",
+                    1 => "적절한 타이밍의 경매는 최고의 투자가 될 수 있습니다.",
+                    2 => "균형 개발은 같은 부동산 그룹을 계획적으로 성장시킬 때 보상합니다.",
+                    _ => "이벤트, 거래, 개발은 매 경기의 전략을 새롭게 바꿀 수 있습니다."
+                };
+            case "ru":
+                return tipIndex switch
+                {
+                    0 => "Развивайте города, укрепляйте экономику и завершите матч с самым высоким капиталом.",
+                    1 => "Аукцион в нужный момент может стать вашей лучшей инвестицией.",
+                    2 => "Сбалансированное развитие поощряет планомерный рост всей группы собственности.",
+                    _ => "События, сделки и улучшения могут полностью изменить стратегию каждого матча."
+                };
+            default:
+                return tipIndex switch
+                {
+                    0 => "Develop your cities, grow your economy, and finish with the highest net worth.",
+                    1 => "A well-timed auction can become your strongest investment.",
+                    2 => "Balanced development rewards planned growth across a property group.",
+                    _ => "Events, trades, and upgrades can reshape the strategy of every match."
+                };
+        }
     }
 
     private void RefreshProfile()
@@ -779,10 +1066,12 @@ public class AtlasBoardMainMenuController : MonoBehaviour
                         : profileName;
         }
 
+
         if (profileCashText != null)
         {
             profileCashText.text = $"Gold: {Mathf.Max(0, profileCash):N0}";
         }
+
 
         if (profileGoldText != null)
         {
@@ -790,19 +1079,23 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         }
     }
 
+
     private void RefreshPlayerRows()
     {
         int count =
             GetPlayerCount();
 
+
         SetActive(
             player3Row,
             count >= 3);
+
 
         SetActive(
             player4Row,
             count >= 4);
     }
+
 
     private AtlasBoardLobbySelection
         ReadLobbySelection()
@@ -810,36 +1103,45 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         AtlasBoardLobbySelection selection =
             new AtlasBoardLobbySelection();
 
+
         selection.Mode =
             currentLobbyMode;
+
 
         selection.MapId =
             GetMapIdByIndex(
                 mapDropdown);
 
+
         selection.PlayerCount =
             GetPlayerCount();
+
 
         selection.RoundLimit =
             ParseDropdownInt(
                 roundLimitDropdown,
                 20);
 
+
         selection.ThemeId =
             GetThemeIdByIndex(
                 themeDropdown);
+
 
         selection.BalancedDevelopment =
             balancedDevelopmentToggle == null ||
             balancedDevelopmentToggle.IsOn;
 
+
         selection.DoublesEnabled =
             doublesToggle == null ||
             doublesToggle.IsOn;
 
+
         selection.TripleDoublePenaltyEnabled =
             tripleDoublePenaltyToggle == null ||
             tripleDoublePenaltyToggle.IsOn;
+
 
         selection.PlayerTypes =
             new[]
@@ -858,8 +1160,10 @@ public class AtlasBoardMainMenuController : MonoBehaviour
                     "Bot")
             };
 
+
         return selection;
     }
+
 
     private static string GetMapIdByIndex(
         TMP_Dropdown dropdown)
@@ -868,6 +1172,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             dropdown != null
                 ? dropdown.value
                 : 0;
+
 
         return index switch
         {
@@ -879,6 +1184,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         };
     }
 
+
     private static string GetThemeIdByIndex(
         TMP_Dropdown dropdown)
     {
@@ -886,6 +1192,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             dropdown != null
                 ? dropdown.value
                 : 0;
+
 
         return index switch
         {
@@ -897,6 +1204,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         };
     }
 
+
     private static string GetPlayerTypeByIndex(
         TMP_Dropdown dropdown,
         string fallback)
@@ -906,10 +1214,12 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             return fallback;
         }
 
+
         return dropdown.value == 1
             ? "Bot"
             : "Human";
     }
+
 
     private int GetPlayerCount()
     {
@@ -917,6 +1227,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             playerCountDropdown,
             2);
     }
+
 
     private static string GetDropdownText(
         TMP_Dropdown dropdown,
@@ -931,9 +1242,11 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             return fallback;
         }
 
+
         return dropdown.options[
             dropdown.value].text;
     }
+
 
     private static int ParseDropdownInt(
         TMP_Dropdown dropdown,
@@ -944,12 +1257,14 @@ public class AtlasBoardMainMenuController : MonoBehaviour
                 dropdown,
                 fallback.ToString());
 
+
         return int.TryParse(
             value,
             out int result)
                 ? result
                 : fallback;
     }
+
 
     private void ResolveGameplayUIReferences()
     {
@@ -960,12 +1275,14 @@ public class AtlasBoardMainMenuController : MonoBehaviour
                     "Canvas_TabletUI");
         }
 
+
         if (existingGameplayOverlayCanvas == null)
         {
             existingGameplayOverlayCanvas =
                 FindSceneObjectByName(
                     "Canvas_UXOverlay");
         }
+
 
         if (boardControlsCanvas == null)
         {
@@ -975,6 +1292,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         }
     }
 
+
     private void CaptureGameplayUIState()
     {
         if (gameplayUIStateCaptured)
@@ -982,16 +1300,20 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             return;
         }
 
+
         tabletWasActive =
             existingTabletCanvas != null &&
             existingTabletCanvas.activeSelf;
 
+
         gameplayUIStateCaptured = true;
     }
+
 
     private void RestoreGameplayUIForMatch()
     {
         ResolveGameplayUIReferences();
+
 
         if (existingTabletCanvas != null)
         {
@@ -1001,12 +1323,14 @@ public class AtlasBoardMainMenuController : MonoBehaviour
                     : true);
         }
 
+
         if (existingGameplayOverlayCanvas != null)
         {
             // Gameplay overlays are required once the match has started.
             // Do not restore the intentionally-hidden menu-time state.
             existingGameplayOverlayCanvas.SetActive(true);
         }
+
 
         if (boardControlsCanvas != null)
         {
@@ -1015,6 +1339,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             boardControlsCanvas.SetActive(true);
         }
 
+
         Debug.Log(
             "Gameplay UI restored after Main Menu: " +
             $"Tablet={(existingTabletCanvas != null && existingTabletCanvas.activeSelf)}, " +
@@ -1022,12 +1347,14 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             $"BoardControls={(boardControlsCanvas != null && boardControlsCanvas.activeSelf)}.");
     }
 
+
     private static GameObject FindSceneObjectByName(
         string objectName)
     {
         GameObject[] all =
             Resources.FindObjectsOfTypeAll<
                 GameObject>();
+
 
         foreach (GameObject item in all)
         {
@@ -1038,11 +1365,14 @@ public class AtlasBoardMainMenuController : MonoBehaviour
                 continue;
             }
 
+
             return item;
         }
 
+
         return null;
     }
+
 
     private void HideExistingGameUI()
     {
@@ -1050,14 +1380,17 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             existingMatchSetupCanvas,
             false);
 
+
         SetActive(
             existingTabletCanvas,
             false);
+
 
         SetActive(
             existingGameplayOverlayCanvas,
             false);
     }
+
 
     private static void SetActive(
         GameObject target,
@@ -1069,6 +1402,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             target.SetActive(value);
         }
     }
+
 
 #if UNITY_EDITOR
     public void EditorConfigure(
@@ -1102,83 +1436,109 @@ public class AtlasBoardMainMenuController : MonoBehaviour
         mainMenuPanel =
             newMainMenuPanel;
 
+
         lobbyPanel =
             newLobbyPanel;
+
 
         modalPanel =
             newModalPanel;
 
+
         modalTitle =
             newModalTitle;
+
 
         modalBody =
             newModalBody;
 
+
         profileNameText =
             newProfileNameText;
+
 
         profileCashText =
             newProfileCashText;
 
+
         profileGoldText =
             newProfileGoldText;
+
 
         lobbyTitleText =
             newLobbyTitleText;
 
+
         mapDropdown =
             newMapDropdown;
+
 
         playerCountDropdown =
             newPlayerCountDropdown;
 
+
         roundLimitDropdown =
             newRoundLimitDropdown;
+
 
         themeDropdown =
             newThemeDropdown;
 
+
         balancedDevelopmentToggle =
             newBalancedDevelopmentToggle;
+
 
         doublesToggle =
             newDoublesToggle;
 
+
         tripleDoublePenaltyToggle =
             newTripleDoublePenaltyToggle;
+
 
         player1TypeDropdown =
             newPlayer1TypeDropdown;
 
+
         player2TypeDropdown =
             newPlayer2TypeDropdown;
+
 
         player3TypeDropdown =
             newPlayer3TypeDropdown;
 
+
         player4TypeDropdown =
             newPlayer4TypeDropdown;
+
 
         player3Row =
             newPlayer3Row;
 
+
         player4Row =
             newPlayer4Row;
+
 
         existingMatchSetupCanvas =
             newExistingMatchSetupCanvas;
 
+
         existingTabletCanvas =
             newExistingTabletCanvas;
 
+
         existingGameplayOverlayCanvas =
             newExistingGameplayOverlayCanvas;
+
 
         matchSetupBridge =
             newBridge;
     }
 #endif
 }
+
 
 [System.Serializable]
 public class AtlasBoardLobbySelection
@@ -1190,9 +1550,11 @@ public class AtlasBoardLobbySelection
     public string ThemeId;
     public string BoardThemeId = "default_board";
 
+
     public bool BalancedDevelopment;
     public bool DoublesEnabled;
     public bool TripleDoublePenaltyEnabled;
+
 
     public string[] PlayerTypes;
 }

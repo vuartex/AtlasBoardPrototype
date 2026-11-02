@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
+
 
 /// <summary>
 /// Spark RTDB casual-room transport (Firebase Auth token, REST, no Functions).
@@ -28,6 +30,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
     private static readonly object RoomWriterGateSync = new object();
     private static readonly Dictionary<string, SemaphoreSlim> RoomWriterGates =
         new Dictionary<string, SemaphoreSlim>(StringComparer.Ordinal);
+
 
     [Serializable] private sealed class Request
     {
@@ -72,6 +75,14 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         public int slotIndex;
         public string pawnCosmeticId;
     }
+
+    [Serializable] private sealed class RoomPawnSelection
+    {
+        public string uid;
+        public int slotIndex;
+        public string pawnCosmeticId;
+        public long updatedAt;
+    }
     [Serializable] private sealed class LobbyPawnIntent
     {
         public string uid, type, clientCommandId, payload, seatId;
@@ -97,6 +108,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         public bool Ok => Code >= 200 && Code < 300;
     }
 
+
     private enum StoreSnapshotFailureKind
     {
         None,
@@ -104,6 +116,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         Collision,
         Transport
     }
+
 
     private sealed class StoreSnapshotResult
     {
@@ -113,6 +126,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         public long ActualRevision;
         public long HttpCode;
     }
+
 
     private static SemaphoreSlim GetRoomWriterGate(string room)
     {
@@ -127,6 +141,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             return gate;
         }
     }
+
 
     private static bool RequiresRoomWriterGate(string operation, string room)
     {
@@ -152,6 +167,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
                 return false;
         }
     }
+
 
     public static async Task<AtlasLobbyOperationResult> ExecuteAsync(
         string operation, string requestJson, string uid, string token,
@@ -238,6 +254,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         }
     }
 
+
     public static async Task<AtlasPublicLobbyListResult> PublicRoomsAsync(string token, int limit)
     {
         try
@@ -288,6 +305,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         }
     }
 
+
     // Phase 18G: reserve the six-digit code FIRST, before creating room records.
     // If a subsequent RTDB write fails, remove only this newly-created room.
     // Conditional PUT + null_etag prevents two hosts from claiming one code.
@@ -326,6 +344,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         return (true, result);
     }
 
+
     // A 3-hour room is NOT automatically an orphan. We independently check
     // host UID, last activity, authoritative lobby, and (for started matches)
     // the match heartbeat + every saved Human heartbeat before deleting it.
@@ -342,6 +361,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         public long lastSeenAt;
     }
 
+
     private static bool IsIdleForThreeHours(MatchLease match, Meta meta,
         string room, string uid, long now)
     {
@@ -355,6 +375,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             match.updatedAt <= now - DormantRoomAgeMs &&
             match.hostHeartbeatAt <= now - DormantRoomAgeMs;
     }
+
 
     // Owner-only automatic collection. After THREE hours with no recorded
     // activity, abandoned pre-start and disconnected matches become eligible.
@@ -442,6 +463,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         return (true, scan.rooms.Count, deleted);
     }
 
+
     // The ONLY opt-in path. No room creation-age gate, but at least ten
     // minutes without authoritative activity is required before closure.
     // A started match is eligible only after all its authoritative leases have
@@ -450,6 +472,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
     // Intentional: the game seat-reconnect deadline remains five minutes.
     // Consent cleanup requires TEN minutes of inactivity, not a shortened reconnect deadline.
     private const long ConsentMatchOfflineGraceMs = 10L * 60L * 1000L;
+
 
     // Diagnostics only: a protected room is NOT automatically a live match.
     // The fingerprint remains stable across restarts without printing room codes,
@@ -467,12 +490,14 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         }
     }
 
+
     private static RoomCleanupDecision CleanupEligible(string reason) =>
         new RoomCleanupDecision(true, false, reason);
     private static RoomCleanupDecision CleanupProtected(string reason) =>
         new RoomCleanupDecision(false, false, reason);
     private static RoomCleanupDecision CleanupUnknown(string reason) =>
         new RoomCleanupDecision(false, true, reason);
+
 
     private static string RoomDiagnosticReference(string room)
     {
@@ -486,10 +511,12 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         }
     }
 
+
     private static long RoomDiagnosticAgeSeconds(long timestampMs, long nowMs)
     {
         return timestampMs <= 0 ? -1 : Math.Max(0, (nowMs - timestampMs) / 1000L);
     }
+
 
     private static void LogRoomCleanupDecision(string scope, string room,
         RoomCleanupDecision decision, Meta m, AtlasLobbySnapshot snapshot)
@@ -508,6 +535,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             " created_age_s=" + (m == null ? -1 : RoomDiagnosticAgeSeconds(m.createdAt, now)) +
             " updated_age_s=" + (m == null ? -1 : RoomDiagnosticAgeSeconds(m.updatedAt, now)));
     }
+
 
     private static RoomCleanupDecision EvaluateConsentMatchLease(
         MatchLease lease, Meta m, string room, string uid, long now)
@@ -531,10 +559,12 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         return CleanupEligible("match_lease_idle_over_10m");
     }
 
+
     private static bool IsTimestampIdle(long timestamp, long now, long idleMs)
     {
         return timestamp > 0 && timestamp <= now - idleMs;
     }
+
 
     // A legacy room may be stranded in Starting with no matchId, or its
     // roomState may be missing entirely. Neither condition proves a live game.
@@ -568,6 +598,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             snap.LifecycleState == AtlasRoomLifecycleState.Starting
                 ? "stale_starting_without_match" : "idle_waiting_room");
     }
+
 
     // Never equate a stale roomMeta timestamp with a stale match. A started
     // match also requires stale host writes and *all* human presence records.
@@ -608,6 +639,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         }
         return CleanupEligible("host_and_all_humans_inactive");
     }
+
 
     private static async Task<AtlasLobbyOperationResult>
         CloseOwnedWaitingRoomsOnConsentAsync(string uid, string token, string activeRoom)
@@ -726,6 +758,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         return AtlasLobbyOperationResult.Ok(null);
     }
 
+
     private static bool IsConsentCleanupCandidate(Meta m, AtlasLobbySnapshot snap,
         string uid, string room, string activeRoom)
     {
@@ -738,6 +771,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             string.IsNullOrWhiteSpace(snap.MatchId) &&
             snap.LifecycleState == AtlasRoomLifecycleState.Waiting;
     }
+
 
     private static bool IsConsentMatchLeaseInactive(MatchLease lease, Meta m,
         string room, string uid, long now)
@@ -752,6 +786,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             lease.updatedAt <= now - ConsentMatchOfflineGraceMs &&
             lease.hostHeartbeatAt <= now - ConsentMatchOfflineGraceMs;
     }
+
 
     private static async Task<RoomCleanupDecision> VerifyConsentMatchInactiveAsync(
         Meta m, AtlasLobbySnapshot snap, string room, string uid, string token)
@@ -785,6 +820,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         return CleanupEligible("match_and_all_human_leases_idle_over_10m");
     }
 
+
     // V1 legacy rooms can have neither roomMeta.activeMatchId nor
     // roomMeta.authorityEpoch, even though roomState.snapshotJson.MatchId and
     // matchState/{matchId} exist. The missing integer deserializes to zero.
@@ -808,6 +844,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         return (m.authorityEpoch > 0 && lease.authorityEpoch == m.authorityEpoch) ||
             (m.authorityEpoch == 0 && lease.authorityEpoch == 1);
     }
+
 
     // Regression guard: real legacy RTDB export contained 14 old Starting
     // rooms with meta epoch absent (0), match epoch 1 and exact owned anchors.
@@ -851,6 +888,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         return !IsUnanchoredStartingAuthorityConsistent(meta, snap, lease,
             "qa_room", "qa_owner");
     }
+
 
     // Legacy crash window: matchState may have been created and roomState
     // switched to Starting, but roomMeta.activeMatchId was never committed.
@@ -898,6 +936,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             ? "stale_legacy_starting_epoch0_to_epoch1_all_players_inactive"
             : "stale_starting_match_and_players_inactive");
     }
+
 
     public static bool ValidateOwnerConsentCleanupContract()
     {
@@ -957,6 +996,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         return ValidateUnanchoredStartingEpochContract();
     }
 
+
     private static bool IsDormantCandidate(Meta data, string uid, long now)
     {
         // A failed close marks the room closed and updates updatedAt=now.
@@ -968,6 +1008,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             data.createdAt <= now - DormantRoomAgeMs &&
             (data.closed || data.updatedAt <= now - DormantRoomAgeMs);
     }
+
 
     // Uses the identical candidate function as the live owner-cleanup path.
     public static bool ValidateDormantCleanupGuardContract()
@@ -1000,6 +1041,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             ValidateUnanchoredStartingEpochContract();
     }
 
+
     private static async Task<AtlasLobbyOperationResult> CreateAsync(
         Request req, string uid, string token, string name, bool isPublic)
     {
@@ -1031,11 +1073,13 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         string roomCode = string.Empty;
         long reservationHttp = 0;
 
+
         for (int attempt = 0; attempt < 10; attempt++)
         {
             int codeNum;
             lock (CodeRandom)
                 codeNum = CodeRandom.Next(100000, 1000000);
+
 
             string candidate = codeNum.ToString();
             Code index = new Code
@@ -1048,12 +1092,14 @@ public static class AtlasBoardRtdbCasualLobbyTransport
                 "PUT", "joinCodes/" + candidate, token,
                 JsonUtility.ToJson(index), "null_etag");
 
+
             reservationHttp = reserved.Code;
             if (reserved.Ok)
             {
                 roomCode = candidate;
                 break;
             }
+
 
             // 412 means a real collision: select another six-digit code.
             // 401/403 means permissions/auth, 0 means network; retries
@@ -1076,6 +1122,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             }
         }
 
+
         if (roomCode.Length != 6)
         {
             Debug.LogWarning("ATB_RTDB_CODE_RESERVATION success=false http=" +
@@ -1083,6 +1130,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             return Failure("lobby.error.service_unavailable",
                 "RTDB invite codes were occupied (HTTP 412). Try again.");
         }
+
 
         int playerCount = Mathf.Clamp(req.maxPlayers, 2, 4);
         Meta meta = new Meta
@@ -1104,6 +1152,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             active = true, joinedAt = now
         };
 
+
         // Never orphan partial rooms, and never touch any other host's room.
         if (!await Write("PUT", "roomMeta/" + Safe(room), token,
                 JsonUtility.ToJson(meta)))
@@ -1120,8 +1169,38 @@ public static class AtlasBoardRtdbCasualLobbyTransport
                 "RTDB host membership write failed.");
         }
 
+
         AtlasLobbySnapshot snapshot =
             NewSnapshot(room, uid, host.displayName, meta, isPublic);
+
+        if (IsKnownPawn(req.pawnCosmeticId) &&
+            snapshot.Members != null)
+        {
+            AtlasLobbyMemberSnapshot hostSeat =
+                snapshot.Members.Find(member =>
+                    member != null &&
+                    member.Active &&
+                    string.Equals(member.AccountId, uid, StringComparison.Ordinal));
+
+            if (hostSeat != null)
+            {
+                hostSeat.PawnCosmeticId = req.pawnCosmeticId;
+
+                if (!await WriteOwnRoomPawnSelectionAsync(
+                        room,
+                        uid,
+                        hostSeat.SlotIndex,
+                        req.pawnCosmeticId,
+                        token))
+                {
+                    await AbortCreateAsync(room, roomCode, uid, token);
+                    return Failure(
+                        "lobby.error.service_unavailable",
+                        "RTDB host pawn ownership ledger write failed.");
+                }
+            }
+        }
+
         if (!await StoreSnapshot(room, snapshot, token, 1L))
         {
             await AbortCreateAsync(room, roomCode, uid, token);
@@ -1129,17 +1208,20 @@ public static class AtlasBoardRtdbCasualLobbyTransport
                 "RTDB initial room snapshot write failed.");
         }
 
+
         ActiveCode[room] = roomCode;
         RoomCreatedAt[room] = now;
         CodeRenewAfter[room] = now + 30L * 60L * 1000L;
         if (isPublic)
             await StoreIndex(room, snapshot, token, now);
 
+
         Debug.Log("ATB_RTDB_ROOM_CREATED visibility=" +
             (isPublic ? "public" : "private") +
             " transport=RTDB code_length=6");
         return AtlasLobbyOperationResult.Ok(snapshot, roomCode, true);
     }
+
 
     private static async Task AbortCreateAsync(
         string room, string roomCode, string uid, string token)
@@ -1149,12 +1231,15 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         await Send("DELETE", "roomState/" + Safe(room), token);
         await Send("DELETE", "roomMembers/" + Safe(room) +
             "/" + Safe(uid), token);
+        await Send("DELETE", "roomPawnSelections/" + Safe(room) +
+            "/" + Safe(uid), token);
         await Send("DELETE", "roomMeta/" + Safe(room), token);
         await Send("DELETE", "joinCodes/" + Safe(roomCode), token);
         ActiveCode.Remove(room);
         RoomCreatedAt.Remove(room);
         CodeRenewAfter.Remove(room);
     }
+
 
     private static AtlasLobbySnapshot NewSnapshot(
         string room,string uid,string name,Meta meta,bool isPublic)
@@ -1191,6 +1276,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         }
         return snap;
     }
+
 
     private static async Task<AtlasLobbyOperationResult> JoinAsync(
         string room,string password,string uid,string token,string name)
@@ -1308,6 +1394,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         return Failure("lobby.error.service_unavailable","RTDB host has not approved the join request.");
     }
 
+
     private static async Task<AtlasLobbyOperationResult> SnapshotAsync(
         string room,string uid,string token,string name)
     {
@@ -1345,6 +1432,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             if (liveMeta != null && liveMeta.closed)
                 return Failure("lobby.error.closed", "RTDB host closed the room.");
 
+
             // A host's identity is bound to its UID, never to this client's
             // device-local Guest nickname. Repair only a suspect host label
             // from the existing authoritative roomMembers record; this is
@@ -1379,15 +1467,25 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         snap.TransportRevision = Math.Max(snap.TransportRevision, state.revision);
         if(snap.HostAccountId==uid && snap.LifecycleState==AtlasRoomLifecycleState.Waiting)
         {
+            // roomMembers is the authenticated membership ledger; roomState is
+            // only its seat projection. Reconcile them before any new writes.
+            int membershipReconcile =
+                await ReconcileWaitingMemberships(room, token, snap);
+            bool membershipSeatChanged =
+                (membershipReconcile & 1) != 0;
+            bool membershipIdentityChanged =
+                (membershipReconcile & 2) != 0;
+
             // Defer deletion of join requests until the authoritative room
             // snapshot commit succeeds, so a failed write can be retried.
             List<string> accepted = new List<string>();
             bool seatsChanged=await AcceptPendingJoins(room,uid,token,snap,accepted);
-            if(seatsChanged) snap.SettingsRevision+=1;
+            if(membershipSeatChanged || seatsChanged) snap.SettingsRevision+=1;
             bool readyChanged=await AcceptReadyUpdates(room,token,snap);
             List<string> pawnIntents = new List<string>();
             bool pawnChanged = await AcceptPendingPawnChanges(room, token, snap, pawnIntents);
-            if(seatsChanged || readyChanged || pawnChanged)
+            if(membershipSeatChanged || membershipIdentityChanged ||
+               seatsChanged || readyChanged || pawnChanged)
             {
                 Recount(snap);
                 if (!await StoreSnapshot(room,snap,token,state.revision+1))
@@ -1412,6 +1510,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
              snap.LifecycleState == AtlasRoomLifecycleState.Starting))
             await RestorePendingMatchRejoinsOnly(room, uid, token, snap);
 
+
         string persistedCode = ActiveCode.TryGetValue(room, out string cached)
             ? cached : string.Empty;
         // A host that resumed its RTDB room can still retrieve the code even
@@ -1420,6 +1519,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             persistedCode = await GetPersistedRoomCode(room, token);
         return AtlasLobbyOperationResult.Ok(snap, persistedCode);
     }
+
 
     // Called by the active authoritative host (not by a joining client).
     // No new room/seat authorization: only an existing exact UID + RemoteHuman
@@ -1445,6 +1545,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         await RestorePendingMatchRejoinsOnly(room, hostUid, hostToken, snap);
         return true;
     }
+
 
     private static async Task RestorePendingMatchRejoinsOnly(
         string room, string host, string token, AtlasLobbySnapshot snap)
@@ -1523,6 +1624,308 @@ public static class AtlasBoardRtdbCasualLobbyTransport
                 Safe(join.uid), token);
         }
     }
+
+
+    // Bit 0 = seat composition changed; bit 1 = identity/name projection changed.
+    private static async Task<int> ReconcileWaitingMemberships(
+        string room, string token, AtlasLobbySnapshot snap)
+    {
+        if (snap == null || snap.Members == null ||
+            snap.LifecycleState != AtlasRoomLifecycleState.Waiting) return 0;
+
+        Response membersRead = await Send("GET", "roomMembers/" + Safe(room), token);
+        if (!membersRead.Ok)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.LogWarning("ATB_LOBBY_MEMBERSHIP_RECONCILE skipped=true http=" +
+                membersRead.Code);
+#endif
+            return 0;
+        }
+
+        Dictionary<string, Member> activeMembers =
+            new Dictionary<string, Member>(StringComparer.Ordinal);
+        foreach (KeyValuePair<string,string> node in JsonObjectMembers(membersRead.Body))
+        {
+            Member item = Parse<Member>(node.Value);
+            if (item == null || !item.active ||
+                string.IsNullOrWhiteSpace(item.uid) ||
+                !string.Equals(node.Key, item.uid, StringComparison.Ordinal)) continue;
+            activeMembers[item.uid] = item;
+        }
+
+        int flags = 0;
+        string hostUid = snap.HostAccountId ?? string.Empty;
+        List<AtlasLobbyMemberSnapshot> humans = snap.Members.FindAll(seat =>
+            seat != null && seat.Active && seat.SlotIndex >= 0 && seat.SlotIndex < 4 &&
+            (seat.SeatMode == AtlasLobbySeatMode.HostLocal ||
+             seat.SeatMode == AtlasLobbySeatMode.LocalHuman ||
+             seat.SeatMode == AtlasLobbySeatMode.RemoteHuman));
+
+        AtlasLobbyMemberSnapshot authoritativeHost = humans.Find(seat =>
+            string.Equals(seat.AccountId, hostUid, StringComparison.Ordinal) &&
+            (seat.SeatMode == AtlasLobbySeatMode.HostLocal || seat.IsHost));
+        authoritativeHost ??= humans.Find(seat =>
+            string.Equals(seat.AccountId, hostUid, StringComparison.Ordinal));
+
+        if (authoritativeHost != null)
+        {
+            List<AtlasLobbyMemberSnapshot> duplicateRows = humans.FindAll(seat =>
+                seat != authoritativeHost &&
+                string.Equals(seat.AccountId, hostUid, StringComparison.Ordinal));
+
+            if (duplicateRows.Count > 0)
+            {
+                HashSet<string> represented = new HashSet<string>(
+                    humans.Where(seat => seat != null && !duplicateRows.Contains(seat) &&
+                        !string.IsNullOrWhiteSpace(seat.AccountId))
+                        .Select(seat => seat.AccountId), StringComparer.Ordinal);
+                List<Member> missing = activeMembers.Values
+                    .Where(item => item != null &&
+                        string.Equals(item.role, "remoteHuman", StringComparison.Ordinal) &&
+                        !represented.Contains(item.uid))
+                    .OrderBy(item => item.joinedAt).ToList();
+
+                if (duplicateRows.Count == 1 && missing.Count == 1)
+                {
+                    duplicateRows = duplicateRows.OrderBy(seat => seat.SlotIndex).ToList();
+                    for (int i = 0; i < duplicateRows.Count; i++)
+                    {
+                        AtlasLobbyMemberSnapshot seat = duplicateRows[i];
+                        Member owner = missing[i];
+                        seat.SeatMode = AtlasLobbySeatMode.RemoteHuman;
+                        seat.IsHumanSeat = true;
+                        seat.IsHost = false;
+                        seat.AccountId = owner.uid;
+                        seat.LocalOwnerAccountId = owner.uid;
+                        seat.DisplayName = CleanName(owner.displayName);
+                        seat.PawnCosmeticId = string.Empty;
+                        seat.ControllerKind = AtlasSeatControllerKind.Human;
+                        seat.ConnectionState = AtlasSeatConnectionState.Connected;
+                        seat.RequiresReady = true;
+                        seat.ReadyForRevision = 0;
+                        flags |= 3;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                        Debug.LogWarning("ATB_LOBBY_IDENTITY_RECONCILE " +
+                            "duplicate_host_repaired=true slot=" + seat.SlotIndex +
+                            " host_slot=" + authoritativeHost.SlotIndex +
+                            " restored_uid=" + ShortUid(owner.uid) +
+                            " restored_name=" + CleanName(owner.displayName));
+#endif
+                    }
+                }
+                else
+                {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                    Debug.LogWarning("ATB_LOBBY_IDENTITY_RECONCILE " +
+                        "duplicate_host_ambiguous=true duplicates=" + duplicateRows.Count +
+                        " missing_members=" + missing.Count + " fail_closed=true");
+#endif
+                }
+            }
+        }
+
+        foreach (AtlasLobbyMemberSnapshot seat in snap.Members)
+        {
+            if (seat == null || !seat.Active || seat.SlotIndex < 0 || seat.SlotIndex >= 4) continue;
+            bool human = seat.SeatMode == AtlasLobbySeatMode.HostLocal ||
+                         seat.SeatMode == AtlasLobbySeatMode.LocalHuman ||
+                         seat.SeatMode == AtlasLobbySeatMode.RemoteHuman;
+            if (!human || string.IsNullOrWhiteSpace(seat.AccountId)) continue;
+
+            if (!activeMembers.TryGetValue(seat.AccountId, out Member membership))
+            {
+                if (seat.SeatMode != AtlasLobbySeatMode.RemoteHuman) continue;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.Log("ATB_LOBBY_MEMBERSHIP_RECONCILE released=true slot=" +
+                    seat.SlotIndex + " uid=" + ShortUid(seat.AccountId) +
+                    " reason=inactive_or_missing_membership");
+#endif
+                seat.Active = false;
+                seat.SeatMode = AtlasLobbySeatMode.OpenOnline;
+                seat.IsHumanSeat = false;
+                seat.IsHost = false;
+                seat.AccountId = string.Empty;
+                seat.LocalOwnerAccountId = string.Empty;
+                seat.DisplayName = string.Empty;
+                seat.PawnCosmeticId = string.Empty;
+                seat.ControllerKind = AtlasSeatControllerKind.None;
+                seat.ConnectionState = AtlasSeatConnectionState.Empty;
+                seat.RequiresReady = false;
+                seat.ReadyForRevision = 0;
+                flags |= 1;
+                continue;
+            }
+
+            bool canonicalHost =
+                string.Equals(seat.AccountId, hostUid, StringComparison.Ordinal);
+            AtlasLobbySeatMode expectedMode = canonicalHost
+                ? AtlasLobbySeatMode.HostLocal
+                : AtlasLobbySeatMode.RemoteHuman;
+            bool controlNeedsRestore =
+                seat.SeatMode != expectedMode ||
+                seat.IsHost != canonicalHost ||
+                !seat.IsHumanSeat ||
+                !string.Equals(seat.LocalOwnerAccountId, seat.AccountId,
+                    StringComparison.Ordinal) ||
+                seat.ControllerKind != AtlasSeatControllerKind.Human ||
+                seat.ConnectionState != AtlasSeatConnectionState.Connected;
+
+            if (controlNeedsRestore)
+            {
+                AtlasSeatControllerKind oldController = seat.ControllerKind;
+                AtlasSeatConnectionState oldConnection = seat.ConnectionState;
+                seat.SeatMode = expectedMode;
+                seat.IsHost = canonicalHost;
+                seat.IsHumanSeat = true;
+                seat.LocalOwnerAccountId = seat.AccountId;
+                seat.ControllerKind = AtlasSeatControllerKind.Human;
+                seat.ConnectionState = AtlasSeatConnectionState.Connected;
+                seat.RequiresReady = !canonicalHost;
+                seat.ReadyForRevision = canonicalHost
+                    ? snap.SettingsRevision
+                    : 0;
+                flags |= 1;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.Log(
+                    "ATB_LOBBY_MEMBERSHIP_RECONCILE human_control_restored=true " +
+                    "slot=" + seat.SlotIndex +
+                    " uid=" + ShortUid(seat.AccountId) +
+                    " host=" + canonicalHost.ToString().ToLowerInvariant() +
+                    " old_controller=" + oldController +
+                    " old_connection=" + oldConnection);
+#endif
+            }
+
+            string canonicalName = CleanName(membership.displayName);
+            if (!string.IsNullOrWhiteSpace(canonicalName) &&
+                !string.Equals(seat.DisplayName, canonicalName, StringComparison.Ordinal))
+            {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.Log("ATB_LOBBY_IDENTITY_RECONCILE name_corrected=true slot=" +
+                    seat.SlotIndex + " uid=" + ShortUid(seat.AccountId) +
+                    " old_name=" + CleanName(seat.DisplayName) +
+                    " member_name=" + canonicalName);
+#endif
+                seat.DisplayName = canonicalName;
+                flags |= 2;
+            }
+
+            RoomPawnSelection pawnSelection =
+                await ReadRoomPawnSelectionAsync(
+                    room,
+                    seat.AccountId,
+                    seat.SlotIndex,
+                    token);
+
+            if (pawnSelection != null &&
+                !string.Equals(
+                    seat.PawnCosmeticId,
+                    pawnSelection.pawnCosmeticId,
+                    StringComparison.Ordinal))
+            {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.Log(
+                    "ATB_PAWN_LEDGER projected=true uid=" +
+                    ShortUid(seat.AccountId) +
+                    " slot=" + seat.SlotIndex +
+                    " old=" + (seat.PawnCosmeticId ?? string.Empty) +
+                    " new=" + pawnSelection.pawnCosmeticId);
+#endif
+                seat.PawnCosmeticId =
+                    pawnSelection.pawnCosmeticId;
+                flags |= 2;
+            }
+        }
+        return flags;
+    }
+
+    private static string ShortUid(string uid)
+    {
+        if (string.IsNullOrWhiteSpace(uid)) return "-";
+        return uid.Substring(0, Math.Min(7, uid.Length));
+    }
+
+    private static string RoomPawnSelectionPath(
+        string room, string uid, int slotIndex)
+    {
+        return "roomPawnSelections/" + Safe(room) + "/" + Safe(uid) +
+               "/" + Mathf.Clamp(slotIndex, 0, 3);
+    }
+
+    private static async Task<RoomPawnSelection> ReadRoomPawnSelectionAsync(
+        string room, string uid, int slotIndex, string token)
+    {
+        if (string.IsNullOrWhiteSpace(room) ||
+            string.IsNullOrWhiteSpace(uid) ||
+            slotIndex < 0 || slotIndex > 3)
+        {
+            return null;
+        }
+
+        Response response = await Send(
+            "GET",
+            RoomPawnSelectionPath(room, uid, slotIndex),
+            token);
+
+        if (!response.Ok)
+        {
+            return null;
+        }
+
+        RoomPawnSelection selection =
+            Parse<RoomPawnSelection>(response.Body);
+
+        if (selection == null ||
+            !string.Equals(selection.uid, uid, StringComparison.Ordinal) ||
+            selection.slotIndex != slotIndex ||
+            !IsKnownPawn(selection.pawnCosmeticId))
+        {
+            return null;
+        }
+
+        return selection;
+    }
+
+    private static async Task<bool> WriteOwnRoomPawnSelectionAsync(
+        string room, string uid, int slotIndex, string pawnCosmeticId,
+        string token)
+    {
+        if (string.IsNullOrWhiteSpace(room) ||
+            string.IsNullOrWhiteSpace(uid) ||
+            slotIndex < 0 || slotIndex > 3 ||
+            !IsKnownPawn(pawnCosmeticId))
+        {
+            return false;
+        }
+
+        RoomPawnSelection selection = new RoomPawnSelection
+        {
+            uid = uid,
+            slotIndex = slotIndex,
+            pawnCosmeticId = pawnCosmeticId,
+            updatedAt = Now()
+        };
+
+        Response written = await Send(
+            "PUT",
+            RoomPawnSelectionPath(room, uid, slotIndex),
+            token,
+            JsonUtility.ToJson(selection));
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Debug.Log(
+            "ATB_PAWN_LEDGER write=" +
+            written.Ok.ToString().ToLowerInvariant() +
+            " uid=" + ShortUid(uid) +
+            " slot=" + slotIndex +
+            " cosmetic=" + pawnCosmeticId +
+            " http=" + written.Code);
+#endif
+
+        return written.Ok;
+    }
+
 
     private static async Task<bool> AcceptPendingJoins(string room,string host,string token,
         AtlasLobbySnapshot snap, List<string> accepted)
@@ -1645,6 +2048,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         return changed;
     }
 
+
     private static async Task<bool> AcceptReadyUpdates(string room,string token,AtlasLobbySnapshot snap)
     {
         bool changed=false;
@@ -1665,6 +2069,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         return changed;
     }
 
+
     // One canonical transition for remote READY and NOT READY. The previous
     // implementation only accepted true, allowing Start after an unready click.
     private static bool ApplyRemoteReady(
@@ -1677,6 +2082,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         seat.ReadyForRevision=desired;
         return true;
     }
+
 
     // No-network contract QA only; not a second-player live RTDB PASS.
     public static bool ValidateRemoteReadyTransitionContract()
@@ -1699,6 +2105,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         return !ApplyRemoteReady(seat,ready,4);
     }
 
+
     private static async Task<AtlasLobbyOperationResult> SetReadyAsync(
         string room,bool ready,string uid,string token)
     {
@@ -1713,6 +2120,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         return state;
     }
 
+
     // A Remote Human writes an immutable intent to their own authenticated
     // RTDB /intents/{room}/{uid} branch. Only the real room host may advance
     // roomState; clients never get a general room-state write permission.
@@ -1722,53 +2130,100 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         if (snap == null || snap.LifecycleState != AtlasRoomLifecycleState.Waiting ||
             snap.Members == null || req.slotIndex < 0 || req.slotIndex >= snap.Members.Count)
             return Failure("lobby.error.not_joinable", "Pawn changes require a waiting room.");
+
         AtlasLobbyMemberSnapshot seat = snap.Members[req.slotIndex];
         if (seat == null || !seat.Active || !seat.IsHumanSeat ||
             seat.SeatMode != AtlasLobbySeatMode.RemoteHuman ||
             !string.Equals(seat.AccountId, uid, StringComparison.Ordinal))
             return Failure("lobby.error.access_denied", "Only the owner can change this pawn.");
+
         if (!IsKnownPawn(req.pawnCosmeticId))
             return Failure("lobby.error.invalid_pawn_cosmetic", "Unknown pawn cosmetic.");
-        // Local entitlement guard prevents accidental UI-only paid selections.
-        // This is not independently trusted remote ownership attestation.
+
         if (AtlasBoardRtdbMetaEconomy.IsPaidPawn(req.pawnCosmeticId) &&
             !AtlasBoardRtdbMetaEconomy.IsPawnOwnedOnThisAccount(req.pawnCosmeticId))
             return Failure("lobby.error.access_denied", "Pawn not owned by this account.");
-        if (string.Equals(seat.PawnCosmeticId, req.pawnCosmeticId, StringComparison.Ordinal))
+
+        // Pawn ownership follows authenticated UID + stable seat, never the
+        // transient roomState projection. Persist the owner's desired pawn in
+        // a small UID-scoped ledger first; the Host then projects that ledger
+        // into roomState. If a Host migration temporarily corrupts a seat row,
+        // the selection survives and can be restored without guessing from a
+        // rendered mesh or this device's PlayerPrefs.
+        if (!await WriteOwnRoomPawnSelectionAsync(
+                room, uid, req.slotIndex, req.pawnCosmeticId, token))
+        {
+            return Failure(
+                "lobby.error.service_unavailable",
+                "Pawn ownership ledger write was rejected.");
+        }
+
+        if (string.Equals(
+                seat.PawnCosmeticId,
+                req.pawnCosmeticId,
+                StringComparison.Ordinal))
+        {
             return AtlasLobbyOperationResult.Ok(snap, "", true);
-        string commandId = Guid.NewGuid().ToString("N");
-        LobbyPawnIntent intent = new LobbyPawnIntent {
-            uid = uid, type = "pawn_cosmetic", clientCommandId = commandId,
-            seatId = seat.SeatId,
-            payload = JsonUtility.ToJson(new PawnChangePayload {
-                slotIndex = req.slotIndex, pawnCosmeticId = req.pawnCosmeticId }),
-            createdAt = Now()
-        };
-        if (!await Write("PUT", "intents/" + Safe(room) + "/" + Safe(uid) +
-            "/" + commandId, token, JsonUtility.ToJson(intent)))
-            return Failure("lobby.error.access_denied", "Pawn request rejected by RTDB.");
-        // Wait for an authoritative roomState commit, not an optimistic local
-        // selection. The host publishes the result through its normal poll.
+        }
+
+        // Wait for the Host's authoritative room snapshot to acknowledge the
+        // ledger. This remains bounded and idempotent; a later Host poll can
+        // still complete the projection after a transient network delay.
         for (int retry = 0; retry < 22; retry++)
         {
             await Task.Delay(550);
-            Response state = await Send("GET", "roomState/" + Safe(room), token);
-            State wire = state.Ok ? Parse<State>(state.Body) : null;
+
+            Response state = await Send(
+                "GET",
+                "roomState/" + Safe(room),
+                token);
+
+            State wire = state.Ok
+                ? Parse<State>(state.Body)
+                : null;
+
             AtlasLobbySnapshot confirmed = wire != null
-                ? Parse<AtlasLobbySnapshot>(wire.snapshotJson) : null;
-            if (confirmed == null || confirmed.Members == null ||
-                req.slotIndex >= confirmed.Members.Count) continue;
-            AtlasLobbyMemberSnapshot actual = confirmed.Members[req.slotIndex];
-            if (actual == null || !actual.Active || actual.AccountId != uid) break;
-            if (actual.PawnCosmeticId == req.pawnCosmeticId)
+                ? Parse<AtlasLobbySnapshot>(wire.snapshotJson)
+                : null;
+
+            if (confirmed == null ||
+                confirmed.Members == null ||
+                req.slotIndex >= confirmed.Members.Count)
             {
-                Debug.Log("ATB_PAWN_OWNER_INTENT confirmed=true slot=" + req.slotIndex);
+                continue;
+            }
+
+            AtlasLobbyMemberSnapshot actual =
+                confirmed.Members[req.slotIndex];
+
+            if (actual == null ||
+                !actual.Active ||
+                !string.Equals(actual.AccountId, uid, StringComparison.Ordinal))
+            {
+                break;
+            }
+
+            if (string.Equals(
+                    actual.PawnCosmeticId,
+                    req.pawnCosmeticId,
+                    StringComparison.Ordinal))
+            {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.Log(
+                    "ATB_PAWN_LEDGER confirmed=true uid=" +
+                    ShortUid(uid) +
+                    " slot=" + req.slotIndex +
+                    " cosmetic=" + req.pawnCosmeticId);
+#endif
                 return AtlasLobbyOperationResult.Ok(confirmed, "", true);
             }
         }
-        return Failure("lobby.error.service_unavailable",
-            "The host has not acknowledged this pawn change yet.");
+
+        return Failure(
+            "lobby.error.service_unavailable",
+            "The Host has not projected this pawn ownership ledger yet.");
     }
+
 
     private static bool IsKnownPawn(string id)
     {
@@ -1776,6 +2231,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         return !string.IsNullOrWhiteSpace(id) && service != null &&
                service.Catalog != null && service.Catalog.FindById(id) != null;
     }
+
 
     // Host applies only the authenticated seat owner's own request. An intent
     // cannot change the host, another human, a bot, map or room permissions.
@@ -1814,6 +2270,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         return changed;
     }
 
+
     private static async Task<AtlasLobbyOperationResult> HostChangeAsync(
         string operation,string room,Request req,string uid,string token)
     {
@@ -1827,6 +2284,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             return await StartCasualMatchAsync(room, snap, uid, token,
                 req.expectedSettingsRevision);
 
+
         // A delayed lobby UI callback must never mutate game configuration
         // while a match is Starting/InMatch. Such writes increment the room
         // revision and can invalidate the very next start after rematch.
@@ -1837,6 +2295,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             snap.LifecycleState != AtlasRoomLifecycleState.Waiting)
             return Failure("lobby.error.not_joinable",
                 "Game setup can only be edited while the room is Waiting.");
+
 
         if(operation=="lobbyUpdateSettings")
         {
@@ -1957,6 +2416,17 @@ public static class AtlasBoardRtdbCasualLobbyTransport
                     "The host cannot change another human player's pawn.");
             if (!IsKnownPawn(req.pawnCosmeticId))
                 return Failure("lobby.error.invalid_pawn_cosmetic", "Unknown pawn cosmetic.");
+            if (target.Active && target.IsHumanSeat &&
+                string.Equals(target.AccountId, uid, StringComparison.Ordinal))
+            {
+                if (!await WriteOwnRoomPawnSelectionAsync(
+                        room, uid, req.slotIndex, req.pawnCosmeticId, token))
+                {
+                    return Failure(
+                        "lobby.error.service_unavailable",
+                        "Pawn ownership ledger write was rejected.");
+                }
+            }
             if (string.Equals(target.PawnCosmeticId,
                 req.pawnCosmeticId, StringComparison.Ordinal))
                 return result;
@@ -1993,6 +2463,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         return AtlasLobbyOperationResult.Ok(snap,persistentCode,true);
     }
 
+
     private static async Task<AtlasLobbySnapshot> ReadRoomSnapshotOnlyAsync(
         string room, string token, int maxAttempts)
     {
@@ -2010,11 +2481,13 @@ public static class AtlasBoardRtdbCasualLobbyTransport
                 return snapshot;
             }
 
+
             if (attempt + 1 < attempts)
                 await Task.Delay(75);
         }
         return null;
     }
+
 
     private static async Task<bool> RollbackCreatedMatchAsync(string matchId, string token)
     {
@@ -2031,6 +2504,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         return false;
     }
 
+
     // Called only on the authenticated room host. All unselected OPEN seats
     // become bots at Start, never implicit additional local humans. Explicit
     // LocalHuman/Bot seats and occupied remote humans remain untouched.
@@ -2041,6 +2515,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         int stableSettingsRevision = expectedSettingsRevision > 0
             ? expectedSettingsRevision
             : snap != null ? snap.SettingsRevision : 0;
+
 
         if (snap != null && expectedSettingsRevision > 0 &&
             expectedSettingsRevision != snap.SettingsRevision)
@@ -2059,6 +2534,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         if (!string.Equals(snap.HostAccountId, uid, StringComparison.Ordinal))
             return Failure("lobby.error.access_denied", "Only the current room host can start this match.");
 
+
         // Enforce ownership again at the last possible host-start boundary.
         string startMapId = snap.Settings.MapId == "Germany" ? "map_germany" :
             snap.Settings.MapId == "Mexico" ? "map_mexico" : "";
@@ -2070,10 +2546,157 @@ public static class AtlasBoardRtdbCasualLobbyTransport
                 return Failure("lobby.error.access_denied", "Premium map ownership was not verified for host UID.");
         }
 
-        for (int i = 1; i < snap.Members.Count; i++)
+
+        int authoritativeHostSlot = snap.Members.FindIndex(
+            seat =>
+                seat != null &&
+                seat.Active &&
+                string.Equals(
+                    seat.AccountId,
+                    snap.HostAccountId,
+                    StringComparison.Ordinal) &&
+                (seat.SeatMode == AtlasLobbySeatMode.HostLocal ||
+                 seat.IsHost));
+
+        if (authoritativeHostSlot < 0)
+            authoritativeHostSlot = snap.Members.FindIndex(
+                seat =>
+                    seat != null &&
+                    seat.Active &&
+                    string.Equals(
+                        seat.AccountId,
+                        snap.HostAccountId,
+                        StringComparison.Ordinal));
+
+        if (authoritativeHostSlot < 0)
+            return Failure(
+                "lobby.error.service_unavailable",
+                "Canonical Host seat is missing from the Waiting roster.");
+
+        // Final pre-match invariant gate. The room may have survived a Host
+        // migration, reconnect and several asynchronous cosmetic writes. Do not
+        // start gameplay until every authenticated network Human has one stable
+        // UID/seat identity and its latest UID-scoped pawn ledger has been
+        // projected into the exact match roster. This turns silent ordering
+        // mistakes into a fail-closed lobby error instead of a ten-round
+        // gameplay corruption. Host-owned LocalHuman seats intentionally share
+        // the Host account and are not separate network principals.
+        HashSet<string> networkHumanUids =
+            new HashSet<string>(StringComparer.Ordinal);
+        int canonicalHostRows = 0;
+        int ledgerPawnRefreshes = 0;
+        for (int i = 0; i < snap.Members.Count; i++)
         {
             AtlasLobbyMemberSnapshot seat = snap.Members[i];
-            if (seat == null) continue;
+            if (seat == null || !seat.Active) continue;
+
+            bool hostPrincipal = i == authoritativeHostSlot;
+            bool remotePrincipal =
+                seat.SeatMode == AtlasLobbySeatMode.RemoteHuman;
+            if (!hostPrincipal && !remotePrincipal) continue;
+
+            if (string.IsNullOrWhiteSpace(seat.AccountId))
+            {
+                Debug.LogWarning(
+                    "ATB_MATCH_ROSTER_INVARIANT pass=false reason=human_uid_missing slot=" +
+                    seat.SlotIndex);
+                return Failure(
+                    "lobby.error.service_unavailable",
+                    "A Human seat has no canonical account identity.");
+            }
+
+            if (hostPrincipal)
+            {
+                canonicalHostRows++;
+                if (!string.Equals(
+                        seat.AccountId,
+                        snap.HostAccountId,
+                        StringComparison.Ordinal))
+                {
+                    Debug.LogWarning(
+                        "ATB_MATCH_ROSTER_INVARIANT pass=false reason=host_uid_mismatch slot=" +
+                        seat.SlotIndex + " seat_uid=" + ShortUid(seat.AccountId) +
+                        " host_uid=" + ShortUid(snap.HostAccountId));
+                    return Failure(
+                        "lobby.error.service_unavailable",
+                        "Host authority does not match the canonical Host seat.");
+                }
+            }
+            else if (string.Equals(
+                         seat.AccountId,
+                         snap.HostAccountId,
+                         StringComparison.Ordinal))
+            {
+                Debug.LogWarning(
+                    "ATB_MATCH_ROSTER_INVARIANT pass=false reason=duplicate_host_uid slot=" +
+                    seat.SlotIndex + " host_slot=" + authoritativeHostSlot);
+                return Failure(
+                    "lobby.error.service_unavailable",
+                    "The Host account is projected into more than one network Human seat.");
+            }
+
+            if (!networkHumanUids.Add(seat.AccountId))
+            {
+                Debug.LogWarning(
+                    "ATB_MATCH_ROSTER_INVARIANT pass=false reason=duplicate_network_uid slot=" +
+                    seat.SlotIndex + " uid=" + ShortUid(seat.AccountId));
+                return Failure(
+                    "lobby.error.service_unavailable",
+                    "One authenticated account occupies more than one network Human seat.");
+            }
+
+            RoomPawnSelection latestPawn =
+                await ReadRoomPawnSelectionAsync(
+                    room, seat.AccountId, seat.SlotIndex, token);
+            if (latestPawn != null &&
+                !string.Equals(
+                    seat.PawnCosmeticId,
+                    latestPawn.pawnCosmeticId,
+                    StringComparison.Ordinal))
+            {
+                Debug.Log(
+                    "ATB_MATCH_ROSTER_PAWN_REFRESH uid=" +
+                    ShortUid(seat.AccountId) +
+                    " slot=" + seat.SlotIndex +
+                    " old=" + (seat.PawnCosmeticId ?? string.Empty) +
+                    " new=" + latestPawn.pawnCosmeticId +
+                    " source=uid_slot_ledger");
+                seat.PawnCosmeticId = latestPawn.pawnCosmeticId;
+                ledgerPawnRefreshes++;
+            }
+
+            if (string.IsNullOrWhiteSpace(seat.PawnCosmeticId) ||
+                !IsKnownPawn(seat.PawnCosmeticId))
+            {
+                Debug.LogWarning(
+                    "ATB_MATCH_ROSTER_INVARIANT pass=false reason=pawn_missing_or_unknown slot=" +
+                    seat.SlotIndex + " uid=" + ShortUid(seat.AccountId));
+                return Failure(
+                    "lobby.error.service_unavailable",
+                    "A Human seat has no verified pawn selection. Re-apply the pawn before starting.");
+            }
+        }
+
+        if (canonicalHostRows != 1)
+        {
+            Debug.LogWarning(
+                "ATB_MATCH_ROSTER_INVARIANT pass=false reason=host_row_count count=" +
+                canonicalHostRows);
+            return Failure(
+                "lobby.error.service_unavailable",
+                "The Waiting roster does not contain exactly one canonical Host seat.");
+        }
+
+        Debug.Log(
+            "ATB_MATCH_ROSTER_INVARIANT pass=true host_slot=" +
+            authoritativeHostSlot +
+            " network_humans=" + networkHumanUids.Count +
+            " pawn_ledger_refreshes=" + ledgerPawnRefreshes);
+
+        for (int i = 0; i < snap.Members.Count; i++)
+        {
+            AtlasLobbyMemberSnapshot seat = snap.Members[i];
+            if (seat == null || i == authoritativeHostSlot) continue;
             if (seat.Active && seat.SeatMode == AtlasLobbySeatMode.RemoteHuman &&
                 !seat.IsReadyFor(snap.SettingsRevision))
                 return Failure("lobby.error.not_ready", "A remote player has not readied the current settings.");
@@ -2095,6 +2718,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
                 continue;
             }
 
+
             // A selected Bot or any unoccupied OpenOnline/RemoteHuman seat becomes a
             // normal BOT. Do not infer temporary/permanent lifecycle history here.
             seat.Active = true;
@@ -2111,12 +2735,43 @@ public static class AtlasBoardRtdbCasualLobbyTransport
                 seat.DisplayName = "BOT " + (i + 1);
         }
 
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        {
+            StringBuilder rosterCommit = new StringBuilder();
+            foreach (AtlasLobbyMemberSnapshot member in snap.Members)
+            {
+                if (member == null) continue;
+                if (rosterCommit.Length > 0) rosterCommit.Append(" | ");
+                rosterCommit.Append("P");
+                rosterCommit.Append(member.SlotIndex + 1);
+                rosterCommit.Append(":");
+                rosterCommit.Append(member.Active ? "A" : "I");
+                rosterCommit.Append("/");
+                rosterCommit.Append(member.SeatMode);
+                rosterCommit.Append("/uid=");
+                rosterCommit.Append(ShortUid(member.AccountId));
+                rosterCommit.Append("/pawn=");
+                rosterCommit.Append(member.PawnCosmeticId ?? string.Empty);
+                if (member.SlotIndex == authoritativeHostSlot)
+                    rosterCommit.Append("/HOST");
+            }
+
+            Debug.Log(
+                "ATB_MATCH_ROSTER_COMMIT host_slot=" +
+                authoritativeHostSlot +
+                " settings_rev=" + snap.SettingsRevision +
+                " " + rosterCommit);
+        }
+#endif
+
         Recount(snap);
         string newMatch = Guid.NewGuid().ToString("N");
         snap.MatchId = newMatch;
         snap.StartEventId = Guid.NewGuid().ToString("N");
         snap.LifecycleState = AtlasRoomLifecycleState.Starting;
         snap.StartCountdownEndsAtEpochMs = Now() + 5000L;
+
 
         // Create match state first. CAS on roomState is still the second line of defense
         // against duplicate host processes. SettingsRevision is gameplay configuration;
@@ -2126,6 +2781,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             return Failure("lobby.error.service_unavailable",
                 "RTDB match state creation failed. Check matchState rules.");
 
+
         long attemptedTransportRevision = snap.TransportRevision;
         StoreSnapshotResult saved = await StoreSnapshotDetailed(room, snap, token, Now());
         if (!saved.Success)
@@ -2133,6 +2789,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             bool definitelyNotCommitted =
                 saved.FailureKind == StoreSnapshotFailureKind.StaleRevision ||
                 saved.FailureKind == StoreSnapshotFailureKind.Collision;
+
 
             if (definitelyNotCommitted)
             {
@@ -2145,10 +2802,12 @@ public static class AtlasBoardRtdbCasualLobbyTransport
                         "RTDB match start did not commit and rollback could not be verified.");
                 }
 
+
                 AtlasLobbySnapshot latest = await ReadRoomSnapshotOnlyAsync(room, token, 3);
                 if (latest == null)
                     return Failure("lobby.error.service_unavailable",
                         "RTDB lobby changed during match start and could not be refreshed.");
+
 
                 if (latest.SettingsRevision != stableSettingsRevision)
                 {
@@ -2158,6 +2817,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
                     return Failure("lobby.error.stale_settings",
                         "Room settings changed; refresh before starting.");
                 }
+
 
                 if (allowTransportRebase &&
                     latest.LifecycleState == AtlasRoomLifecycleState.Waiting &&
@@ -2171,9 +2831,11 @@ public static class AtlasBoardRtdbCasualLobbyTransport
                         room, latest, uid, token, stableSettingsRevision, false);
                 }
 
+
                 return Failure("lobby.error.service_unavailable",
                     "RTDB match start lost the room-state CAS and was rolled back safely.");
             }
+
 
             // A timeout/non-CAS HTTP failure can be ambiguous: the Firebase PUT may have
             // committed even if its response was lost. Verify roomState before deciding
@@ -2210,6 +2872,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             }
         }
 
+
         if (snap.Visibility == AtlasRoomVisibility.Public)
             await StoreIndex(room, snap, token, Now());
         string code = await GetPersistedRoomCode(room, token);
@@ -2219,6 +2882,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             " bots=" + snap.Settings.BotCount + " rewarded=false");
         return AtlasLobbyOperationResult.Ok(snap, code, true, true);
     }
+
 
     private static async Task<AtlasLobbyOperationResult> UpdatePasswordAsync(
         string room,string password,string uid,string token)
@@ -2236,6 +2900,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         return result;
     }
 
+
     private static async Task<AtlasLobbyOperationResult> LeaveAsync(string room,string uid,string token)
     {
         AtlasLobbyOperationResult state=await SnapshotAsync(room,uid,token,"");
@@ -2244,6 +2909,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         await Send("PATCH","roomMembers/"+Safe(room)+"/"+Safe(uid),token,"{\"active\":false}");
         return AtlasLobbyOperationResult.Ok(null);
     }
+
 
     private static async Task<AtlasLobbyOperationResult> CloseAsync(
         string room, string uid, string token, bool verifiedIdleCleanup = false,
@@ -2307,6 +2973,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
                 Members = new List<AtlasLobbyMemberSnapshot>()
             };
 
+
         // Close the join gate first, so no new players can be admitted while
         // the host removes its own room data. Do not touch other hosts' rooms.
         Response closed = await Send("PATCH", "roomMeta/" + Safe(room), token,
@@ -2314,6 +2981,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         if (!closed.Ok)
             return Failure("lobby.error.service_unavailable",
                 "Could not mark RTDB room closed (HTTP " + closed.Code + ").");
+
 
         bool codeDeleted = true;
         // NEVER delete a reused six-digit code that now belongs to another
@@ -2364,6 +3032,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
                                  directoryDeleted.Code);
         }
 
+
         // Match-dependent branches must be deleted while room membership and
         // host metadata are still valid. Only this host's own match is touched.
         bool matchDeleted = true;
@@ -2401,6 +3070,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             Debug.LogWarning("ATB_RTDB_ROOM_CLEANUP stage=ephemeral http=" +
                 intents.Code + "/" + acks.Code + "/" + joins.Code + "/" + ready.Code);
 
+
         // Preserve the host's ability to retry partial cleanup: do NOT remove
         // the last readable roomState/membership when any dependent cleanup
         // failed. roomMeta.closed=true already prevents new admissions.
@@ -2412,10 +3082,14 @@ public static class AtlasBoardRtdbCasualLobbyTransport
                 "Room closed to new joins; dependent cleanup failed and is retryable.");
         }
 
+
         // roomState and individual roomMembers are protected by RTDB rules
         // referencing roomMeta. Delete these BEFORE roomMeta. This prevents
         // the old implementation from leaving one large snapshot and several
         // dead host membership records after every smoke test or room exit.
+        Response pawnSelectionsDeleted =
+            await Send("DELETE", "roomPawnSelections/" + Safe(room), token);
+
         Response stateDeleted = await Send("DELETE", "roomState/" + Safe(room), token);
         bool membersDeleted = true;
         // Enumerate the actual server record, not a stale roomState seat list:
@@ -2435,11 +3109,13 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             }
         }
 
+
         // If any dependent write failed, retain closed metadata so a host can
         // still repair its own abandoned records (rather than orphaning them
         // behind a deleted access-control root).
         bool metadataDeleted = false;
-        if (stateDeleted.Ok && membersDeleted && matchDeleted && ephemeralDeleted &&
+        if (stateDeleted.Ok && pawnSelectionsDeleted.Ok &&
+            membersDeleted && matchDeleted && ephemeralDeleted &&
             codeDeleted && directoryDeletedOk)
         {
             Response metaDeleted = await Send("DELETE", "roomMeta/" + Safe(room), token);
@@ -2450,14 +3126,16 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         else
         {
             Debug.LogWarning("ATB_RTDB_ROOM_CLEANUP pending=true room_state=" +
-                             stateDeleted.Code + " members_deleted=" + membersDeleted);
+                             stateDeleted.Code + " pawn_ledger=" +
+                             pawnSelectionsDeleted.Code +
+                             " members_deleted=" + membersDeleted);
         }
         ActiveCode.Remove(room);
         RoomCreatedAt.Remove(room);
         CodeRenewAfter.Remove(room);
-        bool completed = stateDeleted.Ok && membersDeleted &&
-            matchDeleted && ephemeralDeleted && metadataDeleted &&
-            codeDeleted && directoryDeletedOk;
+        bool completed = stateDeleted.Ok && pawnSelectionsDeleted.Ok &&
+            membersDeleted && matchDeleted && ephemeralDeleted &&
+            metadataDeleted && codeDeleted && directoryDeletedOk;
         Debug.Log("ATB_RTDB_ROOM_CLOSED data_cleanup_attempted=true " +
                   "complete=" + completed + " no_other_rooms_touched=true");
         if (!completed)
@@ -2466,6 +3144,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
                 "verify remaining RTDB records before treating it as removed.");
         return AtlasLobbyOperationResult.Ok(null);
     }
+
 
     private static void Recount(AtlasLobbySnapshot s)
     {
@@ -2486,6 +3165,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         s.Settings.RequiredHumanPlayers=remote+local;
     }
 
+
     private static async Task<bool> StoreSnapshot(
         string room, AtlasLobbySnapshot snap, string token, long revision)
     {
@@ -2493,6 +3173,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             await StoreSnapshotDetailed(room, snap, token, revision);
         return result.Success;
     }
+
 
     private static async Task<StoreSnapshotResult> StoreSnapshotDetailed(
         string room, AtlasLobbySnapshot snap, string token, long revision)
@@ -2505,12 +3186,14 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         };
         if (snap == null || snap.Settings == null) return result;
 
+
         string path = "roomState/" + Safe(room);
         // SettingsRevision tracks gameplay configuration/readiness compatibility.
         // TransportRevision + Firebase ETag guard the serialized room-state write stream.
         Response current = await Send("GET", path, token, null, null, null, true);
         result.HttpCode = current.Code;
         if (!current.Ok) return result;
+
 
         State existing = Parse<State>(current.Body);
         long actual = existing != null ? existing.revision : 0L;
@@ -2525,9 +3208,11 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             return result;
         }
 
+
         string etag = !string.IsNullOrEmpty(current.ETag) ? current.ETag :
             existing == null ? "null_etag" : string.Empty;
         if (string.IsNullOrEmpty(etag)) return result;
+
 
         long nextRevision = Math.Max(Math.Max(revision, actual + 1L), Now());
         // Do not leave the caller advanced when the conditional PUT loses the race.
@@ -2544,6 +3229,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             snapshotJson = JsonUtility.ToJson(snap)
         };
 
+
         Response saved = await Send("PUT", path, token,
             JsonUtility.ToJson(state), etag);
         result.HttpCode = saved.Code;
@@ -2555,6 +3241,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             return result;
         }
 
+
         snap.TransportRevision = expected;
         if (saved.Code == 412)
         {
@@ -2563,6 +3250,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         }
         return result;
     }
+
 
     private static async Task StoreIndex(string room,AtlasLobbySnapshot s,string token,long now)
     {
@@ -2576,7 +3264,11 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             RoomCreatedAt[room] = originalCreatedAt;
         }
         Entry entry=new Entry{
-            roomId=room,hostDisplayName=s.Members.Count>0?s.Members[0].DisplayName:"Host",
+            roomId=room,hostDisplayName=s.Members!=null
+                ? (s.Members.Find(member => member != null && member.Active &&
+                    string.Equals(member.AccountId, s.HostAccountId,
+                        StringComparison.Ordinal))?.DisplayName ?? "Host")
+                : "Host",
             mapId=s.Settings.MapId,themeId=s.Settings.ThemeId,roundLimit=s.Settings.RoundLimit,
             maxPlayers=s.Settings.MaxPlayers,occupiedPlayers=s.Settings.LocalHumanCount+s.Settings.RemoteHumanCount,
             openOnlineSeatCount=s.Settings.OpenOnlineSeatCount,
@@ -2588,6 +3280,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         };
         await Write("PUT","publicRoomDirectory/"+Safe(room),token,JsonUtility.ToJson(entry));
     }
+
 
     private static async Task<string> GetPersistedRoomCode(string room, string token)
     {
@@ -2603,6 +3296,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         }
         return string.Empty;
     }
+
 
     private static async Task RenewInviteCodeIfNeeded(
         string room, string uid, string token)
@@ -2630,10 +3324,12 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         CodeRenewAfter[room] = now + 30L * 60L * 1000L;
     }
 
+
     private static Task<bool> Write(string verb,string path,string token,string json) =>
         WriteCore(verb,path,token,json);
     private static async Task<bool> WriteCore(string verb,string path,string token,string json) =>
         (await Send(verb,path,token,json)).Ok;
+
 
     private static async Task<Response> Send(string verb,string path,string token,
         string json=null,string ifMatch=null,string query=null,bool wantEtag=false)
@@ -2659,6 +3355,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
         }
     }
 
+
     private static T Parse<T>(string json) where T:class
     {
         try {return string.IsNullOrWhiteSpace(json)||json.Trim()=="null" ? null:JsonUtility.FromJson<T>(json);}
@@ -2682,6 +3379,7 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             return b.ToString();
         }
     }
+
 
     // Enumerate object members without Newtonsoft or an SDK-specific JSON module.
     // Values remain raw JSON and are parsed with Unity JsonUtility.

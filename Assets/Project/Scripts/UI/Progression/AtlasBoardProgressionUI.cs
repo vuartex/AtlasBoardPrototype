@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+
 
 [DisallowMultipleComponent]
 public sealed class AtlasBoardProgressionUI : MonoBehaviour
@@ -17,6 +18,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         Achievements,
         Inventory
     }
+
 
     private static readonly Color BackgroundBlue =
         new Color32(151, 205, 232, 255);
@@ -39,6 +41,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
     private static readonly Color Muted =
         new Color32(103, 108, 115, 255);
 
+
     private AtlasBoardProgressionBridge bridge;
     private Canvas canvas;
     private GameObject root;
@@ -53,6 +56,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
     private TMP_Text menuCardTitle;
     private TMP_Text menuCardSubtitle;
     private TMP_Text menuCardGlyph;
+
 
     private AtlasBoardProgressionSnapshot snapshot;
     private ProgressionPage currentPage = ProgressionPage.Overview;
@@ -72,6 +76,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
     private string inventoryMessage = string.Empty;
     private string inventoryAccountUid = string.Empty;
 
+
     private void Awake()
     {
         bridge = GetComponent<AtlasBoardProgressionBridge>();
@@ -79,14 +84,17 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         root.SetActive(false);
         detailsRoot.SetActive(false);
 
+
         if (bridge != null)
         {
             bridge.ProfileChanged += HandleProfileChanged;
         }
 
+
         AtlasBoardLocalizationManager.LanguageChanged +=
             HandleLanguageChanged;
     }
+
 
     private void OnDestroy()
     {
@@ -95,14 +103,17 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             bridge.ProfileChanged -= HandleProfileChanged;
         }
 
+
         AtlasBoardLocalizationManager.LanguageChanged -=
             HandleLanguageChanged;
     }
+
 
     private async void Start()
     {
         await RefreshProfileAsync(false);
     }
+
 
     private void Update()
     {
@@ -112,11 +123,13 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             TryCreateCareerCard();
         }
 
+
         if (Time.unscaledTime >= nextLevelSyncAt)
         {
             nextLevelSyncAt = Time.unscaledTime + 1f;
             SyncSharedProfileLevel();
         }
+
 
         if (snapshot == null &&
             !loading &&
@@ -127,12 +140,14 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         }
     }
 
+
     private void HandleProfileChanged(AtlasBoardProgressionSnapshot next)
     {
         if (next == null || !next.Success)
         {
             return;
         }
+
 
         snapshot = next;
         SyncSharedProfileLevel();
@@ -142,11 +157,13 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         }
     }
 
+
     private void HandleLanguageChanged()
     {
         RefreshCardLocalization();
         ApplyResolvedFonts();
         SyncSharedProfileLevel();
+
 
         if (root != null && root.activeSelf)
         {
@@ -156,6 +173,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         }
     }
 
+
     private void TryCreateCareerCard()
     {
         Button shopButton = FindSceneButton("ShopCard");
@@ -163,6 +181,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         {
             return;
         }
+
 
         Transform parent = shopButton.transform.parent;
         Transform existing = FindDirectChild(parent, "ProgressionCard");
@@ -176,12 +195,14 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             menuCard.name = "ProgressionCard";
         }
 
+
         RectTransform cardRect = menuCard.GetComponent<RectTransform>();
         RectTransform shopRect = shopButton.GetComponent<RectTransform>();
         Button publicRoomsButton = FindSceneButton("PublicRoomsCard");
         RectTransform publicRect = publicRoomsButton != null
             ? publicRoomsButton.GetComponent<RectTransform>()
             : null;
+
 
         if (cardRect != null && shopRect != null)
         {
@@ -193,6 +214,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             cardRect.sizeDelta = shopRect.sizeDelta;
         }
 
+
         menuCardTitle =
             FindRecursive(menuCard.transform, "Title")?.GetComponent<TMP_Text>();
         menuCardSubtitle =
@@ -201,6 +223,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             FindRecursive(menuCard.transform, "IllustrationGlyph")
                 ?.GetComponent<TMP_Text>();
 
+
         Button button = menuCard.GetComponent<Button>();
         if (button == null)
         {
@@ -208,12 +231,15 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             button.targetGraphic = menuCard.GetComponent<Image>();
         }
 
+
         button.onClick = new Button.ButtonClickedEvent();
         button.onClick.AddListener(OpenCareer);
+
 
         RefreshCardLocalization();
         ApplyResolvedFonts();
     }
+
 
     private void RefreshCardLocalization()
     {
@@ -222,6 +248,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             DisableLocalizedBinding(menuCardTitle);
             menuCardTitle.text = T("progression.menu.title");
         }
+
 
         if (menuCardSubtitle != null)
         {
@@ -233,6 +260,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                     -169f);
         }
 
+
         if (menuCardGlyph != null)
         {
             DisableLocalizedBinding(menuCardGlyph);
@@ -240,6 +268,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             menuCardGlyph.fontSize = 42f;
         }
     }
+
 
     private async void OpenCareer()
     {
@@ -253,6 +282,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         await RefreshProfileAsync(true);
     }
 
+
     private void CloseCareer()
     {
         detailsRoot.SetActive(false);
@@ -262,6 +292,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         menu?.ShowMainMenu();
     }
 
+
     private async System.Threading.Tasks.Task RefreshProfileAsync(
         bool rebuildAfter)
     {
@@ -269,6 +300,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         {
             return;
         }
+
 
         loading = true;
         try
@@ -292,6 +324,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         }
     }
 
+
     private void ChangePage(ProgressionPage page)
     {
         currentPage = page;
@@ -301,6 +334,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             _ = RefreshInventoryAsync();
     }
 
+
     private void RefreshUiLocalization()
     {
         if (titleText != null)
@@ -308,13 +342,16 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             titleText.text = T("progression.title");
         }
 
+
         if (detailsOkText != null)
         {
             detailsOkText.text = T("progression.common.close");
         }
 
+
         RebuildNavigation();
     }
+
 
     private void RebuildNavigation()
     {
@@ -323,6 +360,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         {
             return;
         }
+
 
         ClearChildren(nav);
         ProgressionPage[] pages =
@@ -340,6 +378,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             "inventory"
         };
 
+
         for (int index = 0; index < pages.Length; index++)
         {
             ProgressionPage captured = pages[index];
@@ -355,12 +394,14 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         }
     }
 
+
     private void RebuildCurrentPage()
     {
         if (contentRoot == null)
         {
             return;
         }
+
 
         ClearChildren(contentRoot);
         switch (currentPage)
@@ -379,8 +420,10 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                 break;
         }
 
+
         ApplyResolvedFonts();
     }
+
 
     // Stable item identifiers, never translated display names, are used in
     // cloud records. Only server-verified entitlements may enable Apply.
@@ -389,12 +432,14 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
     private static readonly string[] InventoryDefaults =
     { "default_profile_frame", "default_board", "default_dice", "default_pawn", "default_emote" };
 
+
     private static string InventoryDefaultFor(string category)
     {
         for (int i = 0; i < InventoryCategories.Length; i++)
             if (category == InventoryCategories[i]) return InventoryDefaults[i];
         return InventoryDefaults[0];
     }
+
 
     private static string InventoryCategoryFor(string itemId)
     {
@@ -404,6 +449,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             if (draft.ItemId == itemId) return draft.ItemType;
         return "";
     }
+
 
     private static string InventoryCategoryLabel(string category)
     {
@@ -418,6 +464,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         }
     }
 
+
     private static string InventoryWord(params string[] words)
     {
         AtlasBoardLocalizationManager localization = AtlasBoardLocalizationManager.Instance;
@@ -425,6 +472,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             localization != null ? localization.CurrentLanguageCode : "en");
         return words[Mathf.Clamp(index, 0, words.Length - 1)];
     }
+
 
     private static string InventoryItemName(string id)
     {
@@ -442,6 +490,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             id, localization != null ? localization.CurrentLanguageCode : "en");
     }
 
+
     private List<string> InventoryOwnedItems()
     {
         List<string> result = inventoryCategory == "emote"
@@ -456,6 +505,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                     !result.Contains(item.ItemId)) result.Add(item.ItemId);
         return result;
     }
+
 
     private bool InventoryIsEquipped(string id)
     {
@@ -482,6 +532,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         return id == "default_profile_frame"
             ? string.IsNullOrEmpty(current) : current == id;
     }
+
 
     private async Task RefreshInventoryAsync()
     {
@@ -557,12 +608,14 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         }
     }
 
+
     private void SelectInventoryCategory(string category)
     {
         inventoryCategory = category;
         inventorySelectedId = category == "emote" ? AtlasBoardEmotes.FreeIds[0] : InventoryDefaultFor(category);
         RebuildCurrentPage();
     }
+
 
     private async void ApplyInventorySelection()
     {
@@ -585,6 +638,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             inventoryCategory != "profile_frame" ||
             InventoryIsEquipped(inventorySelectedId)) return;
 
+
         AtlasBoardAccountService account = AtlasBoardAccountService.Instance;
         string uid = inventoryAccountUid;
         if (account == null || !account.IsSignedIn ||
@@ -597,6 +651,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             RebuildCurrentPage();
             return;
         }
+
 
         string chosenId = inventorySelectedId;
         bool isDefault = chosenId == "default_profile_frame";
@@ -621,6 +676,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             RebuildCurrentPage();
             return;
         }
+
 
         inventoryWriting = true;
         RebuildCurrentPage();
@@ -670,6 +726,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         finally { inventoryWriting = false; if (currentPage == ProgressionPage.Inventory) RebuildCurrentPage(); }
     }
 
+
     private async Task ApplyOwnedBoardAsync()
     {
         if (inventoryLoading || inventoryWriting || inventoryServer == null ||
@@ -701,6 +758,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         catch (Exception exception) { inventoryMessage = exception.GetType().Name; }
         finally { inventoryWriting = false; RebuildCurrentPage(); }
     }
+
 
     private async Task ApplyOwnedDiceAsync()
     {
@@ -734,6 +792,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         finally { inventoryWriting = false; RebuildCurrentPage(); }
     }
 
+
     private async Task ToggleOwnedEmoteAsync()
     {
         if (inventoryWriting || inventoryLoading || inventoryServer == null ||
@@ -766,6 +825,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         finally { inventoryWriting = false; RebuildCurrentPage(); }
     }
 
+
     private void BuildInventoryPage()
     {
         CreateSectionTitle(contentRoot, InventoryWord("MY INVENTORY", "ENVANTERİM",
@@ -779,6 +839,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             tab.onClick.AddListener(() => SelectInventoryCategory(category));
         }
 
+
         GameObject preview = CreateCard(contentRoot, "InventoryPreview",
             new Vector2(-292f, -74f), new Vector2(566f, 490f), Cream);
         GameObject owned = CreateCard(contentRoot, "InventoryOwned",
@@ -789,6 +850,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         AddCardHeader(owned.transform, InventoryWord("OWNED ITEMS", "SAHİP OLDUĞUM ÜRÜNLER",
             "MIS ARTÍCULOS", "OBJETS POSSÉDÉS", "MEINE GEGENSTÄNDE", "보유 아이템", "МОИ ПРЕДМЕТЫ"), Blue, 203f);
 
+
         List<string> ownedItems = InventoryOwnedItems();
         if (!ownedItems.Contains(inventorySelectedId))
             inventorySelectedId = ownedItems[0];
@@ -797,6 +859,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             FontStyles.Bold, TextAlignmentOptions.Center, TextDark);
         SetAnchored(titleTextLocal.rectTransform, new Vector2(0f, 137f), new Vector2(490f, 42f));
         titleTextLocal.text = title;
+
 
         if (inventoryCategory == "profile_frame" &&
             AtlasBoardShopProfileFrameArt.IsSupported(inventorySelectedId))
@@ -821,6 +884,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             sample.text = inventoryCategory == "profile_frame" ? "A" : InventoryCategoryLabel(inventoryCategory);
         }
 
+
         TMP_Text info = CreateText(preview.transform, 15f,
             FontStyles.Normal, TextAlignmentOptions.Center, TextDark);
         SetAnchored(info.rectTransform, new Vector2(0f, -120f), new Vector2(492f, 64f));
@@ -839,6 +903,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                 "Wähle einen eigenen Gegenstand.", "보유 아이템을 선택하세요.",
                 "Выберите доступный предмет.");
 
+
         string buttonText = inventoryCategory == "emote"
             ? (InventoryIsEquipped(inventorySelectedId)
                 ? InventoryWord("REMOVE", "ÇIKAR", "QUITAR", "RETIRER", "ENTFERNEN", "제거", "УБРАТЬ")
@@ -855,6 +920,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
              inventorySelectedId == InventoryDefaultFor(inventoryCategory) ||
              ownedItems.Contains(inventorySelectedId) && inventoryServer != null);
         apply.onClick.AddListener(ApplyInventorySelection);
+
 
         RectTransform list = BuildScrollList(owned.transform,
             "InventoryOwnedList", new Vector2(0f, -20f),
@@ -881,9 +947,11 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         status.textWrappingMode = TextWrappingModes.Normal;
     }
 
+
     private void BuildOverviewPage()
     {
         CreateSectionTitle(contentRoot, T("progression.overview.title"));
+
 
         if (snapshot == null)
         {
@@ -891,14 +959,17 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             return;
         }
 
+
         BuildLevelCard();
         BuildMapFilterBar();
+
 
         AtlasBoardCareerStats displayedStats = GetDisplayedStats();
         BuildCareerStatsCard(displayedStats);
         BuildGameplayStatsCard(displayedStats);
         BuildMapStatsCard(displayedStats);
     }
+
 
     private void BuildLevelCard()
     {
@@ -914,6 +985,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             Orange,
             56f);
 
+
         TMP_Text level = CreateText(
             card.transform,
             31f,
@@ -925,6 +997,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             new Vector2(-390f, -24f),
             new Vector2(250f, 60f));
         level.text = T("progression.level.value", snapshot.Level);
+
 
         TMP_Text xp = CreateText(
             card.transform,
@@ -945,10 +1018,12 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                 1,
                 snapshot.NextLevelXp - snapshot.LevelStartXp);
 
+
         xp.text = T(
             "progression.level.xp",
             levelProgressXp,
             levelRequirementXp);
+
 
         if (string.Equals(snapshot.TechnicalMessage,
             "empty_authoritative_profile", StringComparison.Ordinal) ||
@@ -968,6 +1043,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             notice.fontSizeMax = 11f;
         }
 
+
         GameObject barBackground = CreatePanel(
             card.transform,
             "XpBarBackground",
@@ -980,6 +1056,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         float progress = Mathf.Clamp01(
             (snapshot.TotalXp - snapshot.LevelStartXp) / span);
 
+
         GameObject fill = CreatePanel(
             barBackground.transform,
             "XpBarFill",
@@ -991,6 +1068,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         fillRect.anchorMax = new Vector2(0f, 0.5f);
         fillRect.pivot = new Vector2(0f, 0.5f);
         fillRect.anchoredPosition = Vector2.zero;
+
 
         TMP_Text matches = CreateText(
             card.transform,
@@ -1007,6 +1085,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             snapshot.Stats.matchesPlayed);
     }
 
+
     private void BuildMapFilterBar()
     {
         CreatePanel(
@@ -1015,6 +1094,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             new Vector2(0f, 62f),
             new Vector2(1080f, 2f),
             new Color32(203, 210, 214, 210));
+
 
         TMP_Text label = CreateText(
             contentRoot,
@@ -1028,11 +1108,13 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             new Vector2(170f, 32f));
         label.text = T("progression.filter.map");
 
+
         TMP_Dropdown dropdown = CreateMapFilterDropdown();
         if (dropdown == null)
         {
             return;
         }
+
 
         List<string> mapIds = BuildSelectableMapIds();
         List<string> labels = new List<string>
@@ -1040,6 +1122,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             T("progression.map.all")
         };
         labels.AddRange(mapIds.Select(LocalizeMap));
+
 
         dropdown.ClearOptions();
         dropdown.AddOptions(labels);
@@ -1058,6 +1141,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             }
         }
 
+
         dropdown.SetValueWithoutNotify(selectedIndex);
         dropdown.RefreshShownValue();
         dropdown.onValueChanged = new TMP_Dropdown.DropdownEvent();
@@ -1070,6 +1154,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         });
     }
 
+
     private TMP_Dropdown CreateMapFilterDropdown()
     {
         TMP_Dropdown source = FindSceneMapDropdown();
@@ -1078,12 +1163,14 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             return null;
         }
 
+
         GameObject clone = Instantiate(
             source.gameObject,
             contentRoot,
             false);
         clone.name = "ProgressionMapFilter";
         clone.SetActive(true);
+
 
         RectTransform rect = clone.GetComponent<RectTransform>();
         rect.anchorMin = new Vector2(0.5f, 0.5f);
@@ -1092,6 +1179,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         rect.anchoredPosition = new Vector2(-235f, 35f);
         rect.sizeDelta = new Vector2(300f, 38f);
         rect.localScale = Vector3.one;
+
 
         foreach (AtlasBoardLocalizedDropdown binding in
                  clone.GetComponents<AtlasBoardLocalizedDropdown>())
@@ -1102,6 +1190,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             }
         }
 
+
         foreach (AtlasBoardLocalizedText binding in
                  clone.GetComponentsInChildren<AtlasBoardLocalizedText>(true))
         {
@@ -1110,6 +1199,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                 binding.enabled = false;
             }
         }
+
 
         TMP_Dropdown dropdown = clone.GetComponent<TMP_Dropdown>();
         if (dropdown != null && dropdown.captionText != null)
@@ -1120,8 +1210,10 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             dropdown.captionText.fontSizeMax = 14f;
         }
 
+
         return dropdown;
     }
+
 
     private List<string> BuildSelectableMapIds()
     {
@@ -1137,6 +1229,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             "Mexico"
         };
 
+
         if (snapshot != null && snapshot.MapStats != null)
         {
             foreach (AtlasBoardMapCareerStats entry in snapshot.MapStats)
@@ -1146,6 +1239,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                     continue;
                 }
 
+
                 if (!mapIds.Any(item => MapIdsEqual(item, entry.mapId)))
                 {
                     mapIds.Add(entry.mapId);
@@ -1153,8 +1247,10 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             }
         }
 
+
         return mapIds;
     }
+
 
     private AtlasBoardCareerStats GetDisplayedStats()
     {
@@ -1163,10 +1259,12 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             return new AtlasBoardCareerStats();
         }
 
+
         if (string.IsNullOrWhiteSpace(selectedMapId))
         {
             return snapshot.Stats ?? new AtlasBoardCareerStats();
         }
+
 
         AtlasBoardMapCareerStats selected =
             snapshot.MapStats != null
@@ -1175,10 +1273,12 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                     MapIdsEqual(entry.mapId, selectedMapId))
                 : null;
 
+
         return selected != null && selected.stats != null
             ? selected.stats
             : new AtlasBoardCareerStats();
     }
+
 
     private string CurrentMapFilterLabel()
     {
@@ -1186,6 +1286,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             ? T("progression.map.all")
             : LocalizeMap(selectedMapId);
     }
+
 
     private static TMP_Dropdown FindSceneMapDropdown()
     {
@@ -1197,6 +1298,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                 continue;
             }
 
+
             string name = dropdown.gameObject.name ?? string.Empty;
             if (name.IndexOf("map", StringComparison.OrdinalIgnoreCase) >= 0 &&
                 name != "ProgressionMapFilter")
@@ -1205,11 +1307,13 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             }
         }
 
+
         return all.FirstOrDefault(item =>
             item != null &&
             item.gameObject.scene.IsValid() &&
             item.gameObject.name != "ProgressionMapFilter");
     }
+
 
     private static bool MapIdsEqual(string left, string right)
     {
@@ -1218,6 +1322,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             NormalizeMapId(right),
             StringComparison.Ordinal);
     }
+
 
     private static string NormalizeMapId(string value)
     {
@@ -1229,6 +1334,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             ? id.Substring(4) : id;
     }
 
+
     private void BuildCareerStatsCard(
         AtlasBoardCareerStats stats)
     {
@@ -1239,6 +1345,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             new Vector2(350f, 330f),
             Cream);
         AddCardHeader(card.transform, T("progression.stats.career"), Green, 136f);
+
 
         if (stats == null)
         {
@@ -1260,6 +1367,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             stats.bestWinStreak);
     }
 
+
     private void BuildGameplayStatsCard(
         AtlasBoardCareerStats stats)
     {
@@ -1270,6 +1378,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             new Vector2(350f, 330f),
             Cream);
         AddCardHeader(card.transform, T("progression.stats.gameplay"), Blue, 136f);
+
 
         if (stats == null)
         {
@@ -1298,6 +1407,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             stats.developmentLevelsAtFinishTotal);
     }
 
+
     private void BuildMapStatsCard(
         AtlasBoardCareerStats stats)
     {
@@ -1308,6 +1418,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             new Vector2(350f, 330f),
             Cream);
         AddCardHeader(card.transform, T("progression.stats.records"), Orange, 136f);
+
 
         if (stats == null)
         {
@@ -1332,9 +1443,11 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             stats.bankruptcies);
     }
 
+
     private void BuildHistoryPage()
     {
         CreateSectionTitle(contentRoot, T("progression.history.title"));
+
 
         TMP_Text note = CreateText(
             contentRoot,
@@ -1351,12 +1464,14 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             snapshot != null ? snapshot.HistoryLimit : 10,
             snapshot != null ? snapshot.HistoryRetentionHours : 72);
 
+
         RectTransform list = BuildScrollList(
             contentRoot,
             "MatchHistoryList",
             new Vector2(0f, -45f),
             new Vector2(1120f, 455f),
             PanelBlue);
+
 
         if (snapshot == null || snapshot.RecentMatches.Count == 0)
         {
@@ -1366,11 +1481,13 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             return;
         }
 
+
         foreach (AtlasBoardProgressionMatchSummary match in snapshot.RecentMatches)
         {
             AddHistoryRow(list, match);
         }
     }
+
 
     private void AddHistoryRow(
         Transform parent,
@@ -1384,6 +1501,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             new Vector2(-526f, 0f),
             new Vector2(8f, 100f),
             accent);
+
 
         TMP_Text header = CreateText(
             row.transform,
@@ -1400,6 +1518,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             "  •  " + HostLobbyLabel(match) +
             "  •  " + FormatDate(match.finishedAtEpochMs);
 
+
         TMP_Text body = CreateText(
             row.transform,
             13f,
@@ -1408,8 +1527,8 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             TextDark);
         SetAnchored(
             body.rectTransform,
-            new Vector2(-255f, -14f),
-            new Vector2(510f, 52f));
+            new Vector2(-190f, -14f),
+            new Vector2(640f, 52f));
         body.text = string.Equals(match.result, "participation", StringComparison.OrdinalIgnoreCase)
             ? ParticipationHistoryText()
             : T(
@@ -1418,7 +1537,9 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                 match.place,
                 match.playerCount,
                 match.netWorth,
-                match.xpAwarded);
+                match.xpAwarded) +
+              "  •  " + MatchGoldText(match.goldAwarded);
+
 
         Button details = CreateButton(
             row.transform,
@@ -1430,7 +1551,8 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         details.onClick.AddListener(() => ShowMatchDetails(captured));
     }
 
-    private void ShowMatchDetails(
+
+    private async void ShowMatchDetails(
         AtlasBoardProgressionMatchSummary match)
     {
         if (match == null ||
@@ -1444,50 +1566,40 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
 
         detailsTitleText.text =
             T("progression.details.title");
+        detailsBodyText.text = InventoryWord(
+            "Loading verified match details...",
+            "Doğrulanmış maç detayları yükleniyor...",
+            "Cargando detalles verificados...",
+            "Chargement des détails vérifiés...",
+            "Verifizierte Spieldetails werden geladen...",
+            "검증된 경기 세부 정보 불러오는 중...",
+            "Загрузка подтвержденных данных матча...");
+        ClearDetailsPlayerCards();
+        detailsRoot.SetActive(true);
+        detailsRoot.transform.SetAsLastSibling();
+        ApplyResolvedFonts();
 
-        List<string> summaryLines =
-            new List<string>
+        if (match.participants == null || match.participants.Length == 0)
+        {
+            try
             {
-                $"<b>{ResultLabel(match.result)}</b>  •  " +
-                FormatDate(match.finishedAtEpochMs),
-                T(
-                    "progression.details.match_id",
-                    ShortId(match.matchId)) +
-                "    •    " +
-                T(
-                    "progression.details.lobby",
-                    HostLobbyLabel(match)),
-                T(
-                    "progression.details.rules",
-                    LocalizeMap(match.mapId),
-                    LocalizeTheme(match.themeId),
-                    match.roundLimit),
-                T(
-                    "progression.details.place",
-                    match.place,
-                    match.playerCount) +
-                "    •    " +
-                T(
-                    "progression.details.xp",
-                    match.xpAwarded,
-                    match.levelAfter),
-                T(
-                    "progression.details.economy",
-                    match.finalCash,
-                    match.propertyCount,
-                    match.developmentLevels,
-                    match.netWorth),
-                T(
-                    "progression.details.dice",
-                    match.diceRolls,
-                    match.doublesRolled,
-                    AverageRoll(match),
-                    match.highestRoll)
-            };
+                AtlasBoardLobbyRuntimeBridge lobbyBridge =
+                    FindAnyObjectByType<AtlasBoardLobbyRuntimeBridge>();
+                await AtlasBoardRtdbCareerJournal.PopulateMatchDetailsAsync(
+                    match, lobbyBridge);
+            }
+            catch (Exception exception)
+            {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.LogWarning(
+                    "ATB_CAREER_MATCH_DETAILS load_failed=" +
+                    exception.GetType().Name + " match=" + match.matchId);
+#endif
+            }
+        }
 
-        detailsBodyText.text =
-            string.Join("\n", summaryLines);
-
+        if (detailsRoot == null || !detailsRoot.activeSelf) return;
+        ApplyMatchDetailsText(match);
         RebuildDetailsPlayerCards(match);
 
         if (detailsOkText != null)
@@ -1496,22 +1608,121 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                 T("progression.common.close");
         }
 
-        detailsRoot.SetActive(true);
-        detailsRoot.transform.SetAsLastSibling();
         ApplyResolvedFonts();
     }
+
+
+    private void ApplyMatchDetailsText(
+        AtlasBoardProgressionMatchSummary match)
+    {
+        if (match == null || detailsBodyText == null) return;
+
+        string lineBreak = "\n";
+        string summary =
+            $"<b>{ResultLabel(match.result)}</b>  •  " +
+            FormatDate(match.finishedAtEpochMs) + lineBreak +
+            "<b>" + InventoryWord(
+                "MATCH", "MAÇ", "PARTIDA", "PARTIE",
+                "SPIEL", "경기", "МАТЧ") + "</b>  " +
+            ShortId(match.matchId) + "    •    <b>" +
+            InventoryWord(
+                "LOBBY", "LOBİ", "SALA", "SALON",
+                "LOBBY", "로비", "ЛОББИ") + "</b>  " +
+            HostLobbyLabel(match) + lineBreak +
+            "<b>" + InventoryWord(
+                "MAP", "HARİTA", "MAPA", "CARTE",
+                "KARTE", "지도", "КАРТА") + "</b>  " +
+            LocalizeMap(match.mapId) + "    •    <b>" +
+            InventoryWord(
+                "THEME", "TEMA", "TEMA", "THÈME",
+                "THEMA", "테마", "ТЕМА") + "</b>  " +
+            LocalizeTheme(match.themeId) + "    •    <b>" +
+            InventoryWord(
+                "ROUNDS", "TUR", "RONDAS", "TOURS",
+                "RUNDEN", "라운드", "РАУНДЫ") + "</b>  " +
+            match.roundLimit + lineBreak +
+            "<b>" + InventoryWord(
+                "PLACE", "SIRA", "PUESTO", "PLACE",
+                "PLATZ", "순위", "МЕСТО") + "</b>  " +
+            match.place + "/" + match.playerCount + "    •    <b>XP</b>  +" +
+            match.xpAwarded + "    •    <b>" +
+            InventoryWord(
+                "GOLD", "ALTIN", "ORO", "OR",
+                "GOLD", "골드", "ЗОЛОТО") + "</b>  +" +
+            match.goldAwarded + lineBreak +
+            "<b>" + InventoryWord(
+                "CASH", "NAKİT", "EFECTIVO", "LIQUIDITÉS",
+                "BARGELD", "현금", "НАЛИЧНЫЕ") + "</b>  " +
+            match.finalCash.ToString("N0") + "    •    <b>" +
+            InventoryWord(
+                "PROPERTIES", "MÜLK", "PROPIEDADES", "PROPRIÉTÉS",
+                "IMMOBILIEN", "부동산", "НЕДВИЖИМОСТЬ") + "</b>  " +
+            match.propertyCount + "    •    <b>" +
+            InventoryWord(
+                "DEVELOPMENT", "GELİŞTİRME", "DESARROLLO", "DÉVELOPPEMENT",
+                "AUSBAU", "개발", "РАЗВИТИЕ") + "</b>  " +
+            match.developmentLevels + "    •    <b>" +
+            InventoryWord(
+                "NET WORTH", "NET DEĞER", "PATRIMONIO", "VALEUR NETTE",
+                "NETTOVERMÖGEN", "순자산", "КАПИТАЛ") + "</b>  " +
+            match.netWorth.ToString("N0") + lineBreak +
+            "<b>" + InventoryWord(
+                "DICE", "ZAR", "DADOS", "DÉS",
+                "WÜRFEL", "주사위", "КОСТИ") + "</b>  " +
+            match.diceRolls + "    •    <b>" +
+            InventoryWord(
+                "DOUBLES", "ÇİFT", "DOBLES", "DOUBLES",
+                "PASCH", "더블", "ДУБЛИ") + "</b>  " +
+            match.doublesRolled + "    •    <b>" +
+            InventoryWord(
+                "AVERAGE", "ORTALAMA", "PROMEDIO", "MOYENNE",
+                "DURCHSCHNITT", "평균", "СРЕДНЕЕ") + "</b>  " +
+            AverageRoll(match) + "    •    <b>" +
+            InventoryWord(
+                "HIGHEST", "EN YÜKSEK", "MÁXIMO", "MAXIMUM",
+                "HÖCHSTER", "최고", "МАКСИМУМ") + "</b>  " +
+            match.highestRoll;
+
+        detailsBodyText.text = summary;
+        detailsBodyText.textWrappingMode = TextWrappingModes.Normal;
+        detailsBodyText.overflowMode = TextOverflowModes.Truncate;
+        detailsBodyText.enableAutoSizing = true;
+        detailsBodyText.fontSizeMin = 9f;
+        detailsBodyText.fontSizeMax = 13f;
+    }
+
 
     private void RebuildDetailsPlayerCards(
         AtlasBoardProgressionMatchSummary match)
     {
         ClearDetailsPlayerCards();
 
-        if (match == null ||
-            match.participants == null ||
-            detailsPlayersRoot == null)
+
+        if (match == null || detailsPlayersRoot == null)
         {
             return;
         }
+
+        if (match.participants == null || match.participants.Length == 0)
+        {
+            TMP_Text empty = CreateText(
+                detailsPlayersRoot,
+                16f,
+                FontStyles.Italic,
+                TextAlignmentOptions.Center,
+                Muted);
+            SetAnchored(empty.rectTransform, Vector2.zero, new Vector2(860f, 70f));
+            empty.text = InventoryWord(
+                "Historical player data is unavailable for this match.",
+                "Bu maç için geçmiş oyuncu verisi kullanılamıyor.",
+                "Los datos históricos de jugadores no están disponibles.",
+                "Les données historiques des joueurs sont indisponibles.",
+                "Historische Spielerdaten sind für dieses Spiel nicht verfügbar.",
+                "이 경기의 과거 플레이어 데이터를 사용할 수 없습니다.",
+                "Исторические данные игроков для этого матча недоступны.");
+            return;
+        }
+
 
         List<AtlasBoardProgressionParticipant> participants =
             match.participants
@@ -1519,6 +1730,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                 .OrderBy(item => item.place)
                 .Take(4)
                 .ToList();
+
 
         for (int index = 0;
              index < participants.Count;
@@ -1531,12 +1743,14 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         }
     }
 
+
     private void ClearDetailsPlayerCards()
     {
         if (detailsPlayersRoot == null)
         {
             return;
         }
+
 
         for (int index =
                  detailsPlayersRoot.childCount - 1;
@@ -1546,15 +1760,18 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             Transform child =
                 detailsPlayersRoot.GetChild(index);
 
+
             if (child == null)
             {
                 continue;
             }
 
+
             child.gameObject.SetActive(false);
             Destroy(child.gameObject);
         }
     }
+
 
     private void AddDetailsPlayerCard(
         AtlasBoardProgressionParticipant participant,
@@ -1567,10 +1784,12 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             return;
         }
 
+
         Vector2 position =
             DetailsPlayerCardPosition(
                 index,
                 count);
+
 
         GameObject card =
             CreateCard(
@@ -1580,9 +1799,11 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                 new Vector2(440f, 136f),
                 Cream);
 
+
         Color accent =
             ResultColor(
                 participant.result);
+
 
         CreatePanel(
             card.transform,
@@ -1591,6 +1812,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             new Vector2(7f, 122f),
             accent);
 
+
         GameObject avatar =
             CreatePanel(
                 card.transform,
@@ -1598,6 +1820,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                 new Vector2(-178f, 28f),
                 new Vector2(48f, 48f),
                 accent);
+
 
         TMP_Text avatarText =
             CreateText(
@@ -1613,6 +1836,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             PlayerInitial(
                 participant.displayName);
 
+
         TMP_Text name =
             CreateText(
                 card.transform,
@@ -1622,11 +1846,35 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                 TextDark);
         SetAnchored(
             name.rectTransform,
-            new Vector2(-55f, 32f),
+            new Vector2(-50f, 32f),
             new Vector2(190f, 30f));
+        name.enableAutoSizing = true;
+        name.fontSizeMin = 10f;
+        name.fontSizeMax = 15f;
+        name.textWrappingMode = TextWrappingModes.NoWrap;
+        name.overflowMode = TextOverflowModes.Ellipsis;
         name.text =
             $"#{participant.place} " +
             (participant.displayName ?? string.Empty);
+
+        TMP_Text role =
+            CreateText(
+                card.transform,
+                10f,
+                FontStyles.Normal,
+                TextAlignmentOptions.Left,
+                Muted);
+        SetAnchored(
+            role.rectTransform,
+            new Vector2(-50f, 8f),
+            new Vector2(190f, 22f));
+        role.enableAutoSizing = true;
+        role.fontSizeMin = 8f;
+        role.fontSizeMax = 10f;
+        role.textWrappingMode = TextWrappingModes.NoWrap;
+        role.overflowMode = TextOverflowModes.Ellipsis;
+        role.text = ParticipantRoleText(participant);
+
 
         TMP_Text result =
             CreateText(
@@ -1637,11 +1885,17 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                 accent);
         SetAnchored(
             result.rectTransform,
-            new Vector2(158f, 32f),
-            new Vector2(92f, 30f));
+            new Vector2(135f, 32f),
+            new Vector2(160f, 30f));
+        result.enableAutoSizing = true;
+        result.fontSizeMin = 7f;
+        result.fontSizeMax = 13f;
+        result.textWrappingMode = TextWrappingModes.NoWrap;
+        result.overflowMode = TextOverflowModes.Ellipsis;
         result.text =
             ResultLabel(
                 participant.result);
+
 
         TMP_Text economy =
             CreateText(
@@ -1666,6 +1920,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                 participant.netWorth);
     }
 
+
     private static Vector2 DetailsPlayerCardPosition(
         int index,
         int count)
@@ -1675,12 +1930,14 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             return Vector2.zero;
         }
 
+
         if (count == 2)
         {
             return new Vector2(
                 index == 0 ? -230f : 230f,
                 0f);
         }
+
 
         if (count == 3)
         {
@@ -1691,15 +1948,18 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                     72f);
             }
 
+
             return new Vector2(
                 0f,
                 -72f);
         }
 
+
         return new Vector2(
             index % 2 == 0 ? -230f : 230f,
             index < 2 ? 72f : -72f);
     }
+
 
     private static string PlayerInitial(
         string displayName)
@@ -1710,15 +1970,18 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             return "?";
         }
 
+
         return displayName
             .Trim()
             .Substring(0, 1)
             .ToUpperInvariant();
     }
 
+
     private void BuildAchievementsPage()
     {
         CreateSectionTitle(contentRoot, T("progression.achievements.title"));
+
 
         TMP_Text note = CreateText(
             contentRoot,
@@ -1732,12 +1995,14 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             new Vector2(1040f, 42f));
         note.text = T("progression.achievements.note");
 
+
         RectTransform list = BuildScrollList(
             contentRoot,
             "AchievementList",
             new Vector2(0f, -45f),
             new Vector2(1120f, 455f),
             PanelBlue);
+
 
         // Display locked goals even before the authoritative Career projection
         // is created. Never infer unlocks/XP from offline or host-only results.
@@ -1753,6 +2018,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         }
     }
 
+
     private void AddAchievementRow(
         Transform parent,
         AtlasBoardProgressionAchievement achievement)
@@ -1766,6 +2032,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             new Vector2(8f, 90f),
             accent);
 
+
         TMP_Text title = CreateText(
             row.transform,
             16f,
@@ -1778,6 +2045,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             new Vector2(430f, 28f));
         title.text = AtlasBoardCareerAchievementDisplay.Title(achievement.achievementId);
 
+
         TMP_Text body = CreateText(
             row.transform,
             12f,
@@ -1789,6 +2057,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             new Vector2(-285f, -12f),
             new Vector2(460f, 42f));
         body.text = AtlasBoardCareerAchievementDisplay.Description(achievement.achievementId);
+
 
         TMP_Text progress = CreateText(
             row.transform,
@@ -1806,6 +2075,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                 "progression.achievements.progress",
                 achievement.progress,
                 achievement.target);
+
 
         GameObject progressBack = CreatePanel(
             row.transform,
@@ -1833,6 +2103,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         fillRect.anchoredPosition = Vector2.zero;
     }
 
+
     private void BuildUi()
     {
         GameObject canvasObject = new GameObject(
@@ -1843,14 +2114,17 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             typeof(GraphicRaycaster));
         canvasObject.transform.SetParent(transform, false);
 
+
         canvas = canvasObject.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 570;
+
 
         CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920f, 1080f);
         scaler.matchWidthOrHeight = 0.5f;
+
 
         root = CreatePanel(
             canvasObject.transform,
@@ -1860,6 +2134,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             BackgroundBlue);
         Stretch(root.GetComponent<RectTransform>());
         root.AddComponent<AtlasBoardEscapeBlocker>();
+
 
         GameObject ribbon = CreatePanel(
             root.transform,
@@ -1871,6 +2146,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         outline.effectColor = new Color32(169, 112, 0, 255);
         outline.effectDistance = new Vector2(4f, -4f);
 
+
         titleText = CreateText(
             ribbon.transform,
             36f,
@@ -1878,6 +2154,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             TextAlignmentOptions.Center,
             Color.white);
         Stretch(titleText.rectTransform, 8f);
+
 
         Button close = CreateButton(
             root.transform,
@@ -1887,6 +2164,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             new Vector2(82f, 70f));
         close.onClick.AddListener(CloseCareer);
 
+
         GameObject nav = CreatePanel(
             root.transform,
             "Navigation",
@@ -1894,6 +2172,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             new Vector2(1145f, 72f),
             new Color32(233, 233, 239, 245));
         RebuildNavigation();
+
 
         GameObject content = CreatePanel(
             root.transform,
@@ -1903,10 +2182,12 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             new Color32(233, 233, 239, 245));
         contentRoot = content.GetComponent<RectTransform>();
 
+
         BuildDetailsPopup(root.transform);
         RefreshUiLocalization();
         ApplyResolvedFonts();
     }
+
 
     private void BuildDetailsPopup(
         Transform parent)
@@ -1921,11 +2202,13 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         detailsRoot.AddComponent<
             AtlasBoardEscapeBlocker>();
 
+
         Outline outline =
             detailsRoot.AddComponent<Outline>();
         outline.effectColor = Blue;
         outline.effectDistance =
             new Vector2(3f, -3f);
+
 
         detailsTitleText =
             CreateText(
@@ -1939,6 +2222,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             new Vector2(0f, 330f),
             new Vector2(920f, 52f));
 
+
         GameObject summaryCard =
             CreateCard(
                 detailsRoot.transform,
@@ -1946,6 +2230,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                 new Vector2(0f, 195f),
                 new Vector2(960f, 190f),
                 PanelBlue);
+
 
         detailsBodyText =
             CreateText(
@@ -1964,6 +2249,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         detailsBodyText.fontSizeMin = 9f;
         detailsBodyText.fontSizeMax = 13f;
 
+
         TMP_Text playersLabel =
             CreateText(
                 detailsRoot.transform,
@@ -1978,6 +2264,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         playersLabel.text =
             T("progression.details.players");
 
+
         GameObject playersPanel =
             CreatePanel(
                 detailsRoot.transform,
@@ -1987,6 +2274,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                 PanelBlue);
         detailsPlayersRoot =
             playersPanel.GetComponent<RectTransform>();
+
 
         Button close =
             CreateButton(
@@ -2002,12 +2290,14 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             () => detailsRoot.SetActive(false));
     }
 
+
     private void SyncSharedProfileLevel()
     {
         if (snapshot == null || snapshot.Level <= 0)
         {
             return;
         }
+
 
         TMP_Text[] texts = Resources.FindObjectsOfTypeAll<TMP_Text>();
         foreach (TMP_Text text in texts)
@@ -2019,6 +2309,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                 continue;
             }
 
+
             string current = text.text ?? string.Empty;
             int suffixIndex = current.LastIndexOf(" • Lv. ", StringComparison.Ordinal);
             if (suffixIndex >= 0)
@@ -2026,9 +2317,11 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                 current = current.Substring(0, suffixIndex);
             }
 
+
             text.text = current + $" • Lv. {snapshot.Level}";
         }
     }
+
 
     private void ApplyResolvedFonts()
     {
@@ -2039,6 +2332,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             return;
         }
 
+
         TMP_Text[] texts = canvas.GetComponentsInChildren<TMP_Text>(true);
         foreach (TMP_Text text in texts)
         {
@@ -2047,12 +2341,14 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                 continue;
             }
 
+
             TMP_FontAsset resolved = localization.ResolveFont(text.font);
             if (resolved != null && text.font != resolved)
             {
                 text.font = resolved;
             }
         }
+
 
         if (menuCard != null)
         {
@@ -2067,12 +2363,14 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         }
     }
 
+
     private static void DisableLocalizedBinding(TMP_Text text)
     {
         if (text == null)
         {
             return;
         }
+
 
         AtlasBoardLocalizedText[] bindings =
             text.GetComponents<AtlasBoardLocalizedText>();
@@ -2085,6 +2383,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         }
     }
 
+
     private static string HostLobbyLabel(AtlasBoardProgressionMatchSummary match)
     {
         if (match == null || match.participants == null)
@@ -2092,12 +2391,58 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             return T("progression.history.lobby_fallback");
         }
 
+
         AtlasBoardProgressionParticipant host =
             match.participants.FirstOrDefault(item => item != null && item.isHost);
         return host != null && !string.IsNullOrWhiteSpace(host.displayName)
             ? T("progression.history.host_lobby", host.displayName)
             : T("progression.history.lobby_fallback");
     }
+
+
+    private static string MatchGoldText(int amount)
+    {
+        int value = Mathf.Max(0, amount);
+        string language = AtlasBoardLocalizationManager.Instance != null
+            ? AtlasBoardLocalizationManager.Instance.CurrentLanguageCode : "en";
+        string label;
+        switch ((language ?? "en").ToLowerInvariant())
+        {
+            case "tr": label = "Altın"; break;
+            case "es": label = "Oro"; break;
+            case "fr": label = "Or"; break;
+            case "de": label = "Gold"; break;
+            case "ko": label = "골드"; break;
+            case "ru": label = "Золото"; break;
+            default: label = "Gold"; break;
+        }
+        return "+" + value + " " + label;
+    }
+
+
+    private static string ParticipantRoleText(
+        AtlasBoardProgressionParticipant participant)
+    {
+        if (participant == null) return string.Empty;
+        string language = AtlasBoardLocalizationManager.Instance != null
+            ? AtlasBoardLocalizationManager.Instance.CurrentLanguageCode : "en";
+        string role;
+        switch ((language ?? "en").ToLowerInvariant())
+        {
+            case "tr": role = participant.isHost ? "KURUCU" : "OYUNCU"; break;
+            case "es": role = participant.isHost ? "ANFITRIÓN" : "JUGADOR"; break;
+            case "fr": role = participant.isHost ? "HÔTE" : "JOUEUR"; break;
+            case "de": role = participant.isHost ? "HOST" : "SPIELER"; break;
+            case "ko": role = participant.isHost ? "호스트" : "플레이어"; break;
+            case "ru": role = participant.isHost ? "ХОСТ" : "ИГРОК"; break;
+            default: role = participant.isHost ? "HOST" : "PLAYER"; break;
+        }
+        if (!participant.bankrupt) return role;
+        string bankrupt = (language ?? "en").ToLowerInvariant() == "tr"
+            ? "İFLAS" : "BANKRUPT";
+        return role + "  •  " + bankrupt;
+    }
+
 
     private static string ParticipationHistoryText()
     {
@@ -2115,6 +2460,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         }
     }
 
+
     private static string ResultLabel(string result)
     {
         switch ((result ?? string.Empty).ToLowerInvariant())
@@ -2126,6 +2472,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         }
     }
 
+
     private static Color ResultColor(string result)
     {
         switch ((result ?? string.Empty).ToLowerInvariant())
@@ -2136,6 +2483,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             default: return Red;
         }
     }
+
 
     private static string LocalizeMap(string mapId)
     {
@@ -2167,12 +2515,14 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         return string.IsNullOrWhiteSpace(mapId) ? "-" : mapId;
     }
 
+
     private static string LocalizeTheme(string themeId)
     {
         if (string.IsNullOrWhiteSpace(themeId))
         {
             return "-";
         }
+
 
         string key = "lobby.theme." + themeId.Trim().ToLowerInvariant();
         string localized = T(key);
@@ -2181,6 +2531,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             : localized;
     }
 
+
     private static string WinRateText(AtlasBoardCareerStats stats)
     {
         if (stats == null || stats.matchesPlayed <= 0)
@@ -2188,9 +2539,11 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             return "0%";
         }
 
+
         return ((float)stats.wins / stats.matchesPlayed * 100f)
             .ToString("0.0", CultureInfo.InvariantCulture) + "%";
     }
+
 
     private static string AverageRoll(AtlasBoardProgressionMatchSummary match)
     {
@@ -2199,9 +2552,11 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             return "0.00";
         }
 
+
         return ((float)match.totalDiceValue / match.diceRolls)
             .ToString("0.00", CultureInfo.InvariantCulture);
     }
+
 
     private static string FormatDate(long epochMs)
     {
@@ -2209,6 +2564,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         {
             return "-";
         }
+
 
         try
         {
@@ -2223,6 +2579,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         }
     }
 
+
     private static string ShortId(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -2230,8 +2587,10 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             return "-";
         }
 
+
         return value.Length <= 16 ? value : value.Substring(0, 16) + "…";
     }
+
 
     private static Button FindSceneButton(string name)
     {
@@ -2246,8 +2605,10 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             }
         }
 
+
         return null;
     }
+
 
     private static void AddStatLine(
         Transform parent,
@@ -2264,6 +2625,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         SetAnchored(left.rectTransform, new Vector2(-80f, y), new Vector2(150f, 30f));
         left.text = label;
 
+
         TMP_Text right = CreateText(
             parent,
             14f,
@@ -2273,6 +2635,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         SetAnchored(right.rectTransform, new Vector2(85f, y), new Vector2(135f, 30f));
         right.text = Convert.ToString(value, CultureInfo.InvariantCulture);
     }
+
 
     private static GameObject CreatePanel(
         Transform parent,
@@ -2296,6 +2659,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         return panel;
     }
 
+
     private static GameObject CreateCard(
         Transform parent,
         string name,
@@ -2309,6 +2673,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         outline.effectDistance = new Vector2(2f, -2f);
         return card;
     }
+
 
     private static void AddCardHeader(
         Transform parent,
@@ -2336,6 +2701,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         text.text = value;
     }
 
+
     private static void CreateSectionTitle(Transform parent, string value)
     {
         TMP_Text title = CreateText(
@@ -2351,6 +2717,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         title.text = value;
     }
 
+
     private static void AddCenteredMessage(Transform parent, string value)
     {
         TMP_Text text = CreateText(
@@ -2365,6 +2732,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             new Vector2(900f, 100f));
         text.text = value;
     }
+
 
     private static Button CreateButton(
         Transform parent,
@@ -2387,6 +2755,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         rect.sizeDelta = size;
         buttonObject.GetComponent<Image>().color = color;
 
+
         TMP_Text text = CreateText(
             buttonObject.transform,
             14f,
@@ -2400,6 +2769,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         text.fontSizeMax = 16f;
         return buttonObject.GetComponent<Button>();
     }
+
 
     private static RectTransform BuildScrollList(
         Transform parent,
@@ -2418,6 +2788,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         SetAnchored(rootRect, position, size);
         root.GetComponent<Image>().color = color;
 
+
         GameObject viewport = new GameObject(
             "Viewport",
             typeof(RectTransform),
@@ -2427,6 +2798,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         RectTransform viewportRect = viewport.GetComponent<RectTransform>();
         Stretch(viewportRect);
         viewport.GetComponent<Image>().color = Color.clear;
+
 
         GameObject content = new GameObject(
             "Content",
@@ -2441,6 +2813,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         contentRect.offsetMin = new Vector2(8f, 0f);
         contentRect.offsetMax = new Vector2(-8f, 0f);
 
+
         VerticalLayoutGroup layout = content.GetComponent<VerticalLayoutGroup>();
         layout.spacing = 7f;
         layout.padding = new RectOffset(8, 8, 8, 8);
@@ -2449,8 +2822,10 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         layout.childForceExpandHeight = false;
         layout.childForceExpandWidth = true;
 
+
         ContentSizeFitter fitter = content.GetComponent<ContentSizeFitter>();
         fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
 
         ScrollRect scroll = root.GetComponent<ScrollRect>();
         scroll.viewport = viewportRect;
@@ -2461,6 +2836,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         scroll.scrollSensitivity = 24f;
         return contentRect;
     }
+
 
     private static GameObject CreateListRow(
         Transform parent,
@@ -2480,6 +2856,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         return row;
     }
 
+
     private static void AddInfoRow(Transform parent, string value)
     {
         GameObject row = CreateListRow(parent, 74f, Cream);
@@ -2492,6 +2869,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         Stretch(text.rectTransform, 8f);
         text.text = value;
     }
+
 
     private static TMP_Text CreateText(
         Transform parent,
@@ -2521,6 +2899,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         return text;
     }
 
+
     private static void SetAnchored(
         RectTransform rect,
         Vector2 position,
@@ -2533,6 +2912,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         rect.sizeDelta = size;
     }
 
+
     private static void Stretch(RectTransform rect, float padding = 0f)
     {
         rect.anchorMin = Vector2.zero;
@@ -2541,6 +2921,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         rect.offsetMax = new Vector2(-padding, -padding);
     }
 
+
     private static Transform FindRecursive(Transform parent, string name)
     {
         if (parent == null)
@@ -2548,10 +2929,12 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             return null;
         }
 
+
         if (parent.name == name)
         {
             return parent;
         }
+
 
         for (int index = 0; index < parent.childCount; index++)
         {
@@ -2562,8 +2945,10 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             }
         }
 
+
         return null;
     }
+
 
     private static Transform FindDirectChild(Transform parent, string name)
     {
@@ -2571,6 +2956,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         {
             return null;
         }
+
 
         for (int index = 0; index < parent.childCount; index++)
         {
@@ -2581,8 +2967,10 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             }
         }
 
+
         return null;
     }
+
 
     private static void ClearChildren(Transform parent)
     {
@@ -2591,11 +2979,13 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             return;
         }
 
+
         for (int index = parent.childCount - 1; index >= 0; index--)
         {
             Destroy(parent.GetChild(index).gameObject);
         }
     }
+
 
     private static string T(string key, params object[] args)
     {

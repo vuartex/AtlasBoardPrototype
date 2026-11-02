@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Linq;
 using System.Collections.Generic;
@@ -8,6 +8,10 @@ using UnityEngine.UI;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
+
+
+
+
 
 
 
@@ -25,6 +29,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     [Header("Entry Flow")]
     [SerializeField] private Button createRoomButton;
     [SerializeField] private TMP_InputField joinCodeInput;
@@ -32,6 +40,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
     [SerializeField] private Button joinRoomButton;
     [SerializeField] private Button cancelEntryButton;
     [SerializeField] private TMP_Text entryStatusText;
+
+
+
+
 
 
 
@@ -48,9 +60,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     [Header("Guest Ready")]
     [SerializeField] private Button readyButton;
     [SerializeField] private TMP_Text readyButtonText;
+
+
+
+
 
 
 
@@ -68,8 +88,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     [Header("Lobby Settings")]
     [SerializeField] private TMP_Dropdown playerCountDropdown;
+
+
+
+
 
 
 
@@ -93,6 +121,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     [Header("Existing Player Rows")]
     [SerializeField] private GameObject[] playerRows;
     [SerializeField] private GameObject[] legacyPlayerLabels;
@@ -102,8 +134,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     [Header("Runtime Backend")]
     [SerializeField] private AtlasBoardLobbyRuntimeBridge runtimeBridge;
+
+
+
+
 
 
 
@@ -120,6 +160,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private enum PrivateSeatMode
     {
         OpenOnline = 0,
@@ -127,6 +171,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         Bot = 2,
         RemoteHuman = 3
     }
+
+
+
+
 
 
 
@@ -143,6 +191,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private readonly PrivateSeatMode[] hostSeatModes =
     {
         PrivateSeatMode.LocalHuman,
@@ -154,13 +206,25 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private readonly int[] legacyControlValuesBeforePrivate =
         new int[4];
 
 
 
 
+
+
+
+
     private bool legacyControlValuesSaved;
+
+
+
+
 
 
 
@@ -177,7 +241,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private AtlasBoardMainMenuController mainMenuController;
+
+
+
+
 
 
 
@@ -197,6 +269,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
     private bool backendBusy;
     private int navigationEpoch;
 
+
     // Presentation-only identity cache. Host migration can briefly project the
     // new host UID into both the old and authoritative host slots on one
     // client while the other client already has the canonical roster. Never
@@ -207,9 +280,11 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
     private string seatIdentityCacheLobbyId = string.Empty;
     private string lastDuplicateHostProjectionLog = string.Empty;
 
+
     public bool IsMainMenuTransitionSettled =>
         !backendBusy && !voluntaryLeaveInFlight && !hostCloseInFlight &&
         (runtimeBridge == null || !runtimeBridge.HasLobby) && !roomActive;
+
 
     public void InvalidatePendingRoomOperations()
     {
@@ -217,6 +292,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         SetEntryButtonsInteractable(false);
         Debug.Log("ATB_LOBBY_NAV invalidated=true epoch=" + navigationEpoch, this);
     }
+
+
+
+
 
 
 
@@ -233,9 +312,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     // Local transient UI state. Backend snapshots must not close this menu
     // unless the seat itself stopped being OpenOnline.
     private int openSeatChoiceIndex = -1;
+
+
+
+
 
 
 
@@ -248,14 +335,26 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private AtlasLobbySnapshot backendSnapshot;
     private string backendLocalAccountId = string.Empty;
 
 
 
 
+
+
+
+
     private LobbySafetyModalMode lobbySafetyModalMode =
         LobbySafetyModalMode.None;
+
+
+
+
 
 
 
@@ -269,6 +368,9 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
     // Rematch can briefly surface a transport snapshot where the newly
     // promoted host UID is projected into both its real slot and the previous
     // host slot. The lobby must not trust that first frame. After returning
@@ -278,6 +380,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
     // ownership or write lobby state.
     private int rematchRosterRefreshEpoch;
 
+
     // After rematch verification succeeds, keep the verified account->name
     // mapping for the waiting lobby. The transport can briefly preserve the
     // correct AccountId while replaying the promoted host's DisplayName into
@@ -286,6 +389,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
     private bool rematchVerifiedIdentityLockActive;
     private readonly string[] rematchVerifiedAccountBySlot = new string[4];
     private readonly string[] rematchVerifiedNameBySlot = new string[4];
+
+
+
+
 
 
 
@@ -300,6 +407,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void Awake()
     {
         mainMenuController =
@@ -308,10 +419,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         runtimeBridge =
             runtimeBridge != null
                 ? runtimeBridge
                 : GetComponent<AtlasBoardLobbyRuntimeBridge>();
+
+
+
+
 
 
 
@@ -325,14 +444,26 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         runtimeBridge.SnapshotChanged +=
             HandleBackendSnapshotChanged;
 
 
 
 
+
+
+
+
         runtimeBridge.LobbyAccessLost +=
             HandleLobbyAccessLost;
+
+
+
+
 
 
 
@@ -345,10 +476,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void OnEnable()
     {
         BindRuntimeEvents();
     }
+
+
+
+
 
 
 
@@ -363,6 +502,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             runtimeBridge.LobbyAccessLost -=
                 HandleLobbyAccessLost;
         }
@@ -370,9 +513,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         UnbindRuntimeEvents();
         AtlasBoardLocalizationManager.LanguageChanged -= RefreshLocalizedText;
     }
+
+
+
+
 
 
 
@@ -390,6 +541,8 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         }
 
 
+
+
         if (gameSettingsOverlay != null &&
             gameSettingsOverlay.activeSelf &&
             WasEscapePressedThisFrame())
@@ -401,6 +554,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (roomEntryOverlay != null &&
             roomEntryOverlay.activeSelf &&
             WasEscapePressedThisFrame())
@@ -408,6 +565,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             CancelRoomEntry();
             return;
         }
+
+
+
+
 
 
 
@@ -428,8 +589,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             return;
         }
+
+
+
+
 
 
 
@@ -449,6 +618,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     public void EnterHostedPublicRoom(
         AtlasLobbyOperationResult result)
     {
@@ -458,6 +631,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         {
             return;
         }
+
+
+
+
 
 
 
@@ -476,11 +653,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         hostConfigurationDirty = false;
         hostConfigurationSyncQueued = false;
         hostConfigurationSyncAt = 0f;
         openSeatChoiceIndex = -1;
         voluntaryLeaveInFlight = false;
+
+
+
+
 
 
 
@@ -492,6 +677,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         mainMenuController ??=
             GetComponent<
                 AtlasBoardMainMenuController>();
@@ -499,8 +688,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         mainMenuController
             ?.OpenPublicLobbyAfterRoomChoice();
+
+
+
+
 
 
 
@@ -512,9 +709,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetActive(
             roomPanel,
             true);
+
+
+
+
 
 
 
@@ -523,6 +728,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             result.Snapshot,
             result.RoomCode,
             backendLocalAccountId);
+
+
+
+
 
 
 
@@ -536,6 +745,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     public void EnterJoinedPublicRoom(
         AtlasLobbyOperationResult result)
     {
@@ -543,6 +756,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         {
             return;
         }
+
+
+
+
 
 
 
@@ -561,11 +778,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetActive(roomEntryOverlay, false);
         mainMenuController ??= GetComponent<AtlasBoardMainMenuController>();
         mainMenuController?.OpenPublicLobbyAfterRoomChoice();
         SetActive(privateOnlineRoot, true);
         SetActive(roomPanel, true);
+
+
+
+
 
 
 
@@ -579,6 +804,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     public async System.Threading.Tasks.Task EnterJoinedRoomFromExternalCodeAsync(
         AtlasLobbyOperationResult result)
     {
@@ -588,6 +817,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         {
             return;
         }
+
+
+
+
 
 
 
@@ -606,10 +839,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         hostConfigurationDirty = false;
         hostConfigurationSyncQueued = false;
         hostConfigurationSyncAt = 0f;
         openSeatChoiceIndex = -1;
+
+
+
+
 
 
 
@@ -619,8 +860,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         mainMenuController ??=
             GetComponent<AtlasBoardMainMenuController>();
+
+
+
+
 
 
 
@@ -640,8 +889,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetActive(privateOnlineRoot, true);
         SetActive(roomPanel, true);
+
+
+
+
 
 
 
@@ -650,6 +907,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             result.Snapshot,
             result.RoomCode,
             backendLocalAccountId);
+
+
+
+
 
 
 
@@ -665,12 +926,20 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     public void ShowRoomEntryFromMainMenu()
     {
         RestoreRoomEntryHome();
         roomEntryExternalRoot = null;
         PrepareRoomEntryChooser();
     }
+
+
+
+
 
 
 
@@ -688,13 +957,25 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         CacheRoomEntryHome();
+
+
+
+
 
 
 
 
         roomEntryExternalRoot =
             screenRoot;
+
+
+
+
 
 
 
@@ -706,7 +987,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         PrepareRoomEntryChooser();
+
+
+
+
 
 
 
@@ -716,6 +1005,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         SetActive(screenRoot, true);
         roomEntryOverlay.transform.SetAsLastSibling();
     }
+
+
+
+
 
 
 
@@ -747,14 +1040,26 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetActive(gameSettingsOverlay, false);
         ResetLobbySafetyModalState();
 
 
 
 
+
+
+
+
         SaveLegacyControlValues();
         ResetHostSeatModes();
+
+
+
+
 
 
 
@@ -766,7 +1071,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         roomEntryOverlay?.transform.SetAsLastSibling();
+
+
+
+
 
 
 
@@ -779,10 +1092,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (joinPasswordInput != null)
         {
             joinPasswordInput.text = string.Empty;
         }
+
+
+
+
 
 
 
@@ -793,6 +1114,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 "lobby.online.create_or_join",
                 "Create a room or enter a 6-digit code."));
 
+
         // Main-menu soft reset intentionally invalidates and disables entry
         // controls while stale Create/Join callbacks drain. A fresh chooser
         // is a new navigation epoch, so explicitly re-arm only these entry
@@ -800,10 +1122,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         // after leaving a room even though Cancel/Local Offline still work.
         SetEntryButtonsInteractable(true);
 
+
         Debug.Log("ATB_PRIVATE_ENTRY rearmed=true epoch=" + navigationEpoch, this);
+
 
         RefreshLocalizedText();
     }
+
+
+
+
 
 
 
@@ -819,8 +1147,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         roomEntryHomeParent =
             roomEntryOverlay.transform.parent;
+
+
+
+
 
 
 
@@ -828,6 +1164,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         roomEntryHomeSiblingIndex =
             roomEntryOverlay.transform.GetSiblingIndex();
     }
+
+
+
+
 
 
 
@@ -843,9 +1183,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         roomEntryOverlay.transform.SetParent(
             roomEntryHomeParent,
             false);
+
+
+
+
 
 
 
@@ -861,9 +1209,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         roomEntryOverlay.transform.SetSiblingIndex(
             sibling);
     }
+
+
+
+
 
 
 
@@ -877,12 +1233,24 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         roomEntryExternalRoot = null;
 
 
 
 
+
+
+
+
         RestoreRoomEntryHome();
+
+
+
+
 
 
 
@@ -893,6 +1261,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             SetActive(external, false);
         }
     }
+
+
+
+
 
 
 
@@ -913,8 +1285,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             return;
         }
+
+
+
+
 
 
 
@@ -928,6 +1308,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (roomActive && localIsHost)
         {
             BeginHostCloseLobby();
@@ -937,11 +1321,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (roomActive || privateMode)
         {
             ResetPrivateState(false);
         }
     }
+
+
+
+
 
 
 
@@ -957,10 +1349,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void ResolveExtendedOnlineUiReferences()
     {
         Transform[] all =
             GetComponentsInChildren<Transform>(true);
+
+
+
+
 
 
 
@@ -970,6 +1370,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 item =>
                     item != null &&
                     item.name == name);
+
+
+
+
 
 
 
@@ -984,12 +1388,20 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (gameSettingsOverlay == null)
         {
             gameSettingsOverlay =
                 Find("LobbyGameSettingsOverlay")
                     ?.gameObject;
         }
+
+
+
+
 
 
 
@@ -1004,12 +1416,20 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (gameSettingsCloseButton == null)
         {
             gameSettingsCloseButton =
                 Find("Button_CloseLobbyGameSettings")
                     ?.GetComponent<Button>();
         }
+
+
+
+
 
 
 
@@ -1024,12 +1444,20 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (lobbyPasswordApplyButton == null)
         {
             lobbyPasswordApplyButton =
                 Find("Button_ApplyLobbyPassword")
                     ?.GetComponent<Button>();
         }
+
+
+
+
 
 
 
@@ -1044,12 +1472,20 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (lobbyPasswordStatusText == null)
         {
             lobbyPasswordStatusText =
                 Find("LobbyPasswordStatus")
                     ?.GetComponent<TMP_Text>();
         }
+
+
+
+
 
 
 
@@ -1064,12 +1500,20 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (lobbyPasswordVisibilityButton == null)
         {
             lobbyPasswordVisibilityButton =
                 Find("Button_LobbyPasswordVisibility")
                     ?.GetComponent<Button>();
         }
+
+
+
+
 
 
 
@@ -1084,12 +1528,20 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (lobbyPasswordCopyButton == null)
         {
             lobbyPasswordCopyButton =
                 Find("Button_CopyLobbyPassword")
                     ?.GetComponent<Button>();
         }
+
+
+
+
 
 
 
@@ -1104,12 +1556,20 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (gameSettingsOverlay != null &&
             !roomActive)
         {
             gameSettingsOverlay.SetActive(false);
         }
     }
+
+
+
+
 
 
 
@@ -1124,6 +1584,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (runtimeBridge == null || !runtimeBridge.HasLobby || !localIsHost)
         {
             ResetPrivateState(false);
@@ -1133,10 +1597,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         hostCloseInFlight = true;
         roomActive = false;
         _ = CloseHostLobbyAndResetAsync();
     }
+
+
+
+
 
 
 
@@ -1164,6 +1636,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void EnsureBoardThemePicker()
     {
         if (gameSettingsOverlay == null) return;
@@ -1178,6 +1654,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         }
         boardThemePicker.SelectWithoutNotify(selectedBoardThemeId);
     }
+
 
     private async System.Threading.Tasks.Task RefreshBoardThemeOwnershipAsync()
     {
@@ -1209,6 +1686,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             ownAzure, ownMaple, ownAurora, selectedBoardThemeId);
     }
 
+
     private void OnBoardThemeSelected(string requestedId)
     {
         if (!localIsHost || backendBusy || requestedId == selectedBoardThemeId) return;
@@ -1217,9 +1695,14 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         QueueHostConfigurationSync();
     }
 
+
     private void OpenLobbyGameSettings()
     {
         ResolveExtendedOnlineUiReferences();
+
+
+
+
 
 
 
@@ -1232,7 +1715,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         gameSettingsOverlay.transform.SetAsLastSibling();
+
+
+
+
 
 
 
@@ -1246,7 +1737,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         lobbyPasswordVisible = false;
+
+
+
+
 
 
 
@@ -1256,6 +1755,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             lobbyPasswordApplyButton.gameObject.SetActive(localIsHost);
             lobbyPasswordApplyButton.interactable = localIsHost && !backendBusy;
         }
+
+
+
+
 
 
 
@@ -1270,10 +1773,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void CloseLobbyGameSettings()
     {
         SetActive(gameSettingsOverlay, false);
     }
+
+
+
+
 
 
 
@@ -1288,6 +1799,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         string password = lobbyPasswordInput != null ? lobbyPasswordInput.text : string.Empty;
         backendBusy = true;
         if (lobbyPasswordApplyButton != null) lobbyPasswordApplyButton.interactable = false;
@@ -1298,10 +1813,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         try
         {
             AtlasLobbyOperationResult result =
                 await runtimeBridge.UpdateLobbyPasswordAsync(password);
+
+
+
+
 
 
 
@@ -1320,8 +1843,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             lastKnownLobbyPassword = password ?? string.Empty;
             lobbyPasswordVisible = false;
+
+
+
+
 
 
 
@@ -1330,6 +1861,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 result.Snapshot,
                 roomCode,
                 runtimeBridge.CurrentAccountId);
+
+
+
+
 
 
 
@@ -1353,6 +1888,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void RefreshGameSettingsAccessUi()
     {
         bool locked = backendSnapshot != null && backendSnapshot.HasPassword;
@@ -1361,6 +1900,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             locked
                 ? T("lobby.access.password_set", "PASSWORD PROTECTED")
                 : T("lobby.access.open", "NO PASSWORD"));
+
+
+
+
 
 
 
@@ -1378,10 +1921,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (lobbyPasswordApplyButton != null)
         {
             lobbyPasswordApplyButton.gameObject.SetActive(localIsHost);
         }
+
+
+
+
 
 
 
@@ -1392,10 +1943,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void RefreshLobbyPasswordDisplay()
     {
         bool locked = backendSnapshot != null && backendSnapshot.HasPassword;
         bool canReveal = localIsHost && locked && !string.IsNullOrWhiteSpace(lastKnownLobbyPassword);
+
+
+
+
 
 
 
@@ -1413,8 +1972,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetActive(lobbyPasswordVisibilityButton != null ? lobbyPasswordVisibilityButton.gameObject : null, localIsHost && locked);
         SetActive(lobbyPasswordCopyButton != null ? lobbyPasswordCopyButton.gameObject : null, localIsHost && locked);
+
+
+
+
 
 
 
@@ -1432,12 +1999,20 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (lobbyPasswordCopyButton != null)
         {
             lobbyPasswordCopyButton.interactable = canReveal;
         }
         SetText(lobbyPasswordCopyButtonText, T("lobby.online.copy", "COPY"));
     }
+
+
+
+
 
 
 
@@ -1452,9 +2027,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         lobbyPasswordVisible = !lobbyPasswordVisible;
         RefreshLobbyPasswordDisplay();
     }
+
+
+
+
 
 
 
@@ -1469,11 +2052,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         GUIUtility.systemCopyBuffer = lastKnownLobbyPassword;
         SetText(lobbyPasswordCopyButtonText, T("lobby.online.copied", "COPIED"));
         CancelInvoke(nameof(ResetLobbyPasswordCopyButtonText));
         Invoke(nameof(ResetLobbyPasswordCopyButtonText), 1.5f);
     }
+
+
+
+
 
 
 
@@ -1486,12 +2077,20 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void BeginRemoteVoluntaryLeave()
     {
         if (voluntaryLeaveInFlight)
         {
             return;
         }
+
+
+
+
 
 
 
@@ -1507,10 +2106,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         voluntaryLeaveInFlight = true;
         roomActive = false;
         _ = LeaveRemoteLobbyAndResetAsync();
     }
+
+
+
+
 
 
 
@@ -1522,6 +2129,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         {
             AtlasLobbyOperationResult result =
                 await runtimeBridge.LeaveLobbyAsync();
+
+
+
+
 
 
 
@@ -1544,6 +2155,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void CancelRoomEntry()
     {
         bool openedOverExternalScreen =
@@ -1552,8 +2167,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetActive(roomEntryOverlay, false);
         ResetPrivateState(false);
+
+
+
+
 
 
 
@@ -1568,6 +2191,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private async void CreateRoomPreview()
     {
         if (!privateMode || backendBusy)
@@ -1578,9 +2205,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         int operationEpoch = navigationEpoch;
         backendBusy = true;
         SetEntryButtonsInteractable(false);
+
+
+
+
 
 
 
@@ -1594,6 +2229,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         try
         {
             AtlasBoardLobbySelection selection =
@@ -1602,9 +2241,14 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             AtlasLobbyOperationResult result =
                 await runtimeBridge.CreatePrivateRoomAsync(
                     selection);
+
 
             if (operationEpoch != navigationEpoch)
             {
@@ -1612,6 +2256,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 Debug.Log("ATB_LOBBY_NAV stale_create_discarded=true", this);
                 return;
             }
+
+
+
+
 
 
 
@@ -1629,6 +2277,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             roomActive = true;
             localIsHost = true;
             codeVisible = false;
@@ -1638,7 +2290,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             SetActive(roomEntryOverlay, false);
+
+
+
+
 
 
 
@@ -1649,13 +2309,25 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             mainMenuController ??=
                 GetComponent<AtlasBoardMainMenuController>();
 
 
 
 
+
+
+
+
             mainMenuController?.OpenPrivateLobbyAfterRoomChoice();
+
+
+
+
 
 
 
@@ -1666,10 +2338,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             ApplyBackendSnapshot(
                 result.Snapshot,
                 result.RoomCode,
                 runtimeBridge.CurrentAccountId);
+
+
+
+
 
 
 
@@ -1690,6 +2370,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private async void JoinRoomPreview()
     {
         if (!privateMode || backendBusy)
@@ -1700,10 +2384,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         string code =
             joinCodeInput != null
                 ? SanitizeCode(joinCodeInput.text)
                 : string.Empty;
+
+
+
+
 
 
 
@@ -1721,9 +2413,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         int operationEpoch = navigationEpoch;
         backendBusy = true;
         SetEntryButtonsInteractable(false);
+
+
+
+
 
 
 
@@ -1733,6 +2433,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             T(
                 "lobby.online.backend_joining",
                 "JOINING ROOM..."));
+
+
+
+
 
 
 
@@ -1747,8 +2451,13 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             AtlasLobbyOperationResult result =
                 await runtimeBridge.JoinByCodeAsync(code, password);
+
 
             if (operationEpoch != navigationEpoch)
             {
@@ -1756,6 +2465,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 Debug.Log("ATB_LOBBY_NAV stale_join_discarded=true", this);
                 return;
             }
+
+
+
+
 
 
 
@@ -1770,6 +2483,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             roomActive = true;
             localIsHost = false;
             codeVisible = false;
@@ -1779,7 +2496,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             SetActive(roomEntryOverlay, false);
+
+
+
+
 
 
 
@@ -1790,8 +2515,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             mainMenuController ??=
                 GetComponent<AtlasBoardMainMenuController>();
+
+
+
+
 
 
 
@@ -1801,8 +2534,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             SetActive(privateOnlineRoot, true);
             SetActive(roomPanel, true);
+
+
+
+
 
 
 
@@ -1815,12 +2556,20 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             if (IsActiveMatchReconnectSnapshot(
                     result.Snapshot))
             {
                 await ResumeActiveMatchAfterReconnectAsync(
                     result.Snapshot);
             }
+
+
+
+
 
 
 
@@ -1836,6 +2585,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             SetEntryButtonsInteractable(true);
         }
     }
+
+
+
+
 
 
 
@@ -1865,6 +2618,9 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
     private static bool IsActiveMatchReconnectSnapshot(
         AtlasLobbySnapshot snapshot)
     {
@@ -1875,6 +2631,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 snapshot.LifecycleState ==
                     AtlasRoomLifecycleState.InMatch);
     }
+
+
+
+
 
 
 
@@ -1892,7 +2652,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         PrepareLegacyControlsForOnlineMatchStart();
+
+
+
+
 
 
 
@@ -1904,9 +2672,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         coordinator?
             .PrepareForAuthoritativeMatchStart(
                 snapshot);
+
+
+
+
 
 
 
@@ -1918,8 +2694,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         mainMenuController?
             .StartMatchAfterPrivateBackendAuthorization();
+
+
+
+
 
 
 
@@ -1927,6 +2711,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         AtlasBoardMatchRuntimeBridge matchRuntime =
             GetComponent<
                 AtlasBoardMatchRuntimeBridge>();
+
+
+
+
 
 
 
@@ -1945,6 +2733,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             if (!refresh.Success)
             {
                 Debug.LogWarning(
@@ -1954,6 +2746,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                     this);
             }
         }
+
+
+
+
 
 
 
@@ -1968,9 +2764,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void ConfigureHostLobbyPreview()
     {
         ShowPrivateSeatPresentation(true);
+
+
+
+
 
 
 
@@ -1988,7 +2792,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         RestoreRowsFromPlayerCount();
+
+
+
+
 
 
 
@@ -1999,10 +2811,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SyncHostSeatModesToLegacyControls();
         RefreshHostSeatRows();
         RestoreOpenSeatChoicePanelIfValid(
             seatChoiceToRestore);
+
+
+
+
 
 
 
@@ -2016,10 +2836,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetHostSettingsInteractable(
             backendSnapshot == null ||
             backendSnapshot.LifecycleState ==
             AtlasRoomLifecycleState.Waiting);
+
+
+
+
 
 
 
@@ -2033,8 +2861,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetActive(legacyStartButton, true);
         RefreshHostStartAvailability();
+
+
+
+
 
 
 
@@ -2052,9 +2888,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void ConfigureGuestLobbyPreview()
     {
         ShowPrivateSeatPresentation(true);
+
+
+
+
 
 
 
@@ -2067,9 +2911,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetHostSeatActionUIVisible(false);
         ForceAllPlayerRowsVisible();
         SetHostSettingsInteractable(false);
+
+
+
+
 
 
 
@@ -2079,11 +2931,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetActive(
             readyButton != null
                 ? readyButton.gameObject
                 : null,
             true);
+
+
+
+
 
 
 
@@ -2098,6 +2958,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void ToggleCodeVisibility()
     {
         if (!roomActive)
@@ -2108,9 +2972,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         codeVisible = !codeVisible;
         RefreshRoomHeader();
     }
+
+
+
+
 
 
 
@@ -2126,13 +2998,25 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         GUIUtility.systemCopyBuffer = roomCode;
+
+
+
+
 
 
 
 
         ConfigureRoomCodeActionText(
             copyCodeButtonText);
+
+
+
+
 
 
 
@@ -2144,9 +3028,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         CancelInvoke(nameof(ResetCopyButtonText));
         Invoke(nameof(ResetCopyButtonText), 1.5f);
     }
+
+
+
+
 
 
 
@@ -2159,10 +3051,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetText(
             copyCodeButtonText,
             T("lobby.online.copy", "COPY"));
     }
+
+
+
+
 
 
 
@@ -2174,6 +3074,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         {
             return;
         }
+
+
+
+
 
 
 
@@ -2193,6 +3097,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private async void ToggleReady()
     {
         if (!roomActive ||
@@ -2207,13 +3115,25 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         bool nextReady =
             readyForRevision != settingsRevision;
 
 
 
 
+
+
+
+
         backendBusy = true;
+
+
+
+
 
 
 
@@ -2226,10 +3146,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         try
         {
             AtlasLobbyOperationResult result =
                 await runtimeBridge.SetReadyAsync(nextReady);
+
+
+
+
 
 
 
@@ -2240,6 +3168,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 ShowRoomBackendError(result);
                 return;
             }
+
+
+
+
 
 
 
@@ -2256,12 +3188,20 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             if (readyButton != null)
             {
                 readyButton.interactable = true;
             }
         }
     }
+
+
+
+
 
 
 
@@ -2278,8 +3218,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         int requestedPlayerCount =
             GetPlayerCount();
+
+
+
+
 
 
 
@@ -2292,6 +3240,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 requestedPlayerCount))
         {
             suppressSeatEvents = true;
+
+
+
+
 
 
 
@@ -2310,6 +3262,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             RestoreRowsFromPlayerCount();
             LoadHostSeatModesFromBackend(
                 backendSnapshot);
@@ -2318,6 +3274,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             ShowPlayerCountBlockedModal();
             return;
         }
+
+
+
+
 
 
 
@@ -2360,11 +3320,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                     mapIndex == 3 ? "Germany" : "Mexico");
         }
 
+
         RestoreRowsFromPlayerCount();
         ResetInactiveHostSeatModes();
         CloseAllSeatChoicePanels();
         SyncHostSeatModesToLegacyControls();
         RefreshHostSeatRows();
+
+
+
+
 
 
 
@@ -2375,8 +3340,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         QueueHostConfigurationSync();
     }
+
+
+
+
 
 
 
@@ -2389,6 +3362,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         {
             return;
         }
+
+
+
+
 
 
 
@@ -2408,6 +3385,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             try
             {
                 hostSettingsToggles[2]
@@ -2422,8 +3403,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         QueueHostConfigurationSync();
     }
+
+
+
+
 
 
 
@@ -2440,10 +3429,12 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             return;
         }
 
+
         CloseAllSeatChoicePanels();
         openSeatChoiceIndex = index;
         SetSeatTextVisible(index, false);
         SetActive(GetChoicePanel(index), true);
+
 
         Button add = GetAddButton(index);
         if (add != null)
@@ -2451,6 +3442,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             add.gameObject.SetActive(false);
         }
     }
+
 
     private void AddLocalPlayerToSeat(int index)
     {
@@ -2462,12 +3454,20 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void AddBotToSeat(int index)
     {
         ResolveSeat(
             index,
             PrivateSeatMode.Bot);
     }
+
+
+
+
 
 
 
@@ -2483,14 +3483,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             return;
         }
 
+
         if (hostSeatModes[index] == PrivateSeatMode.RemoteHuman)
         {
             ShowKickConfirmation(index);
             return;
         }
 
+
         ResolveSeat(index, PrivateSeatMode.OpenOnline);
     }
+
 
     private void ResolveSeat(
         int index,
@@ -2503,6 +3506,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             return;
         }
 
+
         hostSeatModes[index] = mode;
         CloseAllSeatChoicePanels();
         SyncHostSeatModesToLegacyControls();
@@ -2510,6 +3514,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         requiredHumanPlayers = CountResolvedLocalHumans();
         QueueHostConfigurationSync();
     }
+
 
     private void QueueHostConfigurationSync()
     {
@@ -2523,11 +3528,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (!roomActive ||
             !localIsHost)
         {
             return;
         }
+
+
+
+
 
 
 
@@ -2541,10 +3554,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         // Do not allow Start while the visible host configuration has not yet
         // been acknowledged by the authoritative backend.
         RefreshHostStartAvailability();
     }
+
+
+
+
 
 
 
@@ -2562,9 +3583,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         backendBusy = true;
         SetHostSettingsInteractable(false);
         SetHostSeatActionUIVisible(false);
+
+
+
+
 
 
 
@@ -2577,9 +3606,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             string[] policies =
                 BuildBackendSeatPolicies(
                     selection.PlayerCount);
+
+
+
+
 
 
 
@@ -2592,10 +3629,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             if (!result.Success ||
                 result.Snapshot == null)
             {
                 ShowRoomBackendError(result);
+
+
+
+
 
 
 
@@ -2606,8 +3651,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
                 hostConfigurationDirty = false;
                 hostConfigurationSyncQueued = false;
+
+
+
+
 
 
 
@@ -2624,14 +3677,26 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
                 return;
             }
 
 
 
 
+
+
+
+
             hostConfigurationDirty = false;
             hostConfigurationSyncQueued = false;
+
+
+
+
 
 
 
@@ -2648,6 +3713,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             if (localIsHost &&
                 backendSnapshot != null &&
                 backendSnapshot.LifecycleState ==
@@ -2658,8 +3727,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
                 int seatChoiceToRestore =
                     openSeatChoiceIndex;
+
+
+
+
 
 
 
@@ -2671,6 +3748,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             }
         }
     }
+
+
+
+
 
 
 
@@ -2688,10 +3769,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (!backendBusy)
         {
             _ = StartBackendMatchAsync();
         }
+
+
+
+
 
 
 
@@ -2702,9 +3791,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private async System.Threading.Tasks.Task StartBackendMatchAsync()
     {
         backendBusy = true;
+
+
+
+
 
 
 
@@ -2717,10 +3814,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (start != null)
         {
             start.interactable = false;
         }
+
+
+
+
 
 
 
@@ -2734,10 +3839,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         try
         {
             AtlasLobbyOperationResult result =
                 await runtimeBridge.StartMatchAsync();
+
+
+
+
 
 
 
@@ -2754,10 +3867,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             ApplyBackendSnapshot(
                 result.Snapshot,
                 roomCode,
                 runtimeBridge.CurrentAccountId);
+
+
+
+
 
 
 
@@ -2768,6 +3889,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 $"StartEventId={result.Snapshot.StartEventId}, " +
                 $"Replay={result.IdempotentReplay}.",
                 this);
+
+
+
+
 
 
 
@@ -2783,6 +3908,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void HandleBackendSnapshotChanged(
         AtlasLobbySnapshot snapshot)
     {
@@ -2792,17 +3921,23 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             return;
         }
 
+
         // A verified rematch roster can be correct for one poll and then have
         // only DisplayName regressed by a later transport projection while the
         // AccountId/slot stay correct. Normalize that presentation-only field
         // before equivalence checks or repainting.
         ApplyRematchVerifiedIdentityGuard(snapshot);
 
+
         if (snapshot.LifecycleState != AtlasRoomLifecycleState.Waiting &&
             rematchVerifiedIdentityLockActive)
         {
             ClearRematchVerifiedIdentityLock();
         }
+
+
+
+
 
 
 
@@ -2817,6 +3952,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         {
             return;
         }
+
+
+
+
 
 
 
@@ -2836,6 +3975,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 boardThemePicker.SelectWithoutNotify(selectedBoardThemeId);
         }
 
+
         if (BackendSnapshotUiEquivalent(
                 backendSnapshot,
                 snapshot))
@@ -2843,6 +3983,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             backendSnapshot = snapshot;
             return;
         }
+
+
+
+
 
 
 
@@ -2861,12 +4005,20 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         ApplyBackendSnapshot(
             snapshot,
             roomCode,
             runtimeBridge != null
                 ? runtimeBridge.CurrentAccountId
                 : backendLocalAccountId);
+
+
+
+
 
 
 
@@ -2879,7 +4031,12 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             mainMenuController?.ReturnOnlineMatchToLobby();
+
 
             // Do not trust the first rematch lobby projection. Host migration
             // can temporarily duplicate the promoted host UID into the old
@@ -2893,12 +4050,20 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (snapshot.LifecycleState ==
             AtlasRoomLifecycleState.Starting)
         {
             BeginAuthoritativeStartCountdown();
         }
     }
+
+
+
+
 
 
 
@@ -2916,6 +4081,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private async System.Threading.Tasks.Task VerifyAndRefreshRematchRosterAsync(
         int verificationEpoch,
         int expectedNavigationEpoch)
@@ -2924,9 +4093,11 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         // retry with progressively wider spacing. The first stable roster wins.
         int[] delaysMs = { 350, 650, 1000, 1500 };
 
+
         for (int attempt = 0; attempt < delaysMs.Length; attempt++)
         {
             await System.Threading.Tasks.Task.Delay(delaysMs[attempt]);
+
 
             if (verificationEpoch != rematchRosterRefreshEpoch ||
                 expectedNavigationEpoch != navigationEpoch ||
@@ -2937,8 +4108,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 return;
             }
 
+
             AtlasLobbyOperationResult result =
                 await runtimeBridge.GetSnapshotAsync();
+
 
             if (verificationEpoch != rematchRosterRefreshEpoch ||
                 expectedNavigationEpoch != navigationEpoch ||
@@ -2946,6 +4119,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             {
                 return;
             }
+
 
             if (result == null ||
                 !result.Success ||
@@ -2962,10 +4136,12 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 continue;
             }
 
+
             string stabilityReason;
             bool stable = IsAuthoritativeRosterStable(
                 result.Snapshot,
                 out stabilityReason);
+
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             Debug.Log(
@@ -2981,15 +4157,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 this);
 #endif
 
+
             if (!stable)
             {
                 continue;
             }
 
+
             RebuildRosterFromAuthoritativeSnapshot(result.Snapshot);
             CaptureRematchVerifiedIdentityLock(result.Snapshot);
             return;
         }
+
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         Debug.LogWarning(
@@ -2998,6 +4177,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             this);
 #endif
     }
+
+
+
+
 
 
 
@@ -3012,11 +4195,13 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             return false;
         }
 
+
         if (snapshot.LifecycleState != AtlasRoomLifecycleState.Waiting)
         {
             reason = "not_waiting";
             return false;
         }
+
 
         if (snapshot.Members == null)
         {
@@ -3024,11 +4209,14 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             return false;
         }
 
+
         HashSet<string> seenHumanAccounts =
             new HashSet<string>(StringComparer.Ordinal);
 
+
         int hostMatches = 0;
         string hostAccountId = snapshot.HostAccountId ?? string.Empty;
+
 
         foreach (AtlasLobbyMemberSnapshot member in snapshot.Members)
         {
@@ -3040,21 +4228,25 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 continue;
             }
 
+
             bool humanSeat =
                 member.SeatMode == AtlasLobbySeatMode.HostLocal ||
                 member.SeatMode == AtlasLobbySeatMode.LocalHuman ||
                 member.SeatMode == AtlasLobbySeatMode.RemoteHuman;
+
 
             if (!humanSeat)
             {
                 continue;
             }
 
+
             if (!seenHumanAccounts.Add(member.AccountId))
             {
                 reason = "duplicate_human_uid";
                 return false;
             }
+
 
             if (!string.IsNullOrWhiteSpace(hostAccountId) &&
                 string.Equals(
@@ -3066,6 +4258,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             }
         }
 
+
         if (!string.IsNullOrWhiteSpace(hostAccountId) &&
             hostMatches != 1)
         {
@@ -3073,15 +4266,21 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             return false;
         }
 
+
         if (ResolveHostSlotIndex(snapshot) < 0)
         {
             reason = "host_slot_missing";
             return false;
         }
 
+
         reason = "unique_authoritative_roster";
         return true;
     }
+
+
+
+
 
 
 
@@ -3099,10 +4298,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void CaptureRematchVerifiedIdentityLock(
         AtlasLobbySnapshot snapshot)
     {
         ClearRematchVerifiedIdentityLock();
+
 
         if (snapshot == null ||
             snapshot.Members == null ||
@@ -3110,6 +4314,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         {
             return;
         }
+
 
         foreach (AtlasLobbyMemberSnapshot member in snapshot.Members)
         {
@@ -3122,18 +4327,22 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 continue;
             }
 
+
             bool humanSeat =
                 member.SeatMode == AtlasLobbySeatMode.HostLocal ||
                 member.SeatMode == AtlasLobbySeatMode.LocalHuman ||
                 member.SeatMode == AtlasLobbySeatMode.RemoteHuman;
+
 
             if (!humanSeat)
             {
                 continue;
             }
 
+
             rematchVerifiedAccountBySlot[member.SlotIndex] =
                 member.AccountId;
+
 
             if (!string.IsNullOrWhiteSpace(member.DisplayName))
             {
@@ -3142,9 +4351,11 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             }
         }
 
+
         rematchVerifiedIdentityLockActive =
             rematchVerifiedAccountBySlot.Any(
                 accountId => !string.IsNullOrWhiteSpace(accountId));
+
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         if (rematchVerifiedIdentityLockActive)
@@ -3160,6 +4371,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void ApplyRematchVerifiedIdentityGuard(
         AtlasLobbySnapshot snapshot)
     {
@@ -3171,15 +4386,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             return;
         }
 
+
         for (int slot = 0; slot < 4; slot++)
         {
             string lockedAccountId =
                 rematchVerifiedAccountBySlot[slot];
 
+
             if (string.IsNullOrWhiteSpace(lockedAccountId))
             {
                 continue;
             }
+
 
             AtlasLobbyMemberSnapshot member =
                 snapshot.Members.FirstOrDefault(
@@ -3188,10 +4406,12 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                         candidate.Active &&
                         candidate.SlotIndex == slot);
 
+
             if (member == null)
             {
                 continue;
             }
+
 
             if (!string.Equals(
                     member.AccountId,
@@ -3200,6 +4420,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             {
                 int authoritativeHostSlot =
                     ResolveHostSlotIndex(snapshot);
+
 
                 bool transientDuplicateHostProjection =
                     slot != authoritativeHostSlot &&
@@ -3212,6 +4433,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                         lockedAccountId,
                         snapshot.HostAccountId,
                         StringComparison.Ordinal);
+
 
                 if (transientDuplicateHostProjection)
                 {
@@ -3229,6 +4451,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                             rematchVerifiedNameBySlot[slot];
                     }
 
+
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                     Debug.LogWarning(
                         "ATB_REMATCH_ROSTER_ACCOUNT_GUARD preserved=true " +
@@ -3243,6 +4466,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                     continue;
                 }
 
+
                 // A genuinely different account now owns this slot. Stop
                 // protecting the old identity rather than masking a real join.
                 rematchVerifiedAccountBySlot[slot] = string.Empty;
@@ -3250,8 +4474,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 continue;
             }
 
+
             string lockedName =
                 rematchVerifiedNameBySlot[slot];
+
 
             if (string.IsNullOrWhiteSpace(lockedName))
             {
@@ -3261,8 +4487,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                         member.DisplayName.Trim();
                 }
 
+
                 continue;
             }
+
 
             if (string.Equals(
                     member.DisplayName,
@@ -3271,6 +4499,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             {
                 continue;
             }
+
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             Debug.LogWarning(
@@ -3282,14 +4511,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 this);
 #endif
 
+
             // Presentation-only correction. AccountId, seat mode, readiness,
             // host ownership and connection state remain authoritative.
             member.DisplayName = lockedName;
         }
 
+
         bool anyLocked =
             rematchVerifiedAccountBySlot.Any(
                 accountId => !string.IsNullOrWhiteSpace(accountId));
+
 
         if (!anyLocked)
         {
@@ -3300,10 +4532,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private string BuildRematchIdentityLockSummary()
     {
         System.Text.StringBuilder builder =
             new System.Text.StringBuilder();
+
 
         for (int slot = 0; slot < 4; slot++)
         {
@@ -3313,10 +4550,12 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 continue;
             }
 
+
             if (builder.Length > 0)
             {
                 builder.Append(" | ");
             }
+
 
             builder.Append("P");
             builder.Append(slot + 1);
@@ -3327,8 +4566,13 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             builder.Append("]");
         }
 
+
         return builder.ToString();
     }
+
+
+
+
 
 
 
@@ -3341,6 +4585,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             return;
         }
 
+
         // This refresh intentionally discards the rematch presentation cache.
         // At this point the snapshot has already passed the uniqueness checks,
         // so the backend roster is the source of truth for every visible seat.
@@ -3350,10 +4595,13 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             seatIdentityNameCache[i] = string.Empty;
         }
 
+
         seatIdentityCacheLobbyId = snapshot.LobbyId ?? string.Empty;
         lastDuplicateHostProjectionLog = string.Empty;
 
+
         backendSnapshot = null;
+
 
         ApplyBackendSnapshot(
             snapshot,
@@ -3361,6 +4609,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             runtimeBridge != null
                 ? runtimeBridge.CurrentAccountId
                 : backendLocalAccountId);
+
 
         // ApplyBackendSnapshot already configures the correct host/guest view,
         // but repaint once more after the cache reset so no stale row survives
@@ -3376,6 +4625,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             RefreshGuestSeats();
         }
 
+
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         Debug.Log(
             "ATB_REMATCH_ROSTER_REFRESH applied=true " +
@@ -3388,10 +4638,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private AtlasBoardLobbySelection GetCurrentLobbySelection()
     {
         mainMenuController ??=
             GetComponent<AtlasBoardMainMenuController>();
+
+
+
+
 
 
 
@@ -3414,6 +4672,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         // The private/public lobby owns the visible rule toggles. The legacy
         // Main Menu still exposes ToggleProxy values, which can lag behind the
         // real controls during a backend poll/debounce boundary. Serialize the
@@ -3430,12 +4692,20 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             if (hostSettingsToggles.Length > 1 &&
                 hostSettingsToggles[1] != null)
             {
                 selection.DoublesEnabled =
                     hostSettingsToggles[1].isOn;
             }
+
+
+
+
 
 
 
@@ -3451,9 +4721,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         selection.BoardThemeId = selectedBoardThemeId;
         return selection;
     }
+
+
+
 
 
 
@@ -3463,6 +4740,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         string[] policies = { "inactive", "inactive", "inactive", "inactive" };
         int total = Mathf.Clamp(playerCount, 2, 4);
         int hostSlotIndex = GetAuthoritativeHostSlotIndex();
+
 
         for (int i = 0; i < 4; i++)
         {
@@ -3486,8 +4764,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             }
         }
 
+
         return policies;
     }
+
 
     private void SetEntryButtonsInteractable(
         bool interactable)
@@ -3500,6 +4780,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (joinRoomButton != null)
         {
             joinRoomButton.interactable = interactable;
@@ -3508,10 +4792,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (joinCodeInput != null)
         {
             joinCodeInput.interactable = interactable;
         }
+
+
+
+
 
 
 
@@ -3525,10 +4817,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private GameObject ownedRoomLimitPopup;
     private Button ownedRoomLimitOk;
     private TMP_Text ownedRoomLimitMessage;
     private bool ownedRoomQuotaCleanupBusy;
+
 
     // One shared popup for Private, Public and Public Browser Create paths.
     // The popup is placed under the active scene Canvas, not under a hidden
@@ -3586,6 +4883,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         Debug.Log("ATB_RTDB_QUOTA_POPUP shown=true three_create_paths=true");
     }
 
+
     private static TMP_Text MakeOwnedRoomQuotaText(Transform parent, string label,
         int size, Vector2 dimensions, Vector2 position)
     {
@@ -3604,6 +4902,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         text.raycastTarget=false;
         return text;
     }
+
 
     private async void ConfirmOwnedRoomLimitCleanup()
     {
@@ -3643,6 +4942,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         }
     }
 
+
     private void ShowEntryBackendError(
         AtlasLobbyOperationResult result)
     {
@@ -3650,6 +4950,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             result != null
                 ? result.ErrorLocalizationKey
                 : "lobby.error.unknown";
+
+
+
+
 
 
 
@@ -3669,6 +4973,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void ShowRoomBackendError(
         AtlasLobbyOperationResult result)
     {
@@ -3676,6 +4984,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             result != null
                 ? result.ErrorLocalizationKey
                 : "lobby.error.unknown";
+
+
+
+
 
 
 
@@ -3692,6 +5004,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void AdvanceLocalSettingsRevision()
     {
         if (backendSnapshot != null)
@@ -3702,8 +5018,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         settingsRevision++;
         readyForRevision = 0;
+
+
+
+
 
 
 
@@ -3717,8 +5041,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         RefreshRoomHeader();
     }
+
+
+
+
 
 
 
@@ -3735,10 +5067,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         suppressSeatEvents = true;
         if (hostSettingsDropdowns != null && hostSettingsDropdowns.Length > 0)
             AtlasBoardPremiumMapDropdownLabels.EnsureOptions(hostSettingsDropdowns[0]);
         AtlasBoardPremiumMapDropdownLabels.PreviewMap(snapshot.Settings.MapId);
+
+
+
+
 
 
 
@@ -3762,6 +5102,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
                 SetDropdownByText(
                     hostSettingsDropdowns[1],
                     snapshot.Settings.MaxPlayers.ToString());
@@ -3769,9 +5113,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
                 SetDropdownByText(
                     hostSettingsDropdowns[2],
                     snapshot.Settings.RoundLimit.ToString());
+
+
+
+
 
 
 
@@ -3791,10 +5143,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             bool preservePendingHostRuleIntent =
                 localIsHost &&
                 (hostConfigurationDirty ||
                  hostConfigurationSyncQueued);
+
+
+
+
 
 
 
@@ -3816,6 +5176,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
                 if (hostSettingsToggles.Length > 1 &&
                     hostSettingsToggles[1] != null)
                 {
@@ -3826,6 +5190,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                             snapshot.Settings.DoublesEnabled);
                     }
                 }
+
+
+
+
 
 
 
@@ -3851,10 +5219,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void LoadHostSeatModesFromBackend(
         AtlasLobbySnapshot snapshot)
     {
         ResetHostSeatModes();
+
+
+
+
 
 
 
@@ -3868,6 +5244,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         foreach (AtlasLobbyMemberSnapshot member in snapshot.Members)
         {
             if (member == null ||
@@ -3876,6 +5256,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             {
                 continue;
             }
+
+
+
+
 
 
 
@@ -3895,6 +5279,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private static void SetDropdownByIndex(
         TMP_Dropdown dropdown,
         int index)
@@ -3909,11 +5297,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         int safeIndex =
             Mathf.Clamp(
                 index,
                 0,
                 dropdown.options.Count - 1);
+
+
+
+
 
 
 
@@ -3926,9 +5322,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         dropdown.SetValueWithoutNotify(safeIndex);
         dropdown.RefreshShownValue();
     }
+
+
+
+
 
 
 
@@ -3942,6 +5346,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         {
             return;
         }
+
+
+
+
 
 
 
@@ -3961,12 +5369,20 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
                 dropdown.SetValueWithoutNotify(i);
                 dropdown.RefreshShownValue();
                 return;
             }
         }
     }
+
+
+
+
 
 
 
@@ -3978,6 +5394,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             hostSeatModes[i] = PrivateSeatMode.OpenOnline;
         }
 
+
         int hostSlotIndex = GetAuthoritativeHostSlotIndex();
         if (hostSlotIndex < 0 || hostSlotIndex >= hostSeatModes.Length)
         {
@@ -3986,9 +5403,14 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         hostSeatModes[hostSlotIndex] = PrivateSeatMode.LocalHuman;
     }
 
+
     private void ResetInactiveHostSeatModes()
     {
         int total = GetPlayerCount();
+
+
+
+
 
 
 
@@ -4003,22 +5425,29 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void RefreshHostSeatRows()
     {
         int total = GetPlayerCount();
         int hostSlotIndex = GetAuthoritativeHostSlotIndex();
         ForceAllPlayerRowsVisible();
 
+
         for (int i = 0; i < 4; i++)
         {
             bool active = i < total;
             SetActive(playerRows != null && i < playerRows.Length ? playerRows[i] : null, active);
+
 
             if (!active)
             {
                 SetHostSeatActionObjects(i, false, false, false);
                 continue;
             }
+
 
             if (i == hostSlotIndex)
             {
@@ -4031,6 +5460,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 continue;
             }
 
+
             switch (hostSeatModes[i])
             {
                 case PrivateSeatMode.LocalHuman:
@@ -4040,12 +5470,14 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                     SetHostSeatActionObjects(i, false, false, true);
                     break;
 
+
                 case PrivateSeatMode.Bot:
                     SetSeat(i,
                         T("lobby.online.local_bot_number", "LOCAL BOT {0}", i + 1),
                         T("lobby.online.bot_no_ready", "BOT • NO READY"));
                     SetHostSeatActionObjects(i, false, false, true);
                     break;
+
 
                 case PrivateSeatMode.RemoteHuman:
                     AtlasLobbyMemberSnapshot remote = FindBackendMemberBySlot(i);
@@ -4059,8 +5491,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                             backendSnapshot.HostAccountId,
                             StringComparison.Ordinal);
 
+
                     string remoteName;
                     string remoteStatus;
+
 
                     if (duplicateHostProjection &&
                         !string.IsNullOrWhiteSpace(seatIdentityNameCache[i]) &&
@@ -4074,11 +5508,13 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                             "lobby.online.reconnecting",
                             "RECONNECTING");
 
+
                         string signature =
                             (backendSnapshot.LobbyId ?? string.Empty) + ":" +
                             i + ":" +
                             (backendSnapshot.HostAccountId ?? string.Empty) + ":" +
                             seatIdentityAccountCache[i];
+
 
                         if (!string.Equals(
                                 signature,
@@ -4103,6 +5539,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                             ? remote.DisplayName
                             : T("lobby.online.remote_player", "ONLINE PLAYER");
 
+
                         remoteStatus = remote != null &&
                                        remote.IsReadyFor(settingsRevision)
                             ? T(
@@ -4120,9 +5557,11 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                                     "NOT READY");
                     }
 
+
                     SetSeat(i, remoteName, remoteStatus);
                     SetHostSeatActionObjects(i, false, false, true);
                     break;
+
 
                 default:
                     SetSeat(i,
@@ -4134,6 +5573,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         }
     }
 
+
     private void UpdateSeatIdentityPresentationCache(
         AtlasLobbySnapshot previousSnapshot,
         AtlasLobbySnapshot snapshot)
@@ -4143,6 +5583,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             return;
         }
 
+
         string lobbyId = snapshot.LobbyId ?? string.Empty;
         bool sameLobby =
             previousSnapshot != null &&
@@ -4150,6 +5591,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 previousSnapshot.LobbyId ?? string.Empty,
                 lobbyId,
                 StringComparison.Ordinal);
+
 
         bool synchronizedRematchContinuity =
             previousSnapshot != null &&
@@ -4161,6 +5603,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             snapshot.LifecycleState ==
                 AtlasRoomLifecycleState.Waiting &&
             string.IsNullOrWhiteSpace(snapshot.MatchId);
+
 
         if (!string.Equals(
                 seatIdentityCacheLobbyId,
@@ -4180,18 +5623,22 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 }
             }
 
+
             seatIdentityCacheLobbyId = lobbyId;
             lastDuplicateHostProjectionLog = string.Empty;
         }
+
 
         if (snapshot.Members == null)
         {
             return;
         }
 
+
         int hostSlot = ResolveHostSlotIndex(snapshot);
         string hostAccountId = snapshot.HostAccountId ?? string.Empty;
         bool canUsePreviousIdentity = sameLobby || synchronizedRematchContinuity;
+
 
         foreach (AtlasLobbyMemberSnapshot member in snapshot.Members)
         {
@@ -4204,6 +5651,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 continue;
             }
 
+
             bool duplicateHostProjection =
                 member.SlotIndex != hostSlot &&
                 !string.IsNullOrWhiteSpace(hostAccountId) &&
@@ -4211,6 +5659,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                     member.AccountId,
                     hostAccountId,
                     StringComparison.Ordinal);
+
 
             if (duplicateHostProjection)
             {
@@ -4233,16 +5682,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                                 StringComparison.Ordinal))
                         : null;
 
+
                 if (previousMember != null)
                 {
                     seatIdentityAccountCache[member.SlotIndex] =
                         previousMember.AccountId;
+
 
                     if (!string.IsNullOrWhiteSpace(previousMember.DisplayName))
                     {
                         seatIdentityNameCache[member.SlotIndex] =
                             previousMember.DisplayName.Trim();
                     }
+
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                     Debug.LogWarning(
@@ -4257,12 +5709,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 #endif
                 }
 
+
                 // Never overwrite a non-host seat with a duplicated host UID.
                 continue;
             }
 
+
             seatIdentityAccountCache[member.SlotIndex] =
                 member.AccountId;
+
 
             if (!string.IsNullOrWhiteSpace(member.DisplayName))
             {
@@ -4272,6 +5727,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         }
     }
 
+
     private static int ResolveHostSlotIndex(
         AtlasLobbySnapshot snapshot)
     {
@@ -4280,7 +5736,9 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             return -1;
         }
 
+
         string hostAccountId = snapshot.HostAccountId ?? string.Empty;
+
 
         AtlasLobbyMemberSnapshot hostMember =
             snapshot.Members.FirstOrDefault(member =>
@@ -4294,6 +5752,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                     hostAccountId,
                     StringComparison.Ordinal));
 
+
         hostMember ??= snapshot.Members.FirstOrDefault(member =>
             member != null &&
             member.SlotIndex >= 0 &&
@@ -4305,6 +5764,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 hostAccountId,
                 StringComparison.Ordinal));
 
+
         hostMember ??= snapshot.Members.FirstOrDefault(member =>
             member != null &&
             member.SlotIndex >= 0 &&
@@ -4315,16 +5775,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 hostAccountId,
                 StringComparison.Ordinal));
 
+
         hostMember ??= snapshot.Members.FirstOrDefault(member =>
             member != null &&
             member.SlotIndex >= 0 &&
             member.SlotIndex < 4 &&
             member.IsHost);
 
+
         return hostMember != null
             ? hostMember.SlotIndex
             : -1;
     }
+
 
     private int GetAuthoritativeHostSlotIndex()
     {
@@ -4333,10 +5796,13 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
     }
 
 
+
+
     private bool IsAuthoritativeHostSlot(int slotIndex)
     {
         return slotIndex == GetAuthoritativeHostSlotIndex();
     }
+
 
     private AtlasLobbyMemberSnapshot FindBackendMemberBySlot(
         int slotIndex)
@@ -4350,11 +5816,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         return backendSnapshot.Members.FirstOrDefault(
             member =>
                 member != null &&
                 member.SlotIndex == slotIndex);
     }
+
+
+
+
 
 
 
@@ -4371,10 +5845,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (add != null)
         {
             add.gameObject.SetActive(showAdd);
         }
+
+
+
+
 
 
 
@@ -4386,8 +5868,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         Button remove =
             GetRemoveButton(index);
+
+
+
+
 
 
 
@@ -4401,9 +5891,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void CloseAllSeatChoicePanels()
     {
         openSeatChoiceIndex = -1;
+
+
+
+
 
 
 
@@ -4412,6 +5910,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         {
             return;
         }
+
+
+
+
 
 
 
@@ -4427,9 +5929,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             SetSeatTextVisible(
                 i,
                 true);
+
+
+
+
 
 
 
@@ -4447,6 +5957,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
                 if (add != null)
                 {
                     add.gameObject.SetActive(true);
@@ -4454,6 +5968,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             }
         }
     }
+
+
+
+
 
 
 
@@ -4473,6 +5991,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             return;
         }
 
+
         GameObject panel = GetChoicePanel(index);
         Button add = GetAddButton(index);
         if (panel == null || add == null)
@@ -4481,11 +6000,13 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             return;
         }
 
+
         openSeatChoiceIndex = index;
         SetSeatTextVisible(index, false);
         SetActive(panel, true);
         add.gameObject.SetActive(false);
     }
+
 
     private void SetHostSeatActionUIVisible(
         bool visible)
@@ -4495,6 +6016,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             RefreshHostSeatRows();
             return;
         }
+
+
+
+
 
 
 
@@ -4512,6 +6037,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private Button GetAddButton(int index)
     {
         return GetButtonArrayItem(
@@ -4522,12 +6051,20 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private Button GetRemoveButton(int index)
     {
         return GetButtonArrayItem(
             privateSeatRemoveButtons,
             index);
     }
+
+
+
+
 
 
 
@@ -4544,8 +6081,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         return privateSeatChoicePanels[index];
     }
+
+
+
+
 
 
 
@@ -4564,8 +6109,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         return array[index];
     }
+
+
+
+
 
 
 
@@ -4584,6 +6137,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         return false;
     }
 
+
     private int CountResolvedLocalHumans()
     {
         int total = GetPlayerCount();
@@ -4599,6 +6153,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         return Mathf.Clamp(humans, 1, total);
     }
 
+
     public void PrepareLegacyControlsForOnlineMatchStart()
     {
         if (backendSnapshot == null ||
@@ -4610,6 +6165,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         int total =
             backendSnapshot.Settings != null
                 ? Mathf.Clamp(
@@ -4617,6 +6176,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                     2,
                     4)
                 : GetPlayerCount();
+
+
+
+
 
 
 
@@ -4636,10 +6199,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             bool shouldBeBot =
                 member != null &&
                 member.SeatMode ==
                     AtlasLobbySeatMode.Bot;
+
+
+
+
 
 
 
@@ -4651,6 +6222,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 slotIndex,
                 shouldBeBot);
         }
+
+
+
+
 
 
 
@@ -4668,10 +6243,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void SyncHostSeatModesToLegacyControls()
     {
         int total = GetPlayerCount();
         int hostSlotIndex = GetAuthoritativeHostSlotIndex();
+
 
         for (int i = 0; i < total; i++)
         {
@@ -4680,12 +6260,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         }
     }
 
+
     private void SaveLegacyControlValues()
     {
         for (int i = 0; i < 4; i++)
         {
             TMP_Dropdown dropdown =
                 GetPlayerTypeDropdown(i);
+
+
+
+
 
 
 
@@ -4699,8 +6284,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         legacyControlValuesSaved = true;
     }
+
+
+
+
 
 
 
@@ -4715,6 +6308,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         for (int i = 0; i < 4; i++)
         {
             TMP_Dropdown dropdown =
@@ -4723,10 +6320,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             if (dropdown == null)
             {
                 continue;
             }
+
+
+
+
 
 
 
@@ -4742,8 +6347,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             dropdown.SetValueWithoutNotify(
                 value);
+
+
+
+
 
 
 
@@ -4754,8 +6367,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         legacyControlValuesSaved = false;
     }
+
+
+
+
 
 
 
@@ -4772,8 +6393,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         Button start =
             legacyStartButton.GetComponent<Button>();
+
+
+
+
 
 
 
@@ -4786,7 +6415,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         bool canStart;
+
+
+
+
 
 
 
@@ -4813,48 +6450,39 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         start.interactable = canStart;
+
+
+
+
 
 
 
 
         if (canStart)
         {
-            bool hasOpenSeats =
-                backendSnapshot != null &&
-                backendSnapshot.Settings != null &&
-                backendSnapshot.Settings.OpenOnlineSeatCount > 0;
-
-
-
-
+            // Seat cards and Start-button state already communicate readiness.
+            // Do not expose implementation notes such as "open seats become
+            // bots" in the compact Room Code header.
             SetText(
                 roomStateText,
-                backendSnapshot == null
-                    ? T(
-                        "lobby.online.roster_resolved",
-                        "ROSTER READY • START AVAILABLE")
-                    : hasOpenSeats
-                        ? T(
-                            "lobby.online.host_can_start_with_open",
-                            "HOST CAN START • OPEN SEATS BECOME BOTS")
-                        : T(
-                            "lobby.online.host_can_start",
-                            "HOST CAN START • REMOTE HUMANS READY"));
+                string.Empty);
         }
-
-
-
-
         else if (backendSnapshot == null)
         {
             SetText(
                 roomStateText,
-                T(
-                    "lobby.online.waiting_online_or_add",
-                    "WAITING FOR ONLINE PLAYER • OR ADD LOCAL/BOT"));
+                string.Empty);
         }
     }
+
+
+
+
 
 
 
@@ -4872,7 +6500,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         int revision = snapshot.SettingsRevision;
+
+
+
+
 
 
 
@@ -4888,6 +6524,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             if (member.SeatMode ==
                     AtlasLobbySeatMode.RemoteHuman &&
                 !member.IsReadyFor(revision))
@@ -4899,8 +6539,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         return true;
     }
+
+
+
+
 
 
 
@@ -4915,11 +6563,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetText(
             roomCodeText,
             codeVisible
                 ? roomCode
                 : new string('•', 6));
+
+
+
+
 
 
 
@@ -4933,12 +6589,20 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
+        // Settings revision is transport metadata, not customer-facing lobby
+        // copy. Keep it available in logs/backend state but do not crowd the
+        // Room Code header with engineering text.
         SetText(
             revisionText,
-            T(
-                "lobby.online.revision_format",
-                "SETTINGS REV {0}",
-                settingsRevision));
+            string.Empty);
+
+
+
+
 
 
 
@@ -4954,6 +6618,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             SetActive(legacyStartButton, true);
             RefreshHostStartAvailability();
             return;
@@ -4962,7 +6630,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetActive(legacyStartButton, false);
+
+
+
+
 
 
 
@@ -4976,8 +6652,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         bool ready =
             readyForRevision == settingsRevision;
+
+
+
+
 
 
 
@@ -4987,6 +6671,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             ready
                 ? T("lobby.online.ready_checked", "READY ✓")
                 : T("lobby.online.ready", "READY"));
+
+
+
+
 
 
 
@@ -5003,34 +6691,71 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void ReconcileGuestHostSeatName()
     {
-        if (privateSeatNames == null || privateSeatNames.Length == 0 ||
-            privateSeatNames[0] == null || backendSnapshot.Members == null ||
-            privateOnlineRoot == null || !privateOnlineRoot.activeInHierarchy)
+        if (backendSnapshot == null ||
+            backendSnapshot.Members == null ||
+            privateSeatNames == null ||
+            privateOnlineRoot == null ||
+            !privateOnlineRoot.activeInHierarchy)
+        {
             return;
+        }
 
-
-        AtlasLobbyMemberSnapshot hostSeat = backendSnapshot.Members.FirstOrDefault(
-            member => member != null && member.Active &&
-                string.Equals(member.AccountId, backendSnapshot.HostAccountId,
-                    StringComparison.Ordinal));
-        if (hostSeat == null || string.IsNullOrWhiteSpace(hostSeat.DisplayName))
+        int hostSlotIndex = ResolveHostSlotIndex(backendSnapshot);
+        if (hostSlotIndex < 0 ||
+            hostSlotIndex >= privateSeatNames.Length ||
+            privateSeatNames[hostSlotIndex] == null)
+        {
             return;
+        }
 
+        AtlasLobbyMemberSnapshot hostSeat =
+            backendSnapshot.Members.FirstOrDefault(
+                member =>
+                    member != null &&
+                    member.Active &&
+                    member.SlotIndex == hostSlotIndex &&
+                    string.Equals(
+                        member.AccountId,
+                        backendSnapshot.HostAccountId,
+                        StringComparison.Ordinal));
+
+        if (hostSeat == null ||
+            string.IsNullOrWhiteSpace(hostSeat.DisplayName))
+        {
+            return;
+        }
 
         string expected = hostSeat.DisplayName.Trim();
-        if (string.Equals(privateSeatNames[0].text, expected,
+        if (string.Equals(
+                privateSeatNames[hostSlotIndex].text,
+                expected,
                 StringComparison.Ordinal))
+        {
             return;
-
+        }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        Debug.Log("ATB_RTDB_LOBBY_HOST_LABEL corrected=true " +
-            "source=snapshot_host_uid local_override=false", this);
+        Debug.Log(
+            "ATB_RTDB_LOBBY_HOST_LABEL corrected=true " +
+            "source=snapshot_host_uid local_override=false host_slot=" +
+            hostSlotIndex,
+            this);
 #endif
-        SetText(privateSeatNames[0], expected);
+        // Host authority is NOT synonymous with P1. Only repaint the canonical
+        // host seat. Writing privateSeatNames[0] here used to overwrite a
+        // perfectly valid follower row after Host migration.
+        SetText(privateSeatNames[hostSlotIndex], expected);
     }
+
+
+
+
 
 
 
@@ -5046,7 +6771,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         ForceAllPlayerRowsVisible();
+
+
+
+
 
 
 
@@ -5060,10 +6793,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetSeat(
             0,
             T("lobby.online.host_player", "HOST PLAYER"),
             T("lobby.online.host", "HOST"));
+
+
+
+
 
 
 
@@ -5083,10 +6824,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetSeat(
             2,
             T("lobby.online.bot", "BOT"),
             T("lobby.online.bot_seat", "BOT SEAT"));
+
+
+
+
 
 
 
@@ -5096,6 +6845,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             T("lobby.online.bot", "BOT"),
             T("lobby.online.bot_seat", "BOT SEAT"));
     }
+
+
+
+
 
 
 
@@ -5114,6 +6867,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         for (int i = 0; i < 4; i++)
         {
             SetActive(
@@ -5126,10 +6883,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             if (i >= maxPlayers)
             {
                 continue;
             }
+
+
+
+
 
 
 
@@ -5141,6 +6906,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                             candidate != null &&
                             candidate.SlotIndex == i)
                     : null;
+
+
+
+
 
 
 
@@ -5162,6 +6931,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             switch (member.SeatMode)
             {
                 case AtlasLobbySeatMode.HostLocal:
@@ -5172,6 +6945,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                             : T("lobby.online.host_player", "HOST PLAYER"),
                         T("lobby.online.host_local", "HOST • LOCAL"));
                     break;
+
+
+
+
 
 
 
@@ -5191,6 +6968,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
                 case AtlasLobbySeatMode.Bot:
                     SetSeat(
                         i,
@@ -5206,6 +6987,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
                 case AtlasLobbySeatMode.RemoteHuman:
                     bool isLocal =
                         !string.IsNullOrWhiteSpace(backendLocalAccountId) &&
@@ -5213,6 +6998,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                             member.AccountId,
                             backendLocalAccountId,
                             StringComparison.Ordinal);
+
+
+
+
 
 
 
@@ -5227,10 +7016,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
                     if (isLocal)
                     {
                         name += " (YOU)";
                     }
+
+
+
+
 
 
 
@@ -5247,6 +7044,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                                 "lobby.online.not_ready",
                                 "NOT READY"));
                     break;
+
+
+
+
 
 
 
@@ -5269,6 +7070,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private static bool BackendSnapshotUiEquivalent(
         AtlasLobbySnapshot left,
         AtlasLobbySnapshot right)
@@ -5281,11 +7086,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (left == null ||
             right == null)
         {
             return false;
         }
+
+
+
+
 
 
 
@@ -5321,6 +7134,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         for (int slot = 0; slot < 4; slot++)
         {
             AtlasLobbyMemberSnapshot leftMember =
@@ -5331,10 +7148,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             AtlasLobbyMemberSnapshot rightMember =
                 FindSnapshotMemberBySlot(
                     right,
                     slot);
+
+
+
+
 
 
 
@@ -5350,8 +7175,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         return true;
     }
+
+
+
+
 
 
 
@@ -5368,11 +7201,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (left == null ||
             right == null)
         {
             return false;
         }
+
+
+
+
 
 
 
@@ -5410,6 +7251,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private static bool LobbyMemberEquivalent(
         AtlasLobbyMemberSnapshot left,
         AtlasLobbyMemberSnapshot right)
@@ -5422,11 +7267,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (left == null ||
             right == null)
         {
             return false;
         }
+
+
+
+
 
 
 
@@ -5462,6 +7315,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private static AtlasLobbyMemberSnapshot FindSnapshotMemberBySlot(
         AtlasLobbySnapshot snapshot,
         int slotIndex)
@@ -5471,6 +7328,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         {
             return null;
         }
+
+
+
+
 
 
 
@@ -5485,6 +7346,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             if (member != null &&
                 member.SlotIndex == slotIndex)
             {
@@ -5495,8 +7360,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         return null;
     }
+
+
+
+
 
 
 
@@ -5514,6 +7387,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         privateMode = true;
         roomActive = true;
         if (snapshot != null && snapshot.Settings != null &&
@@ -5526,14 +7403,20 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             AtlasBoardBoardThemeVisuals.ApplySelection(selectedBoardThemeId);
         }
 
+
         AtlasLobbySnapshot previousSnapshot = backendSnapshot;
         backendSnapshot = snapshot;
         backendLocalAccountId =
             localAccountId ?? string.Empty;
 
+
         UpdateSeatIdentityPresentationCache(
             previousSnapshot,
             snapshot);
+
+
+
+
 
 
 
@@ -5550,8 +7433,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         settingsRevision =
             Mathf.Max(1, snapshot.SettingsRevision);
+
+
+
+
 
 
 
@@ -5567,12 +7458,20 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         localIsHost =
             !string.IsNullOrWhiteSpace(backendLocalAccountId) &&
             string.Equals(
                 snapshot.HostAccountId,
                 backendLocalAccountId,
                 StringComparison.Ordinal);
+
+
+
+
 
 
 
@@ -5591,6 +7490,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         readyForRevision =
             localMember != null
                 ? localMember.ReadyForRevision
@@ -5599,9 +7502,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetActive(roomEntryOverlay, false);
         SetActive(privateOnlineRoot, true);
         SetActive(roomPanel, true);
+
+
+
+
 
 
 
@@ -5619,14 +7530,20 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetText(
             roomStateText,
             snapshot.LifecycleState ==
             AtlasRoomLifecycleState.Starting
                 ? T("lobby.online.starting", "STARTING...")
-                : T(
-                    "lobby.online.backend_connected",
-                    "BACKEND SNAPSHOT CONNECTED"));
+                : string.Empty);
+
+
+
+
 
 
 
@@ -5634,6 +7551,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         RefreshRoomHeader();
         RefreshGameSettingsAccessUi();
     }
+
+
+
+
 
 
 
@@ -5648,7 +7569,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         ResetCopyButtonText();
+
+
+
+
 
 
 
@@ -5656,6 +7585,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         if (roomActive)
         {
             RefreshRoomHeader();
+
+
+
+
 
 
 
@@ -5675,6 +7608,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private bool HasRemoteHumanInRemovedSlots(
         int requestedPlayerCount)
     {
@@ -5683,6 +7620,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         {
             return false;
         }
+
+
+
+
 
 
 
@@ -5701,6 +7642,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             if (member.SlotIndex >=
                 requestedPlayerCount)
             {
@@ -5711,8 +7656,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         return false;
     }
+
+
+
+
 
 
 
@@ -5736,11 +7689,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void ShowKickConfirmation(int slotIndex)
     {
         AtlasLobbyMemberSnapshot member =
             FindBackendMemberBySlot(
                 slotIndex);
+
+
+
+
 
 
 
@@ -5755,8 +7716,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         pendingKickSlot =
             slotIndex;
+
+
+
+
 
 
 
@@ -5768,6 +7737,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                     "lobby.online.remote_player",
                     "ONLINE PLAYER")
                 : member.DisplayName;
+
+
+
+
 
 
 
@@ -5792,6 +7765,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private async System.Threading.Tasks.Task
         KickRemotePlayerAsync(int slotIndex)
     {
@@ -5806,7 +7783,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         backendBusy = true;
+
+
+
+
 
 
 
@@ -5820,11 +7805,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (lobbySafetySecondaryButton != null)
         {
             lobbySafetySecondaryButton.interactable =
                 false;
         }
+
+
+
+
 
 
 
@@ -5838,11 +7831,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         try
         {
             AtlasLobbyOperationResult result =
                 await runtimeBridge.KickMemberAsync(
                     slotIndex);
+
+
+
+
 
 
 
@@ -5861,11 +7862,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
                 if (lobbySafetyPrimaryButton != null)
                 {
                     lobbySafetyPrimaryButton.interactable =
                         true;
                 }
+
+
+
+
 
 
 
@@ -5879,6 +7888,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
                 lobbySafetyModalMode =
                     LobbySafetyModalMode.Notice;
                 return;
@@ -5887,8 +7900,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             pendingKickSlot = -1;
             HideLobbySafetyModal();
+
+
+
+
 
 
 
@@ -5901,11 +7922,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             RefreshHostStartAvailability();
         }
         finally
         {
             backendBusy = false;
+
+
+
+
 
 
 
@@ -5921,6 +7950,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void HandleLobbyAccessLost(
         string errorLocalizationKey)
     {
@@ -5930,6 +7963,8 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         {
             return;
         }
+
+
 
 
         if (string.Equals(errorLocalizationKey,
@@ -5946,6 +7981,8 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         }
 
 
+
+
         if (!string.Equals(
                 errorLocalizationKey,
                 "lobby.error.kicked",
@@ -5957,10 +7994,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         backendBusy = false;
         hostConfigurationDirty = false;
         hostConfigurationSyncQueued = false;
         roomActive = false;
+
+
+
+
 
 
 
@@ -5982,6 +8027,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void ApplyLobbySafetyModalLayout(
         bool hasSecondaryButton)
     {
@@ -5994,6 +8043,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             lobbySafetyTitleText.rectTransform.sizeDelta =
                 new Vector2(610f, 58f);
         }
+
+
+
+
 
 
 
@@ -6011,10 +8064,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (lobbySafetyPrimaryButton != null)
         {
             RectTransform primaryRect =
                 lobbySafetyPrimaryButton.GetComponent<RectTransform>();
+
+
+
+
 
 
 
@@ -6031,10 +8092,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (lobbySafetySecondaryButton != null)
         {
             RectTransform secondaryRect =
                 lobbySafetySecondaryButton.GetComponent<RectTransform>();
+
+
+
+
 
 
 
@@ -6046,6 +8115,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             }
         }
     }
+
+
+
+
 
 
 
@@ -6063,9 +8136,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetText(
             lobbySafetyTitleText,
             title);
+
+
+
+
 
 
 
@@ -6077,9 +8158,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetText(
             lobbySafetyCountdownText,
             string.Empty);
+
+
+
+
 
 
 
@@ -6091,6 +8180,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetText(
             lobbySafetySecondaryButtonText,
             secondary);
@@ -6098,8 +8191,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         ApplyLobbySafetyModalLayout(
             !string.IsNullOrWhiteSpace(secondary));
+
+
+
+
 
 
 
@@ -6113,11 +8214,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetActive(
             lobbySafetySecondaryButton != null
                 ? lobbySafetySecondaryButton.gameObject
                 : null,
             !string.IsNullOrWhiteSpace(secondary));
+
+
+
+
 
 
 
@@ -6131,11 +8240,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (lobbySafetySecondaryButton != null)
         {
             lobbySafetySecondaryButton.interactable =
                 true;
         }
+
+
+
+
 
 
 
@@ -6147,11 +8264,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (lobbySafetyOverlay != null)
         {
             lobbySafetyOverlay.transform.SetAsLastSibling();
         }
     }
+
+
+
+
 
 
 
@@ -6167,8 +8292,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         lobbySafetyModalMode =
             LobbySafetyModalMode.None;
+
+
+
+
 
 
 
@@ -6178,10 +8311,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetActive(
             lobbySafetyOverlay,
             false);
     }
+
+
+
+
 
 
 
@@ -6197,11 +8338,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
                 if (slot >= 0)
                 {
                     _ = KickRemotePlayerAsync(slot);
                 }
                 break;
+
+
+
+
 
 
 
@@ -6214,13 +8363,25 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
                 lobbySafetyModalMode =
                     LobbySafetyModalMode.None;
 
 
 
 
+
+
+
+
                 runtimeBridge?.ClearLocalLobbyState();
+
+
+
+
 
 
 
@@ -6232,8 +8393,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
                 mainMenuController?.ShowMainMenu();
                 break;
+
+
+
+
 
 
 
@@ -6248,6 +8417,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void HandleLobbySafetySecondary()
     {
         if (lobbySafetyModalMode ==
@@ -6256,6 +8429,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             HideLobbySafetyModal();
         }
     }
+
+
+
+
 
 
 
@@ -6273,7 +8450,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         countdownActive = true;
+
+
+
+
 
 
 
@@ -6287,10 +8472,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         countdownCoroutine =
             StartCoroutine(
                 AuthoritativeStartCountdownRoutine());
     }
+
+
+
+
 
 
 
@@ -6304,9 +8497,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetActive(
             lobbySafetyOverlay,
             true);
+
+
+
+
 
 
 
@@ -6315,6 +8516,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         {
             lobbySafetyOverlay.transform.SetAsLastSibling();
         }
+
+
+
+
 
 
 
@@ -6328,11 +8533,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetText(
             lobbySafetyBodyText,
             T(
                 "lobby.online.match_starting_body",
                 "Lobby locked. Remaining open seats are filled by bots."));
+
+
+
+
 
 
 
@@ -6346,6 +8559,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetActive(
             lobbySafetySecondaryButton != null
                 ? lobbySafetySecondaryButton.gameObject
@@ -6355,8 +8572,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetHostSettingsInteractable(false);
         SetHostSeatActionUIVisible(false);
+
+
+
+
 
 
 
@@ -6369,6 +8594,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (start != null)
         {
             start.interactable = false;
@@ -6377,10 +8606,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         long countdownEndsAtEpochMs =
             backendSnapshot != null
                 ? backendSnapshot.StartCountdownEndsAtEpochMs
                 : 0L;
+
+
+
+
 
 
 
@@ -6395,7 +8632,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         int lastDisplayedSecond = -1;
+
+
+
+
 
 
 
@@ -6409,10 +8654,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             if (remainingMs <= 0L)
             {
                 break;
             }
+
+
+
+
 
 
 
@@ -6423,6 +8676,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                         remainingMs / 1000f),
                     1,
                     5);
+
+
+
+
 
 
 
@@ -6438,9 +8695,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             yield return new WaitForSecondsRealtime(
                 0.1f);
         }
+
+
+
+
 
 
 
@@ -6452,9 +8717,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetActive(
             lobbySafetyOverlay,
             false);
+
+
+
+
 
 
 
@@ -6467,7 +8740,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         PrepareLegacyControlsForOnlineMatchStart();
+
+
+
+
 
 
 
@@ -6475,6 +8756,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         AtlasBoardTurnDiceNetworkCoordinator networkCoordinator =
             GetComponent<
                 AtlasBoardTurnDiceNetworkCoordinator>();
+
+
+
+
 
 
 
@@ -6489,6 +8774,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         mainMenuController ??=
             GetComponent<
                 AtlasBoardMainMenuController>();
@@ -6496,8 +8785,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         mainMenuController?.
             StartMatchAfterPrivateBackendAuthorization();
+
+
+
+
 
 
 
@@ -6511,11 +8808,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         Debug.Log(
             "AtlasBoard Phase 5B authoritative online Start confirmed. " +
             "Host drives Turn/Dice simulation; remote clients enter follower presentation.",
             this);
     }
+
+
+
+
 
 
 
@@ -6530,8 +8835,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             countdownCoroutine = null;
         }
+
+
+
+
 
 
 
@@ -6544,10 +8857,18 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetActive(
             lobbySafetyOverlay,
             false);
     }
+
+
+
+
 
 
 
@@ -6578,7 +8899,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         ResetLobbySafetyModalState();
+
+
+
+
 
 
 
@@ -6592,8 +8921,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetActive(privateOnlineRoot, false);
         SetActive(roomPanel, false);
+
+
+
+
 
 
 
@@ -6602,6 +8939,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         {
             SetActive(roomEntryOverlay, false);
         }
+
+
+
+
 
 
 
@@ -6615,7 +8956,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetActive(legacyStartButton, true);
+
+
+
+
 
 
 
@@ -6630,12 +8979,20 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (!preserveEntry &&
             roomEntryExternalRoot == null)
         {
             RestoreRoomEntryHome();
         }
     }
+
+
+
+
 
 
 
@@ -6650,6 +9007,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         {
             return;
         }
+
+
+
+
 
 
 
@@ -6675,6 +9036,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (hostSettingsDropdowns != null)
         {
             foreach (TMP_Dropdown dropdown in hostSettingsDropdowns)
@@ -6686,6 +9051,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 }
             }
         }
+
+
+
+
 
 
 
@@ -6705,9 +9074,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         for (int i = 0; i < 4; i++)
         {
             int captured = i;
+
+
+
+
 
 
 
@@ -6718,8 +9095,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             seatLocalActions[i] =
                 () => AddLocalPlayerToSeat(captured);
+
+
+
+
 
 
 
@@ -6730,8 +9115,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             seatRemoveActions[i] =
                 () => RemoveLocalAssignmentFromSeat(captured);
+
+
+
+
 
 
 
@@ -6745,6 +9138,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             AddButton(
                 GetButtonArrayItem(
                     privateSeatLocalButtons,
@@ -6754,11 +9151,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             AddButton(
                 GetButtonArrayItem(
                     privateSeatBotButtons,
                     i),
                 seatBotActions[i]);
+
+
+
+
 
 
 
@@ -6773,8 +9178,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         AtlasBoardLocalizationManager.LanguageChanged -= RefreshLocalizedText;
         AtlasBoardLocalizationManager.LanguageChanged += RefreshLocalizedText;
+
+
+
+
 
 
 
@@ -6785,12 +9198,20 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void UnbindRuntimeEvents()
     {
         if (!eventsBound)
         {
             return;
         }
+
+
+
+
 
 
 
@@ -6816,6 +9237,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (hostSettingsDropdowns != null)
         {
             foreach (TMP_Dropdown dropdown in hostSettingsDropdowns)
@@ -6827,6 +9252,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 }
             }
         }
+
+
+
+
 
 
 
@@ -6846,6 +9275,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         for (int i = 0; i < 4; i++)
         {
             RemoveButton(
@@ -6853,6 +9286,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                     privateSeatAddButtons,
                     i),
                 seatAddActions[i]);
+
+
+
+
 
 
 
@@ -6866,11 +9303,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
             RemoveButton(
                 GetButtonArrayItem(
                     privateSeatBotButtons,
                     i),
                 seatBotActions[i]);
+
+
+
+
 
 
 
@@ -6885,8 +9330,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         eventsBound = false;
     }
+
+
+
+
 
 
 
@@ -6900,6 +9353,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetObjectsActive(
             legacyPlayerStatuses,
             !privatePresentation);
@@ -6907,9 +9364,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         SetObjectsActive(
             legacyPlayerDropdowns,
             !privatePresentation);
+
+
+
+
 
 
 
@@ -6928,6 +9393,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (privateSeatStatuses != null)
         {
             foreach (TMP_Text text in privateSeatStatuses)
@@ -6942,11 +9411,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (!privatePresentation)
         {
             SetHostSeatActionUIVisible(false);
         }
     }
+
+
+
+
 
 
 
@@ -6967,6 +9444,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (hostSettingsToggles != null)
         {
             foreach (Toggle toggle in hostSettingsToggles)
@@ -6978,6 +9459,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             }
         }
     }
+
+
+
+
 
 
 
@@ -6994,6 +9479,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         string text =
             playerCountDropdown.options[
                 Mathf.Clamp(
@@ -7001,6 +9490,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                     0,
                     playerCountDropdown.options.Count - 1)]
             .text;
+
+
+
+
 
 
 
@@ -7013,9 +9506,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private bool GetPlayerTypeIsBot(int index)
     {
         TMP_Dropdown dropdown = GetPlayerTypeDropdown(index);
+
+
+
+
 
 
 
@@ -7028,8 +9529,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         return dropdown.value == 1;
     }
+
+
+
+
 
 
 
@@ -7037,6 +9546,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
     private void SetPlayerType(int index, bool bot)
     {
         TMP_Dropdown dropdown = GetPlayerTypeDropdown(index);
+
+
+
+
 
 
 
@@ -7049,7 +9562,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         int desired = bot ? 1 : 0;
+
+
+
+
 
 
 
@@ -7064,9 +9585,17 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private void SetPlayerTypeInteractable(int index, bool value)
     {
         TMP_Dropdown dropdown = GetPlayerTypeDropdown(index);
+
+
+
+
 
 
 
@@ -7076,6 +9605,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             dropdown.interactable = value;
         }
     }
+
+
+
+
 
 
 
@@ -7093,8 +9626,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         return legacyPlayerDropdowns[index].GetComponent<TMP_Dropdown>();
     }
+
+
+
+
 
 
 
@@ -7109,7 +9650,15 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         int count = GetPlayerCount();
+
+
+
+
 
 
 
@@ -7119,6 +9668,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             SetActive(playerRows[i], i < count);
         }
     }
+
+
+
+
 
 
 
@@ -7133,11 +9686,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         foreach (GameObject row in playerRows)
         {
             SetActive(row, true);
         }
     }
+
+
+
+
 
 
 
@@ -7158,6 +9719,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (privateSeatStatuses != null &&
             index >= 0 &&
             index < privateSeatStatuses.Length &&
@@ -7167,6 +9732,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                 visible);
         }
     }
+
+
+
+
 
 
 
@@ -7183,6 +9752,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         if (privateSeatStatuses != null &&
             index >= 0 &&
             index < privateSeatStatuses.Length)
@@ -7190,6 +9763,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             SetText(privateSeatStatuses[index], status);
         }
     }
+
+
+
+
 
 
 
@@ -7204,11 +9781,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         foreach (GameObject target in objects)
         {
             SetActive(target, value);
         }
     }
+
+
+
+
 
 
 
@@ -7226,6 +9811,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private static void RemoveButton(
         Button button,
         UnityEngine.Events.UnityAction action)
@@ -7235,6 +9824,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             button.onClick.RemoveListener(action);
         }
     }
+
+
+
+
 
 
 
@@ -7251,6 +9844,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
     private static void SetText(TMP_Text target, string value)
     {
         if (target != null)
@@ -7258,6 +9855,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             target.text = value ?? string.Empty;
         }
     }
+
+
+
+
 
 
 
@@ -7272,11 +9873,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         return new string(
             value.Where(char.IsDigit)
                 .Take(6)
                 .ToArray());
     }
+
+
+
+
 
 
 
@@ -7287,6 +9896,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         params object[] args)
     {
         string value = AtlasBoardL.T(key, args);
+
+
+
+
 
 
 
@@ -7305,8 +9918,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         return value;
     }
+
+
+
+
 
 
 
@@ -7322,6 +9943,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         return false;
 #endif
     }
+
+
+
+
 
 
 
@@ -7373,11 +9998,19 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         createRoomButton = newCreateRoomButton;
         joinCodeInput = newJoinCodeInput;
         joinRoomButton = newJoinRoomButton;
         cancelEntryButton = newCancelEntryButton;
         entryStatusText = newEntryStatusText;
+
+
+
+
 
 
 
@@ -7393,8 +10026,16 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         readyButton = newReadyButton;
         readyButtonText = newReadyButtonText;
+
+
+
+
 
 
 
@@ -7404,6 +10045,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             newHostSettingsDropdowns ?? Array.Empty<TMP_Dropdown>();
         hostSettingsToggles =
             newHostSettingsToggles ?? Array.Empty<Toggle>();
+
+
+
+
 
 
 
@@ -7424,6 +10069,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
 
 
 
+
+
+
+
         privateSeatAddButtons =
             newPrivateSeatAddButtons ?? Array.Empty<Button>();
         privateSeatChoicePanels =
@@ -7435,6 +10084,10 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         privateSeatRemoveButtons =
             newPrivateSeatRemoveButtons ?? Array.Empty<Button>();
     }
+
+
+
+
 
 
 
@@ -7468,6 +10121,3 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
     }
 #endif
 }
-
-
-

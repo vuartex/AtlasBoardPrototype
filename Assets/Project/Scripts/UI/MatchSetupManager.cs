@@ -1,9 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+
 
 public enum MatchPlayerControlType
 {
@@ -11,89 +12,115 @@ public enum MatchPlayerControlType
     Bot = 1
 }
 
+
 public class MatchSetupManager : MonoBehaviour
 {
     private const int MinimumPlayerCount = 2;
+
 
     [Header("Match")]
     [SerializeField]
     private TurnManager turnManager;
 
+
     [SerializeField]
     private PropertyDevelopmentManager
         propertyDevelopmentManager;
 
+
     [SerializeField]
     private BoardGenerator boardGenerator;
+
 
     [Header("Maps")]
     [SerializeField]
     private BoardMapDefinition[] availableMaps;
 
+
     [SerializeField, Min(0)]
     private int defaultMapIndex;
+
 
     [Header("Players")]
     [SerializeField]
     private PlayerPawnMover[] players;
 
+
     [SerializeField]
     private MatchPlayerControlType[]
         defaultControlTypes;
 
+
     [SerializeField, Range(2, 4)]
     private int defaultPlayerCount = 3;
+
 
     [Header("Default Match Rules")]
     [SerializeField]
     private int defaultRoundLimit = 20;
 
+
     [SerializeField]
     private bool defaultBalancedDevelopment = true;
+
 
     [SerializeField]
     private bool defaultDoublesExtraRoll = true;
 
+
     [SerializeField]
     private bool defaultTripleDoublePenalty = true;
+
 
     [Header("Setup UI")]
     [SerializeField]
     private GameObject setupPanel;
 
+
     [SerializeField]
     private TMP_Dropdown mapDropdown;
+
 
     [SerializeField]
     private TMP_Dropdown playerCountDropdown;
 
+
     [SerializeField]
     private TMP_Dropdown roundLimitDropdown;
+
 
     [SerializeField]
     private Toggle balancedDevelopmentToggle;
 
+
     [SerializeField]
     private Toggle doublesExtraRollToggle;
+
 
     [SerializeField]
     private Toggle tripleDoublePenaltyToggle;
 
+
     [SerializeField]
     private TMP_Text[] playerNameTexts;
+
 
     [SerializeField]
     private TMP_Dropdown[]
         controlTypeDropdowns;
 
+
     [SerializeField]
     private Button startGameButton;
+
 
     [Header("Gameplay UI")]
     [SerializeField]
     private GameObject boardControlsRoot;
 
+
     private bool matchLaunchRequested;
+
 
     private void Awake()
     {
@@ -102,10 +129,12 @@ public class MatchSetupManager : MonoBehaviour
             setupPanel.SetActive(true);
         }
 
+
         if (boardControlsRoot != null)
         {
             boardControlsRoot.SetActive(false);
         }
+
 
         EnsurePremiumMapsAvailable();
         ConfigureMapDropdown();
@@ -114,12 +143,14 @@ public class MatchSetupManager : MonoBehaviour
         ConfigureControlTypeDropdowns();
         ConfigureRuleToggles();
 
+
         if (mapDropdown != null)
         {
             mapDropdown.onValueChanged
                 .AddListener(
                     HandleMapChanged);
         }
+
 
         if (playerCountDropdown != null)
         {
@@ -128,6 +159,7 @@ public class MatchSetupManager : MonoBehaviour
                     HandlePlayerCountChanged);
         }
 
+
         if (doublesExtraRollToggle != null)
         {
             doublesExtraRollToggle.onValueChanged
@@ -135,9 +167,11 @@ public class MatchSetupManager : MonoBehaviour
                     HandleDoublesRuleChanged);
         }
 
+
         ApplySelectedMapPreview();
         ApplyPlayerCountPreview();
         RefreshRuleInteractivity();
+
 
         if (startGameButton != null)
         {
@@ -146,6 +180,7 @@ public class MatchSetupManager : MonoBehaviour
                     logErrors: false);
         }
     }
+
 
     private void OnDestroy()
     {
@@ -156,12 +191,14 @@ public class MatchSetupManager : MonoBehaviour
                     HandleMapChanged);
         }
 
+
         if (playerCountDropdown != null)
         {
             playerCountDropdown.onValueChanged
                 .RemoveListener(
                     HandlePlayerCountChanged);
         }
+
 
         if (doublesExtraRollToggle != null)
         {
@@ -171,6 +208,7 @@ public class MatchSetupManager : MonoBehaviour
         }
     }
 
+
     public void StartConfiguredMatch()
     {
         if (matchLaunchRequested)
@@ -178,21 +216,27 @@ public class MatchSetupManager : MonoBehaviour
             return;
         }
 
+
         if (!ValidateSetup(
                 logErrors: true))
         {
             return;
         }
 
+
         matchLaunchRequested = true;
+
 
         ApplySelectedMapPreview();
         ApplySelectedMatchRules();
 
+
         int selectedPlayerCount =
             GetSelectedPlayerCount();
 
+
         ResetBoardEconomyForNewMatch();
+
 
         for (int index = 0;
              index < players.Length;
@@ -201,16 +245,20 @@ public class MatchSetupManager : MonoBehaviour
             PlayerPawnMover pawn =
                 players[index];
 
+
             PlayerGameState playerState =
                 pawn.GetComponent<
                     PlayerGameState>();
+
 
             BotPlayerController botController =
                 pawn.GetComponent<
                     BotPlayerController>();
 
+
             bool participating =
                 index < selectedPlayerCount;
+
 
             int matchStartingMoney =
                 boardGenerator != null &&
@@ -218,10 +266,12 @@ public class MatchSetupManager : MonoBehaviour
                     ? boardGenerator.ActiveEconomyProfile.StartingMoney
                     : playerState.StartingMoney;
 
+
             playerState.PrepareForMatch(
                 matchStartingMoney,
                 participating);
             pawn.ResetForNewMatchSession();
+
 
             if (!participating)
             {
@@ -230,10 +280,12 @@ public class MatchSetupManager : MonoBehaviour
                 continue;
             }
 
+
             bool shouldBeBot =
                 controlTypeDropdowns[index]
                     .value ==
                 (int)MatchPlayerControlType.Bot;
+
 
             if (TryResolveOnlineAuthoritativeBotState(
                     playerState,
@@ -243,11 +295,14 @@ public class MatchSetupManager : MonoBehaviour
                     authoritativeBotState;
             }
 
+
             botController.SetBotEnabled(
                 shouldBeBot);
 
+
             pawn.SetPawnVisible(true);
             pawn.SnapToCurrentTile();
+
 
             Debug.Log(
                 $"Match setup — " +
@@ -257,31 +312,38 @@ public class MatchSetupManager : MonoBehaviour
                 pawn);
         }
 
+
         if (boardControlsRoot != null)
         {
             boardControlsRoot.SetActive(true);
         }
 
+
         bool matchStarted =
             turnManager.BeginMatch();
+
 
         if (!matchStarted)
         {
             matchLaunchRequested = false;
+
 
             if (boardControlsRoot != null)
             {
                 boardControlsRoot.SetActive(false);
             }
 
+
             return;
         }
+
 
         if (setupPanel != null)
         {
             setupPanel.SetActive(false);
         }
     }
+
 
     // Phase 19AC: canonical map assets must survive Unity Editor-to-build
     // without depending on an optional scene repair menu or duplicating maps.
@@ -294,6 +356,7 @@ public class MatchSetupManager : MonoBehaviour
             Debug.LogWarning("ATB_MAP_REGISTRY status=missing resource=ATB_PremiumMapReferences", this);
             return;
         }
+
 
         List<BoardMapDefinition> maps = new List<BoardMapDefinition>();
         if (availableMaps != null)
@@ -314,6 +377,7 @@ public class MatchSetupManager : MonoBehaviour
             " germany=" + hasGermany + " mexico=" + hasMexico, this);
     }
 
+
     private void ConfigureMapDropdown()
     {
         if (mapDropdown == null)
@@ -321,10 +385,13 @@ public class MatchSetupManager : MonoBehaviour
             return;
         }
 
+
         mapDropdown.ClearOptions();
+
 
         List<string> options =
             new List<string>();
+
 
         if (availableMaps != null)
         {
@@ -338,14 +405,17 @@ public class MatchSetupManager : MonoBehaviour
             }
         }
 
+
         if (options.Count == 0)
         {
             options.Add(
                 "HARİTA YOK");
         }
 
+
         mapDropdown.AddOptions(
             options);
+
 
         int selectedIndex =
             Mathf.Clamp(
@@ -355,11 +425,14 @@ public class MatchSetupManager : MonoBehaviour
                     0,
                     options.Count - 1));
 
+
         mapDropdown.SetValueWithoutNotify(
             selectedIndex);
 
+
         mapDropdown.RefreshShownValue();
     }
+
 
     private void ConfigurePlayerCountDropdown()
     {
@@ -368,13 +441,17 @@ public class MatchSetupManager : MonoBehaviour
             return;
         }
 
+
         playerCountDropdown.ClearOptions();
+
 
         List<string> options =
             new List<string>();
 
+
         int maximumPlayerCount =
             GetMaximumPlayerCount();
+
 
         for (int count = MinimumPlayerCount;
              count <= maximumPlayerCount;
@@ -384,8 +461,10 @@ public class MatchSetupManager : MonoBehaviour
                 $"{count} OYUNCU");
         }
 
+
         playerCountDropdown.AddOptions(
             options);
+
 
         int clampedDefault =
             Mathf.Clamp(
@@ -393,13 +472,16 @@ public class MatchSetupManager : MonoBehaviour
                 MinimumPlayerCount,
                 maximumPlayerCount);
 
+
         playerCountDropdown
             .SetValueWithoutNotify(
                 clampedDefault -
                 MinimumPlayerCount);
 
+
         playerCountDropdown.RefreshShownValue();
     }
+
 
     private void ConfigureRoundLimitDropdown()
     {
@@ -407,6 +489,7 @@ public class MatchSetupManager : MonoBehaviour
         {
             return;
         }
+
 
         int[] roundOptions =
         {
@@ -416,7 +499,9 @@ public class MatchSetupManager : MonoBehaviour
             30
         };
 
+
         roundLimitDropdown.ClearOptions();
+
 
         List<string> options =
             roundOptions
@@ -425,12 +510,15 @@ public class MatchSetupManager : MonoBehaviour
                         $"{value} TUR")
                 .ToList();
 
+
         roundLimitDropdown.AddOptions(
             options);
+
 
         int selectedIndex = 0;
         int smallestDifference =
             int.MaxValue;
+
 
         for (int index = 0;
              index < roundOptions.Length;
@@ -441,23 +529,28 @@ public class MatchSetupManager : MonoBehaviour
                     roundOptions[index] -
                     defaultRoundLimit);
 
+
             if (difference <
                 smallestDifference)
             {
                 smallestDifference =
                     difference;
 
+
                 selectedIndex =
                     index;
             }
         }
 
+
         roundLimitDropdown
             .SetValueWithoutNotify(
                 selectedIndex);
 
+
         roundLimitDropdown.RefreshShownValue();
     }
+
 
     private void ConfigureRuleToggles()
     {
@@ -468,12 +561,14 @@ public class MatchSetupManager : MonoBehaviour
                     defaultBalancedDevelopment);
         }
 
+
         if (doublesExtraRollToggle != null)
         {
             doublesExtraRollToggle
                 .SetIsOnWithoutNotify(
                     defaultDoublesExtraRoll);
         }
+
 
         if (tripleDoublePenaltyToggle != null)
         {
@@ -484,12 +579,14 @@ public class MatchSetupManager : MonoBehaviour
         }
     }
 
+
     private void ConfigureControlTypeDropdowns()
     {
         if (controlTypeDropdowns == null)
         {
             return;
         }
+
 
         for (int index = 0;
              index <
@@ -499,12 +596,15 @@ public class MatchSetupManager : MonoBehaviour
             TMP_Dropdown dropdown =
                 controlTypeDropdowns[index];
 
+
             if (dropdown == null)
             {
                 continue;
             }
 
+
             dropdown.ClearOptions();
+
 
             dropdown.AddOptions(
                 new List<string>
@@ -513,23 +613,28 @@ public class MatchSetupManager : MonoBehaviour
                     "BOT"
                 });
 
+
             MatchPlayerControlType
                 defaultControlType =
                     GetDefaultControlType(
                         index);
 
+
             dropdown.SetValueWithoutNotify(
                 (int)defaultControlType);
+
 
             dropdown.RefreshShownValue();
         }
     }
+
 
     private void HandleDoublesRuleChanged(
         bool enabledValue)
     {
         RefreshRuleInteractivity();
     }
+
 
     private void RefreshRuleInteractivity()
     {
@@ -538,9 +643,11 @@ public class MatchSetupManager : MonoBehaviour
             return;
         }
 
+
         bool doublesEnabled =
             doublesExtraRollToggle == null ||
             doublesExtraRollToggle.isOn;
+
 
         if (!doublesEnabled)
         {
@@ -554,24 +661,29 @@ public class MatchSetupManager : MonoBehaviour
                     false);
         }
 
+
         tripleDoublePenaltyToggle.interactable =
             doublesEnabled;
     }
+
 
     private void ApplySelectedMatchRules()
     {
         int selectedRoundLimit =
             GetSelectedRoundLimit();
 
+
         bool balancedDevelopment =
             balancedDevelopmentToggle == null
                 ? defaultBalancedDevelopment
                 : balancedDevelopmentToggle.isOn;
 
+
         bool doublesRule =
             doublesExtraRollToggle == null
                 ? defaultDoublesExtraRoll
                 : doublesExtraRollToggle.isOn;
+
 
         bool triplePenalty =
             doublesRule &&
@@ -579,14 +691,18 @@ public class MatchSetupManager : MonoBehaviour
                 ? defaultTripleDoublePenalty
                 : tripleDoublePenaltyToggle.isOn);
 
+
         turnManager.SetRoundLimit(
             selectedRoundLimit);
+
 
         turnManager.SetDoublesExtraRollRule(
             doublesRule);
 
+
         turnManager.SetTripleDoublePenaltyRule(
             triplePenalty);
+
 
         if (propertyDevelopmentManager != null)
         {
@@ -594,6 +710,7 @@ public class MatchSetupManager : MonoBehaviour
                 .SetRequireBalancedGroupDevelopment(
                     balancedDevelopment);
         }
+
 
         Debug.Log(
             "Match rules — " +
@@ -607,6 +724,7 @@ public class MatchSetupManager : MonoBehaviour
             this);
     }
 
+
     private int GetSelectedRoundLimit()
     {
         int[] roundOptions =
@@ -617,6 +735,7 @@ public class MatchSetupManager : MonoBehaviour
             30
         };
 
+
         if (roundLimitDropdown == null)
         {
             return Mathf.Max(
@@ -624,20 +743,24 @@ public class MatchSetupManager : MonoBehaviour
                 defaultRoundLimit);
         }
 
+
         int index =
             Mathf.Clamp(
                 roundLimitDropdown.value,
                 0,
                 roundOptions.Length - 1);
 
+
         return roundOptions[index];
     }
+
 
     private void HandleMapChanged(
         int dropdownValue)
     {
         ApplySelectedMapPreview();
     }
+
 
     /// <summary>Preview the host-selected map in the existing board generator
     /// while the room is waiting. Never rebuild an active match.</summary>
@@ -655,6 +778,7 @@ public class MatchSetupManager : MonoBehaviour
         return true;
     }
 
+
     private void ApplySelectedMapPreview()
     {
         if (boardGenerator == null ||
@@ -664,11 +788,14 @@ public class MatchSetupManager : MonoBehaviour
             return;
         }
 
+
         int selectedIndex =
             GetSelectedMapIndex();
 
+
         BoardMapDefinition selectedMap =
             availableMaps[selectedIndex];
+
 
         if (selectedMap == null)
         {
@@ -676,12 +803,15 @@ public class MatchSetupManager : MonoBehaviour
                 $"Map slot {selectedIndex} is empty.",
                 this);
 
+
             return;
         }
+
 
         boardGenerator.SetActiveMapDefinition(
             selectedMap,
             applyImmediately: true);
+
 
         Debug.Log(
             $"Selected map: " +
@@ -689,6 +819,7 @@ public class MatchSetupManager : MonoBehaviour
             $"({selectedMap.MapId}).",
             this);
     }
+
 
     private int GetSelectedMapIndex()
     {
@@ -698,10 +829,12 @@ public class MatchSetupManager : MonoBehaviour
             return 0;
         }
 
+
         int selectedIndex =
             mapDropdown != null
                 ? mapDropdown.value
                 : defaultMapIndex;
+
 
         return Mathf.Clamp(
             selectedIndex,
@@ -709,16 +842,19 @@ public class MatchSetupManager : MonoBehaviour
             availableMaps.Length - 1);
     }
 
+
     private void HandlePlayerCountChanged(
         int dropdownValue)
     {
         ApplyPlayerCountPreview();
     }
 
+
     private void ApplyPlayerCountPreview()
     {
         int selectedPlayerCount =
             GetSelectedPlayerCount();
+
 
         for (int index = 0;
              index < players.Length;
@@ -727,8 +863,10 @@ public class MatchSetupManager : MonoBehaviour
             bool participating =
                 index < selectedPlayerCount;
 
+
             PlayerPawnMover pawn =
                 players[index];
+
 
             if (pawn != null)
             {
@@ -736,15 +874,18 @@ public class MatchSetupManager : MonoBehaviour
                     pawn.GetComponent<
                         PlayerGameState>();
 
+
                 if (playerState != null)
                 {
                     playerState.SetParticipating(
                         participating);
                 }
 
+
                 pawn.SetPawnVisible(
                     participating);
             }
+
 
             if (playerNameTexts != null &&
                 index < playerNameTexts.Length &&
@@ -754,6 +895,7 @@ public class MatchSetupManager : MonoBehaviour
                     .gameObject
                     .SetActive(participating);
             }
+
 
             if (controlTypeDropdowns != null &&
                 index <
@@ -768,10 +910,12 @@ public class MatchSetupManager : MonoBehaviour
         }
     }
 
+
     private int GetSelectedPlayerCount()
     {
         int maximumPlayerCount =
             GetMaximumPlayerCount();
+
 
         if (playerCountDropdown == null)
         {
@@ -781,12 +925,14 @@ public class MatchSetupManager : MonoBehaviour
                 maximumPlayerCount);
         }
 
+
         return Mathf.Clamp(
             playerCountDropdown.value +
             MinimumPlayerCount,
             MinimumPlayerCount,
             maximumPlayerCount);
     }
+
 
     private int GetMaximumPlayerCount()
     {
@@ -795,11 +941,13 @@ public class MatchSetupManager : MonoBehaviour
             return MinimumPlayerCount;
         }
 
+
         return Mathf.Clamp(
             players.Length,
             MinimumPlayerCount,
             4);
     }
+
 
     private MatchPlayerControlType
         GetDefaultControlType(
@@ -815,47 +963,57 @@ public class MatchSetupManager : MonoBehaviour
                     playerIndex];
         }
 
+
         return playerIndex == 0
             ? MatchPlayerControlType.Human
             : MatchPlayerControlType.Bot;
     }
+
 
     private bool ValidateSetup(
         bool logErrors)
     {
         bool valid = true;
 
+
         if (turnManager == null)
         {
             valid = false;
+
 
             LogSetupError(
                 "Turn Manager is not connected.",
                 logErrors);
         }
 
+
         if (propertyDevelopmentManager == null)
         {
             valid = false;
+
 
             LogSetupError(
                 "Property Development Manager is not connected.",
                 logErrors);
         }
 
+
         if (boardGenerator == null)
         {
             valid = false;
+
 
             LogSetupError(
                 "Board Generator is not connected.",
                 logErrors);
         }
 
+
         if (availableMaps == null ||
             availableMaps.Length == 0)
         {
             valid = false;
+
 
             LogSetupError(
                 "Available Maps is empty.",
@@ -871,6 +1029,7 @@ public class MatchSetupManager : MonoBehaviour
                 {
                     valid = false;
 
+
                     LogSetupError(
                         $"Available Maps element {index} is empty.",
                         logErrors);
@@ -878,66 +1037,81 @@ public class MatchSetupManager : MonoBehaviour
             }
         }
 
+
         if (mapDropdown == null)
         {
             valid = false;
+
 
             LogSetupError(
                 "Map Dropdown is not connected.",
                 logErrors);
         }
 
+
         if (roundLimitDropdown == null)
         {
             valid = false;
+
 
             LogSetupError(
                 "Round Limit Dropdown is not connected.",
                 logErrors);
         }
 
+
         if (balancedDevelopmentToggle == null)
         {
             valid = false;
+
 
             LogSetupError(
                 "Balanced Development Toggle is not connected.",
                 logErrors);
         }
 
+
         if (doublesExtraRollToggle == null)
         {
             valid = false;
+
 
             LogSetupError(
                 "Doubles Extra Roll Toggle is not connected.",
                 logErrors);
         }
 
+
         if (tripleDoublePenaltyToggle == null)
         {
             valid = false;
+
 
             LogSetupError(
                 "Triple Double Penalty Toggle is not connected.",
                 logErrors);
         }
 
+
         if (players == null ||
             players.Length < MinimumPlayerCount)
         {
             valid = false;
 
+
             LogSetupError(
                 "At least two player pawns are required.",
                 logErrors);
 
+
             return valid;
         }
+
 
         if (players.Length > 4)
         {
             valid = false;
+
 
             LogSetupError(
                 "Match Setup v2 supports a maximum " +
@@ -945,11 +1119,13 @@ public class MatchSetupManager : MonoBehaviour
                 logErrors);
         }
 
+
         if (controlTypeDropdowns == null ||
             controlTypeDropdowns.Length !=
             players.Length)
         {
             valid = false;
+
 
             LogSetupError(
                 "Control Type Dropdowns must have exactly " +
@@ -957,17 +1133,20 @@ public class MatchSetupManager : MonoBehaviour
                 logErrors);
         }
 
+
         if (playerNameTexts == null ||
             playerNameTexts.Length !=
             players.Length)
         {
             valid = false;
 
+
             LogSetupError(
                 "Player Name Texts must have exactly " +
                 "one entry for each player.",
                 logErrors);
         }
+
 
         for (int index = 0;
              index < players.Length;
@@ -976,16 +1155,20 @@ public class MatchSetupManager : MonoBehaviour
             PlayerPawnMover player =
                 players[index];
 
+
             if (player == null)
             {
                 valid = false;
+
 
                 LogSetupError(
                     $"Player {index + 1} is not connected.",
                     logErrors);
 
+
                 continue;
             }
+
 
             if (player.GetComponent<
                     PlayerGameState>() ==
@@ -993,11 +1176,13 @@ public class MatchSetupManager : MonoBehaviour
             {
                 valid = false;
 
+
                 LogSetupError(
                     $"{player.name} does not have " +
                     "PlayerGameState.",
                     logErrors);
             }
+
 
             if (player.GetComponent<
                     BotPlayerController>() ==
@@ -1005,11 +1190,13 @@ public class MatchSetupManager : MonoBehaviour
             {
                 valid = false;
 
+
                 LogSetupError(
                     $"{player.name} does not have " +
                     "BotPlayerController.",
                     logErrors);
             }
+
 
             if (controlTypeDropdowns == null ||
                 index >=
@@ -1019,11 +1206,13 @@ public class MatchSetupManager : MonoBehaviour
             {
                 valid = false;
 
+
                 LogSetupError(
                     $"Control dropdown {index + 1} " +
                     "is not connected.",
                     logErrors);
             }
+
 
             if (playerNameTexts == null ||
                 index >=
@@ -1032,6 +1221,7 @@ public class MatchSetupManager : MonoBehaviour
             {
                 valid = false;
 
+
                 LogSetupError(
                     $"Player label {index + 1} " +
                     "is not connected.",
@@ -1039,26 +1229,32 @@ public class MatchSetupManager : MonoBehaviour
             }
         }
 
+
         if (playerCountDropdown == null)
         {
             valid = false;
+
 
             LogSetupError(
                 "Player Count Dropdown is not connected.",
                 logErrors);
         }
 
+
         if (startGameButton == null)
         {
             valid = false;
+
 
             LogSetupError(
                 "Start Game Button is not connected.",
                 logErrors);
         }
 
+
         return valid;
     }
+
 
     private void LogSetupError(
         string message,
@@ -1069,6 +1265,7 @@ public class MatchSetupManager : MonoBehaviour
             return;
         }
 
+
         Debug.LogError(
             $"Match Setup: {message}",
             this);
@@ -1077,16 +1274,19 @@ public class MatchSetupManager : MonoBehaviour
     {
         matchLaunchRequested = false;
 
+
         if (boardControlsRoot != null)
         {
             boardControlsRoot.SetActive(false);
         }
+
 
         if (players != null)
         {
             foreach (PlayerPawnMover pawn in players)
             {
                 pawn?.ResetForNewMatchSession();
+
 
                 BotPlayerController bot =
                     pawn != null
@@ -1097,79 +1297,69 @@ public class MatchSetupManager : MonoBehaviour
         }
     }
 
+
     private bool TryResolveOnlineAuthoritativeBotState(
         PlayerGameState playerState,
         out bool shouldEnableLocalBot)
     {
         shouldEnableLocalBot = false;
+        if (playerState == null) return false;
 
-        if (playerState == null)
-        {
-            return false;
-        }
-
-        AtlasBoardTurnDiceNetworkCoordinator coordinator =
-            FindAnyObjectByType<
-                AtlasBoardTurnDiceNetworkCoordinator>();
-
-        if (coordinator != null &&
-            coordinator.IsPreparedOnlineMatch)
-        {
-            shouldEnableLocalBot =
-                coordinator.LocalIsHost &&
-                playerState.IsOnlineBotControlled;
-            return true;
-        }
-
+        // A new match is created from the current lobby roster. The coordinator
+        // may still retain the previous completed match's TemporaryBot state
+        // during Rematch, so Waiting/Starting lobby ownership must win here.
         AtlasBoardLobbyRuntimeBridge lobbyBridge =
-            FindAnyObjectByType<
-                AtlasBoardLobbyRuntimeBridge>();
-
+            FindAnyObjectByType<AtlasBoardLobbyRuntimeBridge>();
         AtlasLobbySnapshot snapshot =
-            lobbyBridge != null
-                ? lobbyBridge.CurrentSnapshot
-                : null;
+            lobbyBridge != null ? lobbyBridge.CurrentSnapshot : null;
 
-        if (snapshot == null ||
-            snapshot.Members == null ||
-            snapshot.Members.Count == 0)
+        if (snapshot != null && snapshot.Members != null &&
+            (snapshot.LifecycleState == AtlasRoomLifecycleState.Waiting ||
+             snapshot.LifecycleState == AtlasRoomLifecycleState.Starting))
         {
-            if (playerState.OnlineSeatStateActive)
+            bool localIsHost =
+                !string.IsNullOrWhiteSpace(lobbyBridge.CurrentAccountId) &&
+                string.Equals(snapshot.HostAccountId, lobbyBridge.CurrentAccountId,
+                    StringComparison.Ordinal);
+
+            foreach (AtlasLobbyMemberSnapshot member in snapshot.Members)
             {
-                shouldEnableLocalBot =
-                    false;
+                if (member == null || !member.Active ||
+                    member.SlotIndex != playerState.PlayerSlotIndex)
+                    continue;
+
+                bool authenticatedHuman =
+                    !string.IsNullOrWhiteSpace(member.AccountId) &&
+                    (member.SeatMode == AtlasLobbySeatMode.HostLocal ||
+                     member.SeatMode == AtlasLobbySeatMode.LocalHuman ||
+                     member.SeatMode == AtlasLobbySeatMode.RemoteHuman) &&
+                    member.ControllerKind == AtlasSeatControllerKind.Human &&
+                    member.ConnectionState == AtlasSeatConnectionState.Connected;
+
+                if (authenticatedHuman)
+                {
+                    shouldEnableLocalBot = false;
+                    return true;
+                }
+
+                bool seatIsBot =
+                    member.SeatMode == AtlasLobbySeatMode.Bot ||
+                    member.ControllerKind == AtlasSeatControllerKind.TemporaryBot ||
+                    member.ControllerKind == AtlasSeatControllerKind.PermanentBot;
+                shouldEnableLocalBot = localIsHost && seatIsBot;
                 return true;
             }
-
-            return false;
         }
 
-        bool localIsHost =
-            lobbyBridge != null &&
-            !string.IsNullOrWhiteSpace(
-                lobbyBridge.CurrentAccountId) &&
-            string.Equals(
-                snapshot.HostAccountId,
-                lobbyBridge.CurrentAccountId,
-                StringComparison.Ordinal);
-
-        foreach (AtlasLobbyMemberSnapshot member in snapshot.Members)
+        // During an already-running match, matchState/controller authority owns
+        // reconnect takeover. Use the coordinator only when no new-lobby seat
+        // can answer the question.
+        AtlasBoardTurnDiceNetworkCoordinator coordinator =
+            FindAnyObjectByType<AtlasBoardTurnDiceNetworkCoordinator>();
+        if (coordinator != null && coordinator.IsPreparedOnlineMatch)
         {
-            if (member == null ||
-                !member.Active ||
-                member.SlotIndex != playerState.PlayerSlotIndex)
-            {
-                continue;
-            }
-
-            bool seatIsBot =
-                member.SeatMode == AtlasLobbySeatMode.Bot ||
-                member.ControllerKind == AtlasSeatControllerKind.TemporaryBot ||
-                member.ControllerKind == AtlasSeatControllerKind.PermanentBot;
-
             shouldEnableLocalBot =
-                localIsHost &&
-                seatIsBot;
+                coordinator.LocalIsHost && playerState.IsOnlineBotControlled;
             return true;
         }
 
@@ -1178,14 +1368,15 @@ public class MatchSetupManager : MonoBehaviour
             shouldEnableLocalBot = false;
             return true;
         }
-
         return false;
     }
+
 
     private void ResetBoardEconomyForNewMatch()
     {
         BoardPath boardPath =
             FindAnyObjectByType<BoardPath>();
+
 
         if (boardPath != null)
         {
@@ -1199,8 +1390,10 @@ public class MatchSetupManager : MonoBehaviour
             }
         }
 
+
         propertyDevelopmentManager
             ?.ResetAllDevelopmentsForNewMatch();
     }
+
 
 }

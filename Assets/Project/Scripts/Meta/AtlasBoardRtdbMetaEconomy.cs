@@ -6,6 +6,7 @@ using Newtonsoft.Json.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
 
+
 /// <summary>
 /// Firebase RTDB meta wallet: all Auth identities get a zero wallet; only
 /// registered or administrator-approved test identities may mutate balances.
@@ -16,12 +17,17 @@ using UnityEngine.Networking;
 /// </summary>
 public static class AtlasBoardRtdbMetaEconomy
 {
+    private static readonly System.Collections.Generic.HashSet<string>
+        ConfirmedMatchGoldKeys = new System.Collections.Generic.HashSet<string>(
+            StringComparer.Ordinal);
+
     private const string Database =
         "https://atlasboard-usa-default-rtdb.europe-west1.firebasedatabase.app";
     private const long DayMs = 86400000L;
     private const int DailyGold = 50;
     private const int DevGold = 5000;
     private const int DevCoin = 500;
+
 
     private const string Halloween = "frame_halloween";
     private const string NewYear = "frame_new_year";
@@ -31,6 +37,7 @@ public static class AtlasBoardRtdbMetaEconomy
     private const string Maple = "board_ember_maple";
     private const string Aurora = "board_arctic_aurora";
 
+
     [Serializable]
     private sealed class Wallet
     {
@@ -38,6 +45,7 @@ public static class AtlasBoardRtdbMetaEconomy
         public int atlasCoin;
         public bool starterGrantClaimed;
     }
+
 
     [Serializable]
     private sealed class Frames
@@ -52,6 +60,7 @@ public static class AtlasBoardRtdbMetaEconomy
         public bool frame_sakura_blossom;
         public bool frame_cosmic_nova;
         public bool frame_forest_spirit;
+
 
         public bool IsOwned(string id)
         {
@@ -71,6 +80,7 @@ public static class AtlasBoardRtdbMetaEconomy
             }
         }
 
+
         public void SetOwned(string id, bool owned)
         {
             switch (id)
@@ -88,6 +98,7 @@ public static class AtlasBoardRtdbMetaEconomy
             }
         }
 
+
         public int RefundAmount()
         {
             return (frame_halloween ? 350 : 0) +
@@ -102,6 +113,7 @@ public static class AtlasBoardRtdbMetaEconomy
                    (frame_forest_spirit ? 475 : 0);
         }
     }
+
 
     [Serializable]
     private sealed class Boards
@@ -125,6 +137,7 @@ public static class AtlasBoardRtdbMetaEconomy
             (board_arctic_aurora ? 1700 : 0);
     }
 
+
     [Serializable]
     private sealed class Maps
     {
@@ -139,6 +152,7 @@ public static class AtlasBoardRtdbMetaEconomy
         }
         public int RefundAmount() => (map_germany ? 30000 : 0) + (map_mexico ? 25000 : 0);
     }
+
 
     // Exact, audited RTDB dice catalog; paid cosmetic state stays in the
     // existing per-UID metaEconomy ETag transaction (never a second wallet).
@@ -165,6 +179,7 @@ public static class AtlasBoardRtdbMetaEconomy
             (dice_ruby_red ? 350 : 0) + (dice_ocean_blue ? 350 : 0) +
             (dice_midnight_black ? 400 : 0) + (dice_marble ? 400 : 0);
     }
+
 
     [Serializable]
     private sealed class Pawns
@@ -215,6 +230,7 @@ public static class AtlasBoardRtdbMetaEconomy
             (vehicle_taxi ? 400 : 0) +
             (vehicle_pickup ? 425 : 0);
     }
+
 
     [Serializable]
     private sealed class Emotes
@@ -339,6 +355,7 @@ public static class AtlasBoardRtdbMetaEconomy
             (emote_swirl ? 150 : 0);
     }
 
+
     [Serializable]
     private sealed class Inventory
     {
@@ -350,11 +367,14 @@ public static class AtlasBoardRtdbMetaEconomy
         public Emotes emotes = new Emotes();
     }
 
+
     [Serializable]
     private sealed class Equipped { public string profileFrameId = ""; public string boardId = ""; public string diceId = ""; }
 
+
     [Serializable]
     private sealed class DailyReward { public long lastClaimAt; }
+
 
     [Serializable]
     private sealed class DevCounters
@@ -362,6 +382,7 @@ public static class AtlasBoardRtdbMetaEconomy
         public int grantCount;
         public int resetCount;
     }
+
 
     [Serializable]
     private sealed class Operation
@@ -371,6 +392,7 @@ public static class AtlasBoardRtdbMetaEconomy
         public string itemId = "";
         public long atMs;
     }
+
 
     [Serializable]
     private sealed class Economy
@@ -386,12 +408,16 @@ public static class AtlasBoardRtdbMetaEconomy
         public string rewardHistory = "";
     }
 
+
     private sealed class Identity
     {
         public FirebaseUser User;
         public string Uid;
         public string Token;
+        public bool IsAnonymous;
+        public bool IsRestGuest;
     }
+
 
     private sealed class Response
     {
@@ -400,12 +426,14 @@ public static class AtlasBoardRtdbMetaEconomy
         public string ETag;
     }
 
+
     private sealed class ReadState
     {
         public Economy Document;
         public string ETag;
         public JObject Raw;
     }
+
 
     public static bool IsRegistered
     {
@@ -426,6 +454,7 @@ public static class AtlasBoardRtdbMetaEconomy
         }
     }
 
+
     // Steamworks session is not proof of a verified Firebase Steam link.
     // RTDB rules, not client Steam flags, authorize every balance mutation.
     public static bool IsSteamSession
@@ -440,6 +469,7 @@ public static class AtlasBoardRtdbMetaEconomy
         }
     }
 
+
     public static string CurrentUid
     {
         get
@@ -448,7 +478,10 @@ public static class AtlasBoardRtdbMetaEconomy
             // Returning a native UID here would expose another account's
             // wallet, inventory and equipped cosmetic caches in this process.
             if (AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession)
-                return string.Empty;
+            {
+                return AtlasBoardLobbyRuntimeBridge.TryGetLiveGuestRewardIdentity(
+                    out string guestUid, out _) ? guestUid : string.Empty;
+            }
             try
             {
                 FirebaseUser user = FirebaseAuth.DefaultInstance.CurrentUser;
@@ -457,6 +490,7 @@ public static class AtlasBoardRtdbMetaEconomy
             catch { return ""; }
         }
     }
+
 
     public static int Price(string itemId)
     {
@@ -495,6 +529,7 @@ public static class AtlasBoardRtdbMetaEconomy
         }
     }
 
+
     public static async Task<AtlasBoardMetaEconomySnapshot> LoadAsync()
     {
         AtlasBoardMetaEconomySnapshot snapshot = NewSnapshot();
@@ -526,11 +561,14 @@ public static class AtlasBoardRtdbMetaEconomy
             return snapshot;
         }
 
+
         try
         {
-            if (!await AtlasBoardRtdbUserProfileMirror.SyncCurrentUserAsync(
+            if (!identity.IsRestGuest &&
+                !await AtlasBoardRtdbUserProfileMirror.SyncCurrentUserAsync(
                     "", false))
                 throw new InvalidOperationException("USER_PROFILE_NOT_READY");
+
 
             ReadState state = await ReadAsync(identity);
             if (state.Document == null)
@@ -539,16 +577,18 @@ public static class AtlasBoardRtdbMetaEconomy
                 state = await ReadAsync(identity);
             }
 
+
             if (state.Document == null)
                 throw new InvalidOperationException("WALLET_NOT_READY");
+
 
             Economy document = state.Document;
             snapshot.Success = true;
             snapshot.WalletVerified = true;
             snapshot.IsSteamAccount = IsSteamSession;
-            snapshot.IsGuest = identity.User.IsAnonymous && !snapshot.IsSteamAccount;
+            snapshot.IsGuest = identity.IsAnonymous && !snapshot.IsSteamAccount;
             snapshot.IsDeveloperTester = await IsDeveloperTesterAsync(identity);
-            bool permitted = !identity.User.IsAnonymous || snapshot.IsDeveloperTester;
+            bool permitted = !identity.IsAnonymous || snapshot.IsDeveloperTester;
             foreach (AtlasBoardStorefrontItem item in snapshot.Items)
                 item.PreviewOnly = !permitted;
             snapshot.Gold = document.wallet.gold;
@@ -592,6 +632,7 @@ public static class AtlasBoardRtdbMetaEconomy
             }
             snapshot.DailyClaimedAtMs = document.dailyReward.lastClaimAt;
 
+
             // Ordinary wallet refresh is strictly read-only. Receipts are
             // written once at the mutation commit sites below; replaying the
             // latest operation here caused unrelated 401 receipt attempts in
@@ -602,6 +643,7 @@ public static class AtlasBoardRtdbMetaEconomy
                 Debug.LogWarning("ATB_HISTORY_READ unavailable=" +
                     Sanitize(historyError.Message));
             }
+
 
             foreach (AtlasBoardStorefrontItem item in snapshot.Items)
             {
@@ -617,6 +659,7 @@ public static class AtlasBoardRtdbMetaEconomy
                         ? document.inventory.dice.IsOwned(item.ItemId)
                         : document.inventory.profile_frames.IsOwned(item.ItemId);
             }
+
 
             Debug.Log("ATB_PHASE19E_RTDB_WALLET ready=true guest=" +
                       snapshot.IsGuest + " steam=" + snapshot.IsSteamAccount +
@@ -636,15 +679,18 @@ public static class AtlasBoardRtdbMetaEconomy
         return snapshot;
     }
 
+
     public static async Task<AtlasBoardMetaEconomyOperationResult> GrantDevAsync()
     {
         return await MutateAsync("DEV_GRANT", "", false);
     }
 
+
     public static async Task<AtlasBoardMetaEconomyOperationResult> ClaimDailyAsync()
     {
         return await MutateAsync("DAILY", "", false);
     }
+
 
     private static string currentDiceUid = "";
     private static string cachedDiceId = "";
@@ -656,6 +702,7 @@ public static class AtlasBoardRtdbMetaEconomy
         private set { currentDiceUid = CurrentUid; cachedDiceId = value ?? ""; }
     }
 
+
     private static readonly System.Collections.Generic.HashSet<string> CachedOwnedMaps =
         new System.Collections.Generic.HashSet<string>(StringComparer.Ordinal);
     private static string cachedMapUid = "";
@@ -664,6 +711,7 @@ public static class AtlasBoardRtdbMetaEconomy
         !IsPremiumMap(id) || (cachedMapUid == CurrentUid && CachedOwnedMaps.Contains(id));
     public static bool IsPremiumRoomMap(string mapId) => mapId == "Germany" || mapId == "Mexico";
     public static string MapEntitlementId(string mapId) => mapId == "Germany" ? "map_germany" : mapId == "Mexico" ? "map_mexico" : "";
+
 
     private static readonly System.Collections.Generic.HashSet<string> CachedOwnedPawnIds =
         new System.Collections.Generic.HashSet<string>(StringComparer.Ordinal);
@@ -684,12 +732,15 @@ public static class AtlasBoardRtdbMetaEconomy
         (AtlasBoardEmotes.Find(id).IsFree ||
          cachedEmoteUid == CurrentUid && CachedPaidEmotes.Contains(id));
 
+
     public static bool IsDice(string id) =>
         id == "dice_ruby_red" || id == "dice_ocean_blue" ||
         id == "dice_midnight_black" || id == "dice_marble";
 
+
     public static bool IsBoard(string itemId) =>
         itemId == Midnight || itemId == Maple || itemId == Aurora;
+
 
     public static async Task<AtlasBoardMetaEconomyOperationResult> BuyAsync(
         string itemId, string paymentMethod)
@@ -699,6 +750,7 @@ public static class AtlasBoardRtdbMetaEconomy
         return await MutateAsync("PURCHASE", itemId, false);
     }
 
+
     public static async Task<AtlasBoardMetaEconomyOperationResult> EquipAsync(
         string itemId)
     {
@@ -707,12 +759,14 @@ public static class AtlasBoardRtdbMetaEconomy
         return await MutateAsync("EQUIP", itemId ?? "", false);
     }
 
+
     public static async Task<AtlasBoardMetaEconomyOperationResult> EquipBoardAsync(string itemId)
     {
         if (!string.IsNullOrEmpty(itemId) && !IsBoard(itemId))
             return Failure("meta.error.invalid_purchase");
         return await MutateAsync("EQUIP_BOARD", itemId ?? "", false);
     }
+
 
     public static async Task<AtlasBoardMetaEconomyOperationResult> EquipDiceAsync(string itemId)
     {
@@ -730,10 +784,13 @@ public static class AtlasBoardRtdbMetaEconomy
         return result;
     }
 
+
     private static string lastPublicDiceProjectionReconciledKey = "";
+
 
     [Serializable]
     private sealed class PublicDiceWire { public string diceSkinId; }
+
 
     private static async Task<bool> PublishEquippedDiceAsync(string id)
     {
@@ -744,6 +801,7 @@ public static class AtlasBoardRtdbMetaEconomy
             JsonUtility.ToJson(new PublicDiceWire { diceSkinId = id ?? "" }), null);
         return response.Status >= 200 && response.Status < 300;
     }
+
 
     // Read-only public projection: Firebase rules allow an owner to publish
     // only the server-verified equipped item; never accept an unowned client ID.
@@ -797,6 +855,7 @@ public static class AtlasBoardRtdbMetaEconomy
         catch { return ""; }
     }
 
+
     /// <summary>
     /// Applies a previously RTDB-validated, peer-attested completed match claim
     /// to the canonical ETag wallet. One immutable rewardLedger child per match
@@ -806,28 +865,60 @@ public static class AtlasBoardRtdbMetaEconomy
     public static async Task<bool> IsCareerRewardEligibleAsync()
     {
         Identity identity = await ResolveIdentityAsync();
-        return identity != null && (!identity.User.IsAnonymous ||
-            await IsDeveloperTesterAsync(identity));
+        // Anonymous Firebase Guests are real persistent UIDs in AtlasBoard.
+        // Reward authorization comes from immutable participation/attestation
+        // rules, not from the Auth provider label.
+        return identity != null;
     }
+
 
     public static async Task<bool> ClaimMatchGoldAsync(string matchId)
     {
         if (string.IsNullOrWhiteSpace(matchId) || matchId.Length > 64) return false;
         Identity identity = await ResolveIdentityAsync();
-        if (identity == null || (identity.User.IsAnonymous &&
-            !await IsDeveloperTesterAsync(identity))) return false;
+        if (identity == null)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.LogWarning("ATB_MATCH_GOLD_FLOW stage=eligibility eligible=false match=" + matchId);
+#endif
+            return false;
+        }
+
+        string confirmationKey = identity.Uid + "|" + matchId;
+        if (ConfirmedMatchGoldKeys.Contains(confirmationKey))
+            return true;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Debug.Log("ATB_MATCH_GOLD_FLOW stage=start match=" + matchId +
+            " uid=" + ShortUid(identity.Uid));
+#endif
         try
         {
             Response proof = await RequestAsync(identity, "GET",
                 "/careerClaims/" + UnityWebRequest.EscapeURL(identity.Uid) + "/" +
                 UnityWebRequest.EscapeURL(matchId) + ".json", null, null);
             if (proof.Status != 200 || string.IsNullOrEmpty(proof.Body) ||
-                proof.Body.Trim() == "null") return false;
+                proof.Body.Trim() == "null")
+            {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.LogWarning("ATB_MATCH_GOLD_FLOW stage=claim_read ready=false http=" +
+                    proof.Status + " match=" + matchId);
+#endif
+                return false;
+            }
+
             JObject claim = JObject.Parse(proof.Body);
             int award = (int?)claim["goldAwarded"] ?? 0;
             if ((string)claim["matchId"] != matchId ||
-                (string)claim["uid"] != identity.Uid || award < 1 || award > 120)
+                (string)claim["uid"] != identity.Uid || award < 1 || award > 50)
+            {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.LogWarning("ATB_MATCH_GOLD_FLOW stage=claim_validate valid=false award=" +
+                    award + " match=" + matchId);
+#endif
                 return false;
+            }
+
             for (int attempt = 0; attempt < 5; attempt++)
             {
                 if (CurrentUid != identity.Uid) return false;
@@ -837,10 +928,17 @@ public static class AtlasBoardRtdbMetaEconomy
                     await InitializeAsync(identity, state.ETag);
                     continue;
                 }
+
                 string ledger = state.Document.rewardHistory ?? string.Empty;
                 string marker = "|" + matchId + "|";
-                if (ledger.Contains(marker)) return true; // already applied
+                if (ledger.Contains(marker))
+                {
+                    ConfirmedMatchGoldKeys.Add(confirmationKey);
+                    return true;
+                }
+
                 Economy doc = state.Document;
+                int beforeGold = doc.wallet.gold;
                 if (doc.wallet.gold > 10000000 - award) return false;
                 doc.wallet.gold += award;
                 long now = Now();
@@ -854,27 +952,53 @@ public static class AtlasBoardRtdbMetaEconomy
                 doc.rewardHistory = ledger + marker;
                 JObject body = JObject.Parse(JsonUtility.ToJson(doc));
                 if (CurrentUid != identity.Uid) return false;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                Debug.Log("ATB_MATCH_GOLD_FLOW stage=wallet_put attempt=" +
+                    (attempt + 1) + " before=" + beforeGold + " award=" + award +
+                    " after=" + doc.wallet.gold + " match=" + matchId);
+#endif
                 Response saved = await RequestAsync(identity, "PUT", EconomyPath(identity.Uid),
                     body.ToString(Newtonsoft.Json.Formatting.None), state.ETag);
-                if (saved.Status == 412) continue;
+                if (saved.Status == 412)
+                {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                    Debug.LogWarning("ATB_MATCH_GOLD_FLOW stage=etag_retry attempt=" +
+                        (attempt + 1) + " match=" + matchId);
+#endif
+                    continue;
+                }
                 if (saved.Status < 200 || saved.Status >= 300)
                     throw new InvalidOperationException("MATCH_REWARD_HTTP_" + saved.Status);
+
                 await TryWriteReceiptAsync(identity, doc.operation);
-                Debug.Log("ATB_CAREER_GOLD status=credited amount=" + award);
+                ConfirmedMatchGoldKeys.Add(confirmationKey);
+                Debug.Log("ATB_CAREER_GOLD status=credited amount=" + award +
+                    " before=" + beforeGold + " after=" + doc.wallet.gold +
+                    " match=" + matchId);
                 return true;
             }
         }
         catch (Exception e)
         {
-            Debug.LogWarning("ATB_CAREER_GOLD pending=" + e.GetType().Name);
+            Debug.LogWarning("ATB_CAREER_GOLD pending=" + e.GetType().Name +
+                " detail=" + e.Message + " match=" + matchId);
         }
         return false;
     }
+
+    private static string ShortUid(string uid)
+    {
+        if (string.IsNullOrWhiteSpace(uid)) return "-";
+        return uid.Substring(0, Mathf.Min(7, uid.Length));
+    }
+
 
     public static async Task<AtlasBoardMetaEconomyOperationResult> ResetDevAsync()
     {
         return await MutateAsync("RESET_PURCHASES", "", true);
     }
+
 
     private static async Task<AtlasBoardMetaEconomyOperationResult> MutateAsync(
         string kind, string itemId, bool clearPublicFrame)
@@ -882,17 +1006,20 @@ public static class AtlasBoardRtdbMetaEconomy
         Identity identity = await ResolveIdentityAsync();
         if (identity == null) return Failure("meta.error.registered_only");
 
+
         try
         {
             if (!await AtlasBoardRtdbUserProfileMirror.SyncCurrentUserAsync("", false))
                 return Failure("meta.error.identity_unavailable");
 
+
             // The UID allowlist is ADMIN managed. This exception supports
             // the owner-approved anonymous Steam test identity only.
-            if ((identity.User.IsAnonymous || kind == "DEV_GRANT" ||
+            if ((identity.IsAnonymous || kind == "DEV_GRANT" ||
                  kind == "RESET_PURCHASES") &&
                 !await IsDeveloperTesterAsync(identity))
                 return Failure("meta.error.dev_not_allowed");
+
 
             for (int attempt = 0; attempt < 5; attempt++)
             {
@@ -903,10 +1030,12 @@ public static class AtlasBoardRtdbMetaEconomy
                     continue;
                 }
 
+
                 Economy doc = state.Document;
                 long now = Now();
                 if (doc.operation != null && doc.operation.atMs >= now)
                     now = doc.operation.atMs + 1;
+
 
                 bool alreadyClaimed = false;
                 switch (kind)
@@ -984,6 +1113,7 @@ public static class AtlasBoardRtdbMetaEconomy
                     default: return Failure("meta.error.invalid_purchase");
                 }
 
+
                 if (alreadyClaimed)
                 {
                     return new AtlasBoardMetaEconomyOperationResult
@@ -994,6 +1124,7 @@ public static class AtlasBoardRtdbMetaEconomy
                     };
                 }
 
+
                 doc.operation = new Operation
                 {
                     id = Guid.NewGuid().ToString("N"),
@@ -1001,6 +1132,7 @@ public static class AtlasBoardRtdbMetaEconomy
                     itemId = itemId,
                     atMs = now
                 };
+
 
                 // Old economy operations must keep the append-only rewardHistory
                 // string byte-for-byte (enforced again by RTDB Rules).
@@ -1011,12 +1143,14 @@ public static class AtlasBoardRtdbMetaEconomy
                 if (written.Status < 200 || written.Status >= 300)
                     throw new InvalidOperationException("RTDB_HTTP_" + written.Status);
 
+
                 if (clearPublicFrame)
                 {
                     CurrentEquippedDiceId = "";
                     await ClearPublicFrameBestEffortAsync();
                     await PublishEquippedDiceAsync("");
                 }
+
 
                 if (kind == "PURCHASE" && IsPremiumMap(itemId))
                 {
@@ -1042,12 +1176,14 @@ public static class AtlasBoardRtdbMetaEconomy
                     CachedPaidEmotes.Clear();
                 }
 
+
                 // Ledger is a second, immutable receipt write validated against
                 // this operation in Firebase rules. It does NOT award items,
                 // restore Gold, or claim atomicity with the wallet commit.
                 if (kind == "PURCHASE" || kind == "DAILY" ||
                     kind == "DEV_GRANT" || kind == "RESET_PURCHASES")
                     await TryWriteReceiptAsync(identity, doc.operation);
+
 
                 Debug.Log("ATB_PHASE19C_RTDB_OP type=" + kind +
                           " result=success uid=" + Short(identity.Uid));
@@ -1069,6 +1205,7 @@ public static class AtlasBoardRtdbMetaEconomy
         }
     }
 
+
     private static async Task ClearPublicFrameBestEffortAsync()
     {
         try
@@ -1086,6 +1223,7 @@ public static class AtlasBoardRtdbMetaEconomy
                              Sanitize(exception.Message));
         }
     }
+
 
     private static AtlasBoardMetaEconomySnapshot NewSnapshot()
     {
@@ -1113,13 +1251,29 @@ public static class AtlasBoardRtdbMetaEconomy
         return result;
     }
 
+
     private static async Task<Identity> ResolveIdentityAsync()
     {
-        // Live No-Steam Guest uses an independently authenticated REST session
-        // in AtlasBoardLobbyRuntimeBridge, not the native Firebase SDK. Fail
-        // closed for ALL paid inventory, Gold and wallet mutations.
+        // The standalone two-client Guest owns a persistent anonymous Firebase
+        // UID through the lobby REST Auth flow. Reuse that exact identity for
+        // the SAME canonical wallet; never fall back to the Editor/native UID.
         if (AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession)
+        {
+            if (AtlasBoardLobbyRuntimeBridge.TryGetLiveGuestRewardIdentity(
+                    out string guestUid, out string guestToken))
+            {
+                return new Identity
+                {
+                    User = null,
+                    Uid = guestUid,
+                    Token = guestToken,
+                    IsAnonymous = true,
+                    IsRestGuest = true
+                };
+            }
             return null;
+        }
+
         try
         {
             FirebaseUser user = FirebaseAuth.DefaultInstance.CurrentUser;
@@ -1128,10 +1282,18 @@ public static class AtlasBoardRtdbMetaEconomy
 
             string token = await user.TokenAsync(false);
             if (string.IsNullOrWhiteSpace(token)) return null;
-            return new Identity { User = user, Uid = user.UserId, Token = token };
+            return new Identity
+            {
+                User = user,
+                Uid = user.UserId,
+                Token = token,
+                IsAnonymous = user.IsAnonymous,
+                IsRestGuest = false
+            };
         }
         catch { return null; }
     }
+
 
     private static async Task<bool> IsDeveloperTesterAsync(Identity identity)
     {
@@ -1145,6 +1307,7 @@ public static class AtlasBoardRtdbMetaEconomy
         }
         catch { return false; }
     }
+
 
     private static async Task<ReadState> ReadAsync(Identity identity)
     {
@@ -1182,6 +1345,7 @@ public static class AtlasBoardRtdbMetaEconomy
         };
     }
 
+
     private static async Task InitializeAsync(Identity identity, string etag)
     {
         Economy initial = new Economy();
@@ -1198,6 +1362,7 @@ public static class AtlasBoardRtdbMetaEconomy
             (response.Status < 200 || response.Status >= 300))
             throw new InvalidOperationException("INIT_HTTP_" + response.Status);
     }
+
 
     private static async Task<Response> RequestAsync(
         Identity identity, string method, string path, string body,
@@ -1220,12 +1385,14 @@ public static class AtlasBoardRtdbMetaEconomy
             if (fetchEtag)
                 request.SetRequestHeader("X-Firebase-ETag", "true");
 
+
             await AtlasBoardAppCheckRequestSecurity.ApplyAsync(request);
             TaskCompletionSource<bool> done = new TaskCompletionSource<bool>();
             UnityWebRequestAsyncOperation op = request.SendWebRequest();
             if (op.isDone) done.TrySetResult(true);
             else op.completed += _ => done.TrySetResult(true);
             await done.Task;
+
 
             return new Response
             {
@@ -1237,6 +1404,7 @@ public static class AtlasBoardRtdbMetaEconomy
         }
     }
 
+
     [Serializable]
     private sealed class HistoryReceipt
     {
@@ -1246,10 +1414,12 @@ public static class AtlasBoardRtdbMetaEconomy
         public long atMs;
     }
 
+
     private static string HistoryPath(string uid)
     {
         return "/users/" + UnityWebRequest.EscapeURL(uid) + "/metaHistory";
     }
+
 
     private static async Task TryWriteReceiptAsync(Identity identity, Operation operation)
     {
@@ -1277,6 +1447,7 @@ public static class AtlasBoardRtdbMetaEconomy
                 e.GetType().Name + " (wallet remains committed)");
         }
     }
+
 
     private static async Task ReadHistoryAsync(
         Identity identity, AtlasBoardMetaEconomySnapshot snapshot)
@@ -1313,7 +1484,7 @@ public static class AtlasBoardRtdbMetaEconomy
         {
             var receipt = items[i];
             int amount = receipt.type == "MATCH_REWARD" ?
-                Mathf.Clamp((int?)matchClaimsForHistory?[receipt.itemId]?["goldAwarded"] ?? 0, 0, 120) :
+                Mathf.Clamp((int?)matchClaimsForHistory?[receipt.itemId]?["goldAwarded"] ?? 0, 0, 50) :
                 receipt.type == "PURCHASE" ? -Price(receipt.itemId) :
                 receipt.type == "DAILY" ? DailyGold :
                 receipt.type == "DEV_GRANT" ? DevGold : 0;
@@ -1333,13 +1504,16 @@ public static class AtlasBoardRtdbMetaEconomy
         Debug.Log("ATB_HISTORY_READ source=RTDB receipts=" + items.Count);
     }
 
+
     private static string EconomyPath(string uid)
     {
         return "/users/" + UnityWebRequest.EscapeURL(uid) +
                "/metaEconomy.json";
     }
 
+
     private static long Now() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
 
     private static AtlasBoardMetaEconomyOperationResult Failure(
         string key, string detail = "")
@@ -1350,11 +1524,13 @@ public static class AtlasBoardRtdbMetaEconomy
         };
     }
 
+
     private static string Short(string uid)
     {
         return string.IsNullOrEmpty(uid) ? "unknown" :
             uid.Substring(0, Math.Min(6, uid.Length));
     }
+
 
     private static string Sanitize(string input)
     {

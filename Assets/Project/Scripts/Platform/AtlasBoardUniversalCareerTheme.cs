@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+
 /// <summary>
 /// Shared Career / Account presentation for ALL platforms.
 /// Steam identity authentication is provider-specific; positioning, color,
@@ -50,9 +51,16 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
     private static readonly FieldInfo LobbyRoomActiveField =
         typeof(AtlasBoardPrivateLobbyUIController).GetField("roomActive",
             BindingFlags.Instance | BindingFlags.NonPublic);
+    private static readonly FieldInfo LobbySnapshotField =
+        typeof(AtlasBoardPrivateLobbyUIController).GetField("backendSnapshot",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+    private static readonly FieldInfo LobbyLocalAccountIdField =
+        typeof(AtlasBoardPrivateLobbyUIController).GetField("backendLocalAccountId",
+            BindingFlags.Instance | BindingFlags.NonPublic);
     private static readonly FieldInfo MatchHudNameField =
         typeof(PlayerHudPanel).GetField("playerNameText",
             BindingFlags.Instance | BindingFlags.NonPublic);
+
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Bootstrap()
@@ -62,6 +70,7 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         DontDestroyOnLoad(host);
         host.AddComponent<AtlasBoardUniversalCareerTheme>();
     }
+
 
     private void Awake()
     {
@@ -73,10 +82,12 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         instance = this;
     }
 
+
     private void OnDestroy()
     {
         if (instance == this) instance = null;
     }
+
 
     private void Update()
     {
@@ -100,6 +111,7 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         }
     }
 
+
     private void LateUpdate()
     {
         // Rebuilds can occur after our normal Update. Keep navigation complete
@@ -114,11 +126,13 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         // Our child-only display does not mutate their authoritative identity data.
     }
 
+
     private static string L(string en, string tr, string es, string fr,
         string de, string ko, string ru)
     {
         return AtlasBoardL.R(en, tr, es, fr, de, ko, ru);
     }
+
 
     private static T FindScene<T>(string objectName) where T : Component
     {
@@ -132,6 +146,7 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         return null;
     }
 
+
     private static Transform Descendant(Transform root, string name)
     {
         if (root == null) return null;
@@ -144,11 +159,13 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         return null;
     }
 
+
     private static TMP_Text GetText(Transform root, string name)
     {
         Transform item = Descendant(root, name);
         return item != null ? item.GetComponent<TMP_Text>() : null;
     }
+
 
     private void ResolveProfileSource()
     {
@@ -158,6 +175,7 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         menuProfileCoin = source != null ? GetText(source, "ProfileGold") : null;
         menuAvatarInitial = source != null ? GetText(source, "AvatarInitial") : null;
     }
+
 
     private static void EnsureStableProfileNames()
     {
@@ -191,6 +209,7 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         }
     }
 
+
     private static string WithoutLevelSuffix(string name)
     {
         if (string.IsNullOrEmpty(name)) return name;
@@ -202,6 +221,7 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
             ? name.Substring(0, index)
             : name;
     }
+
 
     private void ApplyCommonCareerColor()
     {
@@ -227,6 +247,7 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
             glyphText.color = Violet;
     }
 
+
     private static RectTransform MakePanel(Transform parent, string name,
         Vector2 position, Vector2 size, Color color)
     {
@@ -243,6 +264,7 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         image.raycastTarget = false;
         return rect;
     }
+
 
     private static TMP_Text MakeText(Transform parent, string name,
         Vector2 position, Vector2 size, float sizePt, FontStyles fontStyle,
@@ -269,6 +291,7 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         return text;
     }
 
+
     private void EnsureCareerProfileHud()
     {
         RectTransform career = FindScene<RectTransform>("AtlasCareer");
@@ -278,6 +301,7 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
             hudName = hudGold = hudCoin = hudInitial = null;
             return;
         }
+
 
         if (careerProfileHud == null || !careerProfileHud.IsChildOf(career))
         {
@@ -340,6 +364,7 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         CopyHudTexts();
     }
 
+
     private static void AdjustHudText(TMP_Text text, Vector2 position,
         Vector2 dimensions, float fontSize)
     {
@@ -349,6 +374,7 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         rect.sizeDelta = dimensions;
         if (!Mathf.Approximately(text.fontSize, fontSize)) text.fontSize = fontSize;
     }
+
 
     private void CopyHudTexts()
     {
@@ -368,40 +394,88 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
             SetIfChanged(hudInitial, menuAvatarInitial != null ? menuAvatarInitial.text : "G");
     }
 
+
     // Provider-bound display aliases. We deliberately never modify PlayerGameState,
     // FirebaseAuth, RTDB, lobby snapshots, local save data or platform authority.
-    // Only a locally controlled HOST seat gets this overlay. A remotely-owned
-    // P1 must keep the authoritative remote player's name on this client.
+    // Host authority is not a slot number: the Steam alias may attach only to the
+    // exact authoritative local Host row resolved from UID + snapshot + slot.
+    private int ResolveAuthoritativeSteamHostLobbySlot()
+    {
+        if (steamLobby == null || PrivateSeatNamesField == null ||
+            LocalIsHostField == null || LobbyRoomActiveField == null ||
+            LobbySnapshotField == null || LobbyLocalAccountIdField == null ||
+            !(LocalIsHostField.GetValue(steamLobby) is bool isHost) || !isHost ||
+            !(LobbyRoomActiveField.GetValue(steamLobby) is bool roomActive) ||
+            !roomActive)
+            return -1;
+
+        AtlasLobbySnapshot snapshot =
+            LobbySnapshotField.GetValue(steamLobby) as AtlasLobbySnapshot;
+        string localAccountId =
+            LobbyLocalAccountIdField.GetValue(steamLobby) as string;
+        if (snapshot == null || snapshot.Members == null ||
+            string.IsNullOrWhiteSpace(localAccountId) ||
+            !string.Equals(snapshot.HostAccountId, localAccountId,
+                StringComparison.Ordinal))
+            return -1;
+
+        int hostSlot = -1;
+        foreach (AtlasLobbyMemberSnapshot member in snapshot.Members)
+        {
+            if (member == null || !member.Active || member.SlotIndex < 0 ||
+                !string.Equals(member.AccountId, localAccountId,
+                    StringComparison.Ordinal) ||
+                (member.SeatMode != AtlasLobbySeatMode.HostLocal && !member.IsHost))
+                continue;
+
+            // Ambiguous Host projection is not a license to guess a slot.
+            if (hostSlot >= 0 && hostSlot != member.SlotIndex)
+                return -1;
+            hostSlot = member.SlotIndex;
+        }
+        return hostSlot;
+    }
+
+
     private void ResolveSteamLocalSurfaces()
     {
         if (string.IsNullOrEmpty(AtlasBoardStableProfileNameView.ResolvedSteamPersona()))
             return;
         if (Time.unscaledTime < nextSteamAliasResolveAt)
             return;
-        nextSteamAliasResolveAt = Time.unscaledTime + 2f;
+        nextSteamAliasResolveAt = Time.unscaledTime + 0.5f;
 
         if (steamLobby == null)
         {
             steamHostSeatLabel = null;
-            steamLobby = UnityEngine.Object.FindAnyObjectByType<AtlasBoardPrivateLobbyUIController>(FindObjectsInactive.Include);
+            steamLobby = UnityEngine.Object.FindAnyObjectByType<
+                AtlasBoardPrivateLobbyUIController>(FindObjectsInactive.Include);
         }
-        if (steamLobby != null && PrivateSeatNamesField != null &&
-            LocalIsHostField != null && LobbyRoomActiveField != null &&
-            LocalIsHostField.GetValue(steamLobby) is bool isHost && isHost &&
-            LobbyRoomActiveField.GetValue(steamLobby) is bool roomActive && roomActive)
+
+        TMP_Text targetSeat = null;
+        int hostSlot = ResolveAuthoritativeSteamHostLobbySlot();
+        if (hostSlot >= 0 && PrivateSeatNamesField != null)
         {
-            TMP_Text[] seatNames = PrivateSeatNamesField.GetValue(steamLobby) as TMP_Text[];
-            TMP_Text firstSeat = seatNames != null && seatNames.Length > 0 ? seatNames[0] : null;
-            if (firstSeat != null && firstSeat != steamHostSeatLabel)
-            {
-                steamHostSeatLabel = firstSeat;
-                AtlasBoardStableProfileNameView guard =
-                    firstSeat.GetComponent<AtlasBoardStableProfileNameView>();
-                if (guard == null)
-                    guard = firstSeat.gameObject.AddComponent<AtlasBoardStableProfileNameView>();
-                guard.ConfigureAliasSurface(
-                    AtlasBoardStableProfileNameView.AliasSurface.LocalHostLobbySeat);
-            }
+            TMP_Text[] seatNames =
+                PrivateSeatNamesField.GetValue(steamLobby) as TMP_Text[];
+            if (seatNames != null && hostSlot < seatNames.Length)
+                targetSeat = seatNames[hostSlot];
+        }
+
+        if (targetSeat != null && targetSeat != steamHostSeatLabel)
+        {
+            steamHostSeatLabel = targetSeat;
+            AtlasBoardStableProfileNameView guard =
+                targetSeat.GetComponent<AtlasBoardStableProfileNameView>();
+            if (guard == null)
+                guard = targetSeat.gameObject.AddComponent<
+                    AtlasBoardStableProfileNameView>();
+            guard.ConfigureAliasSurface(
+                AtlasBoardStableProfileNameView.AliasSurface.LocalHostLobbySeat);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            Debug.Log(
+                "ATB_STEAM_LOBBY_ALIAS authoritative=true host_slot=" + hostSlot);
+#endif
         }
 
         if (MatchHudNameField == null) return;
@@ -409,13 +483,15 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         {
             steamHostHud = null;
             steamHostMatchLabel = null;
-            PlayerHudPanel[] panels = UnityEngine.Object.FindObjectsByType<PlayerHudPanel>(FindObjectsInactive.Include);
+            PlayerHudPanel[] panels = UnityEngine.Object.FindObjectsByType<
+                PlayerHudPanel>(FindObjectsInactive.Include);
             foreach (PlayerHudPanel panel in panels)
             {
                 PlayerGameState player = panel != null ? panel.Player : null;
                 if (player == null || player.PlayerSlotIndex != 0 ||
                     !player.IsParticipating || player.IsOnlineBotControlled) continue;
-                // When an online seat mirror exists, don't relabel a remote host.
+                // Online seats are authoritative and must never be relabeled
+                // from the historical local-slot-0 shortcut.
                 if (player.OnlineSeatStateActive) continue;
                 steamHostHud = panel;
                 steamHostMatchLabel = MatchHudNameField.GetValue(panel) as TMP_Text;
@@ -426,16 +502,19 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
             steamHostMatchLabel.GetComponent<AtlasBoardStableProfileNameView>() == null)
         {
             AtlasBoardStableProfileNameView guard =
-                steamHostMatchLabel.gameObject.AddComponent<AtlasBoardStableProfileNameView>();
+                steamHostMatchLabel.gameObject.AddComponent<
+                    AtlasBoardStableProfileNameView>();
             guard.ConfigureAliasSurface(
                 AtlasBoardStableProfileNameView.AliasSurface.LocalHostMatchHud);
         }
     }
 
+
     private static void SetIfChanged(TMP_Text label, string value)
     {
         if (label != null && label.text != value) label.text = value;
     }
+
 
     private void FixAccountHeaderAndFooter()
     {
@@ -468,6 +547,7 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         if (status.fontSizeMax != 19f) status.fontSizeMax = 19f;
     }
 
+
     private void EnsureSharedAccountTabs()
     {
         if (cachedContextButton == null)
@@ -485,14 +565,17 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
             if (hidden.blocksRaycasts) hidden.blocksRaycasts = false;
         }
 
+
         if (settingsAccountTab != null && careerAccountTab != null &&
             !settingsAccountTab.gameObject.activeInHierarchy &&
             !careerAccountTab.gameObject.activeInHierarchy)
             return;
 
+
         EnsureSettingsAccountTab(original);
         EnsureCareerAccountTab(original);
     }
+
 
     private void EnsureSettingsAccountTab(Button original)
     {
@@ -561,6 +644,7 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
             if (target.color != idleColor) target.color = idleColor;
         }
     }
+
 
     private void EnsureCareerAccountTab(Button original)
     {
@@ -632,6 +716,7 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
             image.color = new Color32(28, 157, 211, 255);
     }
 
+
     private static void DisableClonedLocalization(GameObject root)
     {
         // Do not let a cloned Controls/Achievements localization binding
@@ -642,6 +727,7 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         foreach (AtlasBoardLocalizedText binding in bindings)
             if (binding != null) binding.enabled = false;
     }
+
 
     private void OpenSharedAccount()
     {
@@ -654,11 +740,13 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         if (source != null) source.onClick.Invoke();
     }
 
+
     private static bool IsSteamSelected()
     {
         AtlasBoardPlatformRuntime provider = AtlasBoardPlatformRuntime.Instance;
         return provider != null && provider.IsSteamProviderActive;
     }
+
 
     private void BindSteamProviderRoutes()
     {
@@ -692,6 +780,7 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         steamCardClickGuard.transform.SetAsLastSibling();
     }
 
+
     private void OpenSteamCareer()
     {
         AtlasBoardProgressionUI progression =
@@ -709,6 +798,7 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         }
     }
 
+
     private static void RemoveLegacyCareerFootnote()
     {
         RectTransform career = FindScene<RectTransform>("AtlasCareer");
@@ -720,6 +810,7 @@ public sealed class AtlasBoardUniversalCareerTheme : MonoBehaviour
         Transform oldRtdb = content.Find("RtdbCareerDataNotice");
         if (oldRtdb != null) Destroy(oldRtdb.gameObject);
     }
+
 
     private void ShowSteamAccountNotice()
     {

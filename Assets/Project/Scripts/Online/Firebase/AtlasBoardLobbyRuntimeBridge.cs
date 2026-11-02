@@ -11,6 +11,8 @@ using UnityEngine;
 using UnityEngine.Networking;
 
 
+
+
 public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
 {
     private const string ProjectId = "atlasboard-usa";
@@ -25,16 +27,24 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     private const int FunctionsEmulatorPort = 5001;
 
 
+
+
     private const string LocalEmulatorCommandLineSwitch =
         "-atlasLocalEmulators";
+
+
 
 
     private const string DevelopmentNameCommandLineSwitch =
         "-atlasDevName";
 
 
+
+
     private const string EmulatorHostCommandLineSwitch =
         "-atlasEmulatorHost";
+
+
 
 
 #if UNITY_EDITOR
@@ -48,24 +58,34 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
 #endif
 
 
+
+
     [SerializeField, Min(0.25f)]
     private float snapshotPollSeconds = 1f;
+
+
 
 
     [SerializeField, Min(2f)]
     private float hostHeartbeatSeconds = 5f;
 
 
+
+
     [SerializeField]
     private string developmentDisplayName = "Unity Editor Player";
+
+
 
 
     // The Windows QA Guest must retain the SAME Firebase anonymous principal
     // between app restarts. The refresh token is protected by current-user
     // Windows DPAPI; never log it or put it in PlayerPrefs / RTDB.
     private const string LiveGuestCredentialsFile = "live_spark_guest_v1.dpapi";
+    private const string DatabaseRoot =
+        "https://atlasboard-usa-default-rtdb.europe-west1.firebasedatabase.app";
     private const string GuestNameClaimsUrl =
-        "https://atlasboard-usa-default-rtdb.europe-west1.firebasedatabase.app/guestNameClaims/";
+        DatabaseRoot + "/guestNameClaims/";
     private string liveGuestRefreshToken = string.Empty;
     private string idToken = string.Empty;
     private string currentAccountId = string.Empty;
@@ -83,16 +103,55 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     private bool pawnCosmeticSyncInFlight;
 
 
+
+
     public event Action<AtlasLobbySnapshot> SnapshotChanged;
     public event Action<string> LobbyAccessLost;
+
+
 
 
     public string CurrentAccountId => currentAccountId;
     public string CurrentLobbyId => currentLobbyId;
 
 
+
+
     internal string AuthTokenForOnlineSubsystems =>
         idToken;
+
+
+    // The Windows two-client Guest authenticates through the REST Auth flow
+    // rather than FirebaseAuth.DefaultInstance. Career/meta-economy code must
+    // still bind rewards to this exact persistent Firebase UID + token.
+    internal static bool TryGetLiveGuestRewardIdentity(
+        out string uid,
+        out string token)
+    {
+        uid = string.Empty;
+        token = string.Empty;
+        if (!AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession)
+            return false;
+
+        AtlasBoardLobbyRuntimeBridge[] bridges =
+            Resources.FindObjectsOfTypeAll<AtlasBoardLobbyRuntimeBridge>();
+        foreach (AtlasBoardLobbyRuntimeBridge bridge in bridges)
+        {
+            if (bridge == null || !bridge.gameObject.scene.IsValid() ||
+                !bridge.initialized ||
+                string.IsNullOrWhiteSpace(bridge.currentAccountId) ||
+                string.IsNullOrWhiteSpace(bridge.idToken))
+                continue;
+
+            uid = bridge.currentAccountId;
+            token = bridge.idToken;
+            return true;
+        }
+
+        return false;
+    }
+
+
 
 
     public async Task<bool> EnsureOnlineIdentityAsync()
@@ -101,8 +160,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             await EnsureIdentityAsync();
 
 
+
+
         return result.Success;
     }
+
+
 
 
     public async Task<bool> RebindIdentityFromFirebaseAuthAsync()
@@ -116,10 +179,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         try
         {
             DependencyStatus dependencyStatus =
                 await FirebaseApp.CheckAndFixDependenciesAsync();
+
+
 
 
             if (dependencyStatus != DependencyStatus.Available)
@@ -128,10 +195,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             }
 
 
+
+
             FirebaseAuth auth = FirebaseAuth.DefaultInstance;
             FirebaseUser user = auth != null
                 ? auth.CurrentUser
                 : null;
+
+
 
 
             if (user == null ||
@@ -141,7 +212,11 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             }
 
 
+
+
             string token = await user.TokenAsync(false);
+
+
 
 
             if (string.IsNullOrWhiteSpace(token))
@@ -150,9 +225,13 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             }
 
 
+
+
             idToken = token;
             currentAccountId = user.UserId;
             initialized = true;
+
+
 
 
             return true;
@@ -166,9 +245,13 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     public AtlasLobbySnapshot CurrentSnapshot => currentSnapshot;
 
 
+
+
     public bool HasLobby =>
         !string.IsNullOrWhiteSpace(currentLobbyId) &&
         currentSnapshot != null;
+
+
 
 
     public bool UsingLocalEmulators
@@ -197,12 +280,17 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     public string EmulatorHostForOnlineSubsystems =>
         ResolveEmulatorHost();
 
 
+
+
     private bool ownedRoomSweepInFlight;
     private string lastOwnedRoomSweepUid = string.Empty;
+
 
     private async void Start()
     {
@@ -223,6 +311,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             await Task.Delay(500);
         }
     }
+
 
     private async Task SweepOwnedRoomsOnceAsync(int maxDeletes)
     {
@@ -250,12 +339,15 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         finally { ownedRoomSweepInFlight = false; }
     }
 
+
     private async void Update()
     {
         if (!HasLobby)
         {
             return;
         }
+
+
 
 
         if (!hostHeartbeatInFlight &&
@@ -267,8 +359,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 Mathf.Max(UsingLocalEmulators ? 2f : 60f, hostHeartbeatSeconds);
 
 
+
+
             _ = SendHostHeartbeatAsync();
         }
+
+
 
 
         if (pollInFlight ||
@@ -278,18 +374,26 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         nextPollAt =
             Time.unscaledTime +
             Mathf.Max(UsingLocalEmulators ? 0.25f : 3f, snapshotPollSeconds);
 
 
+
+
         pollInFlight = true;
+
+
 
 
         try
         {
             AtlasLobbyOperationResult result =
                 await GetSnapshotAsync();
+
+
 
 
             if (result.Success &&
@@ -333,6 +437,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     private bool IsCurrentLocalHost()
     {
         return currentSnapshot != null &&
@@ -345,6 +451,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     private async Task SendHostHeartbeatAsync()
     {
         if (hostHeartbeatInFlight ||
@@ -355,7 +463,11 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         hostHeartbeatInFlight = true;
+
+
 
 
         try
@@ -374,11 +486,15 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     public async Task<AtlasLobbyOperationResult> CreatePublicRoomAsync(
         AtlasBoardLobbySelection selection)
     {
         AtlasLobbyOperationResult init =
             await EnsureIdentityAsync();
+
+
 
 
         if (!init.Success)
@@ -387,14 +503,20 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         LobbyCreateRequest request =
             BuildCreateRequest(selection);
+
+
 
 
         AtlasLobbyOperationResult result =
             await CallLobbyFunctionAsync(
                 "lobbyCreatePublicRoom",
                 request);
+
+
 
 
         if (result.Success &&
@@ -404,8 +526,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 result.Snapshot.LobbyId;
 
 
+
+
             currentRoomCode =
                 result.RoomCode ?? string.Empty;
+
+
 
 
             joinIdempotencyKey = string.Empty;
@@ -413,8 +539,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         return result;
     }
+
+
 
 
     public async Task<AtlasPublicLobbyListResult>
@@ -432,6 +562,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
 #endif
 
 
+
+
         if (!init.Success)
         {
             return AtlasPublicLobbyListResult.Fail(
@@ -440,9 +572,13 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         if (!UsingLocalEmulators)
             return await AtlasBoardRtdbCasualLobbyTransport.PublicRoomsAsync(
                 idToken, Mathf.Clamp(limit, 1, 50));
+
+
 
 
         PublicLobbyListRequest request =
@@ -459,8 +595,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             };
 
 
+
+
         string functionName =
             "lobbyListPublicRooms";
+
+
 
 
         string url =
@@ -470,12 +610,18 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 : $"https://{Region}-{ProjectId}.cloudfunctions.net/{functionName}";
 
 
+
+
         string dataJson =
             JsonUtility.ToJson(request);
 
 
+
+
         string callableJson =
             "{\"data\":" + dataJson + "}";
+
+
 
 
         using UnityWebRequest webRequest =
@@ -484,13 +630,19 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 UnityWebRequest.kHttpVerbPOST);
 
 
+
+
         webRequest.uploadHandler =
             new UploadHandlerRaw(
                 Encoding.UTF8.GetBytes(callableJson));
 
 
+
+
         webRequest.downloadHandler =
             new DownloadHandlerBuffer();
+
+
 
 
         webRequest.SetRequestHeader(
@@ -498,12 +650,18 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             "application/json");
 
 
+
+
         webRequest.SetRequestHeader(
             "Authorization",
             $"Bearer {idToken}");
 
 
+
+
         webRequest.timeout = 20;
+
+
 
 
         await AtlasBoardAppCheckRequestSecurity.ApplyAsync(
@@ -517,10 +675,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
 #endif
 
 
+
+
         string body =
             webRequest.downloadHandler != null
                 ? webRequest.downloadHandler.text
                 : string.Empty;
+
+
 
 
         if (webRequest.result !=
@@ -528,6 +690,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         {
             CallableErrorEnvelope error =
                 SafeFromJson<CallableErrorEnvelope>(body);
+
+
 
 
             string errorKey =
@@ -540,6 +704,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                     : "lobby.error.unknown";
 
 
+
+
             string technical =
                 error != null &&
                 error.error != null &&
@@ -549,15 +715,21 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                     : $"HTTP {webRequest.responseCode}: {webRequest.error}";
 
 
+
+
             return AtlasPublicLobbyListResult.Fail(
                 errorKey,
                 technical);
         }
 
 
+
+
         CallablePublicLobbyListEnvelope envelope =
             SafeFromJson<CallablePublicLobbyListEnvelope>(
                 body);
+
+
 
 
         if (envelope == null ||
@@ -571,8 +743,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         List<AtlasPublicLobbyCard> cards =
             new List<AtlasPublicLobbyCard>();
+
+
 
 
         if (envelope.result.rooms != null)
@@ -586,6 +762,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 {
                     continue;
                 }
+
+
 
 
                 cards.Add(
@@ -628,9 +806,13 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         return AtlasPublicLobbyListResult.Ok(
             cards);
     }
+
+
 
 
     public Task<AtlasLobbyOperationResult> CloseOwnedWaitingRoomsOnConsentAsync()
@@ -641,11 +823,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             new LobbySnapshotRequest { lobbyId = currentLobbyId });
     }
 
+
     public async Task<AtlasLobbyOperationResult> CreatePrivateRoomAsync(
         AtlasBoardLobbySelection selection)
     {
         AtlasLobbyOperationResult init =
             await EnsureIdentityAsync();
+
+
 
 
         if (!init.Success)
@@ -654,14 +839,20 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         LobbyCreateRequest request =
             BuildCreateRequest(selection);
+
+
 
 
         AtlasLobbyOperationResult result =
             await CallLobbyFunctionAsync(
                 "lobbyCreatePrivateRoom",
                 request);
+
+
 
 
         if (result.Success &&
@@ -671,8 +862,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 result.Snapshot.LobbyId;
 
 
+
+
             currentRoomCode =
                 result.RoomCode ?? string.Empty;
+
+
 
 
             joinIdempotencyKey = string.Empty;
@@ -680,8 +875,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         return result;
     }
+
+
 
 
     public async Task<AtlasLobbyOperationResult> JoinByCodeAsync(
@@ -692,10 +891,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             await EnsureIdentityAsync();
 
 
+
+
         if (!init.Success)
         {
             return init;
         }
+
+
 
 
         if (string.IsNullOrWhiteSpace(joinIdempotencyKey))
@@ -703,6 +906,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             joinIdempotencyKey =
                 $"unity_join_{Guid.NewGuid():N}";
         }
+
+
 
 
         LobbyJoinRequest request =
@@ -719,10 +924,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             };
 
 
+
+
         AtlasLobbyOperationResult result =
             await CallLobbyFunctionAsync(
                 "lobbyJoinByCode",
                 request);
+
+
 
 
         if (result.Success &&
@@ -732,16 +941,24 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 result.Snapshot.LobbyId;
 
 
+
+
             currentRoomCode =
                 roomCode ?? string.Empty;
+
+
 
 
             AcceptSnapshot(result.Snapshot);
         }
 
 
+
+
         return result;
     }
+
+
 
 
     public async Task<AtlasLobbyOperationResult> JoinPublicRoomAsync(
@@ -753,10 +970,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         if (!init.Success) return init;
 
 
+
+
         if (string.IsNullOrWhiteSpace(joinIdempotencyKey))
         {
             joinIdempotencyKey = $"unity_public_join_{Guid.NewGuid():N}";
         }
+
+
 
 
         LobbyPublicJoinRequest request =
@@ -773,10 +994,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             };
 
 
+
+
         AtlasLobbyOperationResult result =
             await CallLobbyFunctionAsync(
                 "lobbyJoinPublicRoom",
                 request);
+
+
 
 
         if (result.Success && result.Snapshot != null)
@@ -790,8 +1015,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         return result;
     }
+
+
 
 
     public async Task<AtlasLobbyOperationResult> UpdateLobbyPasswordAsync(
@@ -805,6 +1034,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         LobbyPasswordRequest request =
             new LobbyPasswordRequest
             {
@@ -814,10 +1045,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             };
 
 
+
+
         AtlasLobbyOperationResult result =
             await CallLobbyFunctionAsync(
                 "lobbyUpdatePassword",
                 request);
+
+
 
 
         if (result.Success && result.Snapshot != null)
@@ -826,8 +1061,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         return result;
     }
+
+
 
 
     public async Task<AtlasLobbyOperationResult> CloseLobbyAsync()
@@ -838,11 +1077,15 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         LobbyCloseRequest request =
             new LobbyCloseRequest
             {
                 lobbyId = currentLobbyId
             };
+
+
 
 
         AtlasLobbyOperationResult result =
@@ -851,14 +1094,20 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 request);
 
 
+
+
         if (result.Success)
         {
             ClearLocalLobbyState();
         }
 
 
+
+
         return result;
     }
+
+
 
 
     public async Task<AtlasLobbyOperationResult> SyncHostConfigurationAsync(
@@ -874,8 +1123,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         AtlasLobbySnapshot snapshot =
             currentSnapshot;
+
+
 
 
         bool rulesChanged =
@@ -896,8 +1149,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             snapshot.Settings.TripleDoublePenaltyEnabled != selection.TripleDoublePenaltyEnabled;
 
 
+
+
         AtlasLobbyOperationResult latest =
             AtlasLobbyOperationResult.Ok(snapshot);
+
+
 
 
         if (rulesChanged)
@@ -917,10 +1174,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 };
 
 
+
+
             latest =
                 await CallLobbyFunctionAsync(
                     "lobbyUpdateSettings",
                     settingsRequest);
+
+
 
 
             if (!latest.Success ||
@@ -930,9 +1191,13 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             }
 
 
+
+
             AcceptSnapshot(latest.Snapshot);
             snapshot = latest.Snapshot;
         }
+
+
 
 
         bool seatPolicyChanged =
@@ -941,6 +1206,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             !SeatPoliciesMatchSnapshot(
                 seatPolicies,
                 snapshot);
+
+
 
 
         if (seatPolicyChanged)
@@ -955,10 +1222,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 };
 
 
+
+
             latest =
                 await CallLobbyFunctionAsync(
                     "lobbyConfigureSeats",
                     seatRequest);
+
+
 
 
             if (!latest.Success ||
@@ -968,12 +1239,18 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             }
 
 
+
+
             AcceptSnapshot(latest.Snapshot);
         }
 
 
+
+
         return latest;
     }
+
+
 
 
     public async Task<AtlasLobbyOperationResult> SetPawnCosmeticAsync(
@@ -989,10 +1266,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         string normalized =
             pawnCosmeticId != null
                 ? pawnCosmeticId.Trim()
                 : string.Empty;
+
+
 
 
         if (slotIndex < 0 ||
@@ -1005,6 +1286,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         LobbyPawnCosmeticRequest request =
             new LobbyPawnCosmeticRequest
             {
@@ -1014,10 +1297,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             };
 
 
+
+
         AtlasLobbyOperationResult result =
             await CallLobbyFunctionAsync(
                 "lobbySetPawnCosmetic",
                 request);
+
+
 
 
         if (result.Success &&
@@ -1027,8 +1314,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         return result;
     }
+
+
 
 
     public async Task<AtlasLobbyOperationResult> SetReadyAsync(
@@ -1043,6 +1334,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         LobbyReadyRequest request =
             new LobbyReadyRequest
             {
@@ -1053,10 +1346,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             };
 
 
+
+
         AtlasLobbyOperationResult result =
             await CallLobbyFunctionAsync(
                 "lobbySetReady",
                 request);
+
+
 
 
         if (result.Success &&
@@ -1066,8 +1363,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         return result;
     }
+
+
 
 
     public async Task<AtlasLobbyOperationResult> LeaveLobbyAsync()
@@ -1080,6 +1381,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         LobbyLeaveRequest request =
             new LobbyLeaveRequest
             {
@@ -1087,10 +1390,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             };
 
 
+
+
         AtlasLobbyOperationResult result =
             await CallLobbyFunctionAsync(
                 "lobbyLeaveRoom",
                 request);
+
+
 
 
         if (result.Success)
@@ -1102,8 +1409,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         return result;
     }
+
+
 
 
     public async Task<AtlasLobbyOperationResult> KickMemberAsync(
@@ -1118,6 +1429,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         LobbyKickRequest request =
             new LobbyKickRequest
             {
@@ -1128,10 +1441,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             };
 
 
+
+
         AtlasLobbyOperationResult result =
             await CallLobbyFunctionAsync(
                 "lobbyKickMember",
                 request);
+
+
 
 
         if (result.Success &&
@@ -1141,8 +1458,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         return result;
     }
+
+
 
 
     public async Task<AtlasLobbyOperationResult> StartMatchAsync()
@@ -1154,6 +1475,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 "lobby.error.not_joinable",
                 "No active lobby snapshot is available.");
         }
+
+
 
 
         // The RTDB rematch transition is asynchronous. The room may be
@@ -1169,10 +1492,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             };
 
 
+
+
         AtlasLobbyOperationResult result =
             await CallLobbyFunctionAsync(
                 "lobbyStartMatch",
                 request);
+
+
 
 
         if (!result.Success &&
@@ -1200,6 +1527,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                     originalSnapshot.Members, latest.Members);
 
 
+
+
             if (sameConfiguration &&
                 latest.SettingsRevision !=
                     originalSnapshot.SettingsRevision)
@@ -1225,6 +1554,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         if (result.Success && result.Snapshot != null)
         {
             AcceptSnapshot(result.Snapshot);
@@ -1234,6 +1565,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
         return result;
     }
+
+
 
 
     // Compare player-selected game rules, not derived counts such as BotCount
@@ -1252,6 +1585,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             before.TripleDoublePenaltyEnabled ==
                 after.TripleDoublePenaltyEnabled;
     }
+
+
 
 
     // Remote/local human ownership is never silently altered by auto-retry.
@@ -1289,6 +1624,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     public async Task<AtlasLobbyOperationResult> GetSnapshotAsync()
     {
         if (!HasLobby)
@@ -1299,6 +1636,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         LobbySnapshotRequest request =
             new LobbySnapshotRequest
             {
@@ -1306,10 +1645,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             };
 
 
+
+
         AtlasLobbyOperationResult result =
             await CallLobbyFunctionAsync(
                 "lobbyGetSnapshot",
                 request);
+
+
 
 
         // A read must also advance the bridge's authoritative local cache.
@@ -1325,6 +1668,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     public void ClearLocalLobbyState()
     {
         currentLobbyId = string.Empty;
@@ -1336,6 +1681,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         nextHostHeartbeatAt = 0f;
         pawnCosmeticSyncInFlight = false;
     }
+
+
 
 
     private async Task<AtlasLobbyOperationResult> EnsureIdentityAsync()
@@ -1380,12 +1727,16 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         if (initializing)
         {
             while (initializing)
             {
                 await Task.Yield();
             }
+
+
 
 
             return initialized
@@ -1396,7 +1747,11 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         initializing = true;
+
+
 
 
         try
@@ -1408,8 +1763,11 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             if (AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession)
                 return await EnsureLiveGuestQaIdentityAsync();
 
+
             AtlasBoardAccountService accountService =
                 AtlasBoardAccountService.Instance;
+
+
 
 
             if (accountService == null)
@@ -1420,7 +1778,11 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             }
 
 
+
+
             await accountService.EnsureInitializedAsync();
+
+
 
 
             // Distinguish an absent email/Steam Firebase session from an
@@ -1471,6 +1833,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             }
 
 
+
+
             if (!accountService.IsSignedIn)
             {
                 return AtlasLobbyOperationResult.Fail(
@@ -1486,18 +1850,26 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             }
 
 
+
+
             idToken =
                 await accountService.GetCurrentIdTokenAsync(false);
+
+
 
 
             currentAccountId =
                 accountService.CurrentAccountId;
 
 
+
+
             initialized =
                 !string.IsNullOrWhiteSpace(idToken) &&
                 !string.IsNullOrWhiteSpace(currentAccountId);
             if (initialized) nextIdentityRefreshAt = Time.unscaledTime + 1200f;
+
+
 
 
             return initialized
@@ -1519,6 +1891,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     // Development-only Windows Guest: reuse one anonymous Firebase UID across
     // restarts. Never use FirebaseAuth native SDK in the stripped Guest build.
     // No new principal is created when an existing secure session cannot be
@@ -1535,6 +1909,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                     "Guest account could not be restored. Your guest name is reserved; do not create a new account automatically.");
             }
 
+
             currentAccountId = uid;
             liveGuestRefreshToken = refresh;
             // Reauthenticate before using this identity or binding the name.
@@ -1542,16 +1917,20 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             if (!refreshed.Success)
                 return refreshed;
 
+
             AtlasLobbyOperationResult existingClaim = await EnsureLiveGuestNameClaimAsync();
             if (!existingClaim.Success)
                 return existingClaim;
 
+            bool restoredRewardProfileReady = await EnsureLiveGuestCanonicalProfileAsync();
             initialized = true;
             AtlasBoardGuestIdentity.BindLiveAuthenticatedUid(currentAccountId);
             Debug.Log("ATB_LIVE_GUEST_QA auth=ready provider=anonymous identity=reused " +
-                      "local_credentials=dpapi guest_name_claim=verified rewards=false");
+                      "local_credentials=dpapi guest_name_claim=verified rewards_ready=" +
+                      restoredRewardProfileReady.ToString().ToLowerInvariant());
             return AtlasLobbyOperationResult.Ok(null);
         }
+
 
         if (!CanStoreLiveGuestCredentials())
         {
@@ -1559,6 +1938,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             return AtlasLobbyOperationResult.Fail("account.error.service_unavailable",
                 "Secure Windows Guest session storage is not available.");
         }
+
 
         string endpoint =
             "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=" +
@@ -1579,6 +1959,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 "Live Guest QA could not obtain anonymous Firebase Auth.");
         }
 
+
         idToken = auth.Value.idToken;
         currentAccountId = auth.Value.localId;
         liveGuestRefreshToken = auth.Value.refreshToken;
@@ -1592,17 +1973,21 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 "Guest account cannot be saved securely. Please check Windows user profile permissions.");
         }
 
+
         AtlasLobbyOperationResult claim = await EnsureLiveGuestNameClaimAsync();
         if (!claim.Success)
             return claim; // Retain secure credentials so the SAME UID can retry.
 
+        bool rewardProfileReady = await EnsureLiveGuestCanonicalProfileAsync();
         initialized = true;
         nextIdentityRefreshAt = Time.unscaledTime + 2700f;
         AtlasBoardGuestIdentity.BindLiveAuthenticatedUid(currentAccountId);
         Debug.Log("ATB_LIVE_GUEST_QA auth=ready provider=anonymous identity=created " +
-                  "local_credentials=dpapi guest_name_claim=verified rewards=false");
+                  "local_credentials=dpapi guest_name_claim=verified rewards_ready=" +
+                  rewardProfileReady.ToString().ToLowerInvariant());
         return AtlasLobbyOperationResult.Ok(null);
     }
+
 
     private async Task<AtlasLobbyOperationResult> EnsureLiveGuestNameClaimAsync()
     {
@@ -1665,6 +2050,150 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         return AtlasLobbyOperationResult.Ok(null);
     }
 
+
+
+    [Serializable]
+    private sealed class LiveGuestGeneralProfile
+    {
+        public int schemaVersion = 1;
+        public string accountType = "guest";
+        public string language = "en";
+        public string countryCode = "ZZ";
+        public long lastSeenAt;
+    }
+
+    [Serializable]
+    private sealed class LiveGuestUserProfile
+    {
+        public string userId;
+        public string playerId;
+        public string email;
+        public string displayName;
+        public long createdAt;
+        public long updatedAt;
+        public long lastDisplayNameChangeAt;
+        public LiveGuestGeneralProfile general;
+    }
+
+    private static string BuildLiveGuestPlayerId(string uid)
+    {
+        using (SHA256 sha = SHA256.Create())
+        {
+            byte[] bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(uid ?? string.Empty));
+            StringBuilder builder = new StringBuilder("ATB-");
+            for (int i = 0; i < 10 && i < bytes.Length; i++)
+                builder.Append(bytes[i].ToString("X2"));
+            return builder.ToString();
+        }
+    }
+
+    // Keep the REST-only QA Guest on the SAME canonical /users/{uid} schema as
+    // every other Firebase identity. Without this parent profile, RTDB correctly
+    // rejects metaEconomy INIT/MATCH_REWARD child writes.
+    private async Task<bool> EnsureLiveGuestCanonicalProfileAsync()
+    {
+        if (string.IsNullOrWhiteSpace(currentAccountId) ||
+            string.IsNullOrWhiteSpace(idToken))
+            return false;
+
+        string encodedUid = UnityWebRequest.EscapeURL(currentAccountId);
+        string url = DatabaseRoot + "/users/" + encodedUid + ".json?auth=" +
+            UnityWebRequest.EscapeURL(idToken);
+        long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        LiveGuestUserProfile existing = null;
+
+        try
+        {
+            using (UnityWebRequest read = UnityWebRequest.Get(url))
+            {
+                read.timeout = 15;
+                await AtlasBoardAppCheckRequestSecurity.ApplyAsync(read);
+                await SendRequestAsync(read);
+                if (read.result == UnityWebRequest.Result.Success &&
+                    read.responseCode == 200 && read.downloadHandler != null &&
+                    !string.IsNullOrWhiteSpace(read.downloadHandler.text) &&
+                    read.downloadHandler.text.Trim() != "null")
+                {
+                    try
+                    {
+                        existing = JsonUtility.FromJson<LiveGuestUserProfile>(
+                            read.downloadHandler.text);
+                    }
+                    catch { existing = null; }
+                }
+            }
+
+            string displayName = AtlasBoardGuestIdentity.NameForAuthenticatedUid(
+                currentAccountId);
+            if (string.IsNullOrWhiteSpace(displayName))
+                displayName = AtlasBoardGuestIdentity.DisplayName;
+            if (displayName.Length > 32)
+                displayName = displayName.Substring(0, 32);
+
+            string language = AtlasBoardLocalizationManager.Instance != null
+                ? AtlasBoardLocalizationManager.Instance.CurrentLanguageCode
+                : "en";
+            if (language != "en" && language != "tr" && language != "es" &&
+                language != "fr" && language != "de" && language != "ko" &&
+                language != "ru")
+                language = "en";
+
+            long createdAt = existing != null && existing.createdAt > 0
+                ? existing.createdAt : now;
+            long lastNameChange = existing != null && existing.lastDisplayNameChangeAt > 0
+                ? existing.lastDisplayNameChangeAt : createdAt;
+            string playerId = existing != null &&
+                !string.IsNullOrWhiteSpace(existing.playerId)
+                    ? existing.playerId
+                    : BuildLiveGuestPlayerId(currentAccountId);
+
+            LiveGuestUserProfile profile = new LiveGuestUserProfile
+            {
+                userId = currentAccountId,
+                playerId = playerId,
+                email = string.Empty,
+                displayName = displayName,
+                createdAt = createdAt,
+                updatedAt = now,
+                lastDisplayNameChangeAt = lastNameChange,
+                general = new LiveGuestGeneralProfile
+                {
+                    schemaVersion = 1,
+                    accountType = "guest",
+                    language = language,
+                    countryCode = "ZZ",
+                    lastSeenAt = now
+                }
+            };
+
+            using (UnityWebRequest write = new UnityWebRequest(url, "PATCH"))
+            {
+                write.uploadHandler = new UploadHandlerRaw(
+                    Encoding.UTF8.GetBytes(JsonUtility.ToJson(profile)));
+                write.downloadHandler = new DownloadHandlerBuffer();
+                write.SetRequestHeader("Content-Type", "application/json");
+                write.timeout = 15;
+                await AtlasBoardAppCheckRequestSecurity.ApplyAsync(write);
+                await SendRequestAsync(write);
+                bool ok = write.result == UnityWebRequest.Result.Success &&
+                    write.responseCode >= 200 && write.responseCode < 300;
+                Debug.Log("ATB_LIVE_GUEST_PROFILE ready=" +
+                    ok.ToString().ToLowerInvariant() +
+                    " uid=" + currentAccountId.Substring(0,
+                        Mathf.Min(7, currentAccountId.Length)) +
+                    " wallet_parent_schema=canonical");
+                return ok;
+            }
+        }
+        catch (Exception exception)
+        {
+            Debug.LogWarning("ATB_LIVE_GUEST_PROFILE ready=false type=" +
+                exception.GetType().Name);
+            return false;
+        }
+    }
+
+
     private async Task<AtlasLobbyOperationResult> RefreshLiveGuestQaIdentityAsync()
     {
         if (string.IsNullOrWhiteSpace(liveGuestRefreshToken))
@@ -1710,6 +2239,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
     }
 
+
     [Serializable]
     private sealed class GuestNameClaim
     {
@@ -1718,13 +2248,16 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         public long createdAt;
     }
 
+
     private static string LiveGuestCredentialsPath() =>
         Path.Combine(Application.persistentDataPath, LiveGuestCredentialsFile);
+
 
     private static bool CanStoreLiveGuestCredentials()
     {
         return TryProtectGuestCredentials(Encoding.UTF8.GetBytes("probe"), out _);
     }
+
 
     private static bool TryLoadLiveGuestCredentials(out string uid, out string refresh)
     {
@@ -1747,6 +2280,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             return false;
         }
     }
+
 
     private static bool TrySaveLiveGuestCredentials(string uid, string refresh)
     {
@@ -1775,10 +2309,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
     }
 
+
     // Windows DPAPI protects credentials for the currently signed-in Windows
     // user. No plaintext token or secret is stored in Unity PlayerPrefs.
     [StructLayout(LayoutKind.Sequential)]
     private struct DpapiBlob { public int Length; public IntPtr Data; }
+
 
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
     [DllImport("crypt32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
@@ -1793,10 +2329,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     private static extern IntPtr LocalFree(IntPtr handle);
 #endif
 
+
     private static bool TryProtectGuestCredentials(byte[] raw, out byte[] protectedData) =>
         TransformGuestCredentials(raw, true, out protectedData);
     private static bool TryUnprotectGuestCredentials(byte[] raw, out byte[] plain) =>
         TransformGuestCredentials(raw, false, out plain);
+
 
     private static bool TransformGuestCredentials(byte[] raw, bool protect, out byte[] result)
     {
@@ -1834,6 +2372,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
 #endif
     }
 
+
     private async Task TryDeleteNewAnonymousUserAsync(string token)
     {
         if (string.IsNullOrWhiteSpace(token)) return;
@@ -1859,14 +2398,19 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
     }
 
+
     private async Task<AtlasLobbyOperationResult> EnsureLocalEmulatorIdentityAsync()
     {
         AtlasBoardPlatformRuntime platformRuntime =
             AtlasBoardPlatformRuntime.Instance;
 
 
+
+
         AtlasBoardSteamAccountLinkBridge steamLinkBridge =
             AtlasBoardSteamAccountLinkBridge.Instance;
+
+
 
 
         if (platformRuntime != null &&
@@ -1878,6 +2422,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             AtlasBoardSteamReturningSignInResult steamResult =
                 await steamLinkBridge
                     .AutomaticReturningSignInCurrentSteamAsync();
+
+
 
 
             if (steamResult != null &&
@@ -1893,9 +2439,13 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                     this);
 
 
+
+
                 return AtlasLobbyOperationResult.Ok(null);
             }
         }
+
+
 
 
         /*
@@ -1912,12 +2462,18 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 ResolveDevelopmentDisplayName());
 
 
+
+
         string devEmail =
             $"atlasboard.dev.{devIdentityKey}@example.com";
 
 
+
+
         string devPassword =
             $"AtlasBoardDev!{devIdentityKey}";
+
+
 
 
         AuthSignupRequest authRequest =
@@ -1929,9 +2485,13 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             };
 
 
+
+
         string apiKey =
             UnityWebRequest.EscapeURL(
                 FirebaseWebApiKey);
+
+
 
 
         string signInUrl =
@@ -1940,11 +2500,15 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             apiKey;
 
 
+
+
         HttpJsonResult<AuthSignupResponse> auth =
             await SendJsonAsync<AuthSignupRequest, AuthSignupResponse>(
                 signInUrl,
                 authRequest,
                 string.Empty);
+
+
 
 
         if (!auth.Success ||
@@ -1958,12 +2522,16 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 apiKey;
 
 
+
+
             auth =
                 await SendJsonAsync<AuthSignupRequest, AuthSignupResponse>(
                     signupUrl,
                     authRequest,
                     string.Empty);
         }
+
+
 
 
         if (!auth.Success ||
@@ -1978,8 +2546,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         idToken = auth.Value.idToken;
         currentAccountId = auth.Value.localId;
+
+
 
 
         DevBootstrapRequest bootstrap =
@@ -1990,11 +2562,15 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             };
 
 
+
+
         AtlasLobbyOperationResult bootstrapResult =
             await CallLobbyFunctionAsync(
                 "lobbyDevEnsureAccount",
                 bootstrap,
                 skipEnsureIdentity: true);
+
+
 
 
         if (!bootstrapResult.Success)
@@ -2005,7 +2581,11 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         initialized = true;
+
+
 
 
         Debug.Log(
@@ -2018,8 +2598,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             this);
 
 
+
+
         return AtlasLobbyOperationResult.Ok(null);
     }
+
+
 
 
     private LobbyCreateRequest BuildCreateRequest(
@@ -2044,6 +2628,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     private async Task<AtlasLobbyOperationResult> CallLobbyFunctionAsync<TRequest>(
         string functionName,
         TRequest request,
@@ -2055,11 +2641,15 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 await EnsureIdentityAsync();
 
 
+
+
             if (!init.Success)
             {
                 return init;
             }
         }
+
+
 
 
         // Native Spark/RTDB transport. Emulator callable fixtures stay isolated.
@@ -2074,6 +2664,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         string url =
             UsingLocalEmulators
                 ? $"http://{EmulatorHostForOnlineSubsystems}:{FunctionsEmulatorPort}/" +
@@ -2081,12 +2673,18 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 : $"https://{Region}-{ProjectId}.cloudfunctions.net/{functionName}";
 
 
+
+
         string dataJson =
             JsonUtility.ToJson(request);
 
 
+
+
         string callableJson =
             "{\"data\":" + dataJson + "}";
+
+
 
 
         using UnityWebRequest webRequest =
@@ -2095,13 +2693,19 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 UnityWebRequest.kHttpVerbPOST);
 
 
+
+
         webRequest.uploadHandler =
             new UploadHandlerRaw(
                 Encoding.UTF8.GetBytes(callableJson));
 
 
+
+
         webRequest.downloadHandler =
             new DownloadHandlerBuffer();
+
+
 
 
         webRequest.SetRequestHeader(
@@ -2109,17 +2713,25 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             "application/json");
 
 
+
+
         webRequest.SetRequestHeader(
             "Authorization",
             $"Bearer {idToken}");
 
 
+
+
         webRequest.timeout = 20;
+
+
 
 
         await AtlasBoardAppCheckRequestSecurity.ApplyAsync(
             webRequest);
         await SendRequestAsync(webRequest);
+
+
 
 
         string body =
@@ -2128,11 +2740,15 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 : string.Empty;
 
 
+
+
         if (webRequest.result !=
             UnityWebRequest.Result.Success)
         {
             CallableErrorEnvelope error =
                 SafeFromJson<CallableErrorEnvelope>(body);
+
+
 
 
             string errorKey =
@@ -2144,6 +2760,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                     : "lobby.error.unknown";
 
 
+
+
             string technical =
                 error != null &&
                 error.error != null &&
@@ -2152,14 +2770,20 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                     : $"HTTP {webRequest.responseCode}: {webRequest.error}";
 
 
+
+
             return AtlasLobbyOperationResult.Fail(
                 errorKey,
                 technical);
         }
 
 
+
+
         CallableLobbyEnvelope envelope =
             SafeFromJson<CallableLobbyEnvelope>(body);
+
+
 
 
         if (envelope == null ||
@@ -2172,10 +2796,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         AtlasLobbySnapshot snapshot =
             envelope.result.snapshot != null
                 ? ConvertSnapshot(envelope.result.snapshot)
                 : null;
+
+
 
 
         return AtlasLobbyOperationResult.Ok(
@@ -2185,6 +2813,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             envelope.result.started,
             envelope.result.idempotentReplay);
     }
+
+
 
 
     private static bool SeatPoliciesMatchSnapshot(
@@ -2200,6 +2830,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         for (int i = 0; i < 4; i++)
         {
             AtlasLobbyMemberSnapshot member =
@@ -2208,16 +2840,22 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                             item.SlotIndex == i);
 
 
+
+
             if (member == null)
             {
                 return false;
             }
 
 
+
+
             string expected =
                 i == 0
                     ? "local_human"
                     : policies[i];
+
+
 
 
             if (expected == "online")
@@ -2247,8 +2885,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         return true;
     }
+
+
 
 
     private void AcceptSnapshot(
@@ -2258,6 +2900,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         {
             return;
         }
+
+
 
 
         if (currentSnapshot != null &&
@@ -2272,6 +2916,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         if (currentSnapshot != null &&
             string.Equals(currentSnapshot.LobbyId, snapshot.LobbyId,
                 StringComparison.Ordinal))
@@ -2279,6 +2925,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             bool hasTransportRevisions =
                 currentSnapshot.TransportRevision > 0 &&
                 snapshot.TransportRevision > 0;
+
+
 
 
             if (hasTransportRevisions)
@@ -2328,6 +2976,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 }
 
 
+
+
                 bool explicitRematchReturn =
                     (currentSnapshot.LifecycleState ==
                          AtlasRoomLifecycleState.Starting ||
@@ -2337,6 +2987,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                         AtlasRoomLifecycleState.Waiting &&
                     !string.IsNullOrWhiteSpace(currentSnapshot.MatchId) &&
                     string.IsNullOrWhiteSpace(snapshot.MatchId);
+
+
 
 
                 if (!explicitRematchReturn &&
@@ -2351,6 +3003,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         bool currentSnapshotIsActiveMatch =
             currentSnapshot != null &&
             (currentSnapshot.LifecycleState ==
@@ -2359,11 +3013,15 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                  AtlasRoomLifecycleState.InMatch);
 
 
+
+
         bool incomingSnapshotIsActiveMatch =
             snapshot.LifecycleState ==
                 AtlasRoomLifecycleState.Starting ||
             snapshot.LifecycleState ==
                 AtlasRoomLifecycleState.InMatch;
+
+
 
 
         bool suppressActiveMatchMemberOnlyBroadcast =
@@ -2381,8 +3039,16 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 snapshot.SettingsRevision;
 
 
+
+
         currentSnapshot = snapshot;
         currentLobbyId = snapshot.LobbyId;
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        LogLobbyIdentitySnapshot(snapshot);
+#endif
+
+
 
 
         // During an active match, matchGetSnapshot is authoritative for
@@ -2399,12 +3065,93 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         if (snapshot.LifecycleState ==
             AtlasRoomLifecycleState.Waiting)
         {
             SyncLocallyOwnedPawnCosmeticsIfNeeded();
         }
     }
+
+
+
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    private void LogLobbyIdentitySnapshot(AtlasLobbySnapshot snapshot)
+    {
+        if (snapshot == null) return;
+
+        StringBuilder builder = new StringBuilder();
+        builder.Append("ATB_LOBBY_IDENTITY_SNAPSHOT rev=");
+        builder.Append(snapshot.TransportRevision);
+        builder.Append(" settings_rev=");
+        builder.Append(snapshot.SettingsRevision);
+        builder.Append(" phase=");
+        builder.Append(snapshot.LifecycleState);
+        builder.Append(" local=");
+        builder.Append(DiagnosticShortUid(currentAccountId));
+        builder.Append(" host=");
+        builder.Append(DiagnosticShortUid(snapshot.HostAccountId));
+
+        HashSet<string> onlineUids =
+            new HashSet<string>(StringComparer.Ordinal);
+        bool duplicateOnlineUid = false;
+
+        if (snapshot.Members != null)
+        {
+            List<AtlasLobbyMemberSnapshot> ordered =
+                new List<AtlasLobbyMemberSnapshot>(snapshot.Members);
+            ordered.Sort((left, right) =>
+                (left != null ? left.SlotIndex : 99).CompareTo(
+                    right != null ? right.SlotIndex : 99));
+
+            foreach (AtlasLobbyMemberSnapshot member in ordered)
+            {
+                if (member == null || member.SlotIndex < 0 ||
+                    member.SlotIndex >= 4) continue;
+
+                builder.Append(" | P");
+                builder.Append(member.SlotIndex + 1);
+                builder.Append(":");
+                builder.Append(member.Active ? "A" : "I");
+                builder.Append("/");
+                builder.Append(member.SeatMode);
+                builder.Append("/uid=");
+                builder.Append(DiagnosticShortUid(member.AccountId));
+                builder.Append("/owner=");
+                builder.Append(DiagnosticShortUid(member.LocalOwnerAccountId));
+                builder.Append("/name=");
+                builder.Append((member.DisplayName ?? string.Empty).Replace("|", "/"));
+                builder.Append("/pawn=");
+                builder.Append(member.PawnCosmeticId ?? string.Empty);
+                builder.Append(member.IsHost ? "/HOST" : string.Empty);
+
+                bool onlineHuman =
+                    member.Active &&
+                    (member.SeatMode == AtlasLobbySeatMode.HostLocal ||
+                     member.SeatMode == AtlasLobbySeatMode.RemoteHuman) &&
+                    !string.IsNullOrWhiteSpace(member.AccountId);
+                if (onlineHuman && !onlineUids.Add(member.AccountId))
+                    duplicateOnlineUid = true;
+            }
+        }
+
+        Debug.Log(builder.ToString(), this);
+        if (duplicateOnlineUid)
+            Debug.LogWarning(
+                "ATB_LOBBY_IDENTITY_INVARIANT duplicate_online_uid=true " +
+                "rev=" + snapshot.TransportRevision +
+                " host=" + DiagnosticShortUid(snapshot.HostAccountId),
+                this);
+    }
+
+    private static string DiagnosticShortUid(string uid)
+    {
+        if (string.IsNullOrWhiteSpace(uid)) return "-";
+        return uid.Substring(0, Math.Min(7, uid.Length));
+    }
+#endif
 
 
     private async void SyncLocallyOwnedPawnCosmeticsIfNeeded()
@@ -2419,8 +3166,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         AtlasBoardPawnCosmeticService service =
             AtlasBoardPawnCosmeticService.Instance;
+
+
 
 
         if (service == null ||
@@ -2430,7 +3181,11 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         pawnCosmeticSyncInFlight = true;
+
+
 
 
         try
@@ -2442,6 +3197,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                     StringComparison.Ordinal);
 
 
+
+
             foreach (AtlasLobbyMemberSnapshot member
                      in currentSnapshot.Members)
             {
@@ -2450,6 +3207,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 {
                     continue;
                 }
+
+
 
 
                 bool locallyOwned =
@@ -2468,15 +3227,21 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                                AtlasLobbySeatMode.Bot);
 
 
+
+
                 if (!locallyOwned)
                 {
                     continue;
                 }
 
 
+
+
                 PawnCosmeticDefinition cosmetic =
                     service.GetSelectedCosmetic(
                         member.SlotIndex);
+
+
 
 
                 if (cosmetic == null ||
@@ -2491,10 +3256,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 }
 
 
+
+
                 AtlasLobbyOperationResult result =
                     await SetPawnCosmeticAsync(
                         member.SlotIndex,
                         cosmetic.CosmeticId);
+
+
 
 
                 if (!result.Success)
@@ -2515,11 +3284,15 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     private static int LifecycleRank(
         AtlasRoomLifecycleState state)
     {
         return (int)state;
     }
+
+
 
 
     private static AtlasLobbySnapshot ConvertSnapshot(
@@ -2569,6 +3342,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             };
 
 
+
+
         if (wire.members != null)
         {
             foreach (LobbyWireMember member in wire.members)
@@ -2579,8 +3354,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 }
 
 
+
+
                 AtlasLobbySeatMode seatMode =
                     ParseSeatMode(member.seatMode);
+
+
 
 
                 snapshot.Members.Add(
@@ -2609,8 +3388,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         return snapshot;
     }
+
+
 
 
     private static AtlasRoomLifecycleState ParseLifecycle(string value)
@@ -2624,6 +3407,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             _ => AtlasRoomLifecycleState.Waiting
         };
     }
+
+
 
 
     private static AtlasLobbySeatMode ParseSeatMode(string value)
@@ -2641,6 +3426,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     private static AtlasSeatControllerKind ParseControllerKind(string value)
     {
         return value switch
@@ -2652,6 +3439,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             _ => AtlasSeatControllerKind.None
         };
     }
+
+
 
 
     private static AtlasSeatConnectionState ParseConnectionState(string value)
@@ -2668,6 +3457,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     private static string BuildDeterministicDevelopmentIdentityKey(
         string displayName)
     {
@@ -2677,8 +3468,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 : displayName.Trim().ToLowerInvariant();
 
 
+
+
         using SHA256 sha256 =
             SHA256.Create();
+
+
 
 
         byte[] bytes =
@@ -2688,8 +3483,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                     normalized));
 
 
+
+
         StringBuilder builder =
             new StringBuilder(24);
+
+
 
 
         for (int index = 0;
@@ -2702,8 +3501,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         return builder.ToString();
     }
+
+
 
 
     private string ResolveDevelopmentDisplayName()
@@ -2715,11 +3518,15 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 DevelopmentNameCommandLineSwitch);
 
 
+
+
         if (!string.IsNullOrWhiteSpace(
                 commandLineName))
         {
             return commandLineName.Trim();
         }
+
+
 
 
         if (!string.IsNullOrWhiteSpace(
@@ -2729,10 +3536,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         return Application.isEditor
             ? "Unity Editor Player"
             : "Unity Development Player";
     }
+
+
 
 
     private static bool HasCommandLineSwitch(
@@ -2745,8 +3556,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         string[] args =
             Environment.GetCommandLineArgs();
+
+
 
 
         for (int i = 0;
@@ -2763,8 +3578,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         return false;
     }
+
+
 
 
     private static string ReadCommandLineValue(
@@ -2777,12 +3596,18 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         string[] args =
             Environment.GetCommandLineArgs();
 
 
+
+
         string prefix =
             switchName + "=";
+
+
 
 
         for (int i = 0;
@@ -2793,6 +3618,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 args[i] ?? string.Empty;
 
 
+
+
             if (arg.StartsWith(
                     prefix,
                     StringComparison.OrdinalIgnoreCase))
@@ -2800,6 +3627,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 return arg.Substring(
                     prefix.Length);
             }
+
+
 
 
             if (string.Equals(
@@ -2813,8 +3642,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         return string.Empty;
     }
+
+
 
 
     private string ResolveEmulatorHost()
@@ -2823,6 +3656,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         string commandLineHost =
             ReadCommandLineValue(
                 EmulatorHostCommandLineSwitch);
+
+
 
 
         if (TryNormalizeEmulatorHost(
@@ -2834,8 +3669,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
 #endif
 
 
+
+
         return DefaultEmulatorHost;
     }
+
+
 
 
     private static bool TryNormalizeEmulatorHost(
@@ -2845,13 +3684,19 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         normalized = string.Empty;
 
 
+
+
         if (string.IsNullOrWhiteSpace(value))
         {
             return false;
         }
 
 
+
+
         string candidate = value.Trim();
+
+
 
 
         // The port is owned by AtlasBoard's emulator configuration. Accept only
@@ -2871,9 +3716,13 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         normalized = candidate;
         return true;
     }
+
+
 
 
     private static string CurrentGameVersion()
@@ -2884,6 +3733,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     private static async Task SendRequestAsync(
         UnityWebRequest request)
     {
@@ -2891,8 +3742,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             request.SendWebRequest();
 
 
+
+
         TaskCompletionSource<bool> completion =
             new TaskCompletionSource<bool>();
+
+
 
 
         operation.completed +=
@@ -2900,8 +3755,11 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         if (operation.isDone)
             completion.TrySetResult(true);
 
+
         await completion.Task;
     }
+
+
 
 
     private static async Task<HttpJsonResult<TResponse>> SendJsonAsync<TRequest, TResponse>(
@@ -2914,10 +3772,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
             JsonUtility.ToJson(request);
 
 
+
+
         using UnityWebRequest webRequest =
             new UnityWebRequest(
                 url,
                 UnityWebRequest.kHttpVerbPOST);
+
+
 
 
         webRequest.uploadHandler =
@@ -2925,13 +3787,19 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 Encoding.UTF8.GetBytes(json));
 
 
+
+
         webRequest.downloadHandler =
             new DownloadHandlerBuffer();
+
+
 
 
         webRequest.SetRequestHeader(
             "Content-Type",
             "application/json");
+
+
 
 
         if (!string.IsNullOrWhiteSpace(authorization))
@@ -2942,16 +3810,22 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         webRequest.timeout = 20;
         await AtlasBoardAppCheckRequestSecurity.ApplyAsync(
             webRequest);
         await SendRequestAsync(webRequest);
 
 
+
+
         string body =
             webRequest.downloadHandler != null
                 ? webRequest.downloadHandler.text
                 : string.Empty;
+
+
 
 
         if (webRequest.result !=
@@ -2967,8 +3841,12 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
 
 
+
+
         TResponse value =
             SafeFromJson<TResponse>(body);
+
+
 
 
         return new HttpJsonResult<TResponse>
@@ -2980,6 +3858,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
                 : string.Empty
         };
     }
+
+
 
 
     private static T SafeFromJson<T>(string json)
@@ -2998,11 +3878,15 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
 #if UNITY_EDITOR
     public void EditorConfigureDefaults()
     {
         useLocalEmulatorsInEditor = true;
         snapshotPollSeconds = 1f;
+
+
 
 
         if (string.IsNullOrWhiteSpace(developmentDisplayName))
@@ -3011,6 +3895,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         }
     }
 #endif
+
+
 
 
     [Serializable]
@@ -3023,6 +3909,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         public string regionId;
         public int limit;
     }
+
+
 
 
     [Serializable]
@@ -3048,6 +3936,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     [Serializable]
     private sealed class CallablePublicLobbyListResult
     {
@@ -3056,11 +3946,15 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     [Serializable]
     private sealed class CallablePublicLobbyListEnvelope
     {
         public CallablePublicLobbyListResult result;
     }
+
+
 
 
     [Serializable]
@@ -3082,6 +3976,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     [Serializable]
     private sealed class LobbyJoinRequest
     {
@@ -3094,6 +3990,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         public string contentVersion;
         public string regionId;
     }
+
+
 
 
     [Serializable]
@@ -3110,6 +4008,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     [Serializable]
     private sealed class LobbyPasswordRequest
     {
@@ -3119,6 +4019,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     [Serializable]
     private sealed class LobbyCloseRequest
     {
@@ -3126,11 +4028,15 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     [Serializable]
     private sealed class LobbyHeartbeatRequest
     {
         public string lobbyId;
     }
+
+
 
 
     [Serializable]
@@ -3148,6 +4054,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     [Serializable]
     private sealed class LobbyConfigureSeatsRequest
     {
@@ -3156,6 +4064,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         public int maxPlayers;
         public string[] seatPolicies;
     }
+
+
 
 
     [Serializable]
@@ -3167,6 +4077,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     [Serializable]
     private sealed class LobbyPawnCosmeticRequest
     {
@@ -3176,11 +4088,15 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     [Serializable]
     private sealed class LobbyLeaveRequest
     {
         public string lobbyId;
     }
+
+
 
 
     [Serializable]
@@ -3192,12 +4108,16 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     [Serializable]
     private sealed class LobbyStartRequest
     {
         public string lobbyId;
         public int expectedSettingsRevision;
     }
+
+
 
 
     [Serializable]
@@ -3207,6 +4127,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     [Serializable]
     private sealed class DevBootstrapRequest
     {
@@ -3214,11 +4136,14 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     [Serializable]
     private sealed class AuthAnonymousRequest
     {
         public bool returnSecureToken;
     }
+
 
     [Serializable]
     private sealed class AuthRefreshResponse
@@ -3228,6 +4153,7 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         public string user_id;
     }
 
+
     [Serializable]
     private sealed class AuthSignupRequest
     {
@@ -3235,6 +4161,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         public string password;
         public bool returnSecureToken;
     }
+
+
 
 
     [Serializable]
@@ -3247,11 +4175,15 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     [Serializable]
     private sealed class CallableLobbyEnvelope
     {
         public LobbyCallableResult result;
     }
+
+
 
 
     [Serializable]
@@ -3264,6 +4196,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         public string roomCode;
         public LobbyWireSnapshot snapshot;
     }
+
+
 
 
     [Serializable]
@@ -3301,6 +4235,8 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     [Serializable]
     private sealed class LobbyWireMember
     {
@@ -3321,11 +4257,15 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     [Serializable]
     private sealed class CallableErrorEnvelope
     {
         public CallableError error;
     }
+
+
 
 
     [Serializable]
@@ -3337,11 +4277,15 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
     }
 
 
+
+
     [Serializable]
     private sealed class CallableErrorDetails
     {
         public string errorKey;
     }
+
+
 
 
     private sealed class HttpJsonResult<T>
@@ -3352,4 +4296,3 @@ public sealed class AtlasBoardLobbyRuntimeBridge : MonoBehaviour
         public string Error;
     }
 }
-
