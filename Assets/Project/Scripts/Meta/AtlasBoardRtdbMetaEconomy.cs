@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using System.Reflection;
 using System.Threading.Tasks;
 using Firebase.Auth;
 using Newtonsoft.Json.Linq;
@@ -443,7 +444,8 @@ public static class AtlasBoardRtdbMetaEconomy
             // Never reuse the native Firebase SDK principal (possibly cached
             // from the owner's Editor session) for a Guest wallet.
             if (AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession)
-                return false;
+                return AtlasBoardAccountFormQualityGate
+                    .TryGetVerifiedRegisteredRestPrincipal(out _);
             try
             {
                 FirebaseUser user = FirebaseAuth.DefaultInstance.CurrentUser;
@@ -607,6 +609,12 @@ public static class AtlasBoardRtdbMetaEconomy
             foreach (var emote in AtlasBoardEmotes.All)
                 if (emote.Gold > 0 && document.inventory.emotes.IsOwned(emote.Id))
                     CachedPaidEmotes.Add(emote.Id);
+            // Read-only, UID-scoped inventory evidence for support diagnostics.
+            // No item IDs, tokens or personally identifying account data logged.
+            Debug.Log("ATB_EMOTE_INVENTORY source=canonical_wallet paid_owned=" +
+                CachedPaidEmotes.Count + " account_uid_match=" +
+                string.Equals(identity.Uid, CurrentUid, StringComparison.Ordinal) +
+                " wallet_verified=true");
             foreach (string pawnId in new [] { "ghost_01", "ghost_02", "ghost_03", "ghost_04", "ghost_05", "ghost_06", "ghost_07", "vehicle_police", "vehicle_taxi", "vehicle_pickup" })
                 if (document.inventory.pawns.IsOwned(pawnId)) CachedOwnedPawnIds.Add(pawnId);
             // Presentation cache only; RTDB remains the owner of this value.
@@ -637,7 +645,21 @@ public static class AtlasBoardRtdbMetaEconomy
             // written once at the mutation commit sites below; replaying the
             // latest operation here caused unrelated 401 receipt attempts in
             // the middle of gameplay whenever the wallet UI refreshed.
-            try { await ReadHistoryAsync(identity, snapshot); }
+            try
+            {
+                await ReadHistoryAsync(identity, snapshot);
+                // Legacy wallets may have a daily receipt but no lastClaimAt
+                // subnode. The receipt is immutable, so reuse its timestamp in
+                // the UI instead of advertising another award prematurely.
+                if (state.Raw?["dailyReward"]?["lastClaimAt"] == null)
+                {
+                    long historicalClaim = LastDailyReceiptAtMs(snapshot);
+                    snapshot.DailyClaimedAtMs = Math.Max(
+                        snapshot.DailyClaimedAtMs, historicalClaim);
+                    Debug.Log("ATB_DAILY_LEGACY stage=read missing=true " +
+                        "historical_receipt_found=" + (historicalClaim > 0));
+                }
+            }
             catch (Exception historyError)
             {
                 Debug.LogWarning("ATB_HISTORY_READ unavailable=" +
@@ -1009,7 +1031,19 @@ public static class AtlasBoardRtdbMetaEconomy
 
         try
         {
-            if (!await AtlasBoardRtdbUserProfileMirror.SyncCurrentUserAsync("", false))
+            if (identity.IsRestGuest)
+            {
+                // REST-only QA builds intentionally remove native Firebase.
+                // Do not require a native SDK user or create a second UID.
+                // Require the SAME verified token to see a registered profile.
+                if (identity.IsAnonymous || !await RegisteredRestProfileExistsAsync(identity))
+                {
+                    Debug.LogWarning("ATB_STORE_SESSION result=blocked reason=" +
+                        "rest_registered_profile_not_verified uid=" + Short(identity.Uid));
+                    return Failure("meta.error.registered_only");
+                }
+            }
+            else if (!await AtlasBoardRtdbUserProfileMirror.SyncCurrentUserAsync("", false))
                 return Failure("meta.error.identity_unavailable");
 
 
@@ -1020,7 +1054,17 @@ public static class AtlasBoardRtdbMetaEconomy
                 !await IsDeveloperTesterAsync(identity))
                 return Failure("meta.error.dev_not_allowed");
 
-
+            // A password login can outlive the ID token cached by the REST
+            // transport. Refresh before ETag mutations, preserving the SAME UID.
+            // Server-side rules still validate every wallet operation.
+            if (identity.IsRestGuest && !identity.IsAnonymous)
+            {
+                bool refreshed = await RefreshRegisteredRestBearerAsync(identity);
+                Debug.Log("ATB_STORE_MUTATION stage=identity_refresh kind=" + kind +
+                    " result=" + (refreshed ? "success" : "reuse_existing_token") +
+                    " uid_suffix=" + ShortUid(identity.Uid));
+            }
+            bool permissionRetryUsed = false;
             for (int attempt = 0; attempt < 5; attempt++)
             {
                 ReadState state = await ReadAsync(identity);
@@ -1032,6 +1076,25 @@ public static class AtlasBoardRtdbMetaEconomy
 
 
                 Economy doc = state.Document;
+                // Existing wallets written before dailyReward was mandatory
+                // are repaired as part of the NEXT normal ETag transaction.
+                // Purchases do not require daily participation or admin access.
+                // Look up immutable receipts so an existing DAILY award does
+                // not become claimable again merely because this field vanished.
+                bool dailyFieldMissing = state.Raw?["dailyReward"]?["lastClaimAt"] == null;
+                if (dailyFieldMissing && kind == "DAILY")
+                {
+                    // Only a daily claim needs immutable daily-history proof.
+                    // Ordinary purchases, equipping and developer test grants
+                    // MUST NOT depend on dailyReward or receipt availability.
+                    long receiptAt = await ReadLastDailyReceiptAtMsAsync(identity,
+                        requireHistory: true);
+                    doc.dailyReward.lastClaimAt = Math.Max(
+                        doc.dailyReward.lastClaimAt, receiptAt);
+                    Debug.Log("ATB_DAILY_LEGACY stage=claim missing=true " +
+                        "receipt_found=" + (receiptAt > 0) +
+                        " uid_suffix=" + ShortUid(identity.Uid));
+                }
                 long now = Now();
                 if (doc.operation != null && doc.operation.atMs >= now)
                     now = doc.operation.atMs + 1;
@@ -1137,11 +1200,45 @@ public static class AtlasBoardRtdbMetaEconomy
                 // Old economy operations must keep the append-only rewardHistory
                 // string byte-for-byte (enforced again by RTDB Rules).
                 JObject documentJson = JObject.Parse(JsonUtility.ToJson(doc));
+                // Daily history is OPTIONAL for unrelated actions. Preserve
+                // a legacy absent field through purchases/equips so the
+                // customer's ability to shop never depends on a daily claim.
+                if (dailyFieldMissing && kind != "DAILY")
+                    documentJson.Remove("dailyReward");
+                else
+                {
+                    // New accounts and first-time DAILY claims always write
+                    // an explicit timestamp (zero is legitimate on INIT).
+                    JObject daily = documentJson["dailyReward"] as JObject;
+                    if (daily == null)
+                    {
+                        daily = new JObject();
+                        documentJson["dailyReward"] = daily;
+                    }
+                    daily["lastClaimAt"] = doc.dailyReward.lastClaimAt;
+                }
                 Response written = await RequestAsync(identity, "PUT",
                     EconomyPath(identity.Uid), documentJson.ToString(Newtonsoft.Json.Formatting.None), state.ETag);
                 if (written.Status == 412) continue; // conflicting device: re-read
+                if ((written.Status == 401 || written.Status == 403) &&
+                    !permissionRetryUsed)
+                {
+                    permissionRetryUsed = true;
+                    if (await RefreshRegisteredRestBearerAsync(identity))
+                    {
+                        Debug.Log("ATB_STORE_MUTATION stage=permission_retry kind=" +
+                            kind + " original_http=" + written.Status +
+                            " uid_unchanged=true");
+                        continue; // new ETag read; never reuse a stale PUT body
+                    }
+                }
                 if (written.Status < 200 || written.Status >= 300)
+                {
+                    Debug.LogWarning("ATB_STORE_MUTATION stage=wallet_put_failed kind=" +
+                        kind + " http=" + written.Status + " attempt=" + (attempt + 1) +
+                        " uid_suffix=" + ShortUid(identity.Uid));
                     throw new InvalidOperationException("RTDB_HTTP_" + written.Status);
+                }
 
 
                 if (clearPublicFrame)
@@ -1199,9 +1296,17 @@ public static class AtlasBoardRtdbMetaEconomy
         }
         catch (Exception exception)
         {
-            Debug.LogWarning("ATB_PHASE19C_RTDB_OP type=" + kind +
-                             " result=failed " + Sanitize(exception.Message));
-            return Failure("meta.error.refresh_failed", exception.Message);
+            string safeReason = Sanitize(exception.Message);
+            Debug.LogWarning("ATB_STORE_MUTATION stage=failed kind=" + kind +
+                " reason=" + safeReason + " uid_suffix=" + ShortUid(identity.Uid));
+            // Buying an ordinary item / collecting a daily award has nothing
+            // to do with owner QA. Never show a development-identity error to
+            // a registered player for a rules or wallet-migration failure.
+            bool privileged = kind == "DEV_GRANT" || kind == "RESET_PURCHASES";
+            return Failure(privileged && exception.Message != null &&
+                exception.Message.Contains("RTDB_HTTP_401")
+                ? "meta.error.identity_unavailable" : "meta.error.refresh_failed",
+                exception.Message);
         }
     }
 
@@ -1252,6 +1357,45 @@ public static class AtlasBoardRtdbMetaEconomy
     }
 
 
+    // Refresh an EXISTING verified REST password session without ever creating
+    // an anonymous UID or changing wallet ownership. The Lobby bridge owns the
+    // encrypted refresh credential and enforces the UID-continuity contract.
+    // A client refresh cannot override any database rule or admin permission.
+    private static async Task<bool> RefreshRegisteredRestBearerAsync(Identity identity)
+    {
+        if (identity == null || !identity.IsRestGuest || identity.IsAnonymous ||
+            !AtlasBoardAccountFormQualityGate.TryGetVerifiedRegisteredRestPrincipal(
+                out string registeredUid) ||
+            !string.Equals(registeredUid, identity.Uid, StringComparison.Ordinal))
+            return false;
+        try
+        {
+            AtlasBoardLobbyRuntimeBridge bridge =
+                UnityEngine.Object.FindAnyObjectByType<AtlasBoardLobbyRuntimeBridge>();
+            if (bridge == null) return false;
+            MethodInfo method = typeof(AtlasBoardLobbyRuntimeBridge).GetMethod(
+                "RefreshLiveGuestQaIdentityAsync", BindingFlags.Instance | BindingFlags.NonPublic);
+            Task<AtlasLobbyOperationResult> refresh = method?.Invoke(bridge, null)
+                as Task<AtlasLobbyOperationResult>;
+            if (refresh == null || !(await refresh).Success) return false;
+            if (!AtlasBoardLobbyRuntimeBridge.TryGetLiveGuestRewardIdentity(
+                    out string liveUid, out string liveToken) ||
+                !string.Equals(liveUid, identity.Uid, StringComparison.Ordinal) ||
+                string.IsNullOrWhiteSpace(liveToken) ||
+                !string.Equals(CurrentUid, identity.Uid, StringComparison.Ordinal))
+                return false;
+            identity.Token = liveToken;
+            Debug.Log("ATB_STORE_AUTH_REFRESH result=success uid_unchanged=true");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning("ATB_STORE_AUTH_REFRESH result=failed type=" +
+                ex.GetType().Name);
+            return false;
+        }
+    }
+
     private static async Task<Identity> ResolveIdentityAsync()
     {
         // The standalone two-client Guest owns a persistent anonymous Firebase
@@ -1262,12 +1406,18 @@ public static class AtlasBoardRtdbMetaEconomy
             if (AtlasBoardLobbyRuntimeBridge.TryGetLiveGuestRewardIdentity(
                     out string guestUid, out string guestToken))
             {
+                // The QA client must not reinterpret a verified password
+                // account as anonymous just because it authenticates via REST.
+                // Firebase's server-side token and RTDB rules remain authority.
+                bool registered = AtlasBoardAccountFormQualityGate
+                    .TryGetVerifiedRegisteredRestPrincipal(out string verifiedUid) &&
+                    string.Equals(guestUid, verifiedUid, StringComparison.Ordinal);
                 return new Identity
                 {
                     User = null,
                     Uid = guestUid,
                     Token = guestToken,
-                    IsAnonymous = true,
+                    IsAnonymous = !registered,
                     IsRestGuest = true
                 };
             }
@@ -1295,6 +1445,34 @@ public static class AtlasBoardRtdbMetaEconomy
     }
 
 
+    private static async Task<bool> RegisteredRestProfileExistsAsync(Identity identity)
+    {
+        try
+        {
+            // Both the REST UID and its bearer token are held by Identity.
+            // Permission to read this node is enforced by RTDB Security Rules.
+            string accountPath = "/users/" + UnityWebRequest.EscapeURL(identity.Uid) +
+                "/general/accountType.json";
+            Response result = await RequestAsync(identity, "GET", accountPath, null, null);
+            if ((result.Status == 401 || result.Status == 403) &&
+                await RefreshRegisteredRestBearerAsync(identity))
+                result = await RequestAsync(identity, "GET", accountPath, null, null);
+            bool registered = result.Status == 200 &&
+                string.Equals((result.Body ?? "").Trim(), "\"registered\"",
+                    StringComparison.Ordinal);
+            Debug.Log("ATB_STORE_SESSION uid_suffix=" + ShortUid(identity.Uid) +
+                " rest_verified=true account_type_registered=" + registered +
+                " http=" + result.Status + " native_auth_required=false");
+            return registered;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning("ATB_STORE_SESSION result=profile_read_failed type=" +
+                ex.GetType().Name);
+            return false;
+        }
+    }
+
     private static async Task<bool> IsDeveloperTesterAsync(Identity identity)
     {
         try
@@ -1313,8 +1491,16 @@ public static class AtlasBoardRtdbMetaEconomy
     {
         Response response = await RequestAsync(identity, "GET",
             EconomyPath(identity.Uid), null, null, true);
+        if ((response.Status == 401 || response.Status == 403) &&
+            await RefreshRegisteredRestBearerAsync(identity))
+            response = await RequestAsync(identity, "GET",
+                EconomyPath(identity.Uid), null, null, true);
         if (response.Status != 200)
+        {
+            Debug.LogWarning("ATB_STORE_WALLET_READ result=denied_or_unavailable http=" +
+                response.Status + " uid_suffix=" + ShortUid(identity.Uid));
             throw new InvalidOperationException("RTDB_HTTP_" + response.Status);
+        }
         Economy doc = string.IsNullOrWhiteSpace(response.Body) ||
                       response.Body.Trim() == "null"
             ? null : JsonUtility.FromJson<Economy>(response.Body);
@@ -1323,6 +1509,9 @@ public static class AtlasBoardRtdbMetaEconomy
         // their next otherwise-authorized ETag-protected transaction.
         if (doc != null)
         {
+            // An old RTDB wallet can omit dailyReward. Never let a missing
+            // first-claim field break unrelated store purchases/equipment.
+            if (doc.dailyReward == null) doc.dailyReward = new DailyReward();
             if (doc.inventory == null) doc.inventory = new Inventory();
             if (doc.inventory.profile_frames == null)
                 doc.inventory.profile_frames = new Frames();
@@ -1354,8 +1543,11 @@ public static class AtlasBoardRtdbMetaEconomy
             id = Guid.NewGuid().ToString("N"),
             type = "INIT", itemId = "", atMs = Now()
         };
+        JObject initialJson = JObject.Parse(JsonUtility.ToJson(initial));
+        initialJson["dailyReward"] = new JObject { ["lastClaimAt"] = 0L };
         Response response = await RequestAsync(identity, "PUT",
-            EconomyPath(identity.Uid), JsonUtility.ToJson(initial),
+            EconomyPath(identity.Uid),
+            initialJson.ToString(Newtonsoft.Json.Formatting.None),
             string.IsNullOrEmpty(etag) ? "null_etag" : etag);
         // Another device may have initialized the same UID at the same time.
         if (response.Status != 412 &&
@@ -1504,6 +1696,60 @@ public static class AtlasBoardRtdbMetaEconomy
         Debug.Log("ATB_HISTORY_READ source=RTDB receipts=" + items.Count);
     }
 
+
+    // Immutable receipt scan (read-only): a legacy account may have received
+    // +50 Gold before its dailyReward subtree became mandatory. Recover the
+    // latest claim from history, not from the currently displayed Gold amount.
+    private static long LastDailyReceiptAtMs(AtlasBoardMetaEconomySnapshot snapshot)
+    {
+        long latest = 0;
+        if (snapshot == null || snapshot.History == null) return latest;
+        foreach (AtlasBoardMetaHistoryItem item in snapshot.History)
+        {
+            if (item == null || item.Type != "DAILY" ||
+                string.IsNullOrWhiteSpace(item.CreatedAtUtc)) continue;
+            if (DateTimeOffset.TryParse(item.CreatedAtUtc, out DateTimeOffset date))
+                latest = Math.Max(latest, date.ToUnixTimeMilliseconds());
+        }
+        return latest;
+    }
+
+    private static async Task<long> ReadLastDailyReceiptAtMsAsync(
+        Identity identity, bool requireHistory)
+    {
+        try
+        {
+            // No arbitrary dailyReward state required to shop: this is only
+            // migration evidence, and non-daily operations may continue if
+            // history is temporarily unavailable.
+            Response response = await RequestAsync(identity, "GET",
+                HistoryPath(identity.Uid) + ".json", null, null);
+            if (response.Status != 200)
+                throw new InvalidOperationException("HISTORY_HTTP_" + response.Status);
+            if (string.IsNullOrWhiteSpace(response.Body) ||
+                response.Body.Trim() == "null") return 0;
+            JObject receipts = JObject.Parse(response.Body);
+            long latest = 0;
+            foreach (JProperty entry in receipts.Properties())
+            {
+                JObject receipt = entry.Value as JObject;
+                if (receipt == null || (string)receipt["type"] != "DAILY" ||
+                    (string)receipt["id"] != entry.Name) continue;
+                long value = (long?)receipt["atMs"] ?? 0;
+                if (value > 0 && value <= Now() + 30000)
+                    latest = Math.Max(latest, value);
+            }
+            return latest;
+        }
+        catch (Exception error)
+        {
+            Debug.LogWarning("ATB_DAILY_LEGACY history_unavailable=true type=" +
+                error.GetType().Name);
+            if (requireHistory)
+                throw new InvalidOperationException("DAILY_HISTORY_UNAVAILABLE");
+            return 0;
+        }
+    }
 
     private static string EconomyPath(string uid)
     {

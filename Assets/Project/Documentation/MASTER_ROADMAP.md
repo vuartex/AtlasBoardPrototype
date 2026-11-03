@@ -1,3 +1,338 @@
+# ATLASBOARD — v5.49.12cc / 2026-11-03 SOHBET DEVRİ VE QA DURUMU (KOD DEĞİŞMEDİ)
+
+**Tek yetkili roadmap:** `Assets/Project/Documentation/MASTER_ROADMAP.md`. Bu kayıt sadece devralma ve test durumudur; yeni kod sürümü, manager, ikinci doküman, Firebase deploy veya GitHub commit değildir. Önceki roadmap'in 11.173 satırlık tarihçesi aşağıda korunmuştur. En son kaynak checkpoint `v5.49.12cc` bu dosyanın en altındadır; ilk tarihsel başlığın `v5.49.12bz` olması daha eski koda dönüş anlamına gelmez.
+
+### Son durum — 3 Kasım 2026
+
+- **Firebase testi:** Owner, son `v5.49.12cc` değişikliklerinden sonra Firebase testini çalıştırdığını bildirdi. Testin terminal çıktısı, komut ve PASS/FAIL sonucu bu sohbetin devrinde paylaşılmadı; dolayısıyla `FIREBASE_EMULATOR_RESULT=UNVERIFIED`. `phase19cc_store_daily_dice_emulator.test.cjs` en son tanımlı Auth+RTDB emülatör testidir; bunun gerçekten çalıştırıldığını/başarılı olduğunu kanıt olmadan varsayma. Önceki Phase19CC ve Phase19CA 28/28 statik kontroller kendi kapsamlarında PASS, emulator ile karıştırılmamalı.
+- **Manuel test:** Owner toplantıda olduğu için **son paket üzerinde manuel Unity testi henüz yapmadı**. `UNITY_COMPILE=OWNER_QA_PENDING`, `LIVE_WINDOWS_DEVELOPMENT_GUEST=OWNER_QA_PENDING`, `STORE_PURCHASE_DAILY=OWNER_QA_PENDING`, `DEV_GRANT_AND_FAST_FORWARD=OWNER_QA_PENDING`, `CLOUD_DICE_CROSS_DEVICE=OWNER_QA_PENDING`. Önceki owner-PASS emote Envanter, ÇIKAR, kullanıcı dostu Sunucu Durumu, cihaz-yerel zar `5.14* / 10*` ve Owner Final Round sonuçları korunur; son cloud zar akışına otomatik PASS aktarılmaz.
+- **Production:** v5.49.12cc `Backend/Firebase/database.rules.json` değişikliğini içerir. Bu devirde production RTDB rules deploy **YAPILMADI**. Yerel emülatör başarılı olsa bile production kurallarının dağıtıldığını göstermez. Kullanıcı açıkça onaylamadan rules deploy, canlı hesap/cüzdan değişikliği veya GitHub push yapma.
+- **Kaynak bütünlüğü:** Yerelde uygulanmış son v5.49.12cc tam kaynak paketi bu sohbete ayrıca yüklenmiş değildir; verilen roadmap uygulanan local kaynak bytes'larını ispatlamaz. Yeni işi yapmadan önce GitHub HEAD ile owner'ın güncel yerel kaynak sürümünü karşılaştır, daha eski Github kodunu üzerine yazma. Bu yalnız roadmap içeren devir ZIP'i tam oyun source yedeği değildir.
+
+### Bundan sonraki zorunlu çalışma yöntemi
+
+1. Tek kanonik roadmap ve mevcut `FRONTEND_ERROR_CODEBOOK.md` dışında yeni `.md`, checklist, alternatif plan veya açıklama belgesi oluşturma. Roadmap'in tarihçesini silmeden yalnız aynı dosyayı ilerlet.
+2. Yeni kod üretmeden önce ilgili mevcut Unity C#, Editor/QA, `database.rules.json`, ilgili `.meta` ve güvenlik testlerini oku; aynı işlevin var olup olmadığını ve owner-PASS durumlarını kontrol et. Duplicate manager, menu, ekran, wallet veya paralel servis oluşturma.
+3. Kod teslimi her zaman özgün proje-bağıl yollarıyla **tam değiştirilmiş dosyaları içeren tek ZIP** olmalı; `.ps1`, `.bat`, patch/diff dosyası gönderme. Bu handoff ZIP'inde kod değiştirilmedi, yalnızca var olan kanonik roadmap güncellendi.
+4. `PURCHASE` ve `DAILY` birbirinden ve admin/tester izninden bağımsızdır. `dailyReward.lastClaimAt` ilk geçerli DAILY işleminde oluşturulabilir; geçmişteki 24 saatlik claim kaydı/replay güvenliğini atlama. Sadece `DEV_GRANT` ve `RESET_PURCHASES` mevcut server allowlist denetimiyle çalışır. UID'ler arasında Gold/XP/cosmetic kopyası ve canlı kullanıcı silme yok. Owner QA özel kodlarını GitHub/ZIP'e ekleme. Sunucu sürüm gate önceki owner kararıyla DEFERRED kalır.
+5. Firebase testi çıktısı paylaşıldığında gerçek sonucu ayrı değerlendir; owner toplantı sonrası manuel Unity kabul testini yapacak. Bu kanıtlar gelmeden `v5.49.12cc` runtime işlerini PASS olarak kapatma; kanıtsız yeni düzeltme üretme.
+
+---
+
+# ATLASBOARD — v5.49.12bz / CAREER EMOTE, FRIENDLY SERVER STATUS, RECORDED DICE VALUES (2026-11-03)
+
+**Source candidate; Unity compilation and actual owner QA NOT RUN here.** This is a continuation of `by` with complete full-file sources, not patch scripts. No GitHub push, Firebase production deploy, user delete or wallet write was performed. **Owner accepted:** account logout button layout PASS, Steam UID continuity, Gold purchase/debit PASS, register/login and password-reset PASS. Keep those accepted systems intact.
+
+### Reproduced owner reports
+
+- Paid emote is `SAHİPSİN` in the store and appears in the same UID's transaction history, yet Career Inventory shows only 3 free emotes and `ÇIKAR` flashes disabled. This does NOT prove a second Firebase UID. The owner has already confirmed the Gold spend; don't create/merge a second user.
+- Career UI identity gate was native-Firebase-only in special `Launch Live Spark Guest QA (No Steam)` and filtered verified `Owned` entitlements using `!PreviewOnly`; registered REST identity can pass wallet proof but these client-only gates hid paid emotes.
+- Server Status displayed RTDB/service implementation wording to the public and relied on native Auth, falsely saying signed out for a registered REST account; some green rows represented only visible UI, not a remote transaction.
+- Career dice counts can be 20 while average/max show 0 because signed Career proof and claim currently carry counts/doubles but not `totalDiceValue`/`highestRoll`.
+
+### Source changes included
+
+1. `AtlasBoardProgressionUI.cs`: REST current UID/token and canonical verified wallet drive Career Inventory. Owned items are shown from server-verified wallet even if catalog proposal is `PreviewOnly` (a catalog presentation flag, not ownership proof). Server snapshot stays UID-scoped; no paid items may be selected from preview alone. Proper stable emote add/remove button, one minimum active, default cosmetics available, redacted `ATB_INVENTORY_IDENTITY paid_emotes` diagnostic. Avoid transient cross-UID stale buttons during reload.
+2. `AtlasBoardServerStatusUI.cs`: single existing screen class replaced in place; no duplicate manager. Public tab shows **HESAP, YEREL BOTLAR, ÇEVRİMİÇİ MAÇLAR, MAĞAZA, BULUT VERİLERİ, KARİYER EŞİTLEME**. All seven UI languages remain, with checking/verified/limited/login-required/offline status responses and single check at most per 60 seconds while visible. REST Guest QA or native Firebase session uses exactly its matching UID/token. Account, room and career probes are read-only; shop remains **limited until an actual transaction test**. No password/token/URL logged and no backend words shown to players. Online match green only with two actual recent successful match samples and a reachable room directory.
+3. Dice UI uses actual locally recorded `AtlasBoardProgressionMatchRecorder` values only when that device's per-UID recorded match ID matches current Career history. It displays an `*` and localized **this device's recorded matches** note for this partial sample. If no trustworthy sum/max exists it shows `—`, never an invented average/maximum 0.
+4. `Backend/Firebase/qa/phase19bz_inventory_status_dice_source_gate.test.cjs`: static fail-closed source assertions. Owner manual scenario checklist included; no fake Unity/emulator PASS.
+
+### Remaining intentional gates
+
+- **P1 CLOUD ROLL AGGREGATION OPEN:** `Backend/Firebase/database.rules.json` has `$other: false` for both `careerFinalProofs/{matchId}/seats/{slot}` and `careerClaims/{uid}/{matchId}`. Adding `totalDiceValue/highestRoll` to signed proofs/claims requires a coordinated validation schema + source update + Auth/RTDB emulator regression, not a UI-only edit; not silently deployed. Existing old match proofs cannot prove these historical values. Device-local observed numbers are exact *for the matching recorded subset only*, not cross-device lifetime statistics.
+- **P0/P1 EMOTE LIVE OWNER ACCEPTANCE OPEN:** actual Unity compile and paid emote add/remove in REST QA still need user runtime test. No live production Firebase read in this environment; old uploaded Nov 2 export predates Nov 3 purchase, so its inventory snapshot cannot prove current ownership or extra UID creation.
+- **P1 SERVER STATUS QA OPEN:** verify native/REST/offline/on-match conditions and all seven languages. This status screen now tests account/rooms/career HTTP responses but makes no claim that a purchase write was tested merely from a shop UI.
+- **P1 PROMO/redeem** and immutable `guestOrigin` audit remain separate. **Server version enforcement owner-DEFERRED**. Steam retail trusted backend, Android sustained QA and Google Play release gates remain independent.
+- No source manager duplication, no Firestore or new Cloud Functions dependency, no mutation of production database rules, user account or Gold.
+
+---
+
+# ATLASBOARD — v5.49.12by / ACCOUNT QA REGRESSION + EMOTE LOADOUT SOURCE SAFETY (2026-11-02)
+
+**Status:** PARTIAL SOURCE CANDIDATE; Unity compile and owner live test OPEN. GitHub backup/push NOT REQUESTED and NOT PERFORMED. Do not overwrite previously owner-accepted gameplay/security/Steam work.
+
+### Owner v5.49.12bx acceptance / fresh evidence
+- **PASS:** Firebase REST registered identity survives restart and flows through Account/Career, Store and Settings for the same canonical UID. Player nickname changed to `Deneme Hesabı` (one successful rename); next immediate rename returned HTTP 401 and must not be reported as success.
+- **PASS:** Daily +50 Gold (`180 -> 230`) and paid emote purchase -150 Gold (`230 -> 80`) both committed to the *same canonical UID* and appear in Store transaction history. Account UID continuity, data isolation after sign out/relogin and no Guest-Gold merger accepted from owner screenshots.
+- **OPEN:** Paid emote missing in Career Inventory even after successful Store purchase. The real `AtlasBoardProgressionUI.RefreshInventoryAsync()` early-exits when native `AtlasBoardAccountService.IsSignedIn` is false; Live Windows Guest QA authenticates via REST and deliberately strips that native service. `AtlasBoardEmoteLoadoutService.Identify()` separately returned empty UID when no room lobby was active. A store-only approval cannot repair both inventory gates.
+- **OPEN:** Career Inventory emote REMOVE/ADD UI often disabled as `inventoryAccount == null` and server-owned list was not loaded. Last emote must never be removed; defaults for Dice, Board and Profile are always visually equipped even when paid ID is empty (legacy empty = default). Preserve at least one active emote; avoid inventing a new item/coin/wallet.
+- **OPEN:** Career average/highest roll shows 0 despite 20 dice rolls. Journal `MergeAsync` adds `diceRolls` and `doublesRolled` but omits `totalDiceValue` and `highestRoll`; historical signed data does not prove numeric aggregates. Do not manufacture values. Future stats must come from integrity-checked event totals; show not available for unknown historical aggregate.
+- **OPEN:** Settings > Server Status incorrectly displays signed out for verified REST identity and shows technical labels (`RTDB`). Replace with non-technical localized presentation and actual per-service probes; at least five distinct status responses as applicable: healthy, checking, sign-in-required, temporarily offline, service degraded/stale. Green requires a verified response, not merely an available UI. Do not expose provider, backend URLs, hostnames or config to customers.
+- **OPEN:** Marketplace `Kod Kullan` uses legacy `promoTestRedeem` Cloud Function. There is no independently verified, active production code for RTDB/Spark; do not claim test redemption works or paste private owner-console command secrets into player Redeem.
+
+### v5.49.12by source package
+1. `AtlasBoardAccountFormQualityGate.cs`: separated Cancel and Sign Out hit boxes in sign-out confirmation; new account signout explicitly invalidates previous UID emote loadout presentation. No wallet/career history transfers.
+2. `AtlasBoardEmoteLoadoutService.cs`: registered REST QA emote load/save now resolves live UID/token outside of multiplayer rooms and rejects mismatch with current wallet UID. Saved selection requires 1..6 distinct owned emotes; seed of absent/empty selection falls back to bundled free emotes. RTDB rules and paid entitlement checks preserved; no new economy service.
+3. `AtlasBoardRtdbMetaEconomy.cs`: extra redacted diagnostics exposing number of purchased/owned emotes read from the canonical wallet. Does not spend Gold, modify purchases or permit unsanctioned equipment.
+4. `FRONTEND_ERROR_CODEBOOK.md`: new emote/source diagnostic codes and clear public/backend distinction; raw provider internals remain hidden from player.
+5. `Backend/Firebase/qa`: source regression + owner acceptance checklist; code delivery consists of complete changed source files, not patch/diff/PowerShell edits.
+
+### Open gate disposition
+- **P0** Career Inventory must accept verified REST UID and load exact UID's canonical owned entitlements in `AtlasBoardProgressionUI.cs`; `inventoryAccount` null/native-auth gate must be removed safely, with immutable account ownership and proper equip/remove buttons. Current ZIP does **NOT** close this P0.
+- **P1** Settings Server Status consistency and localized non-technical 4–5 distinct response states. Separate original `AtlasBoardSettingsV2Controller` source edit required.
+- **P1** Verified dice telemetry sum/max and honest historical no-data; original journal/progression sources require reviewed change.
+- **P1** Exact default fallback semantics across dice/board/profile, minimum one emote; service-only 1+ guard is a candidate, client UI and RTDB rules acceptance still OPEN.
+- **P1** Valid Promo/Redeem code and trusted backend architecture; do not invent working codes or require Blaze/Functions behind the user's back.
+- **P1** Immutable `guestOrigin` history when an anonymous UID is upgraded; requires owner-approved RTDB rules/schema audit.
+- **DEFERRED BY OWNER** Server-side version enforcement; do not reopen on each iteration.
+- Android sustained device QA, retail Steam trusted backend, Google Play review gate and 3/4 Human broad QA remain broader release gates as before.
+
+**Validation:** Source contract QA may PASS; Unity compile, Firebase Auth+RTDB Emulator, live Windows and Android remain NOT RUN unless the owner posts actual evidence. No GitHub commit, Firestore/Cloud Functions dependency, Firebase production rules deploy or wallet mutation.
+
+---
+
+# ATLASBOARD — v5.49.12bx / REGISTERED REST ACCOUNT MANAGEMENT + STORE UID AUTHORITY (2026-11-02)
+
+**State:** SOURCE DELIVERED — UNITY COMPILE / REAL RTDB TRANSACTION / OWNER QA OPEN. The prior v5.49.12bw checkpoint is preserved below. No GitHub push or Firebase production deployment.
+
+### Evidence
+- Owner's guest QA logs on 2026-11-03 show `ATB_SESSION_GATE auth=registered_rest_verified`, while `store_native_registered_gate=false` and repeated `ATB_PHASE19E_RTDB_WALLET guest=True`, Gold=180. Career, Settings and account context recognize registration, but daily Gold and paid Store reject it.
+- Existing REST QA executable deliberately removes native AccountService. `AtlasBoardRtdbMetaEconomy.IsRegistered`, `ResolveIdentityAsync`, and `MutateAsync` relied on native Auth even when REST email/password sign-in was valid. UI-only changes cannot authorize wallet mutations.
+
+### Delivered changes (full modified C# files only)
+1. `AtlasBoardRtdbMetaEconomy.cs`: `IsRegistered` checks current verified REST UID, `ResolveIdentityAsync` identifies password-registered REST users without borrowing native Firebase credentials, and `MutateAsync` verifies **the same UID and token's** RTDB `/users/{uid}/general/accountType` equals `registered` before any REST daily/purchase/equip operation. Native Auth path, ETag wallet logic, immutable receipts, item ownership and devWalletTester allowlist stay intact. No gold/coin mutation is authorized by a client-only nickname or local PlayerPrefs.
+2. `AtlasBoardAccountFormQualityGate.cs`: successful REST sign-in and restored sessions reconcile their own RTDB profile (`registered` account type), no wallet copy; verified Account button opens management UI with display name, email, 24h server-cooldown rename, password-reset email and explicit sign-out confirmation. Logout allocates **a new anonymous Firebase UID** and saves its encrypted refresh token before switching; new Guest uses its own zero-initialized wallet. Logging records only UID suffixes and status; no credentials.
+3. Password change is handled with existing Firebase password-reset email flow (not a local password store). The original native Account UI remains available for Editor/Steam/Android; no duplicate build/Unity menu added.
+
+### Mandatory owner acceptance — all NOT RUN here
+1. Unity 6000.5.6f1 compile must have no errors. Build using existing `Atlas Board > Online & Backend > Online > Build Two-Client Guest Test v1`, launch `Launch Live Spark Guest QA (No Steam)`.
+2. Restart already-registered QA user: Account panel shows registered name/email; Career opens without login; Store no longer displays Guest sign-in; single daily claim credits exactly 50 Gold at most once/24h. Verify ownership/balances under the same Auth UID and `users/{uid}/metaEconomy`.
+3. Purchase/Equip from Store with registered REST UID: authoritative Gold decrement and entitlement only on same UID. Anonymous Guest cannot buy/claim and cannot access registered user wallet. TEST MUST FOLLOW FIREBASE SERVER RULES. If `ATB_STORE_SESSION account_type_registered=false`, inspect profile sync and rules rather than granting client-side Gold.
+4. Rename: reject if within 24h of previous change; otherwise update RTDB and Auth profile; existing Gold/history unchanged. Password reset email works. Sign out: new UID/Guest name and **separate zero wallet**, old registered UID untouched. Re-login to old email: old balance returns; intermediate Guest Gold is **not merged**, and no new registered UID is created. Test startup restore/reconnect and Store/Career again.
+5. Full two-client and Android smoke tests remain OPEN until owner reports results. Unity/Firebase emulators NOT RUN here; no claim of transaction PASS. No Firebase rules/production deploy.
+
+**Additional open follow-up:** Historical `guestOrigin` subtree for archival initial Guest nickname and pre-registration snapshot must be added through a deliberately vetted RTDB schema/rules migration; `general` and top-level `$other` currently reject arbitrary extra fields, so do **not** write unauthorized guestOrigin data or make a second spendable wallet. Server-enforced client version gate remains **DEFERRED — OWNER DECISION**.
+
+---
+
+# ATLASBOARD — v5.49.12bw / REGISTERED REST ACCOUNT CONTEXT + PASSWORD RESET LAYOUT (2026-11-02)
+
+**Status:** SOURCE FIX / UNITY QA REQUIRED. Previous `v5.49.12bv` checkpoint is preserved below without deletion. No GitHub push or Firebase production deployment.
+
+**Owner-verified PASS, do not reopen:** Steam UID continuity, profile + purchases on same Steam UID, input caret, empty/incorrect password validation, password reset email dispatch, and Career access immediately after REST login.
+
+**Changes:**
+- Registered Windows Live Spark Guest QA REST session now has a central UID/token-verified read-only status provider (`AtlasBoardAccountFormQualityGate.TryGetVerifiedRegisteredRestPrincipal`). Local saved nickname alone cannot authenticate.
+- In restored QA sessions, the Firebase Auth `accounts:lookup` verification is required before the UI claims a registered principal; a temporary missing Auth display name has a deterministic fallback after email/provider verification.
+- The existing Career/Settings account-context button in Live Spark Guest QA shows the validated account summary instead of an erroneous native Firebase sign-in dialog. The UI is read-only in this QA mode; do not claim native account management or sign-out is implemented.
+- Screen-scoped `ATB_SESSION_GATE` diagnostics cover bootstrap lookup, account entry, settings context binding, and periodic `global auth` state including `store_native_registered_gate`. Logs contain only the final five characters of UID; no email/password/token in diagnostic logs.
+- Password-reset popup title, message and input no longer overlap. Success tells users to check Spam/Gereksiz folders too. The password reset flow itself was already owner-verified PASS.
+- Deprecated Unity 6.5 editor Rematch QA `FindFirstObjectByType` references replaced by `FindAnyObjectByType` (two CS0618 warnings).
+
+**Still OPEN / P0:** The existing `AtlasBoardRtdbMetaEconomy.IsRegistered` hardcodes Live Guest QA to `false`, and `ResolveIdentityAsync` marks all Live REST Guest sessions anonymous. Therefore Store Daily / verified registered rewards are NOT YET fixed by this package and must not be marked PASS; central Meta Economy and every gated screen must share the same server-verified REST identity, without bypassing RTDB rules. Cross-platform registered identity persistence also awaits a real end-to-end test across restart. No unsafe direct wallet writes or duplicate data mutation have been added.
+
+**Evidence:** Source regression `phase19bw_rest_account_ui_source_gate.test.cjs`: run with Node in `Backend/Firebase`. Previous 19BV/19BU/19BS source gates should also pass. Unity compilation and live tests NOT RUN here. Final user acceptance requires all account, Career, Settings, Store daily, wallet, and restart gates to agree on the same UID. Firebase server version enforcement remains DEFERRED by owner decision.
+
+---
+
+# Phase19BV — Guest REST Sign-In Completion & Password Reset (2026-11-02)
+
+**Owner accepted PASS (not touched by this package):** Steam QA UID remained stable across restarts and profile edits; profile/store writes remained under the same Steam UID; TMP input caret reopened at the last typed position; the static Cloud Career login copy stopped moving. Retain these accepted results and do not churn Steam/Meta/Career gameplay files in this checkpoint.
+
+**Owner reproduced OPEN issues:** Existing registered REST Guest account closes the sign-in form but Career still demands sign-in; the login form shows no success feedback, blank password is reported as an ambiguous connectivity error, and password reset is unavailable in the stripped native-Firebase two-client Guest QA EXE. Re-registering a UID already upgraded to email/password correctly must NOT mint a second account. Existing account still owns its existing wallet and game history.
+
+**Source remediation:**
+
+- On a successful `accounts:signInWithPassword` REST response, immediately bind `registeredLiveUid` using **that authenticated Firebase localId**, even if player nickname lookup has not completed. Do not wait for cached PlayerPrefs or Firebase Auth `displayName` before allowing the authenticated player into Career. Populate a temporary UID-bound display label and asynchronously load the real Auth display name; reapply canonical header presentation without changing RTDB ownership.
+- Preserve existing encrypted per-account Live Guest refresh-token persistence, and keep all wallet, Career, match-history, inventory and purchase reads owned by the returned UID. No Gold/XP copying, extra UID creation, or silent cross-UID migration.
+- Distinguish a truly empty login password before requesting Auth (`ATB739`). Keep wrong credentials `ATB733`; account failures are displayed in a single customer-safe popup instead of duplicated error/status text. Show explicit visible sign-in/registration success notice after the Account modal closes. When Career originally requested authentication, open Career on successful REST login.
+- The existing `Button_ResetPassword` is intercepted **only in Live Spark Guest QA**, opening a small dedicated email-entry dialog. Send `POST accounts:sendOobCode` with `requestType=PASSWORD_RESET` through Firebase Identity Toolkit. This uses the Firebase Console password-reset email template: password changes happen through the Firebase-hosted email action, never in a game database. Protect email existence from enumeration, validate email format locally (`ATB741`), and provide a redacted provider/transport failure code (`ATB742`). Do not log email, password, ID/refresh tokens or raw response bodies.
+- Native Firebase account flows retain their existing `SendPasswordResetEmailAsync`. Keep the original `Build Two-Client Guest Test v1` → `Launch Live Spark Guest QA (No Steam)` menus. No additional Editor menus, account managers, wallets or Cloud Functions.
+
+**Acceptance required:** Unity 6000.5.6f1 compilation; Firebase REST login with the previously registered e-mail: correct password ⇒ success notice + Career accessible + same UID/wallet; empty password ⇒ ATB739; bad password ⇒ ATB733; Guest re-open app ⇒ same registered UID and profile name when Auth name is available. Password reset dialog valid email ⇒ receipt and Firebase reset email; click link, change password; previous password fails and new password signs in to same UID. Wrong/nonexistent email must not reveal user existence. Run two-client smoke to ensure no guest host regressions.
+
+**Security and delivery truth:** static QA only (no live Firebase sending, Unity compile or emulator run in this environment). Owner deferred server-side version enforcement remains **DEFERRED — OWNER DECISION**. Steam production trusted verification remains separate OPEN release gate. No Firebase production deployment, deletion, GitHub push or account migration.
+
+---
+
+# Phase19BU — Firebase Identity Continuity / Guest Registered UX (2026-11-02)
+
+**Owner evidence:** Steam QA session `8fA0dC…` held 4,300 Gold/500 Atlas Coin and several purchase/equip receipts, but a subsequent independent `AtlasBoardLobbyRuntimeBridge.EnsureIdentityAsync` called native Firebase `SignInAnonymouslyAsync` after a profile update and created `qv6wKL…`, a zero-wallet Guest UID. This is a **P0 cross-system identity race**, not a shop price or local-currency defect. No user rows were deleted or balances transferred by this checkpoint.
+
+**Source changes:**
+- The existing `AtlasBoardSteamDevelopmentSession` now revalidates the *current* Firebase Auth UID against its Windows DPAPI-protected, SteamID-specific slot. Reusing a completed auth task no longer implies the principal is still correct. Missing slot for a previously stamped Steam account fails closed rather than allocating a replacement UID.
+- `AtlasBoardSteamIdentitySessionFence` listens to Firebase Auth state changes, detects cross-UID transitions during Profile/Store/Career/Lobby and signs out of a foreign principal before reauthenticating to the owner slot. No reliance on display names or cwallet copying.
+- Existing Live Spark Guest form now stores a registered nickname in Firebase Auth, preserves the original UID and DPAPI token persistence, rebinds the displayed name, intercepts Career's native-Auth-only guest gate in the QA build, and restores the nickname on subsequent login. Existing RTDB display-name cooldown remains authoritative.
+- Sign-in failure yields a customer-safe explanatory popup with `ATB731–ATB737`, never raw operation names, Firebase provider responses, passwords or tokens. Caret-to-end adjustment is deferred beyond TMP's selection frame.
+- Existing 38/38 Phase19BS source tests still PASS; 34/34 Phase19BU source checks PASS. These are **STATIC**; Unity compilation, live Steam A/B, profile/edit/store/inventory/Career, 3+ platform coverage and Firebase account upgrade **NOT RUN**.
+
+**Remaining release blockers / acceptance conditions:** The legacy native Lobby `SignInAnonymouslyAsync` call is still present; the new fence blocks cross-UID usage/restores the known owner, but a transient anonymous Firebase Auth entry may still be created by that old call. P0 full closure requires observed absence of new UIDs in both Auth and RTDB during the stated live test. Retail Steam server-verified returning sign-in is still an independent P0. RTDB username cooldown may block immediate server `displayName` changes; retain Auth displayName and mark cross-device consistency OPEN if so. Do not label this checkpoint a complete production identity fix without the tests.
+
+**Explicit deferral:** Firebase server-side client-version enforcement remains **DEFERRED — OWNER DECISION**. No production Firebase deployment, account deletion, GitHub commit/push or server rules modification in this package.
+
+---
+
+# Phase19BS — Steam QA Persistence / Guest Upgrade / Account UX (2026-11-02)
+
+**Scope:** Current GitHub main `3e869ce` (v5.49.12bj) plus owner-applied full-file packages through v5.49.12br. No GitHub push, no Firebase production deploy, no account deletion/merge.
+
+- **Confirmed root cause:** Firebase Email enumeration protection blocks `accounts:update` for anonymous-to-email linking, even when Email/Password is enabled. Changed existing Live Spark Guest QA registration to `accounts:signUp` with the existing ID token and hard equality check on the returned UID. No wallet/career transfer or new UID allowed.
+- **Player messaging:** Removed provider/raw API names from the public register/login error line; added stable `ATB731–ATB738` support codes documented in `FRONTEND_ERROR_CODEBOOK.md`. Raw provider categories remain redacted Development logs only.
+- **Text-entry UX:** Deferred the caret-to-end adjustment one frame after TMP focus to avoid Unity rewriting the insertion point during focus processing. Prior stable status-text layout preserved.
+- **Steam UID reuse:** Replaced unconditional startup Firebase SignOut that minted a new anonymous UID each launch. Windows Editor/Development-only fallback uses exact SteamID-specific, DPAPI-encrypted random local QA credentials, and validates restored Firebase UID before loading wallet; no name-based matching or transfers. Verified trusted backend identity remains higher precedence. **Not a production/cross-device Steam proof.**
+- **Safety:** Never allocate replacement UID if a Steam slot is unreadable, recovery fails, or an existing UID disagrees. Preserve Auth and RTDB data on failures. Existing Steam legacy unidentified wallets were NOT migrated.
+- **Source QA:** `phase19bs_identity_registration_source_gate.test.cjs` PASS, 38 assertions. Braces and package structure checked; no local Unity compilation or live Auth/RTDB smoke run in this environment. `phase19bs_guest_upgrade_emulator.test.cjs` included, **NOT RUN**.
+- **Acceptance still OPEN:** Owner checks Guest registration + restart with same UID, Steam A → restart → B → A with stable per-account wallet, and Unity Console compilation. Do not mark live PASS until evidenced.
+- **Retail Steam/cross-device release gate:** OPEN pending trusted server ticket verification and SteamID-to-Firebase UID canonical mapping. Development local storage alone MUST NOT be used as retail proof.
+- **Server-enforced version check:** DEFERRED — owner decision, unchanged.
+
+---
+
+## v5.49.12br — 2026-11-02 Live Guest Firebase Auth diagnostics, immutable status UX, owner-only Steam recovery utility
+
+### Directly addressed source defects
+
+- Fixed the existing `AtlasBoardAccountFormQualityGate` handling of REST Guest → Registered: refreshes the exact same Guest Firebase ID token before calling `accounts:update`; verifies the refreshed and returned UIDs match the original UID. Existing Gold/XP/achievement/cosmetic records remain under `/users/{sameUid}` without cloning, minting or deleting accounts. This addresses token expiry, not a Firebase `CREDENTIAL_TOO_OLD_LOGIN_AGAIN` requirement; the latter still needs actual reauthentication proof.
+- Authentication errors now expose only a sanitized Firebase error **category** (for example EMAIL_EXISTS, INVALID_ID_TOKEN, CREDENTIAL_TOO_OLD_LOGIN_AGAIN, OPERATION_NOT_ALLOWED) and HTTP status in logs. The generic misleading Authentication failed message is replaced with actionable text; no password, email, ID token or private response bodies are logged.
+- Account Status text now stays at a fixed rectangle and fixed 16-point font with **top alignment**, no multiline vertical centering and a final LateUpdate correction, preventing the login explanation from jumping when text changes. Existing rounded controls, visible caret, keyboard Tab/Shift+Tab, password validation and password eye switches are preserved. Return to an edited input now requests its end caret when the field is initially at position zero.
+- `AtlasBoardSteamIdentitySessionFence.cs` now reports the sanitized `ATB_STEAM_RETURNING_AUTH_FAIL` category only once per distinct failure. This distinguishes a broken Steam backend mapping/callable from an actual missing wallet and does not sign in as another player.
+- The owner-only `phase19br_owner_steam_uid_recovery.cjs` allows explicit **one-time SteamID64 → historical Firebase Auth UID mapping** in the *existing* backend Firestore schema, after a read-only plan, exact UID and SteamID verification, no collision, and a separate explicit owner approval argument. It never deletes an Auth user or modifies RTDB balances/purchases, and creates an auditable `platform_link_events` entry. This tool is NOT part of Unity/game builds and must not run automatically; it has NOT been executed against Firebase production. Independent Steam ownership verification is required by the project owner and ticket verification is still done on subsequent returning sign-in.
+
+### Still OPEN / acceptance conditions
+
+- Legacy Vuartex wallet recovery **NOT YET APPLIED**: original RTDB wallet is intact, but `platformSteamReturningSignIn` did not restore a linked account in the 2026-11-02 Editor log. Restoring purchases requires owner-approved mapping in Firestore **and** a deployed callable with correct Steam AppID, publisher ticket verification and Firebase custom-token sign-in. No claim of live wallet recovery until the old Firebase UID is observed in game and cosmetics/Gold/Career load from it on two restarts. Do NOT delete the original user or merge by display name.
+- Live Spark Guest registration **NOT RUN** after this source fix; if it fails, record the sanitized Firebase error label now shown. Persistent Steam identity and account-switch validation **NOT RUN**. Unity 6000.5.6f1 compilation **NOT RUN**. Source contract QA only.
+- Firebase server-enforced client version remains **DEFERRED — owner decision**, unchanged. No RTDB security Rules changes, no GitHub push, no production deployment and no account mutations were performed.
+
+---
+
+## v5.49.12bq — 2026-11-02 Live Spark Guest registration / UX and Steam session correction
+
+### Scope and owner-mandated constraints
+
+- Canonical original `Build Two-Client Guest Test v1` → `Launch Live Spark Guest QA (No Steam)` **UNCHANGED**. No second build or launch menu. Existing Unity main menu and gameplay remain intact.
+- **Firebase server-enforced client version remains DEFERRED — owner decision.** No RTDB Rules change or production deploy.
+- No GitHub push, Auth-user deletion, wallet migration, SteamID-to-UID assumption or purchase ownership reassignment.
+
+### Source work in this checkpoint
+
+1. `AtlasBoardAccountFormQualityGate.cs`: intercept the existing Account form's LIVE REST Guest registration and login before native Firebase Auth. Obtain the existing authenticated REST Guest UID, check its anonymous state via Identity Toolkit accounts:lookup, link email/password to that UID via accounts:update (not accounts:signUp), reject mismatched returned UID. Store new refresh credentials using the canonical lobby bridge's Windows DPAPI persistence, rebind bridge UID/token and refresh registered-provider claims, clear prior lobby snapshot, update only the existing UID's RTDB email and accountType=registered using an atomic scoped patch. Wallet and inventory are never copied or awarded. Returning email/password sign-in uses Identity Toolkit accounts:signInWithPassword and binds only the returned UID.
+2. Same component: require at least six password characters, one letter and one digit or symbol (plus matching confirmation), retain mathematics CAPTCHA and email shape check; implement Tab and Shift+Tab ordering for existing Login and Register controls, and pin status messages to a fixed font size rather than oscillating TMP autosize. Existing rounded input fields, eye controls and caret remain.
+3. `AtlasBoardSteamIdentitySessionFence.cs`: prevent the initial clean Steam startup's newly created anonymous session from being inadvertently signed out again on the next lobby action; still reject cached previous-session FirebaseAuth before verified returning Steam sign-in, and still invalidate a different SteamID detected within the same process. This is **not** proof of permanent SteamID-to-UID mapping across restarts.
+4. `phase19bq_live_guest_account_and_form_contract.test.cjs` source contract QA is included. It does not exercise Unity, Firebase Emulator or live Auth.
+
+### Explicitly unresolved and test acceptance
+
+- Legacy Vuartex purchases exist under an old RTDB UID; verified server SteamID↔UID mapping is not available from the RTDB export. **P0 remains OPEN:** do not delete either legacy Firebase user, copy wallets, or assume shared display name proves ownership. A future verified Steam mapping/recovery remains required. Steam two-account / two-startup stability: NOT RUN.
+- Source contract QA: run Node test. Unity `6000.5.6f1` compile: NOT RUN. Real Live Spark Guest registration/auth/RTDB profile update: NOT RUN. Inspect Firebase Console for SAME UID before/after registration and preserved Gold/XP/items. Check on-disk DPAPI session survives a complete app restart. Also test `registered` users do not receive a second UID after relaunch.
+- The `AtlasBoardLobbyRuntimeBridge` currently contains a legacy Guest-only profile bootstrap function that attempts to write `general.accountType=guest` on every REST session restore. For upgraded registered identities, this may be DENIED by the current Rules; the function should not modify a registered profile. This requires a separate validated runtime follow-up if logs show repeat warnings. Do not interpret such a denial as a balance deletion.
+- The REST Guest QA account surface remains a special Development test path. Production Android/Steam account identity transition must be accepted independently.
+
+---
+
+## v5.49.12bp — 2026-11-02 Menu Consolidation + Steam Legacy UID Recovery Boundary
+
+### Authoritative source and owner request
+
+- Most recent verified GitHub main source at start of work: `3e869ce43ed6632567effd25b609176b062cdb52` (v5.49.12bj).
+- Latest locally delivered, uncommitted update: `v5.49.12bo`, applied by owner; keep its source changes intact.
+- Owner request: use **only the existing** `Atlas Board > Online & Backend > Online > Build Two-Client Guest Test v1` and `Launch Live Spark Guest QA (No Steam)` menu actions. Do not introduce a second Guest/Account QA build option.
+- Existing duplicate `QA Diagnostics` and `QA & Diagnostics` roots must become one.
+
+### Completed source changes — menu only
+
+1. Retired `AtlasBoardAccountQaWindowsBuilder` one-off `AtlasBoard/QA/Build Account QA (Windows)` MenuItem by replacing its complete C# file with an inert compatibility class. This removes the extra `AtlasBoard` top-level entry, while retaining the original existing two-client Guest build/launch path.
+2. Consolidated the two Rematch QA commands (and both validators) into `Atlas Board/QA & Diagnostics/QA/Match/`; original fast-forward logic is byte-for-byte unchanged apart from menu paths.
+3. Added `phase19bp_menu_consolidation.test.cjs` static QA. Run via Node from `Backend/Firebase`; **this is not Unity compile or a live account acceptance test**.
+4. No modifications to the Live Spark Guest runtime, FirebaseAuth rules, cwallet, player identities, map purchases or the Guest build scene stripper.
+
+### Owner's first Vuartex UID is not to be merged by name
+
+- 2026-11-02 RTDB export exposes two different guest-type Firebase UIDs with visible name `Vuartex`. One contains 1,025 Gold, 6,500 Atlas Coin and item ownership; the other has an empty wallet. The export contains no verified SteamID-to-UID mapping. A matching display name does NOT prove shared ownership.
+- The verified Steam recovery implementation resolves a SteamID via backend `platform_identity_links` / `account_platform_links` (Firestore) and issues a Firebase custom token only when the mapping exists and is verified. A RTDB-only export cannot establish this relationship.
+- The earlier `AtlasBoardSteamIdentitySessionFence` **clears an unverified cached FirebaseAuth session** when Steam is active; this avoids leaking account A purchases to account B but may make a previous unlinked anonymous UID inaccessible locally. This is a known P0 recovery issue. Do NOT disable the fence or attach arbitrary Guest wallets to Steam by name.
+- **OPEN P0:** Verify the actual SteamID→UID mapping with authorized server-side tooling, confirm ownership of the original UID, and restore via a verified credential-link/recovery workflow. Do not delete, copy or merge any balances automatically. Do not mark identity recovered just because menu cleanup PASS.
+
+### Explicit deferral, tests and release status
+
+- Firebase server-enforced client-version requirement: **DEFERRED — OWNER DECISION**; do not implement or deploy until owner explicitly requests it.
+- `Build Two-Client Guest Test v1` / `Launch Live Spark Guest QA (No Steam)` preserves the REST-based Guest QA persona and its no-rewards safety contract. It does NOT implement Guest→Registered conversion; do not claim otherwise.
+- Verify source test PASS locally; Unity compile, actual menu UI, guest/Steam two-client QA and original UID recovery all **NOT RUN / OPEN**.
+- Production Firebase deploy and GitHub commit/push: **NOT PERFORMED** (owner authorization required).
+
+---
+
+# AtlasBoard v5.49.12bm — 2026-11-02: runtime identity safeguards + account form/FAQ corrections
+
+Status: SOURCE CODE DELIVERED; SOURCE QA PASS; UNITY COMPILE NOT RUN; FIREBASE EMULATOR NOT RUN; LIVE STEAM/ANDROID QA NOT RUN; PRODUCTION SECURITY AND VERSION SERVER GATE OPEN.
+
+## Actual changed source code
+
+- `Assets/Project/Scripts/Online/Firebase/AtlasBoardAccountFormQualityGate.cs`: updates the EXISTING Account UI with visible typing caret, focus highlight, password show/hide, stricter email shape validation, compact status layout; for an ACTUAL native Firebase anonymous guest, uses `LinkWithCredentialAsync` to preserve the same Auth UID and the existing RTDB-owned economy/Career/entitlements. If current Auth session is not anonymous, preserves the original registration flow. Non-Steam normal native players can acquire an anonymous Firebase UID. Explicitly excludes the special REST Guest QA executable and local emulator Guest from native identity creation/linkage.
+- `Assets/Project/Scripts/Online/Firebase/AtlasBoardSteamIdentitySessionFence.cs`: when Steam provider is selected, clears persisted native FirebaseAuth user before Steam verification; admits only a verified returning sign-in whose SteamID and canonical Auth UID match, resets lobby and wallet on account transition. Does NOT transfer currencies or link an unknown SteamID to prior user.
+- `Assets/Project/Scripts/UI/Menu/AtlasBoardPlayerHelpCredits.cs`: 7 additional FAQs, clearer support privacy warning, removes internal source file paths from player credits, and scrolls to first FAQ on open.
+- `Backend/Firebase/qa/phase19bm_account_ui_steam_safety_contract.test.cjs`: source QA, no fake live emulator assertions.
+
+## Important unresolved guarantees — DO NOT CLAIM COMPLETE
+
+1. Steam A / Steam B runtime and Unity two-Steam-account acceptance: NOT RUN. A Steam account not previously linked/verified can be held guest/not authenticated; never inherit A wallet. Confirm in actual Steam launch.
+2. Native Guest → registered UID preservation: SOURCE IMPLEMENTED; LIVE QA NOT RUN. The QA Guest EXE intentionally strips native Firebase account service and uses REST Auth; it is NOT a production registration test client. Registered display-name changes may hit the existing 24-hour name-change RTDB rule; UID, wallet and Career must take precedence over display-name changes.
+3. Cross-account cached UI refresh: source uses UID-bound existing MetaEconomy, profile refresh and lobby clear; complete live visual confirmation NOT RUN.
+4. Firebase *server-enforced* game version rejection: NOT IMPLEMENTED. Current `database.rules.json` still does not deny outdated client via immutable server-owned release policy. Current clients have a compatibility check but this alone is NOT a server security gate. Production deployment intentionally NOT DONE.
+5. Guest origin nested RTDB history/audit metadata: NOT IMPLEMENTED because RTDB schema/rules require a carefully tested change; NEVER write client-declared spendable wallet copies.
+6. New UI and Steam source changed without a Unity build here; Unity compiler and two-client QA remain mandatory. No production changes.
+
+## Owner acceptance
+
+- Before testing, back up the current installed project locally; extract full-file ZIP preserving relative paths. No automatic GitHub backup, push or Firebase production deploy.
+- In normal Android or normal Windows non-REST-Guest player build, verify password reveal, caret, email format, registration and re-login.
+- Guest with an authenticated native anonymous UID and existing Career/Gold: register using email/password. Verify Firebase Auth UID unchanged and existing wallet/inventory/Career remain. A local-only guest with no authenticated UID does not automatically inherit online wallet/XP.
+- Steam: launch account A and record only redacted account fingerprint and balances; close game, switch Steam account in client, launch B. Ensure A data never appear on B; if B has no verified Atlas link, show locked/no verified account instead of A's wallet. Re-open A and verify A remains intact.
+- Build QA/Development Guest with the special REST mode must still be isolated and MUST NOT be used as a native registration acceptance test.
+- All four P0/P1 release acceptance requirements remain OPEN until their real world tests and the rules-based version gate pass. Do not label this change as security FINAL RELEASE PASS.
+
+---
+
+## v5.49.12bl — 2026-11-02 P0 Identity + Server Version Release Blocker Preflight (PARTIAL, NO RUNTIME FIX)
+
+**Owner request:** Complete Steam verified identity switching, Guest->registered UID-preserving upgrade, UID/cache isolation and Firebase-backed mixed-version admission before two-build acceptance. Latest code baseline is GitHub `main` `3e869ce43ed6632567effd25b609176b062cdb52`, while authoritative roadmap carries `v5.49.12bk` audit. Prior owner-PASS Phase18, Security 01–04 and Store/UI remain closed and untouched.
+
+**Implementation truth:** This checkpoint intentionally contains no unverified runtime source edit. The connected GitHub source confirms multiple intertwined identity provider/backend/rules changes are necessary. A single new client-side code/password/UID display change does not safely isolate accounts; no credential transfer or RTDB production changes were performed. The user-requested 4 fixes are **NOT YET IMPLEMENTED / NOT TESTED**. This source preflight is an executable, read-only release-blocker reminder, not a playable fix and does not enable Steam A/B or Guest upgrade acceptance.
+
+**Six negative release contract indicators checked:** 1 Guest email `LinkWithCredentialAsync` in-place upgrade; 2 immutable `guestOrigin` provenance with server rules; 3 no Steam returning-sign-in stale-UID fallback; 4 sign-out to verified distinct guest session; 5 roomMeta server-side version tuple; 6 joinRequests enforcement of joiner game/protocol version. NOTE: a static indicator becoming green does **not** prove its security. Auth+RTDB emulator, Unity compile, two Steam accounts and Android cross-account tests remain mandatory.
+
+**No release candidate or code fix in this package. Do NOT instruct owner to build it as if P0 is resolved.**
+
+**Safety invariants:** preserve canonical Firebase UID, never copy Gold/XP/purchase ledgers across UIDs; avoid client-editable role/admin; do not accept unverified Steam -> prior Auth UID mapping; no arbitrary rule weakening; no production deploy/push. All four owner-requested P0/P1 items remain OPEN.
+
+---
+
+## v5.49.12bk — Steam/Firebase cross-account isolation and Guest promotion security audit (2026-11-02; P0 BLOCKED / NO SOURCE FIX APPLIED)
+
+**Source authority:** Live GitHub `vuartex/AtlasBoardPrototype` `main` HEAD `3e869ce43ed6632567effd25b609176b062cdb52` at inspection; owner confirmed the `bj` GitHub backup. Read-only owner-provided production RTDB export was inspected for schema and aggregate counts, **without importing, deleting, editing or displaying UID/PII/token data**. This checkpoint is **DOCUMENTATION-ONLY** and does NOT claim to solve the vulnerabilities. Preserve all 10,xxx preceding canonical roadmap lines verbatim below. Do not commit or push except at owner's explicit request.
+
+### P0 confirmed user-facing symptom and source findings
+
+- Owner switched between two different actual Steam accounts, but the game showed prior Steam player's profile frame, Gold/Atlas Coin, purchase inventory and identity. This is an **account isolation incident**, NOT merely a display-name bug. Repro requires two true SteamIDs and their corresponding Firebase UIDs; never assume a changed Steam persona implies a changed Firebase Auth principal.
+- `AtlasBoardAccountService.CurrentAccountId` is `FirebaseAuth.DefaultInstance.CurrentUser.UserId` and persists independently of Steam identity. `AtlasBoardPlatformRuntime.TryAutomaticReturningSteamSignInAsync` can fail and explicitly continue with **the current Atlas identity**; `AtlasBoardSteamAccountLinkBridge` has a verified ticket/custom-token returning-sign-in path but an unlinked Steam account does not thereby own the existing Firebase UID. Auto sign-in is initiated once per Steam provider readiness, not proved for runtime SteamID switch.
+- `AtlasBoardAccountService.RegisterWithEmailPasswordAsync` unconditionally uses `auth.CreateUserWithEmailAndPasswordAsync`, generating a distinct Firebase account instead of **linking** the current anonymous Firebase UID. `AtlasBoardAccountService.SignOut()` only calls `auth.SignOut()`. `AtlasBoardAccountAccessUI.SignOut` resets its own display-name state but not every cached wallet/History/Shop/profile/Steam/online state. Existing `AtlasBoardRtdbMetaEconomy` has UID-scoped caches and the account/profile UI has async loads; audit all race paths.
+- Current source **already correctly maintains** `general.accountType='guest'` for Firebase anonymous Auth and `'registered'` for nonanonymous Auth, enforced by RTDB Rules. Do not replace this authentication type with user-writable `admin`. Distinct administrative permissions belong to server-enforced roles / claims, not editable profile metadata.
+- User-provided RTDB export: **10 user records; 8 registered, 2 guest; 2 with `metaEconomy` wallets**; nine public profiles; no `users/{uid}/guestOrigin` schema and no Steam link records at RTDB root. Steam links may reside in a different backing service; **absence in an RTDB export is not proof no external Steam links exist**. The export is a historical snapshot, not the guaranteed live production state. **Do not bulk-restore or migrate this export.**
+
+### Required single-identity model; mandatory before launch
+
+1. **Authoritative identity key is Firebase Auth UID, not display name/device/Steam persona alone.** Registered email/password, verified linked Steam, Android and future providers resolve to exactly one canonical UID. For Steam, require signed/verified Steam Web API ticket -> backend mapping -> expected Firebase Auth custom-token UID **before loading any prior private wallet, Career or owned cosmetics**. On SteamID switch, block sensitive UI and network actions until resolution; never silently reuse another Steam account's existing Firebase session.
+2. **Guest -> New Email account upgrade:** if current principal is **actually** Firebase Anonymous, call Firebase Unity `EmailAuthProvider.GetCredential` + `CurrentUser.LinkWithCredentialAsync`. Require returned UID exactly equals pre-link anonymous UID, refresh token/auth state and update RTDB `general.accountType` to `registered` using Rules-validated current account. **No wallet/XP/inventory/claim copies or re-credits.** If the target email already belongs to a different UID, fail closed and display an explicit merge-required path, never overwrite either account. Firebase documents a linking-credentials issue; inspect SDK version and test on Auth+RTDB Emulator before production rollout.
+3. **Logout:** leave active lobby, clear local identity-bound presentation/transactions/async requests, sign out, then establish a **new or restored permitted anonymous Firebase principal** for guest mode. Do NOT reuse the upgraded registered UID as a guest or automatically grant previously owned items. Former account's wallet remains stored at its registered UID and comes back on authentic sign-in. `PlayerPrefs` local Guest alias alone is not a trustworthy cloud wallet. A real Firebase Guest that earned Gold retains it only while that same authenticated UID remains accessible.
+4. **Guest origin provenance:** design `/users/{canonicalUid}/guestOrigin/{originalGuestUid,originalGuestName,linkedAt,originAccountType,originalBalancesSnapshot,...}` as an **immutable, server-validated provenance record**; original UID is explicitly named, never mixed with current canonical UID. Historical Gold, XP and claim evidence are snapshots / read-only audit fields, **not additional spendable balances**. Live Gold remains only `/users/{uid}/metaEconomy`; XP/History remain existing canonical Career evidence. Rules must prevent client forging a prior UID, tampering with an `originalBalancesSnapshot` or linking another account, and cannot simply trust client-supplied XP. Schema/Rules, atomic promotion marker and emulator negative tests must be designed and approved before deploying. For same-UID promotion, originalGuestUid == current UID is a valid identity-history fact, not a new balance owner.
+5. **Cached UI and async safety:** On every UID/provider transition invalidate previous UID-scoped `AtlasBoardCanonicalProfileHeader`, `AtlasBoardUnifiedProfilePresentation`, account access UI, `AtlasBoardRtdbMetaEconomy` caches (dice/board/pawn/emote/wallet), Career/XP/achievements, Store/inventory, lobby transport Auth token, profile avatar/frame, pending requests and per-UID local prefs. Async callbacks must recheck requested UID and current Auth UID before rendering. No blank/zero display should silently become verified wallet; fail closed with loading/sign-in state.
+6. **Migration for existing legacy Steam QA UID:** Preserve existing user records, allowlist and purchases. Require owner-only controlled link/recovery using verified Steam proof and explicit ownership confirmation; do not sign out/replace anonymous credentials blindly or guess which existing UID belongs to a SteamID. Never merge two wallet ledgers without immutable conflict/replay/entitlement reconciliation and owner approval.
+
+### Acceptance matrix (all OPEN / NOT RUN)
+
+- A Steam account -> exactly its linked Firebase UID; B Steam account -> a distinct UID, zero leakage of name, frame, Gold, Atlas Coin, Career/XP/History, inventory or private lobby state. A -> B -> A with app restart and in-session switch. Unlinked B: no access to A, no silent A fallback. Account identity changed mid-async load: old result discarded.
+- Registered A -> Sign out -> anonymous guest C: new/verified guest principal and only its own data; Guest C -> New Email `LinkWithCredentialAsync`: UID unchanged, wallet amount/XP/claims/inventory/history unchanged; login from Android/Windows to that email recovers same UID/state. Guest C -> existing email D: no automatic merge/no data theft.
+- Two independent registered accounts A and D switch repeatedly on one Windows/Android installation; no cross-UID visual caches. Steam provider is separate from email credential identity; explicit binding rules. Reconnect, Host Migration, Rematch and rewards retain only exact UID.
+- Auth + RTDB Emulator deny/allow tests: forged guestOrigin, reused foreign UID, duplicate link, double-credit, replay, wrong Steam proof, UID mismatch, anonymous vs registered, app restart, stale concurrent responses. Browser/Unity/Steam/Android live acceptance only after authentic emulator PASS and owner-reviewed production rollout.
+
+### Release-gate count (grouped, not literal count of every historic roadmap entry)
+
+**12 active major release gates:** (1) Steam verified identity/account switch P0, (2) Guest conversion and logout preservation P0, (3) identity cache & asynchronous cross-UID isolation P0, (4) server-enforced client version admission, (5) production App Check + RTDB rules deployment review, (6) host-authored semantic trust decision, (7) unique-intent abuse/throttling decision, (8) extended 3/4-real-human multiplayer, (9) sustained Android performance especially S20 FE, (10) Steam/Windows production platform build/review, (11) Google Play account access/data safety/AAB/release compliance, (12) third-party licensing/credits, privacy/account deletion and final GO/NO-GO. These are **work packages**; many comprise multiple subchecks. Previous two-human Phase18, Rematch, Career/Gold, Auction and basic Emulator hardening remain OWNER PASS for previously tested versions and are not reopened automatically.
+
+**STATUS:** SECURITY INCIDENT CONFIRMED BY OWNER; ROOT-CAUSE PATHS IDENTIFIED; NO CODE FIX, NO UNITY COMPILE, NO NEW EMULATOR TEST, NO STEAM A/B LIVE TEST. No production Firebase changes, no GitHub commit/push. The live production release gate is **NO-GO** until the P0 account isolation issues are actually fixed and validated.
+
+---
+
 ## v5.49.12bj — Modern Player Help/Credits, Retail QA Compile-Out, Google Play Reviewer Account Plan (2026-11-02; SOURCE QA / OWNER UNITY QA OPEN)
 
 **Authority:** This checkpoint is additive to owner-local `v5.49.12bi` package and full 10,724-line canonical roadmap, NOT a rollback to GitHub's older `bg1` code. Every prior history line remains intact. The original Main Menu and previously accepted Phase 18/Career/Shop/Rematch/Host Migration behavior is unchanged. No extra gameplay or wallet owner was introduced.
@@ -10765,3 +11100,95 @@ These are broader release/development gates, not failures of the accepted `bd` s
 - The ChatGPT GitHub connection used for this checkpoint reports `pull=true` and `push=false`; therefore no remote commit/push is claimed.
 - The cumulative `bd` backup ZIP is the authoritative portable backup of the current `av -> bc` changed-file state until the owner commits it to GitHub.
 - When the remote backup is committed, record the resulting GitHub commit SHA here in the next checkpoint rather than rewriting this historical note.
+
+---
+
+## v5.49.12bn — 2026-11-02 Compile Hotfix / Owner Errors (source files shipped, owner verification required)
+
+**Input:** Unity 6000.5.6f1 compiler output from owner after v5.49.12bm.
+
+**Exact compilation blockers fixed in this patch:**
+
+- `AtlasBoardAccountFormQualityGate.cs`: replace both obsolete/removed `Object.GetInstanceID()` calls with typed `HashSet<TMP_InputField>` and `HashSet<Button>` component reference tracking. Avoids CS0619 in Unity 6000.5 while preserving one-time listener wiring, caret/selection styling, email validation, password toggles and same-UID anonymous credential linking.
+- `AtlasBoardSteamIdentitySessionFence.cs`: rename the startup nested local `verified` to `startupVerified` in that block; preserve later `verified` for the active-session proof. Fixes CS0136 shadowing without changing the SteamID/UID checks or Firebase sign-out policy.
+- `AtlasBoardReleaseVersionBadge.cs`: use `FindObjectsByType<AtlasBoardMainMenuController>(FindObjectsInactive.Include)` to remove reported CS0618 warnings, retaining inactive-menu discovery and `v0.9.0-beta.1`.
+
+**Validation:** `phase19bn_compile_hotfix_contract.test.cjs` structural PASS; previously installed `phase19bm_account_ui_steam_safety_contract.test.cjs` contract PASS on revised source. Unity compile = **NOT RUN** in this environment; owner must confirm no compiler errors. No Firebase deploy, no GitHub commit or push.
+
+**Four priority issues are NOT all closed:**
+1. Steam account -> canonical Firebase UID: preliminary runtime fence is in place; two distinct real Steam identities, startup cold cache and actual wallet/Career isolation must be owner-tested. OPEN.
+2. Anonymous Guest -> Registered with same UID: preliminary credential linking is in place for normal native-Firebase build; production reward retention/identity linkage/guestOrigin history and failure rollback require live tests. OPEN.
+3. UID switch and cached profile/wallet/inventory/Career: initial lobby + wallet guard exists, but complete cross-screen cache invalidation must be verified. OPEN.
+4. Server-forced version matching: **NOT IMPLEMENTED**. RTDB security rules still need a compatible version-gate design and emulator regression before any production deployment. OPEN.
+
+**Acceptance order:** compile first; run registration on a regular native Firebase build, NOT the special two-client `AtlasBoardGuest` development QA executable (its account component is intentionally stripped). Cold-launch Steam A and Steam B separately with the corresponding Steam account chosen **before** launching the game, and verify no prior account values are visible; DO NOT assume PASS from a source contract alone. Maintain the existing Phase 18/Career/Gold PASS history. Do not attempt production Firebase deploy for this hotfix (RTDB rules unchanged).
+
+
+---
+
+## v5.49.12bo — 2026-11-02 Account QA Build + Form UI Repair / Version Gate Owner-Deferred
+
+**Owner evidence:** Registration CAPTCHA error text overlays the answer field; visible text insertion caret not legible; account buttons and show/hide controls look square. Separate Windows Guest QA blocks account registration, despite owner needing Guest -> Registered test. The fresh RTDB backup has two `Vuartex` display names on **distinct anonymous Firebase UIDs**: one owns 1025 Gold / 6500 Atlas Coin and verified RTDB inventory/history; the other owns 0/0. Wallets are **not device-local** and **must not be copied or combined by display name**. The SteamID -> canonical Firebase UID mapping is **not proven by the RTDB export**; do not claim a Steam restoration without authenticated proof.
+
+**Owner decision:** Firebase **server-enforced client version gate is DEFERRED by owner**. No RTDB Rules version enforcement change or production deploy in this checkpoint. Keep only the cooperative v0.9.0-beta.1 client guard. Owner will explicitly reopen this issue later. Do not keep prompting to implement it during current account UI work.
+
+**Shipped source changes:**
+- Retain existing UID-preserving native Auth `LinkWithCredentialAsync` helper; never create/copy a wallet on client.
+- New `AtlasBoard/QA/Build Account QA (Windows)` Editor build produces a distinct `AtlasBoardAccountQA.exe` Development build with native Firebase Auth and Steam provider disabled only for that QA executable. The original REST `AtlasBoardGuest.exe` host-migration QA executable remains separate and unchanged. Registration testing must occur in AccountQA, not REST Guest simulator; retaining the same UID is required.
+- Account form fixes captcha-status overlap by moving status to -337 relative to AccountWindow (away from captcha position); rounded input/button visuals, eye-icon password toggles, fixed visible insertion marker plus native TMP caret, and focus highlighting.
+- Existing Steam fail-closed identity fence still requires a **verified** SteamID -> Firebase UID proof. Log clarifies that sign-out does **not** delete Firebase wallet/inventory/history. Do not associate the old 1025/6500 UID with any Steam ID based on matching `Vuartex` name.
+
+**Release acceptance NOT achieved:** AccountQA Windows build, Firebase native linking, real Steam A/B restoration, two-UID cross-cache invalidation, Unity compilation, and visual regression are all **NOT RUN / OPEN**. Server-side version enforcement is **DEFERRED**, not PASS. No GitHub push and no Firebase production deployment.
+
+
+---
+
+## v5.49.12ca — Store REST Session Recovery and Owner QA Allowlist Diagnostics (2026-11-03)
+
+**Owner report:** In the same registered Windows Live Spark Guest QA account (Gold visible in menu), both daily +50 Gold and paid purchase (e.g. Ruby Red) return generic `Mağaza verileri yenilenemedi.` The Owner QA console reports `ACCESS DENIED — UID NOT SERVER-AUTHORIZED` when valid local owner codes are submitted. The previous **Career purchased emote visibility** and **emote unequip stability** are explicitly owner PASS. Do not alter these accepted systems.
+
+### Implementation shipped
+
+- `AtlasBoardRtdbMetaEconomy.cs`: on the **existing registered REST principal only**, recover a stale bearer token via the canonical Live Guest bridge's same-UID refresh-token path. The bridge verifies user ID continuity, preserves encrypted credentials, and cannot create new accounts in this refresh operation. The wallet read and registered account-type read retry at most once after an HTTP 401/403. A wallet mutation obtains a fresh existing UID bearer token before submitting an ETag PUT and retries a denied write at most once with a **new** ETag/read, never reusing a stale mutation body. Server-side RTDB authorization, anti-replay and wallet arithmetic remain unchanged. Development diagnostics `ATB_STORE_AUTH_REFRESH`, `ATB_STORE_WALLET_READ`, `ATB_STORE_MUTATION` report sanitized HTTP status and UID suffix only, no URL, bearer token or password.
+- `AtlasBoardOwnerConsole.cs`: the owner's local access-code hashes are unchanged (no secret is included in the delivered ZIP). Restore reliable direct class lookup for existing Fast Forward / Phase14J build-only diagnostic components and split UID-not-ready, wallet-unavailable and server-allowlist-not-authorized statuses. **No local code or editor privilege bypasses `/devWalletTesters/{uid} = true`.** Privileged commands remain `UNITY_EDITOR || DEVELOPMENT_BUILD` only.
+- No Firebase database rules, wallet balances, account registrations, store prices, matchmaking, Career/emote inventory, Steam identity, store UI layouts, scene files or release-build cheat availability changed.
+
+### Required production configuration for owner QA (separate from source patch)
+
+Use Firebase Console Authentication -> Users to find the **exact UID of the account actually signed into the QA executable**. If the owner intends to grant this UID QA privileges, use Firebase Console -> Realtime Database -> Data to manually set `/devWalletTesters/<exact UID>` to JSON boolean `true` and confirm that value; do not use the player's visible nickname or email instead of UID. Restrict to owner/test accounts and revoke before release. This is a controlled admin data operation, not an application source code change. The local QA codes will remain locked until both the UID and server flag are verified. A normal registered player must NOT get DEV_GRANT authorization automatically.
+
+### Acceptance checklist and current gate truth
+
+1. On same registered REST account, verify UID unchanged; store UI loads Gold; `ATB_STORE_AUTH_REFRESH` and `ATB_STORE_MUTATION` confirm single-UID operations without `wallet_put_failed`.
+2. After a verified server profile registration and token refresh, daily claim and one unaffordable/affordable purchase should return meaningful allowed/denied outcomes; verify transaction history and exact Gold arithmetic. **NOT RUN** here.
+3. Enter owner session code: if no allowlist entry, expect explicit deny; after manually authorizing exact test UID at Firebase, expect unlock; then test final-round fast-forward ONLY as lobby host in a Development build. **NOT RUN** here.
+4. Repeat purchase and daily test with a non-allowlisted regular UID: no developer commands, no admin wallet grant. **NOT RUN** here.
+5. Existing emote inventory/equip PASS, registered account/Steam PASS, and client-side release QA exclusion must be regression-checked; do not reopen accepted cases without evidence.
+
+**Static QA:** `phase19ca_store_owner_auth_source_gate.test.cjs` is a source-level contract only. Unity compilation, real Firebase Auth+RTDB emulator tests, live owner purchase/daily, and fast-forward runtime acceptance = **NOT RUN**. No production deployment or GitHub push performed. The owner-deferred Firebase server version gate remains **DEFERRED**.
+
+---
+
+## v5.49.12cc — Mağaza / Günlük Ödül Ayrıştırması + Hesaba Bağlı Zar Gözlemleri (2026-11-03)
+
+**Owner tarafından kabul edilen ve değiştirilmemesi gerekenler:** Emote sahipliği Envanter PASS; emote ÇIKAR düğmesi PASS; Sunucu Durumu ekranında teknik RTDB adı göstermeme PASS; ortalama ve en yüksek zarın **cihazda** doğru görünmesi PASS (`5.14*`, `10*`). Final Round Owner QA kodu çalışıyor. 2-insan oyun, botlar, identity fence ve önceden kapatılmış Phase 18 işleri yeniden açılmadı.
+
+**Yeni hata kanıtı:** Kayıtlı Deneme Hesabı için mağaza + günlük ödül + DEV BAKİYE, hesap ve token doğrulamasına rağmen `ATB_STORE_MUTATION ... wallet_put_failed http=401` üretiyor. 2026-11-03 RTDB dışa aktarımı `/users/<uid>/metaEconomy` içinde `dailyReward` alt dalının **tamamen eksik** olduğunu, aynı UID'nin `metaHistory` altında daha önce `DAILY` makbuzu ve satın alma makbuzu bulunduğunu gösteriyor. Eski RTDB kuralı `.validate` bütün cüzdan yazmalarında `dailyReward` alanını zorunlu tutuyordu. Bu, **PURCHASE** için yanlış bağımlılıktı; geliştirici izin listesi kaynaklı bir satın alma kısıtı değildi.
+
+### Kaynak değişiklikleri
+
+- `Backend/Firebase/database.rules.json`: mevcut bütün yetki/işlem fiyat denetimleri korunurken `metaEconomy` üst validasyonundan `dailyReward` zorunluluğu çıkarıldı; **DAILY** işlemi için eski `lastClaimAt` yokluğu ilk kullanım olarak ele alındı. Normal `PURCHASE`, `EQUIP`, `EQUIP_BOARD`, `EQUIP_DICE`, `RESET_PURCHASES` ve `DEV_GRANT` işlemleri artık eski cüzdanda bulunmayan günlük ödül alanını istemiyor veya otomatik olarak oluşturmuyor. Son ödül alanı mevcutsa önceki değişmezlik/eşitlik kuralları korunur. Normal satın alma ve günlük ödül için admin/tester izni YOKTUR; **DEV_GRANT ve RESET_PURCHASES** izin listesi gerektirmeye devam eder.
+- `AtlasBoardRtdbMetaEconomy.cs`: eski cüzdan okunurken `dailyReward` null güvenli olur; yalnızca **DAILY** eyleminde mevcut `metaHistory` içindeki önceki günlük ödül makbuzları incelenir. Son makbuz 24 saat içindeyse ek Gold verilmez. Hiç makbuz yoksa ilk talepte `dailyReward.lastClaimAt` yazılır ve +50 Gold uygulanır. Bir ürün satın almak için günlük ödül geçmişinin okunması, kayıtlı olması ya da başarılı olması gerekmez. INIT her zaman sayısal `lastClaimAt=0` kaydını oluşturur. UI'da 401 hatası artık normal oyuncuya "geliştirici kimliği" olarak sunulmaz.
+- `Backend/Firebase/database.rules.json` içinde **ayrı ve UID-scoped** `careerDiceObservations/<uid>/<matchId>` dalı eklendi. Yalnız kendi UID'si kayıtları okuyabilir/yazabilir; kayıtlar append-only'dir, aynı maç üzerinde tekrar yazılamaz, geçerli bir Career claim veya katılım + tamamlanmış maç arşivi gerektirir. 2–12 zar aralığı ve maç sayısı gibi sayısal sınırlar zorlanır. Zar toplamı/yüksek değerleri istemci gözlemidir; sunucu bunların tek tek atış doğruluğunu kanıtlamaz. Bu dal **Gold, XP veya achievement** ödüllerini hiçbir şekilde belirlemez.
+- `AtlasBoardCareerDiceCloud.cs` yeni: Auth UID eşleşmesini doğrulayarak local per-match zar gözlemlerini ilgili UID'ye göndermeye ve farklı cihazlardan toplamaya çalışır. Kayıtlı REST ve native Firebase Auth yollarını kapsar; başka UID'ye okuma/yazma yapmaz. ETag + append-only davranışı tekrarın önüne geçer.
+- `AtlasBoardProgressionUI.cs`: cloud zar gözlemlerini arka planda yükler, önce UID eşleşmesini doğrular, elde edilmiş veri varsa ortalama ve en yüksek zarı hesaba bağlı gözlemden gösterir; internet/claim yoksa önceki doğru cihaz verisi (*) görüntülemesi korunur. Harita filtreleriyle karışmaz.
+
+### Test ve güvenlik kabulü
+
+- Çalıştırılan **statik kaynak testleri**: `phase19cc_store_daily_dice_source_gate.test.cjs` PASS 28/28 ve önceki `phase19ca_store_owner_auth_source_gate.test.cjs` PASS 28/28. JSON ayrıştırma ve önceki source contract kontrolü PASS. Bu **emulator testi veya Unity compile** değildir.
+- Yeni gerçek Auth+RTDB emülatör denemesi: `phase19cc_store_daily_dice_emulator.test.cjs`, **NOT RUN** (bu çalışma ortamında Firebase CLI/emülatör yok). Sadece `demo-atlasboard`; production testine izin yok. Önce Auth+RTDB emulator PASS, sonra Windows Dev Build'de normal üye ile PURCHASE/DAILY/DEV_GRANT ve cihazlar arası zar gözlemi tekrar sınanmalıdır.
+- **Production rules deploy NOT DONE.** `database.rules.json` değişikliği production'a geçmeden 401 sorunu ortadan kalkmış sayılmaz. Kullanıcı açıkça onay vermedikçe deploy veya GitHub push yoktur.
+- **Legacy tek seferlik güvenlik sınırı:** Eski cüzdanda `lastClaimAt` kaydı tamamen yoksa sunucu kuralları geçmişteki rastgele anahtarlı DAILY makbuzlarının en yenisini kendiliğinden sorgulayamaz; istemci yalnız DAILY işleminde bütün değişmez makbuzları okuyarak eski ödülü korur. Sunucu hiç kaydedilmemiş eski alan için önceki 24 saati kendi başına çıkaramaz. Yeni günlük işleminden itibaren canonical `lastClaimAt` sunucu kurallarıyla 24 saat korunur. Bu kayıtlar ödül güvenliği ayrıca incelenmeden genel release gate PASS olarak işaretlenmemelidir.
+- **Ayrı ertelenmiş iş:** Zar toplamı/yüksek değerlerinin sunucu tarafından doğrulanmış *authoritative* atış geçmişinden oluşturulması (şu anki client telemetry hesapta kalıcıdır ama sunucu atışları tek tek kanıtlayamaz); normal istemcinin sunucu sürümü zorunlu kontrolü de önceki owner kararıyla **DEFERRED**.
+
+**Bu paket veri göçü, eski hesap silme, mevcut Gold/XP/envanter bakiyesi değiştirme veya canlı RTDB üzerinde alan ekleme yapmaz.** Eski tek hesaplık `v5.49.12cb` manuel `lastClaimAt` onarım önerisini bu uyumluluk geliştirmesi geçersiz kılar; herkes için kaynak düzeyinde çözüm uygulanır.

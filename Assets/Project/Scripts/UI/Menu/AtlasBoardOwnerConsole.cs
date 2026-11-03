@@ -174,7 +174,17 @@ public sealed class AtlasBoardOwnerConsole : MonoBehaviour
                 {
                     unlocked = true; ownerUid = uid; status = "SESSION UNLOCKED — QA ONLY";
                 }
-                else status = "ACCESS DENIED — UID NOT SERVER-AUTHORIZED";
+                else if (string.IsNullOrWhiteSpace(uid))
+                    status = "ACCESS DENIED — VERIFIED FIREBASE ACCOUNT REQUIRED";
+                else if (wallet == null || !wallet.Success || !wallet.WalletVerified)
+                    status = "ACCESS PENDING — WALLET CONNECTION COULD NOT BE VERIFIED";
+                else
+                    status = "ACCESS DENIED — THIS UID HAS NO SERVER QA ALLOWLIST ENTRY";
+                Debug.Log("ATB_OWNER_QA_GATE result=" + (unlocked ? "allow" : "deny") +
+                    " uid_suffix=" + (string.IsNullOrEmpty(uid) ? "none" :
+                        uid.Substring(Mathf.Max(0, uid.Length - 5))) +
+                    " wallet_verified=" + (wallet != null && wallet.WalletVerified) +
+                    " server_allowlisted=" + (wallet != null && wallet.IsDeveloperTester));
             }
             catch (Exception) { status = "AUTHORIZATION UNAVAILABLE — FAIL CLOSED"; }
             finally { checking = false; }

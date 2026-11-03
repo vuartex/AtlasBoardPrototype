@@ -26,7 +26,7 @@ public sealed class AtlasBoardReleaseVersionBadge : MonoBehaviour
     {
         AtlasBoardMainMenuController[] menus =
             UnityEngine.Object.FindObjectsByType<AtlasBoardMainMenuController>(
-                FindObjectsInactive.Include, FindObjectsSortMode.None);
+                FindObjectsInactive.Include);
         foreach (AtlasBoardMainMenuController existing in menus)
         {
             if (existing == null || !existing.gameObject.scene.IsValid()) continue;

@@ -75,6 +75,10 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
     private bool inventoryWriting;
     private string inventoryMessage = string.Empty;
     private string inventoryAccountUid = string.Empty;
+    private AtlasBoardCareerDiceCloud.Aggregate cloudDice;
+    private string cloudDiceUid = string.Empty;
+    private bool cloudDiceSyncing;
+    private float nextCloudDiceSyncAt;
 
 
     private void Awake()
@@ -330,7 +334,9 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         currentPage = page;
         RebuildNavigation();
         RebuildCurrentPage();
-        if (page == ProgressionPage.Inventory)
+        if (page == ProgressionPage.Inventory && !inventoryLoading &&
+            (inventoryServer == null ||
+             inventoryAccountUid != AtlasBoardRtdbMetaEconomy.CurrentUid))
             _ = RefreshInventoryAsync();
     }
 
@@ -498,9 +504,15 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             : new List<string> { InventoryDefaultFor(inventoryCategory) };
         // The preview rows are display-only. A successful trusted inventory
         // read must explicitly mark an item Owned before it is selectable.
-        if (inventoryServer != null && inventoryServer.Success)
+        // These Owned flags are read from the canonical UID-scoped wallet,
+        // NOT from a local storefront proposal. PreviewOnly remains true on
+        // catalog rows even after the server confirms ownership. Filtering it
+        // here hid every paid item in Career although Store displayed OWNED.
+        if (inventoryServer != null && inventoryServer.Success &&
+            inventoryServer.WalletVerified &&
+            inventoryAccountUid == AtlasBoardRtdbMetaEconomy.CurrentUid)
             foreach (AtlasBoardStorefrontItem item in inventoryServer.Items)
-                if (item != null && item.Owned && !item.PreviewOnly &&
+                if (item != null && item.Owned &&
                     item.ItemType == inventoryCategory &&
                     !result.Contains(item.ItemId)) result.Add(item.ItemId);
         return result;
@@ -538,6 +550,16 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
     {
         if (inventoryLoading) return;
         inventoryLoading = true;
+        // Do not paint a previously verified account's emote buttons green
+        // while a new principal is being resolved. The server snapshot is
+        // re-established only after UID + wallet verification.
+        if (!string.Equals(inventoryAccountUid,
+                AtlasBoardRtdbMetaEconomy.CurrentUid, StringComparison.Ordinal))
+        {
+            inventoryServer = null;
+            inventoryAccount = null;
+            inventoryAccountUid = string.Empty;
+        }
         inventoryMessage = InventoryWord("Loading account inventory...", "Hesap envanteri yükleniyor...",
             "Cargando inventario...", "Chargement de l'inventaire...",
             "Inventar wird geladen...", "인벤토리 불러오는 중...", "Загрузка инвентаря...");
@@ -545,24 +567,53 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         try
         {
             AtlasBoardAccountService account = AtlasBoardAccountService.Instance;
-            if (account == null || !account.IsSignedIn)
+            bool restQa = AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession;
+            string uid;
+            if (restQa)
             {
-                inventoryAccount = null;
-                inventoryServer = null;
-                inventoryAccountUid = "";
-                inventoryMessage = InventoryWord("Sign in to load cloud inventory.", "Bulut envanteri için giriş yap.",
-                    "Inicia sesión para ver el inventario.", "Connectez-vous pour l'inventaire.",
-                    "Zum Inventar anmelden.", "로그인 후 이용해 주세요.", "Войдите для загрузки инвентаря.");
-                return;
+                // Two-client Guest QA intentionally strips native Firebase.
+                // Use only its actual REST principal and exactly matching
+                // canonical wallet UID; never borrow the Editor's account.
+                if (!AtlasBoardLobbyRuntimeBridge.TryGetLiveGuestRewardIdentity(
+                        out uid, out string restToken) ||
+                    string.IsNullOrWhiteSpace(uid) ||
+                    string.IsNullOrWhiteSpace(restToken) ||
+                    uid != AtlasBoardRtdbMetaEconomy.CurrentUid)
+                {
+                    inventoryAccountUid = string.Empty;
+                    inventoryAccount = null;
+                    inventoryServer = null;
+                    inventoryMessage = InventoryWord("Account verification pending.",
+                        "Hesap doğrulaması bekleniyor.", "Verificando cuenta.",
+                        "Vérification du compte en cours.", "Konto wird geprüft.",
+                        "계정 확인 중.", "Проверка аккаунта.");
+                    Debug.LogWarning("ATB_INVENTORY_IDENTITY status=pending transport=rest code=ATB951");
+                    return;
+                }
             }
-            string uid = account.CurrentAccountId;
+            else
+            {
+                if (account == null || !account.IsSignedIn)
+                {
+                    inventoryAccount = null;
+                    inventoryServer = null;
+                    inventoryAccountUid = string.Empty;
+                    inventoryMessage = InventoryWord("Sign in to load cloud inventory.",
+                        "Bulut envanteri için giriş yap.", "Inicia sesión para ver el inventario.",
+                        "Connectez-vous pour l'inventaire.", "Zum Inventar anmelden.",
+                        "로그인 후 이용해 주세요.", "Войдите для загрузки инвентаря.");
+                    return;
+                }
+                uid = account.CurrentAccountId;
+            }
             if (inventoryAccountUid != uid)
             {
                 inventoryAccount = null;
                 inventoryServer = null;
                 inventoryAccountUid = uid;
+                AtlasBoardEmoteLoadoutService.Invalidate();
             }
-            inventoryAccount = await account.LoadCurrentAccountAsync();
+            inventoryAccount = restQa ? null : await account.LoadCurrentAccountAsync();
             inventoryServer = null;
             // The RTDB wallet is canonical for both registered Firebase users
             // and administrator-approved Steam QA users whose Firebase Auth
@@ -582,7 +633,29 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                     inventoryServer = read;
             }
             if (inventoryServer != null)
+            {
+                // Load only after the owner wallet has been verified. A
+                // second UID or expired token must not equip these cosmetics.
                 await AtlasBoardEmoteLoadoutService.LoadAsync();
+                int paidOwnedEmotes = inventoryServer.Items.Count(item =>
+                    item != null && item.Owned && item.ItemType == "emote" &&
+                    AtlasBoardEmotes.IsPaid(item.ItemId));
+                Debug.Log("ATB_INVENTORY_IDENTITY status=verified transport=" +
+                    (restQa ? "rest" : "native") +
+                    " wallet_verified=" + inventoryServer.WalletVerified +
+                    " paid_emotes=" + paidOwnedEmotes +
+                    " uid_suffix=" + uid.Substring(Math.Max(0, uid.Length - 5)));
+            }
+            if (inventoryAccountUid != AtlasBoardRtdbMetaEconomy.CurrentUid)
+            {
+                inventoryAccount = null;
+                inventoryServer = null;
+                inventoryMessage = InventoryWord("Account changed. Reload inventory.",
+                    "Hesap değişti. Envanteri yeniden yükle.", "La cuenta cambió.",
+                    "Le compte a changé.", "Konto gewechselt.", "계정이 변경됐습니다.",
+                    "Учётная запись изменилась.");
+                return;
+            }
             inventoryMessage = inventoryServer == null
                 ? InventoryWord("Default cosmetics available. Server ownership could not be verified.",
                     "Varsayılanlar kullanılabilir. Sunucu sahiplik doğrulaması yapılamadı.",
@@ -662,7 +735,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             foreach (AtlasBoardStorefrontItem item in inventoryServer.Items)
                 if (item != null && item.ItemId == chosenId &&
                     item.ItemType == "profile_frame" && item.Owned &&
-                    !item.PreviewOnly) { verifiedOwnership = true; break; }
+                    inventoryServer.WalletVerified) { verifiedOwnership = true; break; }
         }
         // A preview is not proof of purchase; never write unchecked frame IDs.
         if (!verifiedOwnership)
@@ -737,7 +810,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         bool owned = id == "";
         foreach (AtlasBoardStorefrontItem item in inventoryServer.Items)
             if (item.ItemId == id && item.ItemType == "board_theme" && item.Owned &&
-                !item.PreviewOnly) owned = true;
+                inventoryServer.WalletVerified) owned = true;
         if (!owned) return;
         inventoryWriting = true;
         RebuildCurrentPage();
@@ -770,7 +843,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         bool owned = id == "";
         foreach (AtlasBoardStorefrontItem item in inventoryServer.Items)
             if (item.ItemId == id && item.ItemType == "dice_skin" && item.Owned &&
-                !item.PreviewOnly) owned = true;
+                inventoryServer.WalletVerified) owned = true;
         if (!owned) return;
         inventoryWriting = true;
         RebuildCurrentPage();
@@ -802,7 +875,19 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         var owned = InventoryOwnedItems();
         if (!owned.Contains(inventorySelectedId)) return;
         var list = new List<string>(AtlasBoardEmoteLoadoutService.Active);
-        if (list.Contains(inventorySelectedId)) list.Remove(inventorySelectedId);
+        if (list.Contains(inventorySelectedId))
+        {
+            if (list.Count <= 1)
+            {
+                inventoryMessage = InventoryWord("Keep at least one active emote.",
+                    "En az bir emote aktif kalmalı.", "Mantén al menos un emote.",
+                    "Gardez au moins une emote.", "Mindestens eine Emote aktiv lassen.",
+                    "이모트 하나 이상 유지하세요.", "Оставьте хотя бы одну эмоцию.");
+                RebuildCurrentPage();
+                return;
+            }
+            list.Remove(inventorySelectedId);
+        }
         else if (list.Count >= 6)
         {
             inventoryMessage = InventoryWord("Six active emotes maximum. Remove one first.",
@@ -913,12 +998,26 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             : InventoryWord("APPLY", "UYGULA", "APLICAR", "APPLIQUER", "ANWENDEN", "적용", "ПРИМЕНИТЬ");
         Button apply = CreateButton(preview.transform, buttonText, Green,
             new Vector2(0f, -183f), new Vector2(250f, 56f));
+        bool restVerifiedInventory = AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession &&
+            !string.IsNullOrEmpty(inventoryAccountUid) &&
+            inventoryAccountUid == AtlasBoardRtdbMetaEconomy.CurrentUid &&
+            inventoryServer != null && inventoryServer.WalletVerified;
+        bool activeEmoteCanBeRemoved = inventoryCategory != "emote" ||
+            !InventoryIsEquipped(inventorySelectedId) ||
+            AtlasBoardEmoteLoadoutService.Active.Count > 1;
         apply.interactable = !inventoryLoading && !inventoryWriting &&
-            (inventoryCategory == "profile_frame" || inventoryCategory == "board_theme" || inventoryCategory == "dice_skin" || inventoryCategory == "emote") && inventoryAccount != null &&
+            (inventoryCategory == "profile_frame" || inventoryCategory == "board_theme" ||
+             inventoryCategory == "dice_skin" || inventoryCategory == "emote") &&
+            // Frame writes still need native public-profile service; all
+            // other cosmetics use the verified canonical economy wallet.
+            (inventoryAccount != null || restVerifiedInventory && inventoryCategory != "profile_frame") &&
+            activeEmoteCanBeRemoved &&
             (inventoryCategory == "emote" || !InventoryIsEquipped(inventorySelectedId)) &&
-            (inventoryCategory == "emote" && ownedItems.Contains(inventorySelectedId) && inventoryServer != null ||
+            (inventoryCategory == "emote" && ownedItems.Contains(inventorySelectedId) &&
+                inventoryServer != null && inventoryServer.WalletVerified ||
              inventorySelectedId == InventoryDefaultFor(inventoryCategory) ||
-             ownedItems.Contains(inventorySelectedId) && inventoryServer != null);
+             ownedItems.Contains(inventorySelectedId) && inventoryServer != null &&
+                inventoryServer.WalletVerified);
         apply.onClick.AddListener(ApplyInventorySelection);
 
 
@@ -968,6 +1067,7 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         BuildCareerStatsCard(displayedStats);
         BuildGameplayStatsCard(displayedStats);
         BuildMapStatsCard(displayedStats);
+        RequestCloudDiceSync();
     }
 
 
@@ -1368,6 +1468,98 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
     }
 
 
+    // Cloud observations follow the same authenticated UID as the Career
+    // snapshot. They are presentation-only, never Gold/XP entitlement proof.
+    private void RequestCloudDiceSync()
+    {
+        if (cloudDiceSyncing || snapshot == null || snapshot.RecentMatches == null)
+            return;
+        string uid = AtlasBoardRtdbMetaEconomy.CurrentUid;
+        if (string.IsNullOrWhiteSpace(uid)) return;
+        if (cloudDiceUid != uid)
+        {
+            cloudDiceUid = uid;
+            cloudDice = null;
+            nextCloudDiceSyncAt = 0f;
+        }
+        if (Time.unscaledTime < nextCloudDiceSyncAt) return;
+        nextCloudDiceSyncAt = Time.unscaledTime + 40f;
+        _ = RefreshCloudDiceAsync(uid, snapshot.RecentMatches);
+    }
+
+    private async Task RefreshCloudDiceAsync(
+        string uid, List<AtlasBoardProgressionMatchSummary> recent)
+    {
+        cloudDiceSyncing = true;
+        try
+        {
+            AtlasBoardCareerDiceCloud.Aggregate fetched =
+                await AtlasBoardCareerDiceCloud.SynchronizeAsync(recent);
+            if (fetched == null || fetched.Uid != uid ||
+                AtlasBoardRtdbMetaEconomy.CurrentUid != uid) return;
+            bool changed = cloudDice == null ||
+                cloudDice.RollCount != fetched.RollCount ||
+                cloudDice.RollSum != fetched.RollSum ||
+                cloudDice.HighestRoll != fetched.HighestRoll;
+            cloudDice = fetched;
+            if (changed && root != null && root.activeSelf &&
+                currentPage == ProgressionPage.Overview)
+                RebuildCurrentPage();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning("ATB_CAREER_DICE_CLOUD stage=ui_unavailable type=" +
+                ex.GetType().Name);
+        }
+        finally { cloudDiceSyncing = false; }
+    }
+
+    [Serializable]
+    private sealed class LocalCareerDiceObservation
+    {
+        public List<AtlasBoardProgressionMatchSummary> history =
+            new List<AtlasBoardProgressionMatchSummary>();
+    }
+
+    private bool TryReadObservedDice(out int rollCount, out int rollSum,
+        out int highest)
+    {
+        rollCount = 0;
+        rollSum = 0;
+        highest = 0;
+        string uid = AtlasBoardRtdbMetaEconomy.CurrentUid;
+        if (string.IsNullOrWhiteSpace(uid) || snapshot == null ||
+            snapshot.RecentMatches == null) return false;
+        string key = (AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession
+            ? "ATB.GuestCareer.Local.v1."
+            : "ATB.SteamCareer.Observed.v1.") + uid;
+        if (!PlayerPrefs.HasKey(key)) return false;
+        try
+        {
+            LocalCareerDiceObservation observations =
+                JsonUtility.FromJson<LocalCareerDiceObservation>(PlayerPrefs.GetString(key));
+            if (observations == null || observations.history == null) return false;
+            HashSet<string> thisUidMatches = new HashSet<string>(
+                snapshot.RecentMatches.Where(m => m != null &&
+                    !string.IsNullOrWhiteSpace(m.matchId)).Select(m => m.matchId),
+                StringComparer.Ordinal);
+            HashSet<string> used = new HashSet<string>(StringComparer.Ordinal);
+            foreach (AtlasBoardProgressionMatchSummary m in observations.history)
+            {
+                if (m == null || string.IsNullOrWhiteSpace(m.matchId) ||
+                    !thisUidMatches.Contains(m.matchId) || !used.Add(m.matchId) ||
+                    m.diceRolls <= 0 || m.totalDiceValue < m.diceRolls * 2 ||
+                    m.totalDiceValue > m.diceRolls * 12 ||
+                    m.highestRoll < 2 || m.highestRoll > 12) continue;
+                rollCount = (int)Math.Min(int.MaxValue, (long)rollCount + m.diceRolls);
+                rollSum = (int)Math.Min(int.MaxValue, (long)rollSum + m.totalDiceValue);
+                highest = Mathf.Max(highest, m.highestRoll);
+            }
+            return rollCount > 0;
+        }
+        catch (Exception) { return false; }
+    }
+
     private void BuildGameplayStatsCard(
         AtlasBoardCareerStats stats)
     {
@@ -1386,15 +1578,38 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         }
         AddStatLine(card.transform, 80f, T("progression.stats.dice_rolls"), stats.diceRolls);
         AddStatLine(card.transform, 38f, T("progression.stats.doubles"), stats.doublesRolled);
-        AddStatLine(
-            card.transform,
-            -4f,
-            T("progression.stats.avg_roll"),
-            stats.diceRolls > 0
-                ? ((float)stats.totalDiceValue / stats.diceRolls)
-                    .ToString("0.00", CultureInfo.InvariantCulture)
-                : "0.00");
-        AddStatLine(card.transform, -46f, T("progression.stats.high_roll"), stats.highestRoll);
+        int observedCount = 0, observedSum = 0, observedHigh = 0;
+        bool localObservation = stats.totalDiceValue <= 0 &&
+            TryReadObservedDice(out observedCount, out observedSum, out observedHigh);
+        // Cloud results survive account login on another device. The * marks
+        // incomplete/non-authoritative observation coverage (not fabricated
+        // lifetime telemetry). Map-specific filters keep their local evidence.
+        bool useCloud = string.IsNullOrWhiteSpace(selectedMapId) &&
+            cloudDice != null && cloudDice.Uid == AtlasBoardRtdbMetaEconomy.CurrentUid &&
+            cloudDice.RollCount > 0 && stats.totalDiceValue <= 0;
+        if (useCloud)
+        {
+            observedCount = cloudDice.RollCount;
+            observedSum = (int)Math.Min(int.MaxValue, cloudDice.RollSum);
+            observedHigh = cloudDice.HighestRoll;
+            localObservation = true;
+        }
+        // Device-local observations are genuine rolls, but can cover fewer
+        // matches than the cloud total. Mark the number with a visible *;
+        // never imply that incomplete telemetry is a global lifetime average.
+        string average = stats.diceRolls > 0 && stats.totalDiceValue > 0
+            ? ((float)stats.totalDiceValue / stats.diceRolls)
+                .ToString("0.00", CultureInfo.InvariantCulture)
+            : localObservation
+                ? ((float)observedSum / observedCount)
+                    .ToString("0.00", CultureInfo.InvariantCulture) + "*"
+                : stats.diceRolls == 0 ? "0.00" : "—";
+        string high = stats.highestRoll > 0
+            ? stats.highestRoll.ToString(CultureInfo.InvariantCulture)
+            : localObservation ? observedHigh.ToString(CultureInfo.InvariantCulture) + "*"
+            : stats.diceRolls == 0 ? "0" : "—";
+        AddStatLine(card.transform, -4f, T("progression.stats.avg_roll"), average);
+        AddStatLine(card.transform, -46f, T("progression.stats.high_roll"), high);
         AddStatLine(
             card.transform,
             -88f,
@@ -1405,6 +1620,17 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             -130f,
             T("progression.stats.development"),
             stats.developmentLevelsAtFinishTotal);
+        if (localObservation)
+        {
+            TMP_Text provenance = CreateText(card.transform, 12f,
+                FontStyles.Normal, TextAlignmentOptions.Center, Muted);
+            SetAnchored(provenance.rectTransform, new Vector2(0f, -154f),
+                new Vector2(320f, 20f));
+            provenance.text = InventoryWord("*This device's recorded matches",
+                "*Bu cihazda kaydedilen maçlar", "*Partidas de este dispositivo",
+                "*Matchs de cet appareil", "*Auf diesem Gerät erfasst",
+                "*이 기기의 기록", "*Матчи с этого устройства");
+        }
     }
 
 

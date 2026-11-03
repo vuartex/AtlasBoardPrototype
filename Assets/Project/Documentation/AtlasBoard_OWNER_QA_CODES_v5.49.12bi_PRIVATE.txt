@@ -1,0 +1,16 @@
+ATLASBOARD OWNER-ONLY QA CODES — KEEP OUT OF GITHUB, ASSETS, SCREENSHOTS, STREAMS
+These codes are for v5.49.12bi QA. They are a local session factor, not backend authority.
+Account UID must independently be in Firebase devWalletTesters. Commands only work in Editor/Development builds.
+Console: ` (backquote/tilde) or Ctrl+F10. Enter ACCESS once per process start.
+
+SESSION ACCESS: W7TELXT3A8KP6LF4JBKZ2NTLY74F
+FINAL ROUND: 9XLX4DXQDZMXSW255HER8EB6URTK
+FINISH AFTER CURRENT TURN: G5FYPGAUDZXMH3Q3FSZAV32LXLLD
+PHASE14J POPUP: K5T27TRYDHDKUZM2X4BZKM7EM28Z
+DEV GRANT (+5000 Gold +500 AtlasCoin): 64BVVVCA52LUKPB5DGBBT8T7CCB3
+XP PREVIEW (LOCAL-ONLY): 37RMG7BUGSXKL2USF9HF62UM5KKU
+
+Never commit this file to GitHub. Never include it in Unity Assets or a player build.
+Source/binary hashes are recoverable and client checks can be patched. Server UID allowlist and RTDB Rules remain real economy access controls.
+No production XP grant exists; preview cannot persist XP.
+Rotating these codes requires an owner-authorized new QA build with new hash verifiers.

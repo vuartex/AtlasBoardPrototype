@@ -1,0 +1,43 @@
+'use strict';
+// Read-only source contract. Does not claim live Firebase/Auth Unity PASS.
+const fs=require('node:fs'), path=require('node:path'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'../../..');
+function read(p){return fs.readFileSync(path.join(root,p),'utf8');}
+const registration=read('Assets/Project/Scripts/Online/Firebase/AtlasBoardAccountFormQualityGate.cs');
+const fence=read('Assets/Project/Scripts/Online/Firebase/AtlasBoardSteamIdentitySessionFence.cs');
+const steam=read('Assets/Project/Scripts/Online/Firebase/AtlasBoardSteamDevelopmentSession.cs');
+const codebook=read('Assets/Project/Documentation/FRONTEND_ERROR_CODEBOOK.md');
+let checks=0;
+function chk(c,name){assert.ok(c,name);checks++;}
+chk(registration.includes('(register ? "signUp" : "signInWithPassword")'),'link endpoint must be signUp');
+chk(!registration.includes('(register ? "update" : "signInWithPassword")'),'old blocked endpoint not used');
+chk(registration.includes('idToken = token'),'link carries existing idToken');
+chk(registration.includes('!string.Equals(oldUid, response.localId'),'old and new UID must match');
+chk(registration.includes('ApplyRegisteredGuestProfileAsync('),'profile sync');
+chk(registration.includes('general/accountType'),'registered account type');
+chk(registration.includes('"Button_CreateAccount"'),'existing UI reused');
+chk(registration.includes('HandleKeyboardTab()'),'tab reused');
+chk(registration.includes('MoveCaretToEndAfterFocusAsync'),'focus restores caret');
+chk(registration.includes('status.alignment = TextAlignmentOptions.Top'),'stable error message');
+chk(registration.includes('PlayerAuthErrorCode'),'public error code mapping');
+chk(!registration.includes('"[" + safeCategory + "] " + userMessage'),'no raw backend code in public UI');
+for(let code=731;code<=738;code++)chk(codebook.includes('ATB'+code),'codebook ATB'+code);
+chk(fence.includes('AtlasBoardSteamDevelopmentSession.EnsureAsync'),'Steam development session integration');
+chk(fence.includes('serverProven'),'server identity takes precedence');
+chk(fence.includes('UNITY_EDITOR_WIN') && fence.includes('DEVELOPMENT_BUILD'),'retail exclusion');
+chk(!fence.includes('startup_cache_cleared=true'),'no destructive default startup signout');
+chk(steam.includes('SignInWithEmailAndPasswordAsync'),'returning SteamID recovers same UID');
+chk(steam.includes('CryptProtectData')&&steam.includes('CryptUnprotectData'),'DPAPI protection');
+chk(steam.includes('string.Equals(uid, existing.uid'),'restored UID equality');
+chk(steam.includes('SlotPath(steam)')&&steam.includes('ReadLastOwner'),'per-Steam separation');
+chk(steam.includes('!string.Equals(linked.localId, slot.uid'),'upgrade same UID');
+chk(steam.includes('slot_unreadable=true'),'do not new UID on corrupt slot');
+chk(steam.includes('"atlasboard_steam_qa_" + steam'),'slot filename per SteamID');
+chk(steam.includes('"@example.com"'),'random opaque QA alias');
+chk(steam.includes('RandomHex(32)'),'non-deterministic password');
+chk(!steam.includes('PlayerPrefs.SetString'),'no plaintext credentials in PlayerPrefs');
+chk(!steam.includes('DeleteAsync('),'no owner deletion');
+chk(steam.includes('accounts:signUp?key='),'link with identity-protected signup');
+chk(steam.includes('SignInAnonymouslyAsync'),'first-time user bootstrap only');
+chk(!steam.includes('firebase-admin'),'no privileged key in client');
+console.log('ATB_PHASE19BS_IDENTITY_REGISTRATION_SOURCE PASS checks='+checks+' runtime=NOT_RUN production=NOT_TOUCHED');

@@ -7,31 +7,39 @@ using Firebase.Auth;
 using UnityEngine;
 using UnityEngine.Networking;
 
-// Emotes extend the existing RTDB UID / metaEconomy; no second wallet.
-// RTDB rules enforce 6 distinct owned IDs; this cache is presentation-only.
+// Canonical UID-scoped emote loadout. Never stores wallet or grants cosmetics.
+// Firebase RTDB rules remain responsible for UID ownership and paid entitlements.
 public static class AtlasBoardEmoteLoadoutService
 {
-    private const string Database = "https://atlasboard-usa-default-rtdb.europe-west1.firebasedatabase.app";
-    [Serializable] private sealed class Wire
+    private const string Database =
+        "https://atlasboard-usa-default-rtdb.europe-west1.firebasedatabase.app";
+    private const int MaxActiveEmotes = 6;
+    private const int MinActiveEmotes = 1;
+
+    [Serializable]
+    private sealed class Wire
     {
         public string slot1 = "", slot2 = "", slot3 = "", slot4 = "", slot5 = "", slot6 = "";
         public string[] ToArray() => new[] { slot1, slot2, slot3, slot4, slot5, slot6 };
         public static Wire From(IList<string> ids)
         {
-            var w = new Wire();
-            w.slot1 = ids.Count > 0 ? ids[0] : "";
-            w.slot2 = ids.Count > 1 ? ids[1] : "";
-            w.slot3 = ids.Count > 2 ? ids[2] : "";
-            w.slot4 = ids.Count > 3 ? ids[3] : "";
-            w.slot5 = ids.Count > 4 ? ids[4] : "";
-            w.slot6 = ids.Count > 5 ? ids[5] : "";
-            return w;
+            return new Wire
+            {
+                slot1 = ids.Count > 0 ? ids[0] : "",
+                slot2 = ids.Count > 1 ? ids[1] : "",
+                slot3 = ids.Count > 2 ? ids[2] : "",
+                slot4 = ids.Count > 3 ? ids[3] : "",
+                slot5 = ids.Count > 4 ? ids[4] : "",
+                slot6 = ids.Count > 5 ? ids[5] : ""
+            };
         }
     }
+
     private sealed class Response { public long Code; public string Body; public string ETag; }
     private static string cacheUid = "";
     private static string cacheTag = "null_etag";
     private static List<string> cache;
+
     public static IReadOnlyList<string> Active
     {
         get
@@ -44,12 +52,38 @@ public static class AtlasBoardEmoteLoadoutService
                 ? (IReadOnlyList<string>)cache : AtlasBoardEmotes.FreeIds;
         }
     }
-    public static void Invalidate() { cacheUid = ""; cache = null; cacheTag = "null_etag"; }
+
+    public static void Invalidate()
+    {
+        cacheUid = "";
+        cache = null;
+        cacheTag = "null_etag";
+    }
+
     private static async Task<(string uid, string token)> Identify()
     {
-        // Match the UID/token that actually owns the live RTDB seat. The
-        // native Firebase singleton can point at another Steam identity when
-        // the No-Steam QA guest uses its own REST Firebase session.
+        // In Live Spark Windows QA the signed-in Firebase UID is verified by
+        // the REST bridge, not FirebaseAuth.DefaultInstance. HasLobby is false
+        // in Career/Store, so it must never be used as the only REST gate.
+        if (AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession)
+        {
+            if (AtlasBoardLobbyRuntimeBridge.TryGetLiveGuestRewardIdentity(
+                    out string guestUid, out string guestToken) &&
+                !string.IsNullOrWhiteSpace(guestUid) &&
+                !string.IsNullOrWhiteSpace(guestToken))
+            {
+                string walletUid = AtlasBoardRtdbMetaEconomy.CurrentUid;
+                if (!string.IsNullOrWhiteSpace(walletUid) &&
+                    !string.Equals(walletUid, guestUid, StringComparison.Ordinal))
+                {
+                    Debug.LogWarning("ATB_EMOTE_LOADOUT identity_mismatch=true code=ATB831");
+                    return ("", "");
+                }
+                return (guestUid, guestToken);
+            }
+            return ("", "");
+        }
+
         AtlasBoardLobbyRuntimeBridge bridge =
             UnityEngine.Object.FindAnyObjectByType<AtlasBoardLobbyRuntimeBridge>();
         if (bridge != null && bridge.HasLobby)
@@ -59,72 +93,129 @@ public static class AtlasBoardEmoteLoadoutService
             return !string.IsNullOrEmpty(owner) && !string.IsNullOrEmpty(token)
                 ? (owner, token) : ("", "");
         }
-        if (AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession)
-            return ("", "");
         try
         {
-            FirebaseUser u = FirebaseAuth.DefaultInstance.CurrentUser;
-            if (u == null || string.IsNullOrWhiteSpace(u.UserId)) return ("", "");
-            string token = await u.TokenAsync(false);
-            return (u.UserId, token ?? "");
+            FirebaseUser user = FirebaseAuth.DefaultInstance.CurrentUser;
+            if (user == null || string.IsNullOrWhiteSpace(user.UserId)) return ("", "");
+            string token = await user.TokenAsync(false);
+            return (user.UserId, token ?? "");
         }
         catch { return ("", ""); }
     }
-    private static async Task<Response> Request(string method, string path, string token, string body = null, string etag = null)
+
+    private static async Task<Response> Request(
+        string method, string path, string token, string body = null, string etag = null)
     {
         string url = Database + path + ".json?auth=" + UnityWebRequest.EscapeURL(token);
-        using (UnityWebRequest request = method == "GET" ? UnityWebRequest.Get(url) : UnityWebRequest.Put(url, body ?? "{}"))
+        using (UnityWebRequest request = method == "GET"
+            ? UnityWebRequest.Get(url) : UnityWebRequest.Put(url, body ?? "{}"))
         {
             request.method = method;
+            request.timeout = 15;
+            await AtlasBoardAppCheckRequestSecurity.ApplyAsync(request);
             if (method == "GET") request.SetRequestHeader("X-Firebase-ETag", "true");
             if (method != "GET") request.SetRequestHeader("Content-Type", "application/json");
             if (etag != null) request.SetRequestHeader("if-match", etag);
             var done = new TaskCompletionSource<bool>();
-            request.SendWebRequest().completed += _ => done.TrySetResult(true);
+            var requestOperation = request.SendWebRequest();
+            requestOperation.completed += _ => done.TrySetResult(true);
+            if (requestOperation.isDone) done.TrySetResult(true);
             await done.Task;
-            return new Response { Code = request.responseCode, Body = request.downloadHandler != null ? request.downloadHandler.text : "",
-                ETag = request.GetResponseHeader("ETag") };
+            return new Response
+            {
+                Code = request.responseCode,
+                Body = request.downloadHandler != null ? request.downloadHandler.text : "",
+                ETag = request.GetResponseHeader("ETag")
+            };
         }
     }
-    private static string Path(string uid) => "/users/" + UnityWebRequest.EscapeURL(uid) + "/emoteLoadout";
+
+    private static string Path(string uid) =>
+        "/users/" + UnityWebRequest.EscapeURL(uid) + "/emoteLoadout";
+
+    private static List<string> Defaults()
+    {
+        // At least one bundled free emote remains available without purchases.
+        return new List<string>(AtlasBoardEmotes.FreeIds.Take(MaxActiveEmotes));
+    }
+
     public static async Task<IReadOnlyList<string>> LoadAsync()
     {
         var (uid, token) = await Identify();
-        if (uid.Length == 0 || token.Length == 0) { Invalidate(); return AtlasBoardEmotes.FreeIds; }
+        if (uid.Length == 0 || token.Length == 0)
+        {
+            Invalidate();
+            Debug.LogWarning("ATB_EMOTE_LOADOUT load_blocked=true code=ATB831");
+            return AtlasBoardEmotes.FreeIds;
+        }
         try
         {
-            Response r = await Request("GET", Path(uid), token);
-            if (r.Code != 200) throw new Exception("HTTP " + r.Code);
-            Wire w = string.IsNullOrWhiteSpace(r.Body) || r.Body.Trim() == "null" ? null : JsonUtility.FromJson<Wire>(r.Body);
-            cache = w == null ? new List<string>(AtlasBoardEmotes.FreeIds) : w.ToArray()
-                .Where(s => !string.IsNullOrEmpty(s) && AtlasBoardEmotes.IsEmote(s)).Distinct().Take(6).ToList();
+            Response result = await Request("GET", Path(uid), token);
+            if (result.Code != 200)
+                throw new InvalidOperationException("LOAD_HTTP_" + result.Code);
+            Wire wire = string.IsNullOrWhiteSpace(result.Body) ||
+                result.Body.Trim() == "null" ? null : JsonUtility.FromJson<Wire>(result.Body);
+            var parsed = wire == null ? Defaults() : wire.ToArray()
+                .Where(s => !string.IsNullOrEmpty(s) && AtlasBoardEmotes.IsEmote(s))
+                .Distinct(StringComparer.Ordinal).Take(MaxActiveEmotes).ToList();
+            bool repair = wire == null || parsed.Count < MinActiveEmotes;
+            if (parsed.Count < MinActiveEmotes) parsed = Defaults();
+            cache = parsed;
             cacheUid = uid;
-            cacheTag = string.IsNullOrWhiteSpace(r.ETag) ? "null_etag" : r.ETag;
-            if (w == null && !await SaveAsync(cache))
-                Debug.LogWarning("ATB_EMOTE_LOADOUT status=seed_pending uid_scoped=true");
+            cacheTag = string.IsNullOrWhiteSpace(result.ETag) ? "null_etag" : result.ETag;
+            if (repair && !await SaveAsync(parsed))
+                Debug.LogWarning("ATB_EMOTE_LOADOUT status=seed_pending code=ATB953");
+            Debug.Log("ATB_EMOTE_LOADOUT status=loaded count=" + cache.Count +
+                " uid_suffix=" + uid.Substring(Math.Max(0, uid.Length - 5)));
         }
-        catch (Exception e) { Debug.LogWarning("ATB_EMOTE_LOAD failed " + e.Message); cacheUid = uid; cache = new List<string>(AtlasBoardEmotes.FreeIds); }
+        catch (Exception e)
+        {
+            Debug.LogWarning("ATB_EMOTE_LOADOUT load_failed=true code=ATB952 type=" +
+                e.GetType().Name);
+            cacheUid = uid;
+            cache = Defaults();
+        }
         return Active;
     }
+
     public static async Task<bool> SaveAsync(IList<string> ids)
     {
         var (uid, token) = await Identify();
-        if (uid.Length == 0 || token.Length == 0 || ids == null || ids.Count > 6 ||
-            ids.Distinct().Count() != ids.Count || ids.Any(s => !AtlasBoardEmotes.IsEmote(s) ||
-                (AtlasBoardEmotes.IsPaid(s) &&
-                 !AtlasBoardRtdbMetaEconomy.IsEmoteOwnedForCurrentUid(s)))) return false;
+        if (uid.Length == 0 || token.Length == 0 || ids == null ||
+            ids.Count < MinActiveEmotes || ids.Count > MaxActiveEmotes ||
+            ids.Distinct(StringComparer.Ordinal).Count() != ids.Count ||
+            ids.Any(s => !AtlasBoardEmotes.IsEmote(s) ||
+                AtlasBoardEmotes.IsPaid(s) &&
+                !AtlasBoardRtdbMetaEconomy.IsEmoteOwnedForCurrentUid(s)))
+        {
+            Debug.LogWarning("ATB_EMOTE_LOADOUT save_rejected=true code=ATB951");
+            return false;
+        }
         try
         {
-            // Always read current ETag, avoiding overwrite of another device's latest selection.
+            // Fresh ETag prevents overwriting another device's loadout edit.
             Response state = await Request("GET", Path(uid), token);
             if (state.Code != 200) return false;
             Response written = await Request("PUT", Path(uid), token,
-                JsonUtility.ToJson(Wire.From(ids)), string.IsNullOrWhiteSpace(state.ETag) ? "null_etag" : state.ETag);
-            if (written.Code < 200 || written.Code >= 300) return false;
-            cacheUid = uid; cache = new List<string>(ids); cacheTag = written.ETag;
-            Debug.Log("ATB_EMOTE_LOADOUT status=saved count=" + cache.Count);
+                JsonUtility.ToJson(Wire.From(ids)),
+                string.IsNullOrWhiteSpace(state.ETag) ? "null_etag" : state.ETag);
+            if (written.Code < 200 || written.Code >= 300)
+            {
+                Debug.LogWarning("ATB_EMOTE_LOADOUT save_denied=true code=ATB952 http=" + written.Code);
+                return false;
+            }
+            cacheUid = uid;
+            cache = new List<string>(ids);
+            cacheTag = written.ETag;
+            Debug.Log("ATB_EMOTE_LOADOUT status=saved count=" + cache.Count +
+                " uid_suffix=" + uid.Substring(Math.Max(0, uid.Length - 5)));
             return true;
         }
-        catch (Exception e) { Debug.LogWarning("ATB_EMOTE_LOADOUT failed " + e.GetType().Name); return false; }
+        catch (Exception e)
+        {
+            Debug.LogWarning("ATB_EMOTE_LOADOUT save_failed=true code=ATB952 type=" +
+                e.GetType().Name);
+            return false;
+        }
     }
 }

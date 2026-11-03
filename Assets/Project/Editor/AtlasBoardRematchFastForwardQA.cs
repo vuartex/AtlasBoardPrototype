@@ -10,20 +10,20 @@ public static class AtlasBoardRematchFastForwardQA
     private const BindingFlags InstancePrivate =
         BindingFlags.Instance | BindingFlags.NonPublic;
 
-    [MenuItem("Atlas Board/QA Diagnostics/Match/Set Current Match To Final Round", priority = 905)]
+    [MenuItem("Atlas Board/QA & Diagnostics/QA/Match/Set Current Match To Final Round", priority = 905)]
     public static void SetCurrentMatchToFinalRound()
     {
         ApplyFinalRoundState(finishAfterCurrentTurn: false);
     }
 
-    [MenuItem("Atlas Board/QA Diagnostics/Match/Finish After Current Turn For Rematch QA", priority = 906)]
+    [MenuItem("Atlas Board/QA & Diagnostics/QA/Match/Finish After Current Turn For Rematch QA", priority = 906)]
     public static void FinishAfterCurrentTurnForRematchQa()
     {
         ApplyFinalRoundState(finishAfterCurrentTurn: true);
     }
 
-    [MenuItem("Atlas Board/QA Diagnostics/Match/Set Current Match To Final Round", true)]
-    [MenuItem("Atlas Board/QA Diagnostics/Match/Finish After Current Turn For Rematch QA", true)]
+    [MenuItem("Atlas Board/QA & Diagnostics/QA/Match/Set Current Match To Final Round", true)]
+    [MenuItem("Atlas Board/QA & Diagnostics/QA/Match/Finish After Current Turn For Rematch QA", true)]
     private static bool ValidateCommands()
     {
         return EditorApplication.isPlaying;
@@ -38,7 +38,7 @@ public static class AtlasBoardRematchFastForwardQA
         }
 
         TurnManager turnManager =
-            UnityEngine.Object.FindFirstObjectByType<TurnManager>();
+            UnityEngine.Object.FindAnyObjectByType<TurnManager>();
 
         if (turnManager == null)
         {
@@ -47,7 +47,7 @@ public static class AtlasBoardRematchFastForwardQA
         }
 
         AtlasBoardTurnDiceNetworkCoordinator coordinator =
-            UnityEngine.Object.FindFirstObjectByType<AtlasBoardTurnDiceNetworkCoordinator>();
+            UnityEngine.Object.FindAnyObjectByType<AtlasBoardTurnDiceNetworkCoordinator>();
 
         if (coordinator != null &&
             coordinator.IsPreparedOnlineMatch &&

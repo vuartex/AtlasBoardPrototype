@@ -1,3 +1,34 @@
+﻿## v5.49.12bz — Source diagnostics / outcome tracking (2026-11-03)
+
+**ATB954** is now represented in Career inventory source: the registered REST account must verify the exact wallet UID, and a paid `Owned` item is not rejected solely because the catalog's `PreviewOnly` presentation flag is true. Source fix is **not** Unity runtime acceptance.
+
+**ATB955** is now emitted in Development diagnostics by the single Server Status class when foreground connectivity checks cannot complete. Public UI shows localized Account, Online, Shop, Cloud Data and Career states, never infrastructure names or raw HTTP statuses. At most one check per 60s while the tab is open; Auth/room/career reads do not alter Gold.
+
+**ATB956** remains an open *cross-device / signed-proof* issue. The UI reads only genuine device-local dice observations with the same UID and match ID, and marks partial results with `*`. It does not falsify an old missing roll sum/max. Current `careerFinalProofs` and `careerClaims` rules reject new fields via `$other: false`; formal server schema upgrade requires emulator rules validation and owner approval.
+
+**ATB952** remains the existing code for failed authenticated emote load/save, UID/ETag/ownership validation. Development logs only include redacted UID suffix and response category; no raw email, password, token or URL.
+
+---
+
+## v5.49.12by — Emote / session consistency diagnostics
+
+All text below is **developer documentation**, not material to display verbatim to players.
+Customer-facing UI uses a translated, short message and the ATB code only.
+
+| Code | Internal meaning | Status / severity |
+|---|---|---|
+| ATB951 | Emote selection rejected: zero entries, more than six, duplicates or unowned ID. | Wired in emote loadout service / recoverable |
+| ATB952 | Emote load/save failed remote verification, transport or ETag authorization. | Wired in emote loadout service / recoverable |
+| ATB953 | Missing/empty emote loadout could not yet be re-seeded with free defaults; no paid cosmetics granted. | Wired in emote loadout service / recoverable |
+| ATB954 | Registered REST player was erroneously blocked by native-only Career inventory login check. | Tracked P0; NOT yet wired to UI |
+| ATB955 | Customer-facing online status is stale, unverified or inconsistent with verified account state. | Tracked P1; NOT yet wired to UI |
+| ATB956 | Roll count exists but sum/highest proof is unavailable; must not display invented averages. | Tracked P1; NOT yet wired to UI |
+| ATB957 | Promo redemption requires an unavailable trusted service or non-issued code; do not pretend it succeeded. | Tracked P1; NOT yet wired to UI |
+
+**Server Status UI policy:** Public labels must refer to **Hesap bağlantısı**, **Çevrimiçi oyun**, **Mağaza ve ödüller**, **Kariyer eşitleme**, and **Ağ bağlantısı**, not databases, hosts, ports or providers. For each probe, render one of: `Bağlı`, `Kontrol ediliyor`, `Giriş gerekli`, `Geçici olarak kullanılamıyor`, `Yavaş / yeniden deneniyor`. A green badge is allowed only after a real successful authenticated check. The current Settings implementation does not yet satisfy this requirement.
+
+---
+
 # Atlas Board Frontend Error Codebook
 
 **Canonical purpose:** stable player-facing support/error codes without exposing infrastructure details.  
@@ -189,6 +220,37 @@ At 20 seconds the loading UI may expose **Retry**. At 30 seconds it may also exp
 | ATB740 | Platform invite/join request failed. | Recoverable |
 | ATB750 | Platform entitlement check failed. | Recoverable |
 | ATB760 | Platform achievement synchronization failed. | Recoverable |
+
+## Account creation and sign-in (private diagnostic mapping)
+
+These internal meanings must NEVER be displayed alongside the player message.
+The retail UI displays only localized short text plus one support code.
+The development log may include a redacted HTTP status and provider category;
+it must never include e-mail addresses, passwords, tokens or raw responses.
+
+| Code | Internal meaning | Severity |
+|---|---|---|
+| ATB731 | Account request failed due to network, response parsing, or unexpected provider error. | Recoverable |
+| ATB732 | Account creation email already linked to an existing identity (EMAIL_EXISTS). | Recoverable |
+| ATB733 | Invalid credentials for an existing account. | Recoverable |
+| ATB734 | Credential or existing authenticated UID was invalid or expired. | Blocking |
+| ATB735 | Provider rejected account operation (OPERATION_NOT_ALLOWED); check account-link endpoint and email-enumeration protection. | Blocking |
+| ATB736 | Authentication abuse/rate limit. | Recoverable |
+| ATB737 | Backend password policy rejected credential. | Recoverable |
+| ATB738 | Authentication succeeded but canonical user-profile RTDB sync remains pending. | Recoverable |
+| ATB739 | Sign-in blocked locally because the password input is blank; no authentication request was sent. | Recoverable |
+| ATB741 | Password reset dialog rejected an invalid email address before contacting Firebase. | Recoverable |
+| ATB742 | REST password-reset request failed due to provider/transport/rate limiting; external account existence is not disclosed. | Recoverable |
+| ATB743 | Registered REST account nickname update rejected by 24h server cooldown, validation or transport. | Recoverable |
+| ATB744 | Registered REST sign-out could not securely establish and persist a new anonymous Firebase UID. Existing registered account remains. | Recoverable |
+
+**Security contract:** When upgrading an anonymous Guest, send that Guest's
+current `idToken` to `accounts:signUp` along with email and password. Verify
+the response `localId` equals the original Firebase UID before updating the
+profile, wallet or any local session. With email enumeration protection
+enabled, `accounts:update` cannot be used for this provider-link operation.
+See Google Cloud Identity Platform email enumeration protection documentation.
+
 ## Connectivity
 
 | Code | Internal meaning | Severity |
@@ -240,3 +302,32 @@ At 20 seconds the loading UI may expose **Retry**. At 30 seconds it may also exp
 8. Speculative public-lobby warm-up is Development/Editor only. Release does not add that extra call.
 9. Startup profile warm-up is non-blocking after identity; failure is logged with an ATB code but does not expose infrastructure names to the player.
 10. When integrating legacy UI errors later, map the user-visible surface to an ATB code and keep the existing technical message only in logs.
+
+
+---
+
+### v5.49.12ca — QA and economy diagnostics (2026-11-03)
+
+| Code | Diagnostic meaning | Player-facing guidance / action |
+|---|---|---|
+| ATB958 | Existing, registered REST user's bearer token cannot be refreshed for the same UID. | Session or network verification failed. Retry sign-in without creating a new account. |
+| ATB959 | Wallet GET or wallet transaction PUT returned HTTP 401/403 after a safe same-UID refresh attempt. | Cannot verify purchase/claim. Do not charge locally; use log stage `ATB_STORE_WALLET_READ` / `ATB_STORE_MUTATION`, never show Firebase details. |
+| ATB961 | Owner QA session code was valid but no canonical Firebase UID could be resolved. | Sign in to intended owner test account, then retry. No privileged operations allowed. |
+| ATB962 | Owner QA UID not on server-side `/devWalletTesters` allowlist. | An authorized Firebase project administrator must explicitly approve that exact UID. Client code must not self-approve. |
+| ATB963 | QA wallet could not be verified while checking owner authorization. | Check network and authenticated wallet; never fall back to local admin privilege. |
+
+No raw authentication credentials, full UID, token, API URL or provider implementation details should be rendered in player-facing alerts. Account and client errors must stay separated from server denials. All source-level diagnostics remain internal; these codes do not imply live test PASS.
+
+---
+
+### v5.49.12cc — Store daily-claim independence and cloud dice observations
+
+- `ATB_STORE_MUTATION stage=wallet_put_failed kind=PURCHASE/DAILY/DEV_GRANT http=401`: Firebase RTDB security rule denied the canonical economy PUT. For regular purchases and DAILY this **does not imply missing developer rights**. Verify the deployed `database.rules.json` accepts existing wallets without `dailyReward`.
+- `ATB_DAILY_LEGACY stage=read missing=true historical_receipt_found=true/false`: Old wallet has no daily timestamp; the read-only UI recovered the last claim from immutable history. Must not overwrite cash/inventory to repair this field.
+- `ATB_DAILY_LEGACY stage=claim missing=true receipt_found=true/false`: A first claim or legacy claim used the latest historical DAILY receipt to enforce 24 hours on the client. Never grant twice when the receipt is recent.
+- `ATB_DAILY_LEGACY history_unavailable=true`: Cannot verify whether an older daily award exists; the **DAILY action fails closed** rather than paying unknown Gold. Normal purchases MUST NOT be blocked by this condition.
+- `ATB_CAREER_DICE_CLOUD stage=loaded stored_matches=... rolls=... reward_authority=false`: Account-scoped telemetry loaded. These records are not Gold/XP or achievement proof.
+- `ATB_CAREER_DICE_CLOUD stage=observation_pending http=401/403`: Account/claim/archive/rules prevented insertion; display existing local observation with `*` until eligibility is available. This message is diagnostic-only.
+- `ATB_CAREER_DICE_CLOUD stage=unavailable`: Network or Auth token error; account ownership cannot be replaced by device-local values in the backend, and gameplay remains available.
+
+**Player-facing UI:** No terms such as RTDB, token, raw Firebase method, or developer identity for a normal purchase/day claim. Keep operator-facing cause in safe diagnostic logs only; never log Firebase bearer token/password.

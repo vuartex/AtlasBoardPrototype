@@ -1,0 +1,42 @@
+'use strict';
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const dir = path.resolve(__dirname, '../../../Assets/Project/Scripts/Online/Firebase');
+function source(filename) { return fs.readFileSync(path.join(dir, filename), 'utf8'); }
+const session = source('AtlasBoardSteamDevelopmentSession.cs');
+const fence = source('AtlasBoardSteamIdentitySessionFence.cs');
+const form = source('AtlasBoardAccountFormQualityGate.cs');
+const guard = (ok, message) => { assert.ok(ok, message); checks++; };
+let checks = 0;
+for (const [s, name] of [[session, 'Steam session'], [fence, 'Auth fence'], [form, 'Form']]) {
+  guard((s.match(/\{/g) || []).length === (s.match(/\}/g) || []).length, name + ' braces balance');
+  guard((s.match(/^\s*#if\b/gm) || []).length === (s.match(/^\s*#endif\b/gm) || []).length, name + ' preprocess balance');
+  guard(!/GetInstanceID\s*\(/.test(s), name + ' obsolete Unity ID API');
+}
+guard(session.includes('CurrentUidMatchesStoredSlot(steamId)'), 'Completed auth task must revalidate CURRENT Firebase UID');
+guard(session.includes('operation = null; // force re-authentication'), 'Cached completed task invalidated on UID change');
+guard(session.includes('auth.SignInWithEmailAndPasswordAsync('), 'Same persisted Steam slot restored by exact identity');
+guard(session.includes('if (existing == null && lastOwner == steam)'), 'Missing same-owner credential fails closed');
+guard(session.includes('no_new_uid=true'), 'No duplicate UID recovery error marker');
+guard(session.includes('existing.uid, StringComparison.Ordinal'), 'Existing UID validated exactly');
+guard(fence.includes('StateChanged += OnAuthStateChanged'), 'Auth provider state listener installed');
+guard(fence.includes('StateChanged -= OnAuthStateChanged'), 'Auth provider state listener removed');
+guard(fence.includes('RestoreAcceptedOwnerAsync'), 'Unexpected Auth changes restore owner');
+guard(fence.includes('if (observedAuth != null && observedAuth.CurrentUser != null)'), 'Mismatch session signout guarded');
+guard(fence.includes('!string.Equals(user != null ? user.UserId : ""'), 'Current signed in principal compared to accepted UID');
+guard(!fence.includes('PlayerPrefs.SetString('), 'No plaintext auth credentials in PlayerPrefs');
+guard(form.includes('response.localId, StringComparison.Ordinal'), 'Registered guest UID must match original');
+guard(form.includes('TrySaveLiveGuestCredentials'), 'UID-bound refresh token persisted before switch');
+guard(form.includes('BindRegisteredLiveGuest('), 'Registered nickname bound to UI');
+guard(form.includes('TrySaveRegisteredDisplayNameInFirebaseAuthAsync('), 'Durable registration nickname in Firebase Auth');
+guard(form.includes('LoadRegisteredGuestNameAsync('), 'Known nickname restored on login');
+guard(form.includes('ProbeRegisteredLiveGuestAsync('), 'Reopen REST build automatically recognizes registered principal');
+guard(form.includes('BindRegisteredCareerEntry('), 'Career entry handles live registered guest without native Auth');
+guard(form.includes('ShowAuthErrorPopup('), 'Error popup with support code');
+guard(form.includes('ATB733'), 'Wrong credentials support code');
+guard(form.includes('await Task.Yield();\n        await Task.Yield();'), 'Delayed caret at end of input');
+guard(form.includes('new RestGuestLinkRequest'), 'Original REST credential upgrade not replaced with new user');
+guard(form.includes('ApplyRegisteredGuestProfileAsync('), 'RTDB accountType sync retained');
+guard(!session.includes('GetInstanceID('), 'Modern Unity API compatibility');
+console.log(`ATB_PHASE19BU_IDENTITY_SESSION_CONTRACT PASS checks=${checks} runtime=NOT_RUN production=NOT_TOUCHED`);
