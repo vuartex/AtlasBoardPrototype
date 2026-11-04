@@ -707,16 +707,23 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             await ApplyOwnedBoardAsync();
             return;
         }
-        if (inventoryWriting || inventoryLoading || inventoryAccount == null ||
+        if (inventoryWriting || inventoryLoading ||
             inventoryCategory != "profile_frame" ||
             InventoryIsEquipped(inventorySelectedId)) return;
 
-
         AtlasBoardAccountService account = AtlasBoardAccountService.Instance;
         string uid = inventoryAccountUid;
-        if (account == null || !account.IsSignedIn ||
-            !string.Equals(uid, account.CurrentAccountId, StringComparison.Ordinal) ||
-            !string.Equals(uid, inventoryAccount.AccountId, StringComparison.Ordinal))
+        bool restVerified = AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession &&
+            !string.IsNullOrWhiteSpace(uid) &&
+            string.Equals(uid, AtlasBoardRtdbMetaEconomy.CurrentUid, StringComparison.Ordinal) &&
+            AtlasBoardAccountFormQualityGate.TryGetVerifiedRegisteredRestPrincipal(
+                out string restUid) && string.Equals(restUid, uid, StringComparison.Ordinal) &&
+            inventoryServer != null && inventoryServer.Success && inventoryServer.WalletVerified;
+        bool nativeVerified = account != null && account.IsSignedIn &&
+            inventoryAccount != null &&
+            string.Equals(uid, account.CurrentAccountId, StringComparison.Ordinal) &&
+            string.Equals(uid, inventoryAccount.AccountId, StringComparison.Ordinal);
+        if (!restVerified && !nativeVerified)
         {
             inventoryMessage = InventoryWord("Account changed. Reload inventory.",
                 "Hesap değişti. Envanteri yeniden yükle.", "La cuenta cambió.",
@@ -755,7 +762,19 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         RebuildCurrentPage();
         try
         {
-            bool liveRtdb = inventoryServer != null && inventoryServer.WalletVerified;
+            bool liveRtdb = inventoryServer != null && inventoryServer.Success &&
+                inventoryServer.WalletVerified &&
+                string.Equals(uid, AtlasBoardRtdbMetaEconomy.CurrentUid,
+                    StringComparison.Ordinal);
+            if (restVerified && !liveRtdb)
+            {
+                inventoryMessage = InventoryWord("Ownership verification required.",
+                    "Uygulamak için doğrulanmış sahiplik gerekli.",
+                    "Se requiere verificar la propiedad.", "Vérification de propriété requise.",
+                    "Besitznachweis erforderlich.", "소유권 확인이 필요합니다.",
+                    "Требуется проверка владения.");
+                return;
+            }
             if (liveRtdb)
             {
                 AtlasBoardMetaEconomyOperationResult equipped =
@@ -768,7 +787,28 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
                         "프레임을 장착할 수 없습니다.", "Не удалось применить рамку.");
                     return;
                 }
+                // The same ETag-guarded EQUIP operation is authoritative for
+                // native and verified REST accounts. Store purchases/history
+                // and all other wallet fields remain untouched.
+                if (!string.Equals(uid, AtlasBoardRtdbMetaEconomy.CurrentUid,
+                    StringComparison.Ordinal)) return;
                 inventoryServer.EquippedFrameId = isDefault ? "" : chosenId;
+            }
+            if (restVerified)
+            {
+                // No-Steam Guest QA intentionally has no native account service.
+                // The RTDB wallet and public profile projection are already
+                // saved by EquipAsync; never require a second native login.
+                inventoryMessage = InventoryWord("Profile frame saved to account.",
+                    "Profil çerçevesi hesaba kaydedildi.",
+                    "Marco guardado en la cuenta.", "Cadre enregistré dans le compte.",
+                    "Profilrahmen im Konto gespeichert.", "프로필 프레임을 저장했습니다.",
+                    "Рамка сохранена в профиле.");
+                AtlasBoardCanonicalProfileHeader restHeader =
+                    UnityEngine.Object.FindAnyObjectByType<AtlasBoardCanonicalProfileHeader>();
+                restHeader?.NotifyVerifiedProfileFrameEquipped(
+                    uid, isDefault ? "" : chosenId);
+                return;
             }
             AtlasAccountOperationResult write = await account.UpdatePublicProfileAsync(
                 inventoryAccount.DisplayName, inventoryAccount.AvatarId,
@@ -1010,7 +1050,9 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
              inventoryCategory == "dice_skin" || inventoryCategory == "emote") &&
             // Frame writes still need native public-profile service; all
             // other cosmetics use the verified canonical economy wallet.
-            (inventoryAccount != null || restVerifiedInventory && inventoryCategory != "profile_frame") &&
+            // REST registered accounts use the verified canonical wallet for
+            // profile frames too; native account service is not in their build.
+            (inventoryAccount != null || restVerifiedInventory) &&
             activeEmoteCanBeRemoved &&
             (inventoryCategory == "emote" || !InventoryIsEquipped(inventorySelectedId)) &&
             (inventoryCategory == "emote" && ownedItems.Contains(inventorySelectedId) &&

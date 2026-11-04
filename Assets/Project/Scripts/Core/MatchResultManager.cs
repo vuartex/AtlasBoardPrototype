@@ -328,6 +328,13 @@ public class MatchResultManager : MonoBehaviour
             return;
         }
 
+        // An explicit local-private match has a reusable modern lobby and
+        // a reset path already owned by OfflineModeBootstrap. Scene reload
+        // was unexpectedly returning REMATCH to Main Menu instead of Lobby.
+        // Keep the legacy reload fallback only for other local game modes.
+        if (AtlasBoardOfflineModeBootstrap.TryReturnLocalMatchToLobby())
+            return;
+
         Scene activeScene =
             SceneManager.GetActiveScene();
 

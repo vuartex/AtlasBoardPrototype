@@ -39,6 +39,7 @@ public static class AtlasBoardCareerDiceCloud
     {
         public string Uid;
         public string Token;
+        public bool RegisteredRest;
     }
 
     private sealed class Response
@@ -198,7 +199,8 @@ public static class AtlasBoardCareerDiceCloud
                 !AtlasBoardLobbyRuntimeBridge.TryGetLiveGuestRewardIdentity(
                     out string liveUid, out string liveToken) ||
                 liveUid != expected || string.IsNullOrWhiteSpace(liveToken)) return null;
-            return new Principal { Uid = expected, Token = liveToken };
+            return new Principal { Uid = expected, Token = liveToken,
+                RegisteredRest = true };
         }
         try
         {
@@ -213,10 +215,15 @@ public static class AtlasBoardCareerDiceCloud
     }
 
     private static async Task<Response> SendAsync(
-        Principal principal, string method, string path, string json, string etag)
+        Principal principal, string method, string path, string json, string etag,
+        bool allowRefresh = true)
     {
+        if (principal == null || string.IsNullOrWhiteSpace(principal.Token) ||
+            !string.Equals(principal.Uid, AtlasBoardRtdbMetaEconomy.CurrentUid,
+                StringComparison.Ordinal)) return new Response { Status = 0, Body = "" };
         string url = Database + path + (path.Contains("?") ? "&" : "?") +
                      "auth=" + UnityWebRequest.EscapeURL(principal.Token);
+        Response result;
         using (UnityWebRequest request = new UnityWebRequest(url, method))
         {
             request.timeout = 15;
@@ -234,12 +241,26 @@ public static class AtlasBoardCareerDiceCloud
             if (operation.isDone) done.TrySetResult(true);
             else operation.completed += _ => done.TrySetResult(true);
             await done.Task;
-            return new Response
+            result = new Response
             {
                 Status = request.responseCode,
                 Body = request.downloadHandler != null ? request.downloadHandler.text : ""
             };
         }
+        // Ordinary RTDB permission denials remain denials. For existing
+        // registered REST sessions only, retry once with the same-UID token.
+        if (allowRefresh && principal.RegisteredRest &&
+            (result.Status == 401 || result.Status == 403))
+        {
+            string refreshed = await AtlasBoardRtdbMetaEconomy
+                .RefreshRegisteredRestTokenForCurrentUidAsync(principal.Uid);
+            if (!string.IsNullOrWhiteSpace(refreshed))
+            {
+                principal.Token = refreshed;
+                return await SendAsync(principal, method, path, json, etag, false);
+            }
+        }
+        return result;
     }
 
     private static string Suffix(string uid)

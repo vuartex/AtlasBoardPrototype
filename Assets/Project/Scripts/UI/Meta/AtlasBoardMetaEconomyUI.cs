@@ -88,6 +88,14 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
     private bool liveWalletPolling;
     private string lastLiveWalletUid = string.Empty;
     private float nextLiveWalletPollAt;
+    private float nextDailyButtonVisualAt;
+    private Button dailyClaimButton;
+    private TMP_Text dailyClaimButtonText;
+    private readonly Dictionary<Button, bool> preOperationButtonStates =
+        new Dictionary<Button, bool>();
+    private bool preOperationRedeemInteractable;
+    private bool hasPreOperationRedeemState;
+
 
 
     private void Awake()
@@ -146,6 +154,12 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         if (storeRoot != null && storeRoot.activeSelf)
         {
             CloseLegacyShopModal();
+            if (currentPage == StorePage.Home && !busy &&
+                Time.unscaledTime >= nextDailyButtonVisualAt)
+            {
+                nextDailyButtonVisualAt = Time.unscaledTime + 1f;
+                UpdateDailyClaimButtonState();
+            }
         }
     }
 
@@ -156,30 +170,92 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         string uid = AtlasBoardRtdbMetaEconomy.CurrentUid;
         if (uid != lastLiveWalletUid)
         {
+            // Never display the previous UID's wallet or daily entitlement.
             snapshot = null;
+            dailyClaimButton = null;
+            dailyClaimButtonText = null;
             UpdateWalletText();
+            if (storeRoot != null && storeRoot.activeSelf && !busy)
+                RebuildCurrentPage();
         }
         lastLiveWalletUid = uid;
         nextLiveWalletPollAt = Time.unscaledTime + 15f;
         try
         {
             AtlasBoardMetaEconomySnapshot fresh = await bridge.RefreshAsync();
-            if (uid == AtlasBoardRtdbMetaEconomy.CurrentUid)
+            if (uid == AtlasBoardRtdbMetaEconomy.CurrentUid &&
+                fresh != null && fresh.Success)
             {
-                snapshot = fresh != null && fresh.Success ? fresh : null;
+                bool changed = HasMaterialStoreChange(snapshot, fresh);
+                snapshot = fresh;
                 UpdateWalletText();
-                if (storeRoot != null && storeRoot.activeSelf) RebuildCurrentPage();
+                // Reading a wallet does not justify destroying and recreating
+                // a disabled daily button (or a purchase/history list).
+                if (changed && storeRoot != null && storeRoot.activeSelf && !busy)
+                    RebuildCurrentPage();
             }
+            // A transient read failure never turns a verified same-UID claim
+            // back into an actionable button. A UID change was cleared above.
         }
         catch (Exception exception)
         {
-            snapshot = null;
             Debug.LogWarning("ATB_PHASE19C_LIVE_POLL " + exception.GetType().Name);
-            UpdateWalletText();
         }
         finally { liveWalletPolling = false; }
     }
 
+
+    // Do not rebuild the entire store on every 15-second wallet poll.
+    // Material changes still refresh owned inventory, currency, and history.
+    private static bool HasMaterialStoreChange(
+        AtlasBoardMetaEconomySnapshot before, AtlasBoardMetaEconomySnapshot after)
+    {
+        if (before == null || after == null) return before != after;
+        if (before.Success != after.Success ||
+            before.WalletVerified != after.WalletVerified ||
+            before.IsGuest != after.IsGuest ||
+            before.IsSteamAccount != after.IsSteamAccount ||
+            before.IsDeveloperTester != after.IsDeveloperTester ||
+            before.Gold != after.Gold || before.AtlasCoin != after.AtlasCoin ||
+            before.DailyClaimedAtMs != after.DailyClaimedAtMs ||
+            !string.Equals(before.EquippedFrameId, after.EquippedFrameId, StringComparison.Ordinal) ||
+            !string.Equals(before.EquippedBoardId, after.EquippedBoardId, StringComparison.Ordinal) ||
+            !string.Equals(before.EquippedDiceId, after.EquippedDiceId, StringComparison.Ordinal) ||
+            !string.Equals(before.DisplayName, after.DisplayName, StringComparison.Ordinal) ||
+            before.Items.Count != after.Items.Count ||
+            before.History.Count != after.History.Count)
+            return true;
+
+        for (int i = 0; i < before.Items.Count; i++)
+        {
+            AtlasBoardStorefrontItem a = before.Items[i];
+            AtlasBoardStorefrontItem b = after.Items[i];
+            if (a == null || b == null) { if (a != b) return true; continue; }
+            if (!string.Equals(a.ItemId, b.ItemId, StringComparison.Ordinal) ||
+                !string.Equals(a.ItemType, b.ItemType, StringComparison.Ordinal) ||
+                !string.Equals(a.DisplayName, b.DisplayName, StringComparison.Ordinal) ||
+                a.Owned != b.Owned || a.PreviewOnly != b.PreviewOnly ||
+                a.GoldPrice != b.GoldPrice || a.AtlasCoinPrice != b.AtlasCoinPrice ||
+                a.SortOrder != b.SortOrder || a.CatalogVersion != b.CatalogVersion)
+                return true;
+        }
+        for (int i = 0; i < before.History.Count; i++)
+        {
+            AtlasBoardMetaHistoryItem a = before.History[i];
+            AtlasBoardMetaHistoryItem b = after.History[i];
+            if (a == null || b == null) { if (a != b) return true; continue; }
+            if (!string.Equals(a.TransactionId, b.TransactionId, StringComparison.Ordinal) ||
+                !string.Equals(a.Type, b.Type, StringComparison.Ordinal) ||
+                !string.Equals(a.Status, b.Status, StringComparison.Ordinal) ||
+                a.Amount != b.Amount ||
+                !string.Equals(a.ReferenceId, b.ReferenceId, StringComparison.Ordinal) ||
+                !string.Equals(a.CurrencyId, b.CurrencyId, StringComparison.Ordinal) ||
+                !string.Equals(a.Detail, b.Detail, StringComparison.Ordinal) ||
+                !string.Equals(a.CreatedAtUtc, b.CreatedAtUtc, StringComparison.Ordinal))
+                return true;
+        }
+        return false;
+    }
 
     private void TryBindExistingShopCard()
     {
@@ -338,20 +414,35 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         }
 
 
-        Button[] buttons = storeRoot.GetComponentsInChildren<Button>(true);
-        foreach (Button button in buttons)
+        if (!value)
         {
-            if (button != null)
+            preOperationButtonStates.Clear();
+            Button[] buttons = storeRoot.GetComponentsInChildren<Button>(true);
+            foreach (Button button in buttons)
             {
-                button.interactable = value;
+                if (button == null) continue;
+                // Preserve the *original* disabled state, especially for an
+                // already claimed daily reward or already owned product.
+                preOperationButtonStates[button] = button.interactable;
+                button.interactable = false;
             }
+            hasPreOperationRedeemState = redeemInput != null;
+            if (hasPreOperationRedeemState)
+            {
+                preOperationRedeemInteractable = redeemInput.interactable;
+                redeemInput.interactable = false;
+            }
+            return;
         }
 
-
-        if (redeemInput != null)
+        foreach (KeyValuePair<Button, bool> state in preOperationButtonStates)
         {
-            redeemInput.interactable = value;
+            if (state.Key != null) state.Key.interactable = state.Value;
         }
+        preOperationButtonStates.Clear();
+        if (hasPreOperationRedeemState && redeemInput != null)
+            redeemInput.interactable = preOperationRedeemInteractable;
+        hasPreOperationRedeemState = false;
     }
 
 
@@ -374,6 +465,8 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         if (requestedUid != AtlasBoardRtdbMetaEconomy.CurrentUid)
         {
             snapshot = null;
+            dailyClaimButton = null;
+            dailyClaimButtonText = null;
             UpdateWalletText();
             RebuildCurrentPage();
             return;
@@ -381,9 +474,10 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         lastLiveWalletUid = requestedUid;
         if (result == null || !result.Success)
         {
-            snapshot = null;
+            // A failed refresh must not erase a previously verified claim or
+            // make an already claimed daily reward look actionable.
             UpdateWalletText();
-            RebuildCurrentPage();
+            if (snapshot == null) RebuildCurrentPage();
             ShowMessagePopup("store.popup.error_title",
                 LocalizeError(result != null ? result.ErrorKey : "meta.error.refresh_failed"));
             return;
@@ -538,6 +632,18 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         }
 
 
+        if (!result.AlreadyClaimed && snapshot != null &&
+            snapshot.WalletVerified &&
+            string.Equals(lastLiveWalletUid,
+                AtlasBoardRtdbMetaEconomy.CurrentUid, StringComparison.Ordinal))
+        {
+            // Only after the server confirms the transaction. The final
+            // refresh remains authoritative and loads the immutable receipt.
+            snapshot.DailyClaimedAtMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            if (result.Gold >= 0) snapshot.Gold = result.Gold;
+            UpdateWalletText();
+            UpdateDailyClaimButtonState();
+        }
         ShowMessagePopup(
             "store.popup.daily_title",
             result.AlreadyClaimed
@@ -753,6 +859,8 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
 
 
         ClearChildren(contentRoot);
+        dailyClaimButton = null;
+        dailyClaimButtonText = null;
         itemContent = null;
         historyContent = null;
         redeemHistoryContent = null;
@@ -779,6 +887,45 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         }
     }
 
+
+    private static bool DailyAwardAlreadyClaimed(AtlasBoardMetaEconomySnapshot state)
+    {
+        if (state == null || !state.WalletVerified || state.DailyClaimedAtMs <= 0)
+            return false;
+        long since = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - state.DailyClaimedAtMs;
+        return since < 86400000L;
+    }
+
+    private void UpdateDailyClaimButtonState()
+    {
+        if (dailyClaimButton == null || bridge == null || busy)
+            return;
+        bool steamAccount = AtlasBoardRtdbMetaEconomy.IsSteamSession;
+        bool approvedTestWallet = HasVerifiedApprovedTestWallet();
+        bool steamTester = steamAccount && approvedTestWallet;
+        bool guestAccount = !bridge.IsLocalEmulatorMode &&
+            !steamAccount && !AtlasBoardRtdbMetaEconomy.IsRegistered &&
+            !approvedTestWallet;
+        bool claimed = !guestAccount && DailyAwardAlreadyClaimed(snapshot);
+        bool eligible = guestAccount || bridge.IsLocalEmulatorMode ||
+            snapshot != null && snapshot.WalletVerified &&
+            (!snapshot.IsGuest || approvedTestWallet) &&
+            (!steamAccount || AtlasBoardRtdbMetaEconomy.IsRegistered || steamTester);
+        string label = guestAccount
+            ? StoreAccountText("SIGN IN / REGISTER", "GİRİŞ / KAYIT",
+                "INICIAR SESIÓN", "SE CONNECTER", "ANMELDEN",
+                "로그인 / 가입", "ВОЙТИ / РЕГИСТРАЦИЯ")
+            : claimed
+                ? StoreAccountText("DAILY REWARD CLAIMED", "GÜNLÜK ÖDÜL ALINDI",
+                    "RECOMPENSA DIARIA RECLAMADA", "RÉCOMPENSE QUOTIDIENNE RÉCUPÉRÉE",
+                    "TAGESBELOHNUNG ABGEHOLT", "일일 보상 수령 완료", "ЕЖЕДНЕВНАЯ НАГРАДА ПОЛУЧЕНА")
+                : T("store.home.daily_claim");
+        if (dailyClaimButtonText != null && dailyClaimButtonText.text != label)
+            dailyClaimButtonText.text = label;
+        bool canClick = eligible && !claimed;
+        if (dailyClaimButton.interactable != canClick)
+            dailyClaimButton.interactable = canClick;
+    }
 
     private void RebuildHomePage()
     {
@@ -855,14 +1002,9 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             new Vector2(0f, -62f));
         if (guestAccount) claim.onClick.AddListener(OpenStoreSignIn);
         else claim.onClick.AddListener(ClaimDailyAsync);
-        claim.interactable = guestAccount || bridge != null &&
-            (bridge.IsLocalEmulatorMode ||
-             snapshot != null && snapshot.WalletVerified &&
-             (!snapshot.IsGuest || approvedTestWallet) &&
-             (!steamAccount || AtlasBoardRtdbMetaEconomy.IsRegistered || steamTester) &&
-             (snapshot.DailyClaimedAtMs <= 0 ||
-              DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() -
-              snapshot.DailyClaimedAtMs >= 86400000L));
+        dailyClaimButton = claim;
+        dailyClaimButtonText = claim.GetComponentInChildren<TMP_Text>(true);
+        UpdateDailyClaimButtonState();
 
 
         GameObject featured =

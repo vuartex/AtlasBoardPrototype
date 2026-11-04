@@ -34,10 +34,11 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
     private bool participationInFlight;
 
 
-    // Mirror already-committed host totals while a follower. On a legitimate
-    // host migration the new host resumes counters instead of losing the
-    // predecessor's dice and doubles achievement progress.
-    public static void HydrateCareerDiceCounts(int[] rolls, int[] doubles)
+    // Mirror the already-committed host dice totals while a follower.
+    // Carrying the actual sum + highest value is required for a valid
+    // UID-scoped careerDiceObservations record after host migration.
+    public static void HydrateCareerDiceCounts(int[] rolls, int[] doubles,
+        int[] sums = null, int[] highest = null)
     {
         var recorder = currentRecorder;
         if (recorder == null || recorder.coordinator == null ||
@@ -49,9 +50,33 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
                 Mathf.Clamp(rolls[i], 0, 10000));
             recorder.telemetry[i].doublesRolled = Mathf.Max(recorder.telemetry[i].doublesRolled,
                 Mathf.Clamp(doubles[i], 0, 10000));
+            // Older snapshots do not contain sum/high; never invent values.
+            if (sums == null || highest == null || i >= sums.Length ||
+                i >= highest.Length) continue;
+            int count = Mathf.Clamp(rolls[i], 0, 10000);
+            int sum = sums[i];
+            int high = highest[i];
+            if (count == 0 || sum < count * 2 || sum > count * 12 ||
+                high < 2 || high > 12 ||
+                sum < high + (count - 1) * 2 || sum > high * count) continue;
+            recorder.telemetry[i].totalDiceValue =
+                Mathf.Max(recorder.telemetry[i].totalDiceValue, sum);
+            recorder.telemetry[i].highestRoll =
+                Mathf.Max(recorder.telemetry[i].highestRoll, high);
         }
     }
 
+    public static int[] HostDiceValues(bool highest)
+    {
+        var result = new int[4];
+        var recorder = currentRecorder;
+        if (recorder == null || recorder.coordinator == null ||
+            !recorder.coordinator.LocalIsHost) return result;
+        for (int i = 0; i < 4; i++)
+            result[i] = highest ? recorder.telemetry[i].highestRoll :
+                recorder.telemetry[i].totalDiceValue;
+        return result;
+    }
 
     public static int[] HostDiceCounts(bool doubles)
     {
@@ -383,7 +408,19 @@ public sealed class AtlasBoardProgressionMatchRecorder : MonoBehaviour
                 Debug.Log("ATB_CAREER_MATCH_FINALIZED career=true gold=true match=" +
                     matchId);
                 if (progressionBridge != null)
-                    await progressionBridge.GetProfileAsync();
+                {
+                    AtlasBoardProgressionSnapshot confirmed =
+                        await progressionBridge.GetProfileAsync();
+                    // After the existing verified Career+Gold terminal result,
+                    // send the already-recorded local dice observation to its
+                    // separate append-only UID-scoped Firebase branch.
+                    if (confirmed != null && confirmed.Success && lobbyBridge != null &&
+                        string.Equals(lobbyBridge.CurrentAccountId,
+                            AtlasBoardRtdbMetaEconomy.CurrentUid,
+                            StringComparison.Ordinal))
+                        _ = AtlasBoardCareerDiceCloud.SynchronizeAsync(
+                            confirmed.RecentMatches);
+                }
             }
             else if (result.Applied)
             {

@@ -200,6 +200,10 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
         // These are peer/host observations, NOT independent server replay evidence.
         public int[] careerDiceRolls = new int[4];
         public int[] careerDoublesRolled = new int[4];
+        // Additive backwards-compatible observational fields. Never used as
+        // Career/Gold server authority; used only for exact dice stats.
+        public int[] careerDiceTotals = new int[4];
+        public int[] careerDiceHighest = new int[4];
 
 
 
@@ -4810,6 +4814,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
             cityMemory = propertyDevelopmentManager != null ? propertyDevelopmentManager.CaptureCityMemorySnapshot() : Array.Empty<int>(),
             careerDiceRolls = AtlasBoardProgressionMatchRecorder.HostDiceCounts(false),
             careerDoublesRolled = AtlasBoardProgressionMatchRecorder.HostDiceCounts(true),
+            careerDiceTotals = AtlasBoardProgressionMatchRecorder.HostDiceValues(false),
+            careerDiceHighest = AtlasBoardProgressionMatchRecorder.HostDiceValues(true),
             matchResult =
                 turnManager.IsMatchFinished &&
                 matchResultManager != null
@@ -5621,7 +5627,8 @@ public sealed class AtlasBoardTurnDiceNetworkCoordinator :
 
 
         AtlasBoardProgressionMatchRecorder.HydrateCareerDiceCounts(
-            frame.careerDiceRolls, frame.careerDoublesRolled);
+            frame.careerDiceRolls, frame.careerDoublesRolled,
+            frame.careerDiceTotals, frame.careerDiceHighest);
 
 
         turnManager.ApplyOnlineFollowerTurnDiceFrame(

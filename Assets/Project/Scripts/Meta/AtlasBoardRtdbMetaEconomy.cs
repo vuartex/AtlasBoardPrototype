@@ -778,7 +778,16 @@ public static class AtlasBoardRtdbMetaEconomy
     {
         if (!string.IsNullOrEmpty(itemId) && Price(itemId) <= 0)
             return Failure("meta.error.invalid_purchase");
-        return await MutateAsync("EQUIP", itemId ?? "", false);
+        var result = await MutateAsync("EQUIP", itemId ?? "", false);
+        if (result != null && result.Success)
+        {
+            // Keep the existing public profile projection in step with the
+            // verified wallet. Rules accept this ID only after the owner has
+            // equipped it in metaEconomy; purchases are entirely unaffected.
+            if (!await PublishEquippedFrameAsync(itemId ?? ""))
+                Debug.LogWarning("ATB_FRAME_PUBLIC_PROJECTION pending=true");
+        }
+        return result;
     }
 
 
@@ -813,6 +822,62 @@ public static class AtlasBoardRtdbMetaEconomy
     [Serializable]
     private sealed class PublicDiceWire { public string diceSkinId; }
 
+    [Serializable]
+    private sealed class PublicFrameWire { public string profileFrameId; }
+
+    private static async Task<bool> PublishEquippedFrameAsync(string id)
+    {
+        Identity identity = await ResolveIdentityAsync();
+        if (identity == null || !string.Equals(identity.Uid, CurrentUid,
+                StringComparison.Ordinal)) return false;
+        string path = "/publicProfiles/" +
+            UnityWebRequest.EscapeURL(identity.Uid) + ".json";
+        Response response = await RequestAsync(identity, "PATCH", path,
+            JsonUtility.ToJson(new PublicFrameWire { profileFrameId = id ?? "" }), null);
+        if (response.Status >= 200 && response.Status < 300) return true;
+
+        // Older REST-registered accounts can have a verified metaEconomy
+        // wallet but no publicProfiles node at all. A single-field PATCH
+        // cannot pass that node's required-field validation. Create ONLY a
+        // missing profile with the owner's existing RTDB display name; never
+        // replace a profile another device has already populated.
+        Response existing = await RequestAsync(identity, "GET", path, null, null);
+        if (existing.Status != 200 ||
+            !string.Equals(existing.Body != null ? existing.Body.Trim() : "",
+                "null", StringComparison.Ordinal)) return false;
+        Response name = await RequestAsync(identity, "GET",
+            "/users/" + UnityWebRequest.EscapeURL(identity.Uid) +
+            "/displayName.json", null, null);
+        if (name.Status != 200 || string.IsNullOrWhiteSpace(name.Body))
+            return false;
+        string displayName;
+        try
+        {
+            JToken nameToken = JToken.Parse(name.Body);
+            if (nameToken.Type != JTokenType.String) return false;
+            displayName = (string)nameToken;
+        }
+        catch { return false; }
+        if (string.IsNullOrWhiteSpace(displayName) ||
+            displayName.Trim().Length < 2 || displayName.Trim().Length > 32)
+            return false;
+        JObject profile = new JObject
+        {
+            ["displayName"] = displayName.Trim(),
+            ["avatarId"] = "",
+            ["profileFrameId"] = id ?? "",
+            ["updatedAt"] = Now()
+        };
+        Response created = await RequestAsync(identity, "PUT", path,
+            profile.ToString(Newtonsoft.Json.Formatting.None), "null_etag");
+        if (created.Status >= 200 && created.Status < 300) return true;
+        if (created.Status != 412) return false;
+        // Another device won the create race. Re-apply only the equipped field;
+        // do not overwrite its display name, avatar or other public data.
+        Response retry = await RequestAsync(identity, "PATCH", path,
+            JsonUtility.ToJson(new PublicFrameWire { profileFrameId = id ?? "" }), null);
+        return retry.Status >= 200 && retry.Status < 300;
+    }
 
     private static async Task<bool> PublishEquippedDiceAsync(string id)
     {
@@ -1394,6 +1459,22 @@ public static class AtlasBoardRtdbMetaEconomy
                 ex.GetType().Name);
             return false;
         }
+    }
+
+    // Share the existing UID-preserving REST token refresh with the
+    // observational Career dice uploader. This does not grant any currency,
+    // privilege or access to a different account.
+    public static async Task<string> RefreshRegisteredRestTokenForCurrentUidAsync(
+        string uid)
+    {
+        if (string.IsNullOrWhiteSpace(uid) ||
+            !string.Equals(uid, CurrentUid, StringComparison.Ordinal)) return "";
+        Identity identity = await ResolveIdentityAsync();
+        if (identity == null || !string.Equals(identity.Uid, uid,
+                StringComparison.Ordinal) ||
+            !await RefreshRegisteredRestBearerAsync(identity)) return "";
+        return string.Equals(uid, CurrentUid, StringComparison.Ordinal)
+            ? identity.Token : "";
     }
 
     private static async Task<Identity> ResolveIdentityAsync()

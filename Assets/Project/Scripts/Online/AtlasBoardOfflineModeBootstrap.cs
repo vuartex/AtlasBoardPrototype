@@ -116,6 +116,40 @@ public sealed class AtlasBoardOfflineModeBootstrap : MonoBehaviour
         RoutePrivateTableToLocalLobby();
     }
 
+    // Local Offline REMATCH reuses the same verified lobby controls and
+    // existing gameplay reset; it does not create another room/manager or
+    // fabricate rewards for a local match against bots.
+    public static bool TryReturnLocalMatchToLobby()
+    {
+        AtlasBoardOfflineModeBootstrap owner = instance;
+        if (owner == null || owner.offlinePrivateLobby == null ||
+            owner.offlineMainMenu == null || owner.offlineStartButton == null ||
+            owner.offlineCountdownActive ||
+            !ReadPrivateField<bool>(owner.offlinePrivateLobby, "roomActive") ||
+            !ReadPrivateField<bool>(owner.offlinePrivateLobby, "localIsHost") ||
+            !string.IsNullOrWhiteSpace(ReadPrivateField<string>(
+                owner.offlinePrivateLobby, "roomCode")))
+            return false;
+
+        AtlasBoardTurnDiceNetworkCoordinator online =
+            UnityEngine.Object.FindAnyObjectByType<AtlasBoardTurnDiceNetworkCoordinator>();
+        if (online != null && online.IsPreparedOnlineMatch)
+            return false;
+
+        owner.offlineMainMenu.ReturnOnlineMatchToLobby();
+        // Start was deliberately locked by the prior five-second countdown.
+        // Re-arm the SAME button listener for the next offline match.
+        owner.offlineStartButton.onClick = new Button.ButtonClickedEvent();
+        owner.offlineStartButton.onClick.AddListener(owner.BeginOfflineStartCountdown);
+        owner.offlineStartButton.interactable = true;
+        InvokeOneArg(owner.offlinePrivateLobby, "SetHostSettingsInteractable", true);
+        InvokeOneArg(owner.offlinePrivateLobby, "SetHostSeatActionUIVisible", true);
+        InvokeNoArgs(owner.offlinePrivateLobby, "RefreshHostSeatRows");
+        Debug.Log("ATB_LOCAL_REMATCH returned_to_existing_lobby=true " +
+            "scene_reloaded=false rewards=false");
+        return true;
+    }
+
     private static bool HasOnlineIdentity()
     {
         AtlasBoardLobbyRuntimeBridge bridge =

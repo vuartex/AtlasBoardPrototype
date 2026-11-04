@@ -25,6 +25,9 @@ public sealed class AtlasBoardCanonicalProfileHeader :
 
     private bool loadInFlight;
     private float nextCheckAt;
+    private bool restFrameReadInFlight;
+    private float nextRestFrameReadAt;
+    private int restFrameRevision;
 
     [RuntimeInitializeOnLoadMethod(
         RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -81,6 +84,14 @@ public sealed class AtlasBoardCanonicalProfileHeader :
 
         ResolveReferences();
         SynchronizeProfileFrameSurfaces();
+
+        // The registered REST principal has no native Firebase account
+        // object in the No-Steam QA build. The owner wallet is authoritative.
+        if (AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession)
+        {
+            UpdateRestProfileFrame();
+            return;
+        }
 
         if (accountService == null)
         {
@@ -152,6 +163,20 @@ public sealed class AtlasBoardCanonicalProfileHeader :
             ApplyCanonicalIdentity(
                 appliedDisplayName);
         }
+
+        // Both Steam and verified REST inventory equip through the canonical
+        // UID-scoped wallet. The public profile can lag an EQUIP transaction;
+        // use its read as a first paint, then reconcile actual equipped state
+        // against the same wallet Career/Store already trust. Read-only, once
+        // per 20 seconds, never a cosmetic write or a second ownership model.
+        if (!accountChanged && !loadInFlight &&
+            string.Equals(observedAccountId, currentAccountId,
+                StringComparison.Ordinal) &&
+            !restFrameReadInFlight && Time.unscaledTime >= nextRestFrameReadAt)
+        {
+            nextRestFrameReadAt = Time.unscaledTime + 20f;
+            _ = LoadRestProfileFrameAsync(currentAccountId, restFrameRevision);
+        }
     }
 
     public void RefreshNow()
@@ -168,12 +193,85 @@ public sealed class AtlasBoardCanonicalProfileHeader :
     public void NotifyVerifiedProfileFrameEquipped(string ownerUid, string frameId)
     {
         ResolveReferences();
+        if (AtlasBoardAppCheckTokenSource.IsLiveGuestQaSession)
+        {
+            if (string.IsNullOrWhiteSpace(ownerUid) ||
+                !string.Equals(ownerUid, AtlasBoardRtdbMetaEconomy.CurrentUid,
+                    StringComparison.Ordinal) ||
+                !AtlasBoardAccountFormQualityGate.TryGetVerifiedRegisteredRestPrincipal(
+                    out string restUid) || !string.Equals(restUid, ownerUid,
+                    StringComparison.Ordinal)) return;
+            observedAccountId = ownerUid;
+            restFrameRevision++; // invalidate an in-flight stale wallet read
+            nextRestFrameReadAt = Time.unscaledTime + 20f;
+            ApplyProfileFrame(frameId);
+            return;
+        }
         if (accountService == null || !accountService.IsSignedIn ||
             !string.Equals(accountService.CurrentAccountId, ownerUid,
                 StringComparison.Ordinal)) return;
 
         ApplyProfileFrame(frameId);
         RefreshNow(); // Reconcile with the saved RTDB profile on the next poll.
+    }
+
+    private void UpdateRestProfileFrame()
+    {
+        string uid = AtlasBoardRtdbMetaEconomy.CurrentUid;
+        if (string.IsNullOrWhiteSpace(uid) ||
+            !AtlasBoardAccountFormQualityGate.TryGetVerifiedRegisteredRestPrincipal(
+                out string verifiedUid) ||
+            !string.Equals(uid, verifiedUid, StringComparison.Ordinal))
+        {
+            if (!string.IsNullOrEmpty(observedAccountId) ||
+                !string.IsNullOrEmpty(appliedProfileFrameId))
+            {
+                observedAccountId = string.Empty;
+                appliedDisplayName = string.Empty;
+                restFrameRevision++;
+                ApplyProfileFrame(string.Empty);
+            }
+            return;
+        }
+        if (!string.Equals(observedAccountId, uid, StringComparison.Ordinal))
+        {
+            observedAccountId = uid;
+            restFrameRevision++;
+            nextRestFrameReadAt = 0f;
+            ApplyProfileFrame(string.Empty); // never flash another UID's frame
+        }
+        if (!restFrameReadInFlight && Time.unscaledTime >= nextRestFrameReadAt)
+        {
+            nextRestFrameReadAt = Time.unscaledTime + 20f;
+            _ = LoadRestProfileFrameAsync(uid, restFrameRevision);
+        }
+    }
+
+    private async System.Threading.Tasks.Task LoadRestProfileFrameAsync(
+        string uid, int revision)
+    {
+        restFrameReadInFlight = true;
+        try
+        {
+            AtlasBoardMetaEconomySnapshot current =
+                await AtlasBoardRtdbMetaEconomy.LoadAsync();
+            if (this == null || current == null || !current.Success ||
+                !current.WalletVerified ||
+                !string.Equals(observedAccountId, uid, StringComparison.Ordinal) ||
+                !string.Equals(AtlasBoardRtdbMetaEconomy.CurrentUid, uid,
+                    StringComparison.Ordinal) || revision != restFrameRevision)
+                return;
+            // The wallet is the equipped-frame source of truth for both
+            // native Steam accounts and REST accounts; keep publicProfiles as
+            // a display projection, not the sole source after a rematch.
+            ApplyProfileFrame(current.EquippedFrameId);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning("ATB_PROFILE_FRAME_REST read_pending=" +
+                ex.GetType().Name);
+        }
+        finally { restFrameReadInFlight = false; }
     }
 
     private void ResolveReferences()
@@ -386,6 +484,13 @@ public sealed class AtlasBoardCanonicalProfileHeader :
                 return;
             }
 
+            if (!string.Equals(observedAccountId, requestedAccountId,
+                    StringComparison.Ordinal))
+            {
+                // Invalidate any old UID wallet read before showing this user.
+                restFrameRevision++;
+                nextRestFrameReadAt = 0f;
+            }
             observedAccountId =
                 requestedAccountId;
 

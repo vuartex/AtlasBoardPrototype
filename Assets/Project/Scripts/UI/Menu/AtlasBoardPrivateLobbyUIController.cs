@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Linq;
 using System.Collections.Generic;
@@ -5452,9 +5452,22 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             if (i == hostSlotIndex)
             {
                 AtlasLobbyMemberSnapshot hostMember = FindBackendMemberBySlot(i);
+                // Explicit Local Offline has no backend member. The Steam or
+                // signed-in canonical local name is already resolved by the
+                // existing local identity presenter. Do not show PLAYER (YOU)
+                // merely because this room has no remote member snapshot.
+                string localHostName = string.Empty;
+                if (backendSnapshot == null && string.IsNullOrEmpty(roomCode))
+                {
+                    localHostName = AtlasBoardCanonicalPlayerIdentity.ValidSteamPersona();
+                    if (string.IsNullOrWhiteSpace(localHostName))
+                        localHostName = AtlasBoardCanonicalPlayerIdentity.CurrentDisplayName;
+                }
                 string hostName = hostMember != null && !string.IsNullOrWhiteSpace(hostMember.DisplayName)
                     ? hostMember.DisplayName + " (" + T("lobby.online.you_suffix", "YOU") + ")"
-                    : T("lobby.online.you", "PLAYER (YOU)");
+                    : !string.IsNullOrWhiteSpace(localHostName)
+                        ? localHostName.Trim() + " (" + T("lobby.online.you_suffix", "YOU") + ")"
+                        : T("lobby.online.you", "PLAYER (YOU)");
                 SetSeat(i, hostName, T("lobby.online.host_local", "HOST • LOCAL"));
                 SetHostSeatActionObjects(i, false, false, false);
                 continue;
