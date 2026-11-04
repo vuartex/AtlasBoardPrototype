@@ -122,15 +122,18 @@ public static class AtlasBoardRtdbMetaEconomy
         public bool board_midnight_azure;
         public bool board_ember_maple;
         public bool board_arctic_aurora;
+        public bool board_atlas_horizon;
         public bool IsOwned(string id) =>
             id == Midnight && board_midnight_azure ||
             id == Maple && board_ember_maple ||
-            id == Aurora && board_arctic_aurora;
+            id == Aurora && board_arctic_aurora ||
+            id == "board_atlas_horizon" && board_atlas_horizon;
         public void SetOwned(string id, bool value)
         {
             if (id == Midnight) board_midnight_azure = value;
             if (id == Maple) board_ember_maple = value;
             if (id == Aurora) board_arctic_aurora = value;
+            if (id == "board_atlas_horizon") board_atlas_horizon = value;
         }
         public int RefundAmount() =>
             (board_midnight_azure ? 1200 : 0) +
@@ -144,12 +147,15 @@ public static class AtlasBoardRtdbMetaEconomy
     {
         public bool map_germany;
         public bool map_mexico;
+        public bool map_world;
         public bool IsOwned(string id) =>
-            id == "map_germany" && map_germany || id == "map_mexico" && map_mexico;
+            id == "map_germany" && map_germany || id == "map_mexico" && map_mexico ||
+            id == "map_world" && map_world;
         public void SetOwned(string id, bool owned)
         {
             if (id == "map_germany") map_germany = owned;
             else if (id == "map_mexico") map_mexico = owned;
+            else if (id == "map_world") map_world = owned;
         }
         public int RefundAmount() => (map_germany ? 30000 : 0) + (map_mexico ? 25000 : 0);
     }
@@ -602,6 +608,7 @@ public static class AtlasBoardRtdbMetaEconomy
             CachedOwnedMaps.Clear();
             if (document.inventory.maps.IsOwned("map_germany")) CachedOwnedMaps.Add("map_germany");
             if (document.inventory.maps.IsOwned("map_mexico")) CachedOwnedMaps.Add("map_mexico");
+            if (document.inventory.maps.IsOwned("map_world")) CachedOwnedMaps.Add("map_world");
             cachedPawnOwnerUid = identity.Uid;
             CachedOwnedPawnIds.Clear();
             cachedEmoteUid = identity.Uid;
@@ -648,6 +655,7 @@ public static class AtlasBoardRtdbMetaEconomy
             try
             {
                 await ReadHistoryAsync(identity, snapshot);
+                await ReadPromoHistoryAsync(identity, snapshot);
                 // Legacy wallets may have a daily receipt but no lastClaimAt
                 // subnode. The receipt is immutable, so reuse its timestamp in
                 // the UI instead of advertising another award prematurely.
@@ -728,11 +736,12 @@ public static class AtlasBoardRtdbMetaEconomy
     private static readonly System.Collections.Generic.HashSet<string> CachedOwnedMaps =
         new System.Collections.Generic.HashSet<string>(StringComparer.Ordinal);
     private static string cachedMapUid = "";
-    public static bool IsPremiumMap(string id) => id == "map_germany" || id == "map_mexico";
+    public static bool IsPremiumMap(string id) => id == "map_germany" || id == "map_mexico" || id == "map_world";
     public static bool IsPremiumMapOwnedForCurrentUid(string id) =>
         !IsPremiumMap(id) || (cachedMapUid == CurrentUid && CachedOwnedMaps.Contains(id));
-    public static bool IsPremiumRoomMap(string mapId) => mapId == "Germany" || mapId == "Mexico";
-    public static string MapEntitlementId(string mapId) => mapId == "Germany" ? "map_germany" : mapId == "Mexico" ? "map_mexico" : "";
+    public static bool IsPremiumRoomMap(string mapId) => mapId == "Germany" || mapId == "Mexico" || mapId == "World";
+    public static string MapEntitlementId(string mapId) => mapId == "Germany" ? "map_germany" : mapId == "Mexico" ? "map_mexico" :
+        mapId == "World" ? "map_world" : "";
 
 
     private static readonly System.Collections.Generic.HashSet<string> CachedOwnedPawnIds =
@@ -761,7 +770,8 @@ public static class AtlasBoardRtdbMetaEconomy
 
 
     public static bool IsBoard(string itemId) =>
-        itemId == Midnight || itemId == Maple || itemId == Aurora;
+        itemId == Midnight || itemId == Maple || itemId == Aurora ||
+        itemId == "board_atlas_horizon";
 
 
     public static async Task<AtlasBoardMetaEconomyOperationResult> BuyAsync(
@@ -1226,9 +1236,14 @@ public static class AtlasBoardRtdbMetaEconomy
                         break;
                     case "RESET_PURCHASES":
                         doc.wallet.gold += doc.inventory.profile_frames.RefundAmount() + doc.inventory.boards.RefundAmount() + doc.inventory.dice.RefundAmount() + doc.inventory.pawns.RefundAmount() + doc.inventory.emotes.RefundAmount() + doc.inventory.maps.RefundAmount();
+                        // RESET PURCHASES never revokes event-only unlocks.
+                        bool worldOwned = doc.inventory.maps.IsOwned("map_world");
+                        bool horizonOwned = doc.inventory.boards.IsOwned("board_atlas_horizon");
                         doc.inventory.profile_frames = new Frames();
                         doc.inventory.boards = new Boards();
                         doc.inventory.maps = new Maps();
+                        doc.inventory.maps.map_world = worldOwned;
+                        doc.inventory.boards.board_atlas_horizon = horizonOwned;
                         doc.inventory.dice = new Dice();
                         doc.inventory.pawns = new Pawns();
                         doc.inventory.emotes = new Emotes();
@@ -1402,7 +1417,7 @@ public static class AtlasBoardRtdbMetaEconomy
         string[] ids = { Halloween, NewYear, Turkiye, Usa,
             "frame_neon_circuit", "frame_royal_crown", "frame_ocean_tide",
             "frame_sakura_blossom", "frame_cosmic_nova", "frame_forest_spirit",
-            Midnight, Maple, Aurora, "map_germany", "map_mexico", "dice_ruby_red", "dice_ocean_blue", "dice_midnight_black", "dice_marble",
+            Midnight, Maple, Aurora, "board_atlas_horizon", "map_germany", "map_mexico", "map_world", "dice_ruby_red", "dice_ocean_blue", "dice_midnight_black", "dice_marble",
             "ghost_01", "ghost_02", "ghost_03", "ghost_04", "ghost_05", "ghost_06", "ghost_07", "vehicle_police", "vehicle_taxi", "vehicle_pickup" };
         var catalogIds = new System.Collections.Generic.List<string>(ids);
         foreach (var emote in AtlasBoardEmotes.All)
@@ -1464,6 +1479,18 @@ public static class AtlasBoardRtdbMetaEconomy
     // Share the existing UID-preserving REST token refresh with the
     // observational Career dice uploader. This does not grant any currency,
     // privilege or access to a different account.
+    /// <summary>Returns only this session's UID-bound Firebase bearer for trusted callables.</summary>
+    public static async Task<string> GetCurrentCallableTokenAsync()
+    {
+        Identity identity = await ResolveIdentityAsync();
+        if (identity == null || !string.Equals(identity.Uid, CurrentUid,
+                StringComparison.Ordinal)) return "";
+        if (identity.IsRestGuest && !identity.IsAnonymous)
+            await RefreshRegisteredRestBearerAsync(identity);
+        return string.Equals(identity.Uid, CurrentUid, StringComparison.Ordinal)
+            ? identity.Token : "";
+    }
+
     public static async Task<string> RefreshRegisteredRestTokenForCurrentUidAsync(
         string uid)
     {
@@ -1721,6 +1748,35 @@ public static class AtlasBoardRtdbMetaEconomy
         }
     }
 
+
+    private static async Task ReadPromoHistoryAsync(
+        Identity identity, AtlasBoardMetaEconomySnapshot snapshot)
+    {
+        Response response = await RequestAsync(identity, "GET",
+            "/users/" + UnityWebRequest.EscapeURL(identity.Uid) +
+            "/promoRedemptions.json", null, null);
+        if (response.Status != 200 || string.IsNullOrWhiteSpace(response.Body) ||
+            response.Body.Trim() == "null") return;
+        JObject entries = JObject.Parse(response.Body);
+        foreach (JProperty entry in entries.Properties())
+        {
+            JObject receipt = entry.Value as JObject;
+            if (receipt == null) continue;
+            string id = (string)receipt["transactionId"] ?? "";
+            long at = (long?)receipt["claimedAt"] ?? 0;
+            if (id.Length != 64 || at <= 0) continue;
+            string rewardType = (string)receipt["rewardType"] ?? "";
+            snapshot.History.Add(new AtlasBoardMetaHistoryItem {
+                Type = "REDEEM_CODE", TransactionId = id,
+                ReferenceId = entry.Name, Status = "completed",
+                CurrencyId = rewardType,
+                Amount = (int?)receipt["rewardAmount"] ?? 0,
+                Detail = (string)receipt["rewardItemId"] ?? "",
+                CreatedAtUtc = DateTimeOffset.FromUnixTimeMilliseconds(at)
+                    .UtcDateTime.ToString("o")
+            });
+        }
+    }
 
     private static async Task ReadHistoryAsync(
         Identity identity, AtlasBoardMetaEconomySnapshot snapshot)

@@ -144,6 +144,18 @@ public sealed class AtlasBoardSeasonalOverview
     public AtlasBoardSeasonalEvent Event = new AtlasBoardSeasonalEvent();
     public int TicketBalance;
     public int EventXp;
+    public bool IsWorldJourney;
+    // Server unavailable or running older event schedule: UI-only preview.
+    // Never use this data to award or claim rewards.
+    public bool WorldPreviewOnly;
+    public bool Upcoming;
+    public int CompletedMissions;
+    public int ClaimedRewards;
+    public AtlasBoardWorldBonus WorldBonus = new AtlasBoardWorldBonus();
+    public readonly List<AtlasBoardWorldMission> WorldMissions =
+        new List<AtlasBoardWorldMission>();
+    public readonly List<AtlasBoardWorldRewardHistory> WorldHistory =
+        new List<AtlasBoardWorldRewardHistory>();
 
     public readonly List<AtlasBoardSeasonalChallenge> Challenges =
         new List<AtlasBoardSeasonalChallenge>();
@@ -153,4 +165,28 @@ public sealed class AtlasBoardSeasonalOverview
 
     public readonly List<AtlasBoardSeasonalLimitedItem> LimitedItems =
         new List<AtlasBoardSeasonalLimitedItem>();
+}
+
+[Serializable]
+public sealed class AtlasBoardWorldMission
+{
+    public string MissionId, TitleKey, DescriptionKey, RewardType, RewardItemId;
+    public int Target, Progress, RewardAmount;
+    public bool Claimed, Claimable;
+}
+
+[Serializable]
+public sealed class AtlasBoardWorldRewardHistory
+{
+    public string EventId, EventName, RewardId, RewardType, RewardItemId;
+    public string TransactionId, Status, Source;
+    public int RewardAmount;
+    public long ClaimedAt;
+}
+
+[Serializable]
+public sealed class AtlasBoardWorldBonus
+{
+    public string RewardType, RewardItemId;
+    public bool Claimed, Claimable;
 }

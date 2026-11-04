@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
@@ -371,10 +371,11 @@ public class MatchSetupManager : MonoBehaviour
         availableMaps = maps.ToArray();
         bool hasGermany = maps.Exists(map => map.MapId == "map_germany");
         bool hasMexico = maps.Exists(map => map.MapId == "map_mexico");
+        bool hasWorld = maps.Exists(map => map.MapId == "map_world");
         Debug.Log("ATB_MAP_REGISTRY status=" +
-            (hasGermany && hasMexico ? "ready" : "incomplete") +
+            (hasGermany && hasMexico && hasWorld ? "ready" : "incomplete") +
             " maps=" + maps.Count +
-            " germany=" + hasGermany + " mexico=" + hasMexico, this);
+            " germany=" + hasGermany + " mexico=" + hasMexico + " world=" + hasWorld, this);
     }
 
 
@@ -768,7 +769,7 @@ public class MatchSetupManager : MonoBehaviour
     {
         if (turnManager != null && turnManager.IsMatchStarted) return false;
         string canonical = mapId == "Germany" ? "map_germany" :
-            mapId == "Mexico" ? "map_mexico" : mapId == "Turkey" ? "map_turkey" :
+            mapId == "Mexico" ? "map_mexico" : mapId == "World" ? "map_world" : mapId == "Turkey" ? "map_turkey" :
             mapId == "Colorado" ? "map_colorado" : mapId == "USA" ? "map_usa" : mapId;
         BoardMapDefinition found = availableMaps != null
             ? availableMaps.FirstOrDefault(m => m != null &&

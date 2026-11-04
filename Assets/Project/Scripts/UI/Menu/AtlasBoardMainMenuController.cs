@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -839,6 +839,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             ? AtlasBoardLocalizationManager.Instance.CurrentLanguageCode : "en";
         string mapName = AtlasBoardShopContentDraft.LocalizedName(
             mapId == "Mexico" || mapId == "map_mexico" ? "map_mexico" :
+            mapId == "World" || mapId == "map_world" ? "map_world" :
             "map_germany", locale);
         string title;
         string message;
@@ -858,6 +859,20 @@ public class AtlasBoardMainMenuController : MonoBehaviour
                 message = "У вас нет карты " + mapName + ". Купите её в магазине Atlas, чтобы создать игру."; break;
             default: title = "MAP NOT OWNED";
                 message = "You don't own " + mapName + ". Purchase this map in Atlas Store before creating a game."; break;
+        }
+        if (mapId == "World" || mapId == "map_world")
+        {
+            title = AtlasBoardShopContentDraft.WorldText("locked", locale);
+            switch (AtlasBoardLocalizationLanguages.Normalize(locale))
+            {
+                case "tr": message = "Dünya haritası hesabınızda bulunmuyor. Atlas Dünya Yolculuğu etkinliğindeki 8 ödülü tamamlayarak kazanabilirsiniz."; break;
+                case "es": message = "No tienes el mapa Mundo. Desbloquéalo completando las ocho recompensas del evento Atlas."; break;
+                case "fr": message = "Vous ne possédez pas la carte Monde. Débloquez-la en terminant les huit récompenses Atlas."; break;
+                case "de": message = "Du besitzt die Weltkarte nicht. Schalte sie mit allen acht Atlas-Eventbelohnungen frei."; break;
+                case "ko": message = "세계 지도가 없습니다. 아틀라스 이벤트 보상 8개를 모두 완료하면 잠금 해제됩니다."; break;
+                case "ru": message = "У вас нет карты Мира. Получите её за восемь наград события Атлас."; break;
+                default: message = "You don't own the World map. Unlock it by claiming all eight Atlas World Journey event rewards."; break;
+            }
         }
         ShowModal(title, message);
         if (modalPanel != null) modalPanel.transform.SetAsLastSibling();
@@ -1180,6 +1195,7 @@ public class AtlasBoardMainMenuController : MonoBehaviour
             2 => "USA",
             3 => "Germany",
             4 => "Mexico",
+            5 => "World",
             _ => "Turkey"
         };
     }

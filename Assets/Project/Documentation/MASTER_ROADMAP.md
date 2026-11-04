@@ -1,3 +1,333 @@
+# AtlasBoard v5.49.12cn — Promo seed cleanup / source-backup checkpoint (2026-11-03)
+
+**Latest authoritative status — overrides superseded temporary seed instructions below.** This checkpoint is a source cleanup package, **not** a Firebase deployment, completed live reward test, Unity build, or GitHub push. The owner's separate RTDB export (not shipped in game package) has **23 root keys including `/promoCodes` with 64 entries**. The original 22 roots are still present in that submitted export. This verifies the supplied export structure only; it does not prove the production RTDB currently contains those same values.
+
+## P1: Promo code lifecycle — catalog now provisioned in owner-supplied RTDB export
+
+- **COMPLETE (source cleanup):** remove temporary game Store **SEED CODES** button, `AtlasBoardOwnerPromoRtdbSeeder` Editor reader and its `.meta`, `AtlasBoardMetaEconomyBridge` seed request/delegate, `metaOwnerSeedPromoCodesOnce` server endpoint/export, `worldJourneySeedOwnerPromoCodes`, hashed allowlist module, obsolete Node seeder and their stale test assumptions. The Editor Store returns to standard **DEV WALLET** and **RESET PURCHASES** two-button layout.
+- **COMPLETE (operator file verification):** 64 `/promoCodes/{CODE}` entries in the submitted JSON export; no full-database import or overwrite was performed in this package. Future changes should be made **only at the intended RTDB child**, by an authorized administrator, and backed up first.
+- **RETAIN:** normal Store **REDEEM CODE**, the authenticated `metaPromoRedeem` function, root promo definitions protected from regular client reads/writes, per-UID `promoRedemptions`, transaction-ID/duplicate checks, account-wallet update, existing inventory/purchase history, world journey overview/claim logic.
+- **OPEN — LIVE GATE:** Cloud Function `metaPromoRedeem` availability and a real two-account redemption still unverified. Manual RTDB catalog availability **does not** deploy or replace the redemption callable; keep failure as `ATB-424` (service unverified), not success. Preserve server-authoritative reward issuing to prevent client-side wallet forgery.
+- **OPEN — TEST:** Verify Gold, XP, Atlas Coin and cosmetic redemptions; repeated code on same UID, two users, pre-owned item, expired code, invalid code, no account, account switch, transaction history and no double-grant. Run TypeScript lint/build and Unity compile on owner's current local repo; neither was run on the real Unity environment in this document.
+
+## World Journey / releases / accepted QA (preserved)
+
+- **PASS (owner):** unified World Journey hero banner, Event/Help FAQ improvements, `0/8` and `0/N` counters, correct Store subtitle and `World Map` reward label, local rematch goes to menu, local lobby `PLAYER (YOU)`, and persistent menu/lobby profile frame.
+- **PASS (owner):** remote emote above avatar; match disconnect/rejoin/host migration with both participants receiving XP/Gold and duplicate payout prevented in owner's test.
+- **OPEN — LIVE:** verify event's eight mission counters from signed career claims; manual **Claim** for each reward; final `World` map inventory entitlement and extra `Atlas Horizon Board`; event claims/history transaction IDs and account isolation. Event is active **2026-11-03 through 2027-06-30 UTC** and should show an ended/no-events state afterward. Source integration exists but should not be marked fully live until runtime tests pass.
+- **P0/P1 — identity and security:** Steam-to-UID mapping, guest->registered migration, account-switch cache isolation, old-client server version gate, signed match observations and multiplayer rules require the previously documented acceptance tests. Do not regress QA-accepted flows.
+- **Google Play:** localized store entries, game/tabletop category and listing settings prepared; open testing release review/submission and screenshots/form-factor assets require final confirmation.
+- **Steam:** partner fee and tax/banking onboarding submitted by owner; identity/KYC document review and final tax approval remain external gates before distribution.
+- **Android:** performance/FPS/thermal endurance and supported-device builds remain open QA items.
+
+## Backup / delivery contract
+
+`v5.49.12cn` is a ZIP of changed full source files plus a precise deletion manifest and optional local installer. Apply over the previously installed `v5.49.12cm` source (or compare the files first), run compile/build/QA locally, then commit the resulting **local Unity project** to a separate GitHub backup branch. Do **not** upload the full RTDB export or plaintext promo codes to a public repository. An extracted ZIP by itself does not include the entire Unity project nor constitute a playable build. No production RTDB import, Firebase deploy, GitHub commit/push, GitHub branch creation or cloud-secret change was performed by this package.
+
+---
+
+# AtlasBoard v5.49.12cm — Functions deploy: remaining ESLint indent + Admin RTDB API fix (2026-11-03)
+
+**STATUS: source patch prepared and local contract checks passed; Windows ESLint/build and production deployment remain UNVERIFIED.** This is a narrow follow-up to `v5.49.12cl`. No GitHub push or Firebase production change was performed. All previous roadmap entries and owner-approved gameplay/UI acceptance statuses below remain unchanged.
+
+## Owner evidence (PowerShell output received)
+
+- `npm.cmd --prefix functions run lint` returned **8 remaining errors**: `economy/world-journey-live.ts:180` (one `indent`), and `security/match-integrity-gates.ts:142,143,158,159,165,166,167` (seven `indent`). No other ESLint errors were reported in this run.
+- `npm.cmd --prefix functions run build` returned **TS2554** at `economy/world-journey-live.ts:14`: `getDatabase(undefined, url)` passed two arguments to an Admin SDK function that accepts at most one.
+> [Retired in v5.49.12cn] Temporary promo-seeding instruction removed; maintain code definitions only under RTDB `/promoCodes`.
+
+## Fix applied, without changing reward or security decisions
+
+1. `Backend/Firebase/functions/src/economy/world-journey-live.ts`: replace the incorrect `getDatabase(undefined, url)` invocation with the supported Firebase Admin `getDatabaseWithUrl(url)` API, retaining `https://atlasboard-usa-default-rtdb.europe-west1.firebasedatabase.app` exactly; correct the single flagged indentation line.
+2. `Backend/Firebase/functions/src/security/match-integrity-gates.ts`: correct exactly seven flagged indentation lines inside existing completed-match validation errors; no guard, condition, error key, or match/XP/Gold logic was changed.
+3. `Backend/Firebase/qa/phase19cj_world_promo_rtdb_contract.test.cjs`: update the **existing** mock for the official API name and explicitly assert the same RTDB URL. This does not create a duplicate test framework.
+
+## Verification and next owner steps
+
+- TypeScript syntax/transpilation checks of the two corrected `.ts` sources: **PASS**.
+- Source-level recheck for all eight reported indent locations and the wrong API call: **PASS**.
+- Existing World Journey / RTDB promo contract simulation: **18/18 PASS**; this is a local fake-RTDB test, **not** Firebase emulator or production acceptance.
+- Official project ESLint, `tsc` against installed Firebase Admin types, Unity compilation, Auth/RTDB emulator, and production deployment: **PENDING OWNER RECHECK**. Never record a production PASS merely from local source checks.
+- Owner should apply the full-file ZIP at the project root, then run `npm.cmd --prefix functions run lint` and `npm.cmd --prefix functions run build` from `Backend\Firebase`. Only after both exit 0 should the four intended Cloud Functions be deployed explicitly with `firebase.cmd`. Confirm callable availability and the 64-code one-time seed before marking release accepted.
+
+**Scope:** Firebase deployment repair only. Do not reopen owner-PASS event banner, Help/FAQ, local rematch, profile frame, lobby name, emotes, or disconnect/rejoin. Existing promo catalog, player ledger, store purchase history, event rewards, and daily rewards remain untouched.
+
+---
+
+# AtlasBoard v5.49.12cl — Windows Firebase Functions predeploy lint repair (2026-11-03)
+
+**Source-only checkpoint, NOT production-deployed or live-accepted.** This entry follows `ck` without reopening owner-confirmed PASS items. GitHub was not changed. The canonical existing roadmap history below is preserved verbatim.
+
+## Owner evidence and current blocker
+
+> [Retired in v5.49.12cn] Temporary promo-seeding instruction removed; maintain code definitions only under RTDB `/promoCodes`.
+- Owner's Windows PowerShell `firebase.cmd deploy --only ...` reached Firebase Functions predeploy but **failed BEFORE uploading functions** on `npm ... run lint`. The full CLI log reports **190 ESLint errors** across 10 TS files: missing trailing commas in the promo manifest; `max-len`, `indent`, `require-jsdoc`, `valid-jsdoc`, and blank-line issues in the new World Journey source and existing lobby/match/security sources. The follow-on Windows `spawn npm --prefix "%RESOURCE_DIR%" run lint ENOENT` is an additional predeploy command-spawning issue, not evidence that the functions were deployed.
+
+## `cl` source correction and scope
+
+- Preserve all 64 hash-verified code definitions and every existing reward amount. Correct the manifest's `comma-dangle` errors without changing its TypeScript syntax tree.
+- Correct lines, JSDoc and formatting in `world-journey-live.ts`, `index.ts`, existing lobby pagination, lobby, match lifecycle/network, match integrity, result consistency and seasonal track integrity. **No reward authority, payout amount, eligibility, account rules, or public API contract is altered.**
+- Change `Backend/Firebase/firebase.json` predeploy commands from quoted `$RESOURCE_DIR` variants to project-root-relative `npm --prefix functions run lint` and `npm --prefix functions run build`. Lint and TypeScript build remain mandatory; neither check is disabled or skipped. Windows PowerShell should invoke `npm.cmd` / `firebase.cmd`, not blocked `.ps1` shims.
+- No Firebase rules, Store purchase history, Cloud Functions publication, database entries, account balances, or GitHub branches were modified in this package.
+
+## Verified checks and remaining acceptance
+
+- **PASS** TypeScript parser: 0 syntax errors in supplied and corrected source files.
+- **PASS** TypeScript AST fingerprint comparison: all 10 updated `.ts` files match their baseline gameplay syntax trees (documentation, commas and line wrapping only).
+- **PASS** `phase19cj_world_promo_rtdb_contract.test.cjs`: 18/18 checks including owner-only seed, no duplicate redemption, World Map exclusion from promos, 8 claimed event rewards and exclusive board bonus.
+- **PASS** JSON parse and per-file source line-length audit of the changed TypeScript files.
+- **NOT VERIFIED** Actual `npm run lint` using the repo's installed Google ESLint dependencies in the owner's Windows environment. Do not call this lint PASS until rerun.
+- **NOT VERIFIED** Full TypeScript build using installed Firebase packages, Auth/RTDB emulator, production deployment, 64-code production seed, online reward claim, Store verification or live Unity acceptance.
+
+## Required owner-side deployment gate
+
+> [Retired in v5.49.12cn] Temporary promo-seeding instruction removed; maintain code definitions only under RTDB `/promoCodes`.
+
+---
+
+# AtlasBoard v5.49.12ck — Owner QA acceptance, unified hero and in-game one-time promo bootstrap (2026-11-03)
+
+**Latest development checkpoint; not a deployed release.** This section supersedes the `cj` Editor-menu instructions ONLY. The existing 64 QA codes, all previous roadmap content and all verified owner-PASS items remain intact. No GitHub push, production Firebase write or callable deployment was performed in this package.
+
+## Owner acceptance received
+
+- **PASS** Help / FAQ seasonal-event help.
+- **PASS** `-/8`, `--/50` counters now render `0/8`, `0/50`.
+- **PASS** Store Home seasonal subtitle localization.
+- **PASS** `World Map` reward description (the actual map ID/name still `map_world` / `World`).
+- **OPEN** World Journey hero presentation until this `ck` unified backdrop is visually accepted.
+- **BLOCKED (live)** Initial promo seeding: owner Editor Play Mode observed `ATB_OWNER_PROMO_SEED ERROR: HTTP 404`; no RTDB seed was confirmed. Do not mark codes redeemed, issued or backend live.
+
+## Unified World Journey hero
+
+`AtlasBoardMetaEconomyUI.RebuildWorldJourneyPage` previously rendered **two separate dark captions**: left width 714 at x=-192, and right width 296 at x=397. Their edges left an ~84 Unity-unit blue gap. `ck` uses **one 1088x124 semi-transparent midnight overlay** behind both the event title and the end-date, leaving the original globe image visible throughout with no internal vertical seam. The banner and event date text stay unchanged. Unity game-view visual acceptance remains pending.
+
+## Retired one-time seed path (superseded by v5.49.12cn)
+
+The temporary Editor-only Store seed and all of its callable/manifest integrations have been removed. The owner maintains `/promoCodes` through the RTDB Console, not through the Unity client. Old setup instructions from this checkpoint must not be applied.
+
+## Acceptance gates — see latest checkpoint for current status
+
+The earlier seed/deploy checks for a temporary upload endpoint are retired. Actual acceptance now requires local Unity compile, current Functions lint/build, confirmed `metaPromoRedeem` backend availability, RTDB rules verification, and account-specific live redemption/event checks.
+
+---
+
+# AtlasBoard v5.49.12cj — Single RTDB Promo Catalog, Live Event Claim Path and UI/FAQ Closure (2026-11-03)
+
+**DELIVERY: COMPLETE SOURCE FILES, TEST/DEPLOY GATES STILL OPEN.** This section supersedes older `serverPromoCodes`, old Node seeding script and progress-display text. All prior roadmap history and owner-accepted systems remain unchanged. GitHub main was not pushed, no production RTDB value was written, and no live Cloud Functions were deployed by this package.
+
+## Canonical backend (no Spark / Firestore for live event or promo rewards)
+
+- One global administrative catalog: **`/promoCodes/{NORMALIZED_CODE}`**. Each record includes its literal `code`, `schemaVersion: 2`, `active`, `scope` (`owner_qa` or `public`), `quantity`, `reward` (`type`, `amount`, optionally `itemId`/`itemType`), `startsAtEpochMs`, `endsAtEpochMs`, `createdAt` and `perAccountLimit: 1` as a descriptive contract. `quantity` must exactly match reward amount; non-stackable items require `quantity: 1`. Ordinary clients have **zero read/write access** to this root. The existing authenticated Functions callable does the lookup and server-side account grant.
+- Existing **`/users/{uid}/promoRedemptions/{sha256}`** records the exact normalized code, reward type/amount/item, timestamp, status, source and deterministic transaction ID; the same-UID record is checked before and inside the account transaction. Existing purchase receipts, Meta History and paid entitlements are not replaced.
+- Existing **`/users/{uid}/seasonalEvents/world_journey_2027_s1`** records eight mission progress counters and claimed reward history with transaction IDs and claim times. Existing **`/users/{uid}/seasonalRewards/xp`** provides Career-visible bonus XP, separate from verified match claims. World map ownership and exclusive board entitlement use the existing `metaEconomy.inventory` booleans. Authoritative mission progress comes only from verified `/careerClaims/{uid}/{matchId}`; an offline bot match does not count.
+- Event timing remains **Nov 3 2026 00:00 UTC to Jun 30 2027 23:59:59.999 UTC**. Rewards never auto-claim: each of the first seven must be claimed in the Rewards tab, then the eighth claim grants **World Map** (`map_world`, in-game display name still **World**). Explicitly claiming all eight allows the separate **Atlas Horizon Board** (`board_atlas_horizon`). Both exclusive rewards remain non-sellable and cannot be granted by any promo code.
+
+## RTDB operator catalog — authoritative approach as of v5.49.12cn
+
+The prior one-shot Editor upload is removed. The supplied owner export now contains 64 `/promoCodes` children. The administrator may add future definitions under **that one child path**, after a new RTDB backup. Do not import an object containing only `promoCodes` at the database root, because root import can overwrite the remaining account/match data. Keep the existing server redemption callable and per-account receipts.
+
+## Owner screenshot UI improvements + FAQ
+
+- Store Home now resolves the World Journey's translated subtitle rather than printing `world.event.subtitle`.
+- The World Journey banner is closer to the event section; a blue in-game backdrop fills empty area. Four existing sub-tabs retain pill styling, and pages have consistent vertical clearance.
+- In a temporary read-only preview, counters display `0/8` and `0/N` instead of negative-looking dashes. The status line explicitly explains that confirmed online results will appear after verification. A nonverified preview is **not** proof of zero accomplishments and CANNOT claim rewards. On verified backend replies, exact per-account values and history replace placeholders.
+- The event reward card reads **World Map / Dünya Haritası**; game map item name **World / Dünya** and item ID `map_world` are unchanged. The exclusive board bonus includes the explanation that all eight rewards must first be claimed. Confirmed reward modal shows item/currency and transaction ID.
+- Existing `AtlasBoardPlayerHelpCredits` has four more seven-language FAQs: event date & eligible online matches, how/when to claim, World Map & Horizon Board unlock, promo limits/account history. No new Help controller or extra Markdown.
+
+## Testing evidence and remaining acceptance gates
+
+- New isolated RTDB callable transaction simulation: **18/18 PASS** (64-code allowlist, unauthorized seed, duplicate seed denied, account idempotency, missing code, quantity mismatch, real claim path from three synthetic *verified* online records, first seven rewards, World Map, board bonus, XP and expiry). **This is a mock, NOT a live Firebase Auth/RTDB emulator test.**
+- Previous source regression suite: **58/58 PASS**. Target `world-journey-live.ts` and owner manifest pass local strict TypeScript compilation with interface stubs; complete Functions `npm run build` was not executable without the repository's installed dependencies. No Unity editor/compiler or real online owner acceptance has run.
+- **Open:** install dependencies and build complete Functions; run Auth + RTDB emulator including deployed rules, callable App Check and two-account tests, validate the actual live Cloud Functions deployment, test one-time seed with actual QA UID, redeem success/failure, check server timestamps and inventory/XP/Gold history, online game progress, after-restart persistence, and seven-language UI responsiveness. No production `PASS` claimed yet.
+
+---
+
+# AtlasBoard v5.49.12ci — Event UI, Promo Feedback, History, Error Codes (2026-11-03)
+
+**SOURCE DELIVERABLE — MANUAL UNITY + AUTH/RTDB EMULATOR + LIVE FUNCTIONS DEPLOY NOT YET ACCEPTED.** Supersedes only the event UI/promo feedback notes in `ch`; no prior history removed. This is a correction to the canonical existing MASTER_ROADMAP.md, not a new document.
+
+## Owner screenshot and console review
+
+- Screenshots: World Journey title missing against artwork; hero/date text too small; event tabs overlap overview cards; rewards and bonus use square stock buttons; history only renders a tiny generic row; promo fails with a generic `Transaction Failed` message.
+- `Pasted text(20261104-033725).txt`: Unity startup and RTDB wallet worked; six map entries including World were loaded. No promo callable error response, UID promo receipt, or successful claim was present. TextMeshPro warnings showed unsupported U+2726 and U+1F310, which explained square placeholder symbols.
+- **UI corrections:** banner now has opaque navy readable title and right-hand deadline overlay; event subnavigation has defined spacing and rounded selections; overview panels shifted away from tabs; missions show progress bars; reward claim/locked/claimed buttons use reusable sliced rounded UI visuals; the history tab uses a proper multilingual empty-state panel. Unsupported glyphs were removed from World Journey banner/cards.
+- **Data honesty:** when Cloud Functions are missing or stale, event information/mission titles are a read-only preview; progress is shown as unknown, claims disabled, and history says `ATB-424 · Kayıtlar doğrulanamadı`, not a fake claim nor a fabricated "no history" assertion. Once authoritative service responds, an account with no claimed rewards sees the distinct `Henüz ödül alınmadı` state. Removed the UI text `SERVER SYNC PENDING`; deployment still required for real player claiming.
+- **Promo feedback (existing FRONTEND_ERROR_CODEBOOK diagnostic IDs respected):** `ATB-430` invalid format; `ATB-431` authentication; `ATB-432` disabled; `ATB-433` missing/unseeded; `ATB-434` per-UID already redeemed; `ATB-435` inventory already owned; `ATB-436` invalid reward; `ATB-437` not started; `ATB-438` expired; `ATB-439` quota; `ATB-440` account not ready; `ATB-441` owner QA unauthorized. `ATB-424` is reserved for service not available / not verified. Existing `ATB400` (chat), `ATB401` (chat), and `ATB410` (reports) are not reused. Success reports confirmed reward and transaction ID. No raw Firebase error is shown.
+- Backend reads `users/{uid}/promoRedemptions/{promoId}` to differentiate already used from unknown, then repeats the check atomically in the existing RTDB account transaction to prevent duplicate grants. No changes to prior purchase receipts, `metaHistory`, Daily Reward, wallet ownership or previous local rematch fixes.
+- Existing QA codes in the `ch` roadmap catalog **are NOT automatically active**. The owner-only seeder must place their hashed definitions into `serverPromoCodes` in an authorized environment; a source ZIP cannot activate Cloud Functions or seed production. Existing security gate `/devWalletTesters/{uid} === true` is retained. **No GitHub push or production changes performed.**
+
+## Still-open release/owner QA gates
+
+- Verify npm TypeScript compile and local Firebase Functions/Auth/RTDB emulators for invalid, unseeded, already redeemed, concurrent repeated claims, owner QA denied, and XP/item wallet history correctness. No actual production promo code may be treated active until a genuine authorized seed and Cloud Functions deployment.
+- Run Unity Editor compilation, seven-language/wide+narrow resolutions UI screenshots, two-account event progress and claim, source ZIP import, rejoin+XP/Gold/Store purchase regression. Only then mark event and promo features OWNER PASS.
+
+---
+
+# AtlasBoard v5.49.12ch — World Journey NOW + Owner Promo Code Catalog (2026-11-03)
+
+**STATUS: SOURCE UPDATED; UNITY COMPILATION / AUTH+RTDB EMULATOR / PRODUCTION FUNCTIONS DEPLOY / LIVE CLAIM TEST NOT RUN.** The canonical version remains incremental; older records below are retained, with this section taking precedence only for these two corrections.
+
+## Event availability / dates
+
+- **Start:** **2026-11-03 00:00:00 UTC** (3 Kasım 2026). **End:** **2027-06-30 23:59:59.999 UTC** (30 Haziran 2027). Event ID remains `world_journey_2027_s1`, preserving existing UID progress and claims; no reset or duplicate season ID.
+- Backend `world-journey-live.ts` now uses the revised start date for eligibility, task evidence, reward claims and overview. **1 July 2027 00:00 UTC** returns the former No Upcoming Events page. Rewards still require pressing **ÖDÜLÜ AL**.
+- Unity Store fallback now displays the World Journey tabs and 30 June end date during the correct window, **even if the new production Cloud Functions are not deployed or a stale function still reports January 2027**. Such a screen is clearly marked **SERVER SYNC PENDING / SUNUCU GÜNCELLEMESİ BEKLENİYOR**: rewards/claims are disabled, live progress is UNKNOWN rather than 0, and claim receipts are NOT fabricated. Once verified production Functions are deployed, authoritative progression, reward buttons and history come from the server as before.
+- **Why prior screenshot showed No Upcoming Events:** the previous backend timestamp had 2027-01-01 as its start; moreover, source ZIP extraction cannot deploy new callable functions. A missing new callable also previously made the UI fall back to the generic empty-event panel. Correct start + honest preview fallback resolve misleading UI, but **actual claiming requires backend deployment and acceptance testing**.
+
+## Historical owner QA catalog — superseded by v5.49.12cn
+
+The old source manifest and seeding script have been deleted. The 64 actual code records are owned by the operator's exported RTDB data and intentionally not reproduced in game source or GitHub. See the topmost checkpoint for the current verification status.
+
+---
+
+# AtlasBoard — v5.49.12cg | Atlas Dünya Yolculuğu + Production Promo Kaynak Paketi
+
+**İş durumu:** Altı P1 kapsamının kaynak entegrasyonu hazırlandı; **Unity, gerçek emülatör, canlı ödeme/claim ve iki istemcili kabul testleri yapılmadı**. Kod hazırlığı ile production kabulü ayrı tutulacak. Son owner-PASS `v5.49.12cf` maddeleri kapalı kalır. GitHub push ve production Firebase deploy yapılmadı.
+
+**Sabit kararlar (owner, 3 Kasım 2026):** Yalnız mevcut `MASTER_ROADMAP.md` ve `FRONTEND_ERROR_CODEBOOK.md`; yeni açıklama MD yok. Değişen tam proje dosyaları tek ZIP; PS1/patch yok. Duplication oluşmadan mevcut Store/Career/RTDB/Functions ve map registry genişletildi. Oyun sürüm rozetine müdahale edilmedi.
+
+## P1-A — Promo Code Expansion (SOURCE INTEGRATED / RELEASE GATE OPEN)
+
+- Firestore emülatörüne özel `promoTestRedeem` kaldırılmadı veya production'a yanlışlıkla açılmadı. Canlı hesap için UID-doğrulanmış `metaPromoRedeem` callable, aynı kanonik **RTDB `/users/{uid}/metaEconomy`** cüzdanına işlem yapar. Firestore test cüzdanından üretim Gold'u verilmez.
+- Oyunun Store `REDEEM CODE` ekranı gerçek production callable'a bağlandı. 50/500/5000 Gold, 50/500/5000 XP, 50/500/5000 Atlas Coin için dokuz ödül şablonu; ayrıca gerçekten satışa uygun ürünler/kozmetikler için tekil item kodu şablonları. `map_world` ve `board_atlas_horizon` hiçbir satış/promo seed'ine alınmaz; yalnız event reward.
+> [Retired in v5.49.12cn] Temporary promo-seeding instruction removed; maintain code definitions only under RTDB `/promoCodes`.
+- Claim/ödül transactionları `/users/{uid}/promoRedemptions/{promoId}`; UID altında tek kullanım, idempotent işlem kimliği, kayıt zamanı ve ödül tipi. `/users/{uid}/seasonalRewards/xp` Career toplam XP'ye ayrı kaynaktan eklenir (maç imzalarını değiştirmez). Store history promo makbuzlarını okumaya genişletildi.
+- Önemli açık yayın kapısı: global kampanya kullanım kotası/çok hesaplı anti-abuse için production backend tasarımı ayrıca onaylanmalı; bu pakette 1-kullanım/UID atomik, cross-account global stok garantisi **uygulanmadı**.
+
+## P1-B — Seasonal Event `world_journey_2027_s1` (SOURCE INTEGRATED / QA OPEN)
+
+- EN **Atlas World Journey**, TR **Atlas Dünya Yolculuğu**; diğer beş destekli dil de aynı UI metin kataloğuna eklendi.
+- Tam altı ay: `2027-01-01T00:00:00Z` başlangıç, `2027-06-30T23:59:59Z` son gün. 2026 Kasım'da önizleme/yakında; 1 Ocak'tan önce claim açılamaz. 1 Temmuz 2027 UTC'den itibaren event sayfası yeniden **No Upcoming Events** olur; server da yeni claim işlemini reddeder. Başlangıç ve özellikle **bitiş tarihi** event hero üzerinde görünür.
+- Mevcut Store Event sekmesi altında dört alt görünüm: **Overview, Missions, Rewards, Claim History**. Oyun hissi veren banner, ilerleme ve ödül kartları; her görev için Locked/Claimable/Claimed; claim **yalnız Ödüller'deki ÖDÜLÜ AL** tıklamasıyla çalışır. Backend ödülü otomatik claim etmez.
+- 8 görev / ödül (yalnız kanıtlanmış online tamamlanmış maç kayıtlarına dayanır):
+  1. 2 maç bitir -> 500 Gold;
+  2. 50 zar atışı -> 500 XP;
+  3. 10 development -> 100 Atlas Coin;
+  4. 3 galibiyet -> 1000 Gold;
+  5. 20 tur -> 1000 XP;
+  6. 3 farklı haritada tamamlanmış maç -> 250 Atlas Coin;
+  7. 5000 en yüksek net değer -> 2000 Gold;
+  8. Önceki 7 ödülü topla -> **Dünya haritası** (`map_world`).
+- **Ek claim:** Sekiz görev ödülü de alındığında ayrıca ayrı butonla **Atlas Ufuk Tahtası** (`board_atlas_horizon`) elde edilir. Market veya item promo kodundan verilemez. Özel tahta tema/texture, seçim ve owner kontrolü mevcut 3D BoardThemeVisuals akışına eklendi.
+- Görevlerin tek gerçek kaynağı `/careerClaims/{uid}/{matchId}` signed/accepted kayıtlarıdır. İstemci ilerleme sayısı/fake complete göndermiyor. Kanıtlanmış ilerleme `/users/{uid}/seasonalEvents/{eventId}/missions/{missionId}`; claim, bonus, geçmiş ve transactionId aynı UID/event dalında tutulur. Ödül RTDB server-side UID transaction içinde mevcut kanonik cüzdan, envanter veya ayrı Career bonus XP alanına işlenir. `users` dışındaki Store'da ikinci wallet yaratılmaz.
+- Acceptance açık: iptal/yineleme, 8 claim, bonus board, tarihi atlatma, account switch, offline satın alma, Android, iki gerçek online hesap ve prod emülatör testleri henüz çalıştırılmadı.
+
+## P1-C — Dünya Map / Board / Localization (SOURCE INTEGRATED / QA OPEN)
+
+- `map_world.asset`: 32 karelik ayrı harita; dört kıtadan fazlasını temsil eden 24 gerçek şehir etiketi; mevcut `BoardMapDefinition` ve build-safe `ATB_PremiumMapReferences` kaynakları kullanıldı, ikinci map manager yok.
+- Lobi/dropdown sıra: Turkey / Colorado / USA / Germany / Mexico / **World**. Premium sahiplik kontrolü ve mevcut popup korunup World için 7 dilde **event ile açılır, mağazada satılmaz** açıklaması eklendi. Host Settings / oyun start kontrolü World entitlement'ını da doğrular. Offline/Private/Public seçilebilmesi için aynı map asset + id kullanılır, kilitliyse oynanamaz.
+- Career Overview harita filtresi World'u gösterir, başlangıç değeri sıfırdır, sahibiyet kazandırmaz. Event-only ürünler Store Items listesinden gizli, Career Inventory'de UID sahipliğiyle görünür.
+- `board_atlas_horizon`: yalnız görev tamamlanma bonusu; ayrı geometrik mavi/altın pusula görseli + mevcut BoardThemeVisuals palette/texture; `RESET_PURCHASES` ile özel ödül **silinmez veya iade edilmez**. Mevcut diğer kozmetik Gold fiyat ve satın alma geçmişi korunur.
+- TR / EN / ES / FR / DE / KO / RU metinleri: World adı, Board adı, event başlığı, 8 görev, 4 tab, claim/claimed/locked/progress, bonus, takvim, history, popup. Yeni LocalizationManager oluşturulmadı.
+
+## Canlı dağıtım/yayın öncesi değiştirilmeyecek güvenlik kapıları
+
+1. **Node/Firebase build + RTDB emulator**: yeni callable'ların gerçek Auth JWT, AppCheck, tarih, UID, idempotency, güvenlik kuralı ve cüzdan/XP/receipt regresyonu PASS olmalı.
+2. **Unity 6000.5.6f1 compile + iki istemci**: World haritası 32 kare, offline ve private/public host map seçimi, bir sonraki sahne/yeniden giriş, bonus board gerçek görünüm, Event dört alt sayfa ve 7 lokalizasyon PASS olmalı.
+3. **Production deploy** ancak açık kullanıcı onayı ve Blaze/Functions bütçesi, secret yönetimi ve release gate sonrası. Bu pakette `firebase deploy`, promo seed veya GitHub push yapılmadı.
+4. **Server Version Gate** önceki karara göre ertelendi; Steam UID, hesap geçişi ve career dice online acceptance ayrı P0 kapıları açık, önceki owner-PASS emote/rejoin/local rematch tekrar açılmadı.
+
+---
+
+# ATLASBOARD — v5.49.12cf OWNER STATUS RECONCILIATION + PROMO PLAN + PLAY/STEAM RELEASE (2026-11-03)
+
+**Durum güncellemesi, oyun kodu sürümü değiştirilmedi:** `v5.49.12cf`. **Tek kanonik roadmap:** `Assets/Project/Documentation/MASTER_ROADMAP.md`. Bu bölüm, owner'ın 2026-11-03 tarihli son PASS raporlarını, Play Console/Steamworks ekranlarını ve mevcut kaynak kodundan doğrulanan promo altyapısını ekler. **Aşağıdaki güncel durum tablosu eski tarihsel OPEN/PENDING ifadelerine göre önceliklidir.** Önceki bütün tarihçe bu bölümün arkasında **aynen** korunur. Yalnız belge düzenlendi; ZIP içinde yeni oyun kodu, yeni MD, PS1, BAT, patch veya diff yoktur. GitHub commit/push ve Firebase deploy yapılmadı.
+
+## 1. Owner'ın kapattığı işleri tekrar açma — güncel kabul
+
+| Öncelik | İş / kabul sınırı | Son karar | Kanıt |
+| --- | --- | --- | --- |
+| **P0** | Sahip olunan emote'un **online maç sırasında diğer oyuncunun avatarı üzerinde görünmesi** | **OWNER PASS / CLOSED** | Owner 2026-11-03: “Emote gönderimi ... bu pass bunu yaptık ki P0.” Envanter/katalog/sprite sistemi yeniden kurulmayacak. |
+| **P1** | Aktif maçta **Disconnect / Rejoin, host migration, maç sonunda iki kayıtlı hesaba XP/Gold dağıtımı ve tekrar ödül engeli** | **OWNER PASS / CLOSED (owner-confirmed tested scope)** | Owner 2026-11-03: “Disconnect / Rejoin ... bu da pass iki hesaba da veriyordu P1.” Önceki genel OPEN satırı kapanır. Başka uç durumlar için yeni spesifik regresyon raporu olmadan aynı işi tekrar açma. |
+| P1 | Local private lobby `PLAYER (YOU)` yerine Steam adı | **OWNER PASS / CLOSED** | `v5.49.12cf` önceki owner kabulü. |
+| P1 | Local match REMATCH → aynı modern lobi | **OWNER PASS / CLOSED** | `v5.49.12cf` önceki owner kabulü. |
+| P1 | Kuşanılmış profil çerçevesinin ana menü/lobide korunması | **OWNER PASS / CLOSED** | `v5.49.12cf` önceki owner kabulü. |
+| P1 | Günlük ödül, Store Gold satın alma, satın alınan çerçeveyi uygulama, satın alma geçmişi korunumu | **OWNER PASS / kabul edilen kapsam** | Önceki `cd/ce/cf` owner testleri; geçmiş ve cüzdan sistemlerini bozma. |
+
+**Kabul terminolojisi:** `OWNER PASS` kullanıcının gerçek oyun testiyle bildirdiği kabulü ifade eder; yeni Firebase emulator, Unity compile veya source testinin bu belge düzenlemesi sırasında koşulduğu iddia edilmez. `SOURCE_GATE=58/58 PASS` yalnız önceki `v5.49.12cf` kaynak kontrolüdür; yeniden çalıştırılmadı. Bu PASS maddeleri ancak yeni, somut, alan-spesifik regresyon kanıtıyla yeniden açılabilir.
+
+## 2. Kod Kullan / promosyon kodları: mevcut sistemin gerçek durumu — P1 OPEN
+
+**Soru: Kodları nerede saklıyoruz?** Önceden oluşturulmuş **eski/emülatör odaklı** mimaride:
+- Backend tanım ve doğrulama kodu: `Backend/Firebase/functions/src/economy/promo.ts`; normalleştirilen girilmiş kodun SHA-256 ID'si ile `Firestore /promo_codes/{promoId}` tanımı bulunur.
+- Kullanım/audit kaydı: `Firestore /promo_redemptions/{redemptionId}` ve `events/{redemptionEventId}`; para ödülü için `wallets/{uid}/balances/{currencyId}` ile `wallet_ledger`; item grant için `inventories/{uid}/items/{itemId}` + immutable events; ürün kimliği/katalog `item_catalog/{itemId}`.
+- Test seed kaynağı: `Backend/Firebase/functions/scripts/meta-storefront-seed.mjs`; örnek `ATLAS-WELCOME` / `DICE-GIFT` **DEV/EMULATOR fixture**, canlıda geçerli kod olduğu doğrulanmadı. Seed örneği `displayCode` alanını da yazabilir; bu üretim sırlarının güvenli saklandığı anlamına gelmez.
+- Unity giriş ekranı: `Assets/Project/Scripts/UI/Meta/AtlasBoardMetaEconomyUI.cs` → `AtlasBoardMetaEconomyBridge.RedeemCodeAsync()` → `promoTestRedeem`.
+- `Backend/Firebase/functions/src/index.ts` içindeki `promoTestRedeem` **`requireEmulatedFirestore`** çağırır: **yalnız emülatörde** çalışır; production redeem hazır değildir.
+- Eski promo reward tipleri: `gold`, `atlas_coin`, `inventory_item`, `event_currency`, `event_ticket`; **kalıcı hesap XP tipi mevcut değil**.
+- **Kritik veri modeli farkı:** Eski Firestore promo akışı ödülü Firestore `wallets` veya `inventories` verisine yazar. **Güncel canlı Store/owner kabulü RTDB** `users/{uid}/metaEconomy` üzerinde. Yalnız emulator engelini kaldırmak **YASAK**: canlı RTDB Store, Career ve satın alma geçmişinden kopuk para/ürün yaratma, farklı bakiye ve sahipsiz entitlement riski vardır. Mevcut kanonik cüzdan ve Career authority ile uyum tasarlanmadan production kod kabulü yok.
+
+**Owner'ın istediği P1 içerik kataloğu — henüz yapılmadı:**
+1. **Her gerçek mağaza ürününe özgü kod**: catalog'da bulunan her `itemId` için ayrı eşsiz promosyon kodu; mevcut tipleri (pawn, dice, board, profile frame, emote ve gerçekten bulunan başka türler) kapsa. Kod kullanımı yalnız sunucunun doğruladığı mevcut `itemId` sahipliğini verir; zaten sahip olunan item'de tekrar ödül/Gold/ikinci grant yok. Katalogla eşlenmeyen eski/yanlış ID'ye ödül yok. Ürün listesi katalogdan türetilir, elle uydurulmaz.
+2. **Gold:** 3 ayrı değer/kod ailesi: **50, 500, 5000 Gold**.
+3. **Kalıcı hesap XP:** 3 ayrı değer/kod ailesi: **50, 500, 5000 XP**. *Önce* mevcut Career XP otoritesine kayıtlı sunucu denetimli ödül/ledger entegrasyonu gerekli; istemci veya promo parser doğrudan XP yükseltemez. Maç sonuçlarının XP/Gold yetkisini değiştirme.
+4. **Atlas Coin:** 3 ayrı değer/kod ailesi: **50, 500, 5000 Atlas Coin**. Canonical RTDB cüzdana aynı UID ve immutable transaction ile yazılmalı; Firestore shadow balance kullanılmamalı.
+5. Etkinlik kodları/seasonal event içerikleri **ayrı** P1 kapsamı: halen görünür “active event yok” normaldir; Event hazırlığını redeem ile karıştırma.
+
+**Uygulama sözleşmesi — seçimden sonra çalışılacak, bu roadmap teslimi kod üretmez:**
+- Önce mevcut repo, canlı RTDB rules, eski Firestore promo backend/seed ve Career progression sınıflarını karşılaştır; **duplicate promo manager, yeni paralel cüzdan, ikinci history sistemi veya ekstra MD oluşturma.**
+- Kod üretimi/dağıtımı yalnız yönetici yetkisiyle, tahmin edilemez tekil kodlar; production sırlarını GitHub'a, istemciye, test fixture'ına veya loglara düz metin gömme. Kod metadatası/hashed lookup admin tarafında; örnek seed kodlarını retail'de açma.
+- Kayıtlı ve doğrulanmış Firebase UID, atomik ödül işlemi, account + global limit, aktiflik/başlangıç/bitiş tarihleri, aynı kullanımda **idempotency**, sahiplik kontrolü, redemption makbuzu ve cüzdan/XP ledger bir zorunluluk; başarısız veya yinelenmiş redemption aynı ödülü yeniden vermemeli.
+- `PURCHASE`, `DAILY`, `DEV_GRANT`, `EQUIP`, `metaHistory` ve satın alma geçmişi korunmalı, promo makbuzları görünür History'ye doğru bağlanmalı; **promo ile dailyReward.lastClaimAt arasında bağımlılık yok**.
+- Önce emulator/sandbox testleri (normal/ikinci UID, iki eşzamanlı kullanım, expired/invalid, owned item, limit, XP+Gold+Coin ledger), sonra production yetki/dağıtım onayı ve Windows/Android gerçek kullanıcı kabulü. **`PROMO_PRODUCTION_REDEEM=OPEN`, `XP_REDEEM_GRANT=NOT_IMPLEMENTED`, `9_CURRENCY_XP_TIERS=SPECIFIED_NOT_IMPLEMENTED`, `ITEM_CODES=SPECIFIED_NOT_IMPLEMENTED`.**
+- Bu fonksiyonun kısa işletme sözleşmesi **yalnız mevcut MASTER_ROADMAP içinde**; kullanıcı istemedikçe yeni rehber/MD oluşturulmaz. Önceden var olan `FRONTEND_ERROR_CODEBOOK.md` sadece yeni hata kodları uygulanırsa güncellenir.
+
+## 3. Google Play Console — ilerleme doğrulaması ve kalan yayın adımları
+
+**2026-11-03 owner ekranlarından görülen tamamlanan/yapılan işlemler:**
+- Atlas Board Play Console üzerinde mevcut; uygulama durumu ekranında **Taslak**, **production yayımlanmış değil**.
+- Store listing Türkçe (`tr-TR`) ve ABD İngilizcesi (`en-US`) olarak girilmiş/kaydedilmiş. Bu dillerde uygulama adı ve gerekli mağaza metinleri var.
+- Uygulama türü **Oyun**; kategori **Masa**. Görünen etiketler MMO, masa oyunu, soyut strateji, strateji, zar.
+- Hedef yaş **16+** olarak görülüyor; yaklaşık **100 ülke/bölge** seçilmiş; mağaza iletişim alanları (eposta, telefon, web) doldurulmuş; özel iletişim bilgilerini roadmap'e tekrar yazma.
+- Açık test adımlarının ekran durumunda **2/4 tamamlandı**: ülke/bölge seçimi ve yeni sürüm oluşturulması tamam. **Sürümü önizleyip onaylama** ve **Google'a incelemeye gönderme** tamamlanmadı.
+- İçerik sınıflandırma için **yeni anket**, hedef kitle ve içerik, reklam beyanı güncellemesi gibi alanlar **inceleme/güncelleme gerektiren değişiklikler** arasında listeleniyor. Data Safety anketinin doldurulmuş olması tüm gönderim kontrollerinin kabul edildiğini kanıtlamaz.
+
+**Hâlâ açık / ekranlardan kesin doğrulanamayan:**
+- Gerçek AAB sürümünün build, signing, versionCode/versionName, uyumlu güvenlik kuralları ve iç test cihazlarında çalışma kabulü; açık test için inceleme/Google onayı.
+- 1024×500 özellik grafikleri, telefon/tablet ekran görüntülerinin tüm gerekli ölçü-adet/lokalizasyon kontrolleri **bu ekrandan eksiksiz doğrulanmadı**; "yapılmadı" değil, **ASSET_REVIEW_PENDING**.
+- Google Play'de canlı/reviewed/open-test erişiminin aktif olduğu **iddia edilmez**. `PLAY_LISTING_TR_EN=OWNER_DONE`, `PLAY_OPEN_TEST_STEPS=2/4`, `PLAY_APP_STATUS=DRAFT`, `PLAY_RELEASE_REVIEW=PENDING`, `PLAY_ASSET_ACCEPTANCE=NOT_VERIFIED`, `PLAY_CONTENT_FORMS=REVIEW_PENDING`.
+
+## 4. Steamworks — ödeme/banka/vergi ile ayrı kimlik doğrulama kapısı
+
+**Owner'ın tamamladığını bildirdiği:** Steam Direct **100 USD ödendi**, banka bilgileri **girildi/gönderildi**, vergi görüşmesi/formu **tamamlanıp gönderildi**. Bunları yeniden "ödemesi gerekli" veya "banka formu hiç girilmedi" olarak gösterme. Steamworks hesabı/açılış süreci başladı.
+
+**2026-11-03 ekranlarından görülen henüz sonuçlanmamış adımlar:**
+- Steamworks ileti bildirimi: vergi anlaşması indirimi için uygun olunabilir, fakat **vergi kimlik numarası (US TIN veya geçerli yabancı TIN)** gerekiyorsa görüşmenin geçerli numara ile tekrar tamamlanması talep ediliyor. İndirim/uygunluk **onaylanmış sayılmaz**.
+- Ayrı **“Identity verification required”** bildirimi KYC için geçerli resmi kimlik belgesi (pasaport, sürücü belgesi veya uygun devlet kimliği) fotoğrafı ve **aynı kimliği tutarak selfie** talep ediyor; fotoğrafların tam, kırpılmamış ve net olması gerekiyor. Resmî ileti içindeki kişiselleştirilmiş dosya talebi bağlantısı **30 gün kullanılabilir**; evrak incelemesi **30 iş gününe kadar** sürebilir. Bunlar farklı süreler.
+- Belgelerin gerçekten yüklendiği ve Valve/vergi sağlayıcısı tarafından onaylandığı **bu ekranlardan teyit edilemiyor**; `STEAM_KYC=DOCUMENT_REQUESTED / REVIEW_PENDING` (owner vergi incelemesi sürdüğünü bildirdi). Belge gönderimi süreli olduğundan öncelikli operasyonel kontrol; belgelere yalnız resmî Steamworks hesabından erişilmesi, kimlik/fotoğrafların GitHub veya roadmap'e konulmaması gerekir.
+- Banka **verisi girildi**, banka hesabının Valve tarafından kesin **onaylandığı** ayrıca gösterilmedi; bunu birbirinden ayır.
+- Steam App ID / Steam mağaza sayfası / retail Steamworks SDK/ticket server doğrulaması / asset lisans / Windows Steam build / Valve inceleme ve nihai yayın yine **OPEN**; 100 USD ödemesi bunların otomatik olarak PASS olduğu anlamına gelmez.
+- `STEAM_DIRECT_FEE=OWNER_PAID_100_USD`, `STEAM_BANK_DETAILS=OWNER_SUBMITTED`, `STEAM_TAX_INTERVIEW=OWNER_SUBMITTED_REVIEW_PENDING`, `STEAM_TREATY_RATE=UNCONFIRMED_TIN_ACTION_POSSIBLE`, `STEAM_KYC=ADDITIONAL_DOCUMENTS_REQUESTED_NOT_APPROVED`, `STEAM_RETAIL_RELEASE=OPEN`.
+
+## 5. Güncel gerçek açık işler — önce kabul edilmiş işleri çıkar
+
+| Sıra | Öncelik | Görev | Durum / net sonraki kanıt |
+| --- | --- | --- | --- |
+| 1 | **P0** | **Online Career Firebase Dice** — iki farklı doğrulanmış UID ile biten **online** maç; `careerDiceObservations` atış/toplam/en yüksek/ortalama, bir sonraki giriş ve cihaz tutarlılığı | **OPEN / owner 2-client acceptance**. `LocalOffline` bot testi bunu doğrulamaz. |
+| 2 | **P0** | Retail SteamID64 ↔ kesin Firebase UID; A→B→A, cüzdan/envanter/Career izolasyonu ve eski UID'nin güvenli korunması | **OPEN release gate**. Steam adının lobby'de PASS olması ayrı bir şey. |
+| 3 | **P0** | Guest → registered hesap kimliği/UID veri devamlılığı ve cache isolation | **OPEN broad acceptance**. Merge ve veri silme/çoğaltma yok. |
+| 4 | **P1** | Promo/redeem **production** (item bazlı kodlar + Gold, XP, Atlas Coin 50/500/5000) ve güvenli dağıtım/raporlama | **OPEN IMPLEMENTATION**, plan bu checkpoint'e eklendi. |
+| 5 | **P1** | Firebase App Check/RTDB production security rules ve snapshot/intent abuse güvenliği, güncel emulator testleri | **OPEN release gate**. Önceki source/emulator PASS'leri korunur. |
+| 6 | **P1** | Google Play açık test kalan 2 adım, asset ve içerik formu incelemesi, AAB/build kabulü | **PARTIAL 2/4**; mağaza TR/EN hazır, production yayın yok. |
+| 7 | **P1** | Steam KYC / vergi incelemesi, olası ek belge ve treaty TIN aksiyonu; Steam SDK/App ID, build, Valve review | **PARTIAL / KYC TIME-SENSITIVE**; $100 ödenmiş, banka/vergi verileri gönderilmiş. |
+| 8 | **P1** | Android gerçek cihazlarda süreli FPS/ısı/GC/performance, Guest Build, mağaza release güvenliği ve 7 dil matrisi | **OPEN QA**, Play listing'i yeniden kurma. |
+| 9 | **P1** | Gerçek sezon etkinliği ve etkinlik içeriği (güvenli kod redemption ayrı) | **OPEN PRODUCT CONTENT**, etkinlik ekranı boş olması mevcut beklenen durum. |
+| 10 | **P2 / QA** | 3–4 gerçek insanla uzun multiplayer, Server Status native/REST/offline ve yedi dil kombinasyonu | **OPEN / DEFERRED acceptance**, önce kabul edilen 2-client emote/rejoin PASS bozulmaz. |
+| 11 | **P1 — OWNER DEFERRED** | Server-enforced old-client/version gate | **DEFERRED**; owner açıkça seçmeden uygulanmaz. |
+
+**P0 Emote SEND / P1 Disconnect-Rejoin → OWNER PASS / CLOSED**: bunları açık iş listesinin içine tekrar koyma. Yalnız varsa **yeni belirli hata loguyla** ayrı regresyon kaydı aç.
+
+## 6. Çalışma sınırları ve kanıt standardı
+
+- Yeni işe başlamadan GitHub'daki **ilgili güncel gerçek kaynakları** ve önceki yerel ZIP'leri karşılaştır. GitHub `main` ile yerel son `cd/ce/cf` dosyaları eşit varsayılmaz; son `cf` kullanıcı testleri yerel kaynaktadır. **Eski GitHub dosyası ile son yerel düzeltmeyi geri alma.**
+- PASS alanlarına gereksiz müdahale/duplicate yapı, eski legacy ekran, yeni parallel manager veya client-trusted reward path ekleme.
+- Kod değişikliği istendiğinde değişen **tam** kaynak dosyalarını doğru proje-bağıl yoluyla **tek ZIP** olarak ver; **PS1, BAT, PATCH, diff-only, ek MD** yok. Tek mevcut `MASTER_ROADMAP.md` ve uygulama kodu uygulanırsa mevcut `FRONTEND_ERROR_CODEBOOK.md` dışında dokümantasyon yok.
+- Statik kontrolleri `UNITY_COMPILE`, `FIREBASE_EMULATOR`, `LIVE_QA` yerine yazma; owner açık PASS olanları yeniden test gerektiren açık iş gösterme.
+- **GitHub commit/push/yedekleme yalnız owner istediğinde**, production Firebase/Google Play/Steam yayın/deploy da açık onay olmadan yapılmaz. Bu belge güncellemesi hiçbir account, wallet, kariyer, envanter veya history verisini değiştirmez.
+
+---
+
 # ATLASBOARD — v5.49.12cf OWNER QA ACCEPTANCE + CANONICAL OPEN GATES (2026-11-03)
 
 **Belge güncellemesi, kod sürümü aynı:** `v5.49.12cf` (üç Owner PASS kabulü işlendi, yeni oyun kodu üretilmedi). **Tek kanonik roadmap:** `Assets/Project/Documentation/MASTER_ROADMAP.md`. Bu not mevcut `v5.49.12cf` checkpoint'inin önüne eklenmiştir; önceki bölümler ve eski `OWNER_QA_PENDING` ifadeleri **tarihsel kayıttır**, aşağıdaki yeni owner kabulü onları söz konusu üç test bakımından geçersiz kılar. `FRONTEND_ERROR_CODEBOOK.md` değiştirilmedi. Bu işlem yalnız roadmap dosyasını günceller; GitHub commit/push veya Firebase deploy yapmaz.

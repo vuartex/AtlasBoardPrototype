@@ -34,7 +34,7 @@ public sealed class AtlasBoardBoardThemeVisuals : MonoBehaviour
     public static bool IsValid(string id) =>
         string.IsNullOrEmpty(id) || id == "default_board" ||
         id == "board_midnight_azure" || id == "board_ember_maple" ||
-        id == "board_arctic_aurora";
+        id == "board_arctic_aurora" || id == "board_atlas_horizon";
 
     public static void ApplySelection(string id)
     {
@@ -103,7 +103,17 @@ public sealed class AtlasBoardBoardThemeVisuals : MonoBehaviour
     {
         if (rend == null) return;
         if (block == null) block = new MaterialPropertyBlock();
-        rend.GetPropertyBlock(block);
+        // Clear previous theme textures when switching back to a color-only board.
+        block.Clear();
+        if (activeId == "board_atlas_horizon" && rend == center)
+        {
+            Texture2D art = Resources.Load<Texture2D>("ATB_HorizonBoard");
+            if (art != null)
+            {
+                block.SetTexture("_BaseMap", art);
+                block.SetTexture("_MainTex", art);
+            }
+        }
         block.SetColor("_BaseColor", color);
         block.SetColor("_Color", color);
         rend.SetPropertyBlock(block);
@@ -135,6 +145,11 @@ public sealed class AtlasBoardBoardThemeVisuals : MonoBehaviour
             case "board_arctic_aurora":
                 perimeter = new Color32(22, 83, 96, 255);
                 middle = new Color32(145, 219, 211, 255);
+                break;
+            case "board_atlas_horizon":
+                // Exclusive cobalt, midnight and gold finish. No second renderer.
+                perimeter = new Color32(10, 25, 69, 255);
+                middle = new Color32(29, 77, 141, 255);
                 break;
             default:
                 Clear(edge); Clear(center); return;

@@ -276,6 +276,12 @@ public sealed class AtlasBoardLobbyBoardThemePicker : MonoBehaviour
     public void Configure(bool isHost, bool azure, bool maple, bool aurora,
         string selected)
     {
+        Configure(isHost, azure, maple, aurora, false, selected);
+    }
+
+    public void Configure(bool isHost, bool azure, bool maple, bool aurora,
+        bool horizon, string selected)
+    {
         if (dropdown == null) return;
         var options = new List<TMP_Dropdown.OptionData>();
         var available = new List<string>();
@@ -297,6 +303,9 @@ public sealed class AtlasBoardLobbyBoardThemePicker : MonoBehaviour
         add("board_arctic_aurora",
             AtlasBoardShopContentDraft.LocalizedName("board_arctic_aurora", lang),
             aurora || selected == "board_arctic_aurora");
+        add("board_atlas_horizon",
+            AtlasBoardShopContentDraft.LocalizedName("board_atlas_horizon", lang),
+            horizon || selected == "board_atlas_horizon");
         TMP_Text label = rowRoot != null
             ? rowRoot.GetComponentInChildren<TMP_Text>(true) : null;
         if (label != null) label.text = LocalizedBoardLabel();

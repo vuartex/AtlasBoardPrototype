@@ -1,6 +1,7 @@
 /**
  * Security Core 03: authoritative reward-track claim.
- * This callable overrides the legacy export from src/index.ts at the entrypoint.
+ * This callable overrides the legacy export from src/index.ts
+ * at the entrypoint.
  * Inactive/disabled tiers are rejected both before and INSIDE the transaction.
  * Preserves the existing callable name, response schema, auth and App Check.
  *
@@ -18,10 +19,21 @@ const REGION = "europe-west1";
 const EVENT_SCHEMA_VERSION = 1;
 const MAX_SAFE_BALANCE = Number.MAX_SAFE_INTEGER;
 
+/**
+ * Validates or processes digest for the existing backend flow.
+ * @param {*} value Validated input.
+ * @return {*} Result of the existing operation.
+ */
 function digest(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex");
 }
 
+/**
+ * Validates or processes readAmount for the existing backend flow.
+ * @param {*} value Validated input.
+ * @param {*} label Validated input.
+ * @return {*} Result of the existing operation.
+ */
 function readAmount(value: unknown, label: string): number {
   if (value === undefined) return 0;
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
@@ -32,6 +44,11 @@ function readAmount(value: unknown, label: string): number {
   return value;
 }
 
+/**
+ * Validates or processes requireTierId for the existing backend flow.
+ * @param {*} value Validated input.
+ * @return {*} Result of the existing operation.
+ */
 function requireTierId(value: unknown): string {
   if (typeof value !== "string" || value.length < 2 || value.length > 96) {
     throw new HttpsError("invalid-argument", "INVALID_TIERID", {
@@ -41,6 +58,9 @@ function requireTierId(value: unknown): string {
   return value;
 }
 
+/**
+ * Validates or processes inactiveTier for the existing backend flow.
+ */
 function inactiveTier(): never {
   throw new HttpsError("failed-precondition", "SEASONAL_TRACK_INACTIVE", {
     errorKey: "seasonal.error.track_inactive",
@@ -143,7 +163,8 @@ export const metaSeasonalClaimTrackTier = onCall(
           transactionId,
           ticketBalance: rewardType === "event_ticket" ?
             readAmount(claim.balanceAfter, "balanceAfter") : -1,
-          eventXp: readAmount(progressTxnSnap.data()?.xp, "seasonal_progress.xp"),
+          eventXp: readAmount(
+            progressTxnSnap.data()?.xp, "seasonal_progress.xp"),
           rewardType,
           rewardAmount,
         };
@@ -151,7 +172,8 @@ export const metaSeasonalClaimTrackTier = onCall(
 
       const runtime = runtimeSnap.data() ?? {};
       const now = Date.now();
-      if (!runtimeSnap.exists || runtime.schemaVersion !== EVENT_SCHEMA_VERSION ||
+      if (!runtimeSnap.exists ||
+          runtime.schemaVersion !== EVENT_SCHEMA_VERSION ||
           runtime.active !== true || runtime.eventId !== event.eventId ||
           runtime.ticketCurrencyId !== event.ticketCurrencyId ||
           readAmount(runtime.startsAtEpochMs, "startsAtEpochMs") > now ||
@@ -165,13 +187,15 @@ export const metaSeasonalClaimTrackTier = onCall(
       if (!tierTxnSnap.exists || currentTier.active !== true) inactiveTier();
       if (readAmount(currentTier.requiredXp, "requiredXp") !== requiredXp ||
           currentTier.rewardType !== rewardType ||
-          readAmount(currentTier.rewardAmount, "rewardAmount") !== rewardAmount) {
+          readAmount(currentTier.rewardAmount, "rewardAmount") !==
+          rewardAmount) {
         throw new HttpsError("failed-precondition", "SEASONAL_TRACK_CHANGED", {
           errorKey: "seasonal.error.state_invalid",
         });
       }
 
-      const currentXp = readAmount(progressTxnSnap.data()?.xp, "seasonal_progress.xp");
+      const currentXp = readAmount(
+        progressTxnSnap.data()?.xp, "seasonal_progress.xp");
       if (currentXp < requiredXp) {
         throw new HttpsError("failed-precondition", "SEASONAL_TRACK_LOCKED", {
           errorKey: "seasonal.error.track_locked", requiredXp, currentXp,
@@ -182,9 +206,11 @@ export const metaSeasonalClaimTrackTier = onCall(
           errorKey: "seasonal.error.partial_state",
         });
       }
-      const balanceBefore = readAmount(balanceSnap.data()?.amount, "wallet.amount");
+      const balanceBefore = readAmount(
+        balanceSnap.data()?.amount, "wallet.amount");
       const balanceAfter = balanceBefore + rewardAmount;
-      if (!Number.isSafeInteger(balanceAfter) || balanceAfter > MAX_SAFE_BALANCE) {
+      if (!Number.isSafeInteger(balanceAfter) ||
+          balanceAfter > MAX_SAFE_BALANCE) {
         throw new HttpsError("out-of-range", "SEASONAL_BALANCE_OUT_OF_RANGE", {
           errorKey: "seasonal.error.balance_out_of_range",
         });

@@ -2302,7 +2302,8 @@ public static class AtlasBoardRtdbCasualLobbyTransport
             // Server-checked current host entitlement. A client-owned dropdown
             // is NOT authority to choose a paid country map.
             string entitlementMap = req.mapId == "Germany" ? "map_germany" :
-                req.mapId == "Mexico" ? "map_mexico" : "";
+                req.mapId == "Mexico" ? "map_mexico" :
+                req.mapId == "World" ? "map_world" : "";
             if (string.IsNullOrWhiteSpace(req.mapId) ||
                 (req.mapId != "Turkey" && req.mapId != "USA" &&
                  req.mapId != "Colorado" && entitlementMap.Length == 0))
@@ -2537,7 +2538,8 @@ public static class AtlasBoardRtdbCasualLobbyTransport
 
         // Enforce ownership again at the last possible host-start boundary.
         string startMapId = snap.Settings.MapId == "Germany" ? "map_germany" :
-            snap.Settings.MapId == "Mexico" ? "map_mexico" : "";
+            snap.Settings.MapId == "Mexico" ? "map_mexico" :
+            snap.Settings.MapId == "World" ? "map_world" : "";
         if (startMapId.Length > 0)
         {
             Response receipt = await Send("GET", "users/" + Safe(uid) +

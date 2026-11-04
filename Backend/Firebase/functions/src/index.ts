@@ -77,6 +77,10 @@ import {
   tryRecoverCrashedHost,
 } from "./match/lifecycle";
 
+import {
+  worldJourneyOverview, worldJourneyClaim, worldJourneyRedeem,
+} from "./economy/world-journey-live";
+
 import {ATLAS_ENFORCE_APP_CHECK} from "./security/app-check-policy";
 
 import {assertAccountRateLimit} from "./security/callable-abuse";
@@ -2043,3 +2047,36 @@ export {
 export {
   platformSteamCreateAppCheckToken,
 } from "./platform/app-check-steam";
+
+/** Public, authenticated RTDB-backed world journey event snapshot. */
+export const metaWorldJourneyGetOverview = onCall({
+  region: REGION, maxInstances: 4, enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
+}, async (request) => {
+  const uid = requireAuthenticatedUid(request);
+  return {ok: true, ...await worldJourneyOverview(uid)};
+});
+
+/** One player-initiated seasonal reward claim (including completion_bonus). */
+export const metaWorldJourneyClaimReward = onCall({
+  region: REGION, maxInstances: 4, enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
+}, async (request) => {
+  const uid = requireAuthenticatedUid(request);
+  const rewardId = readRequiredString(request.data?.rewardId,
+    "rewardId", 2, 96, "seasonal.error.invalid_request");
+  return {ok: true, ...await worldJourneyClaim(uid, rewardId)};
+});
+
+/**
+ * Production promo redemption against the canonical RTDB wallet, not
+ * Firestore tests.
+ */
+export const metaPromoRedeem = onCall({
+  region: REGION, maxInstances: 4, enforceAppCheck: ATLAS_ENFORCE_APP_CHECK,
+}, async (request) => {
+  const uid = requireAuthenticatedUid(request);
+  const code = readRequiredString(request.data?.code,
+    "code", 8, 48, "promo.error.invalid_code");
+  return {ok: true, ...await worldJourneyRedeem(uid, code)};
+});
+
+

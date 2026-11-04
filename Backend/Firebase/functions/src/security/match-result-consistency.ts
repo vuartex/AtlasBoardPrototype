@@ -14,16 +14,35 @@ export interface MatchResultConsistency {
 
 type ValueMap = Record<string, unknown>;
 
+/**
+ * Validates or processes obj for the existing backend flow.
+ * @param {*} value Validated input.
+ * @return {*} Result of the existing operation.
+ */
 function obj(value: unknown): ValueMap | null {
   return value !== null && typeof value === "object" &&
     !Array.isArray(value) ? value as ValueMap : null;
 }
 
+/**
+ * Validates or processes int for the existing backend flow.
+ * @param {*} value Validated input.
+ * @param {*} min Validated input.
+ * @param {*} max Validated input.
+ * @return {*} Result of the existing operation.
+ */
 function int(value: unknown, min: number, max: number): value is number {
   return typeof value === "number" && Number.isSafeInteger(value) &&
     value >= min && value <= max;
 }
 
+/**
+ * Validates or processes checkedArray for the existing backend flow.
+ * @param {*} result Validated input.
+ * @param {*} key Validated input.
+ * @param {*} valueType Validated input.
+ * @return {*} Result of the existing operation.
+ */
 function checkedArray(
   result: ValueMap,
   key: string,
@@ -47,7 +66,8 @@ function checkedArray(
 export function validateMatchResultConsistency(
   candidate: unknown,
 ): MatchResultConsistency {
-  const fail = (reason: string): MatchResultConsistency => ({ok: false, reason});
+  const fail = (reason: string): MatchResultConsistency =>
+    ({ok: false, reason});
   const frame = obj(candidate);
   if (!frame || frame.phase !== "match_complete" ||
     !int(frame.schemaVersion, 1, 100) ||
@@ -112,8 +132,10 @@ export function validateMatchResultConsistency(
   if (participants === 0) return fail("NO_PARTICIPANTS");
   const maxNetWorth = eligible.length ?
     Math.max(...eligible.map((slot) => netWorth[slot] as number)) : 0;
-  const expectedWinners = eligible.filter((slot) => netWorth[slot] === maxNetWorth);
-  const actualWinners = [...result.winnerSlots as number[]].sort((a, b) => a - b);
+  const expectedWinners = eligible.filter(
+    (slot) => netWorth[slot] === maxNetWorth);
+  const actualWinners = [...result.winnerSlots as number[]]
+    .sort((a, b) => a - b);
   if (result.highestNetWorth !== maxNetWorth ||
     expectedWinners.length !== actualWinners.length ||
     expectedWinners.some((slot, index) => slot !== actualWinners[index])) {

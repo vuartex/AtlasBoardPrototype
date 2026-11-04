@@ -159,6 +159,9 @@ function assertHost(context: LifecycleContext): void {
  * Gameplay state is deliberately NOT rewritten here. The existing revisioned
  * network/state snapshot remains the handoff checkpoint and the new Host
  * continues from it.
+ * @param {*} uid Input value.
+ * @param {*} matchId Input value.
+ * @param {*} context Input value.
  */
 async function migrateHostAndLeave(
   uid: string,
@@ -599,10 +602,10 @@ async function migrateHostAndLeave(
 }
 
 
-
 /**
  * Renews one real Human match seat presence lease. Host presence also renews
  * the match/lobby Host lease used by crash failover.
+ * @param {*} input Input value.
  */
 export async function touchMatchPresence(input: {
   uid: string;
@@ -681,6 +684,7 @@ export async function touchMatchPresence(input: {
 /**
  * Host-side abrupt-disconnect sweep. A Remote Human that stops heartbeating
  * becomes a five-minute TemporaryBot reservation.
+ * @param {*} input Input value.
  */
 export async function hostSweepDisconnectedMatchSeats(input: {
   uid: string;
@@ -788,6 +792,7 @@ export async function hostSweepDisconnectedMatchSeats(input: {
 /**
  * Server-authoritative crashed-Host election. Only the lowest-slot live Human
  * can commit. Unsafe transient state rolls back to the last safe checkpoint.
+ * @param {*} input Input value.
  */
 export async function tryRecoverCrashedHost(input: {
   uid: string;

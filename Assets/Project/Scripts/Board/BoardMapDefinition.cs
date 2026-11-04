@@ -289,7 +289,8 @@ public class BoardMapDefinition : ScriptableObject
                          id == "map_colorado" ? Pulse_colorado :
                          id == "map_usa" ? Pulse_usa :
                          id == "map_germany" ? Pulse_germany :
-                         id == "map_mexico" ? Pulse_mexico : null;
+                         id == "map_mexico" ? Pulse_mexico :
+                         id == "map_world" ? Pulse_usa : null;
         return profile != null ? profile[number - 1, category] : 50;
     }
 

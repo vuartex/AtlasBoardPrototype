@@ -21,6 +21,9 @@ public static class AtlasBoardShopContentDraft
     {
         new DraftRow("map_germany", "map", 30000, "Germany", "Almanya", "Alemania", "Allemagne", "Deutschland", "독일", "Германия"),
         new DraftRow("map_mexico", "map", 25000, "Mexico", "Meksika", "México", "Mexique", "Mexiko", "멕시코", "Мексика"),
+        // Event-only unlocks. Zero price is NOT a free purchase.
+        new DraftRow("map_world", "map", 0, "World", "Dünya", "Mundo", "Monde", "Welt", "세계", "Мир"),
+        new DraftRow("board_atlas_horizon", "board_theme", 0, "Atlas Horizon Board", "Atlas Ufuk Tahtası", "Tablero Horizonte Atlas", "Plateau Horizon Atlas", "Atlas-Horizont-Spielbrett", "아틀라스 지평선 보드", "Доска Горизонт Атласа"),
         new DraftRow("board_midnight_azure", "board_theme", 1200, "Midnight Azure", "Gece Mavisi", "Azul Medianoche", "Azur de Minuit", "Mitternachtsblau", "미드나이트 블루", "Полуночная лазурь"),
         new DraftRow("board_ember_maple", "board_theme", 1500, "Ember Maple", "Kor Akçaağaç", "Arce Ardiente", "Érable Ardent", "Glutahorn", "불꽃 단풍", "Пламенный клён"),
         new DraftRow("board_arctic_aurora", "board_theme", 1700, "Arctic Aurora", "Kutup Işığı", "Aurora Ártica", "Aurore Arctique", "Arktische Aurora", "북극 오로라", "Арктическое сияние"),
@@ -165,4 +168,71 @@ public static class AtlasBoardShopContentDraft
             default: return "PREVIEW";
         }
     }
+
+    // Seven-language event UI string catalog; uses the existing locale selector.
+    // No duplicate localization manager, no client-side reward authority.
+    private static readonly Dictionary<string, string[]> WorldStrings =
+        new Dictionary<string, string[]>(StringComparer.Ordinal)
+    {
+        {"title", new [] {"Atlas World Journey", "Atlas Dünya Yolculuğu", "Viaje Mundial Atlas", "Voyage Mondial Atlas", "Atlas-Weltreise", "아틀라스 세계 여행", "Мировое путешествие Атласа"}},
+        {"subtitle", new [] {"Explore the world, complete missions and unlock exclusive rewards.", "Dünyayı keşfet, görevleri tamamla ve özel ödülleri kazan.", "Explora el mundo, completa misiones y gana premios exclusivos.", "Explorez le monde, terminez des missions et gagnez des récompenses exclusives.", "Erkunde die Welt, erfülle Missionen und gewinne exklusive Belohnungen.", "세계를 탐험하고 미션을 완료하여 특별 보상을 받으세요.", "Исследуйте мир, выполняйте задания и получайте особые награды."}},
+        {"overview", new [] {"OVERVIEW", "GENEL BAKIŞ", "RESUMEN", "APERÇU", "ÜBERSICHT", "개요", "ОБЗОР"}},
+        {"missions", new [] {"MISSIONS", "GÖREVLER", "MISIONES", "MISSIONS", "MISSIONEN", "임무", "ЗАДАНИЯ"}},
+        {"rewards", new [] {"REWARDS", "ÖDÜLLER", "RECOMPENSAS", "RÉCOMPENSES", "BELOHNUNGEN", "보상", "НАГРАДЫ"}},
+        {"history", new [] {"CLAIM HISTORY", "ALIM GEÇMİŞİ", "HISTORIAL", "HISTORIQUE", "VERLAUF", "수령 내역", "ИСТОРИЯ"}},
+        {"ends", new [] {"Event ends", "Etkinlik bitişi", "El evento termina", "Fin de l’événement", "Event endet", "이벤트 종료", "Окончание события"}},
+        {"starts", new [] {"Event starts", "Etkinlik başlangıcı", "Inicio del evento", "Début de l’événement", "Event beginnt", "이벤트 시작", "Начало события"}},
+        {"status_upcoming", new [] {"COMING SOON", "YAKINDA BAŞLAYACAK", "PRÓXIMAMENTE", "BIENTÔT", "BALD", "곧 시작", "СКОРО"}},
+        {"progress", new [] {"Completed missions", "Tamamlanan görevler", "Misiones completadas", "Missions terminées", "Abgeschlossene Missionen", "완료한 임무", "Завершено заданий"}},
+        {"claimed_progress", new [] {"Claimed rewards", "Alınan ödüller", "Recompensas cobradas", "Récompenses récupérées", "Beanspruchte Belohnungen", "받은 보상", "Получено наград"}},
+        {"claim", new [] {"CLAIM", "ÖDÜLÜ AL", "RECLAMAR", "RÉCUPÉRER", "ABHOLEN", "받기", "ЗАБРАТЬ"}},
+        {"claimed", new [] {"CLAIMED", "ALINDI", "RECLAMADO", "RÉCUPÉRÉ", "ERHALTEN", "수령함", "ПОЛУЧЕНО"}},
+        {"locked", new [] {"LOCKED", "KİLİTLİ", "BLOQUEADO", "VERROUILLÉ", "GESPERRT", "잠김", "ЗАКРЫТО"}},
+        {"ready", new [] {"READY TO CLAIM", "ALINMAYA HAZIR", "LISTO PARA RECLAMAR", "PRÊT À RÉCUPÉRER", "ABHOLBEREIT", "수령 가능", "ГОТОВО К ПОЛУЧЕНИЮ"}},
+        {"bonus", new [] {"COMPLETION BONUS", "TAMAMLAMA BONUSU", "BONO FINAL", "BONUS FINAL", "ABSCHLUSSBONUS", "완료 보너스", "БОНУС ЗА ЗАВЕРШЕНИЕ"}},
+        {"world_map_label", new [] {"World Map", "Dünya Haritası", "Mapa Mundial", "Carte du monde", "Weltkarte", "세계 지도", "Карта мира"}},
+        {"bonus_desc", new [] {"Claim the exclusive Atlas Horizon Board after claiming all eight rewards.", "Sekiz ödülün tamamını aldıktan sonra özel Atlas Ufuk Tahtası’nı kazan.", "Reclama el Tablero Horizonte Atlas después de las ocho recompensas.", "Récupérez le Plateau Horizon Atlas après les huit récompenses.", "Erhalte das Atlas-Horizont-Spielbrett nach allen acht Belohnungen.", "8개의 보상을 모두 받은 뒤 특별한 보드를 받으세요.", "Заберите особую доску после получения всех восьми наград."}},
+        {"world_reward", new [] {"WORLD MAP · EXCLUSIVE", "DÜNYA HARİTASI · ÖZEL", "MAPA MUNDIAL · EXCLUSIVO", "CARTE DU MONDE · EXCLUSIVE", "WELTKARTE · EXKLUSIV", "세계 지도 · 특별", "КАРТА МИРА · ОСОБАЯ"}},
+        {"no_history", new [] {"No rewards claimed yet.", "Henüz ödül alınmadı.", "Aún no hay recompensas.", "Aucune récompense pour le moment.", "Noch keine Belohnungen abgeholt.", "아직 받은 보상이 없습니다.", "Наград пока нет."}},
+        {"transaction", new [] {"Transaction ID", "İşlem Kimliği", "ID de transacción", "ID de transaction", "Transaktions-ID", "거래 ID", "ID транзакции"}},
+        {"mission.two_matches", new [] {"Complete 2 online matches", "2 online maç tamamla", "Completa 2 partidas online", "Terminez 2 parties en ligne", "Beende 2 Online-Partien", "온라인 경기 2회 완료", "Завершите 2 онлайн-матча"}},
+        {"mission.fifty_rolls", new [] {"Roll dice 50 times", "50 kez zar at", "Lanza el dado 50 veces", "Lancez les dés 50 fois", "Würfle 50-mal", "주사위 50번 굴리기", "Бросьте кубики 50 раз"}},
+        {"mission.ten_developments", new [] {"Build 10 development levels", "10 geliştirme seviyesi kur", "Construye 10 niveles de desarrollo", "Construisez 10 niveaux", "Baue 10 Entwicklungsstufen", "개발 레벨 10회 건설", "Постройте 10 уровней развития"}},
+        {"mission.three_wins", new [] {"Win 3 online matches", "3 online maç kazan", "Gana 3 partidas online", "Gagnez 3 parties en ligne", "Gewinne 3 Online-Partien", "온라인 경기 3회 승리", "Победите в 3 онлайн-матчах"}},
+        {"mission.twenty_turns", new [] {"Play 20 turns", "20 tur oyna", "Juega 20 turnos", "Jouez 20 tours", "Spiele 20 Züge", "20턴 플레이", "Сыграйте 20 ходов"}},
+        {"mission.three_maps", new [] {"Play on 3 different maps", "3 farklı haritada oyna", "Juega en 3 mapas diferentes", "Jouez sur 3 cartes différentes", "Spiele auf 3 Karten", "서로 다른 지도 3개 플레이", "Сыграйте на 3 разных картах"}},
+        {"mission.networth_5000", new [] {"Reach 5,000 net worth", "5.000 net değere ulaş", "Alcanza 5000 de patrimonio", "Atteignez 5 000 de valeur nette", "Erreiche 5.000 Vermögen", "순자산 5,000 달성", "Достигните капитала 5 000"}},
+        {"mission.world_explorer", new [] {"Claim the previous 7 rewards", "Önceki 7 ödülü al", "Reclama los 7 premios anteriores", "Récupérez les 7 récompenses", "Hole die ersten 7 Belohnungen ab", "이전 보상 7개 수령", "Получите первые 7 наград"}},
+        {"progress_unavailable", new [] {"Progress will appear once your online match results are verified.", "Çevrim içi maç sonuçların doğrulanınca ilerlemen burada görünecek.", "El progreso aparecerá cuando se verifiquen tus partidas online.", "La progression apparaîtra après la vérification des parties en ligne.", "Der Fortschritt erscheint nach Prüfung deiner Online-Spiele.", "온라인 경기 결과가 확인되면 진행도가 표시됩니다.", "Прогресс появится после проверки онлайн-матчей."}},
+        {"history_unavailable", new [] {"Reward history unavailable", "Ödül geçmişi doğrulanamadı", "Historial no disponible", "Historique indisponible", "Verlauf nicht verfügbar", "보상 기록을 불러올 수 없습니다", "История наград недоступна"}},
+        {"history_unavailable_body", new [] {"We couldn't check your claim history right now. Your saved rewards have not been changed.", "Alım geçmişin şu an kontrol edilemiyor. Kayıtlı ödüllerinde değişiklik yapılmadı.", "No pudimos comprobar tu historial. Tus premios no cambiaron.", "Historique inaccessible pour le moment. Vos récompenses sont conservées.", "Der Verlauf konnte nicht geladen werden. Deine Belohnungen bleiben erhalten.", "수령 내역을 확인할 수 없습니다. 기존 보상은 그대로 유지됩니다.", "Не удалось проверить историю. Награды не изменены."}},
+        {"no_history_body", new [] {"Finish missions and claim rewards here to see dated receipts and transaction IDs.", "Görevleri tamamlayıp Ödüller bölümünden ödülleri aldığında işlem kimlikleri burada görünecek.", "Completa misiones y reclama recompensas para ver recibos.", "Terminez des missions et récupérez les récompenses pour voir les reçus.", "Schließe Missionen ab und hole Belohnungen für Belege ab.", "임무 완료 후 보상을 받으면 영수증이 표시됩니다.", "Получите награды за задания, чтобы увидеть историю."}},
+        {"promo_failed_title", new [] {"CODE NOT REDEEMED", "KOD KULLANILAMADI", "CÓDIGO NO CANJEADO", "CODE NON ÉCHANGÉ", "CODE NICHT EINGELÖST", "코드 사용 실패", "КОД НЕ АКТИВИРОВАН"}},
+        {"promo_success_title", new [] {"REWARD CLAIMED", "ÖDÜL HESABINA EKLENDİ", "RECOMPENSA RECIBIDA", "RÉCOMPENSE REÇUE", "BELOHNUNG ERHALTEN", "보상이 지급되었습니다", "НАГРАДА ПОЛУЧЕНА"}},
+        {"promo_success_body", new [] {"Code verified. The reward has been granted and logged to this account.", "Kod doğrulandı. Ödül bu hesaba eklendi ve işlem geçmişine kaydedildi.", "Código verificado. La recompensa se añadió y registró.", "Code vérifié. Récompense ajoutée et enregistrée.", "Code bestätigt. Belohnung gutgeschrieben und protokolliert.", "코드가 확인되어 보상이 지급되고 기록되었습니다.", "Код проверен. Награда начислена и сохранена."}},
+        {"promo_invalid", new [] {"Invalid code format. Check the characters and try again.", "Kod biçimi geçersiz. Karakterleri kontrol edip yeniden dene.", "Formato de código no válido.", "Format de code invalide.", "Ungültiges Codeformat.", "잘못된 코드 형식입니다.", "Недопустимый формат кода."}},
+        {"promo_used", new [] {"This code has already been used by this account.", "Bu promosyon kodu bu hesapta daha önce kullanılmış.", "Este código ya se usó en esta cuenta.", "Ce code a déjà été utilisé par ce compte.", "Dieser Code wurde auf diesem Konto bereits verwendet.", "이 계정에서 이미 사용한 코드입니다.", "Этот код уже использован в этом аккаунте."}},
+        {"promo_owned", new [] {"You already own the item offered by this code.", "Bu kodun verdiği ürün zaten envanterinde bulunuyor.", "Ya tienes este artículo.", "Vous possédez déjà cet objet.", "Dieser Gegenstand ist bereits vorhanden.", "해당 아이템을 이미 보유하고 있습니다.", "Этот предмет уже есть в инвентаре."}},
+        {"promo_not_found", new [] {"Code not found. It may not have been activated by the event administrator.", "Kod bulunamadı. Etkinlik yöneticisi tarafından henüz etkinleştirilmemiş olabilir.", "Código no encontrado o no activado.", "Code introuvable ou non activé.", "Code nicht gefunden oder noch nicht aktiviert.", "코드를 찾을 수 없거나 아직 활성화되지 않았습니다.", "Код не найден или еще не активирован."}},
+        {"promo_disabled", new [] {"This code is currently disabled.", "Bu kod şu anda kullanım dışı.", "El código está desactivado.", "Ce code est désactivé.", "Dieser Code ist deaktiviert.", "비활성화된 코드입니다.", "Этот код отключен."}},
+        {"promo_not_started", new [] {"This code is not available yet.", "Bu kod henüz kullanıma açılmadı.", "Este código aún no está disponible.", "Ce code n'est pas encore disponible.", "Dieser Code ist noch nicht verfügbar.", "아직 사용할 수 없는 코드입니다.", "Код еще недоступен."}},
+        {"promo_expired", new [] {"This code has expired.", "Bu kodun kullanım süresi sona ermiş.", "El código ha caducado.", "Ce code a expiré.", "Dieser Code ist abgelaufen.", "코드가 만료되었습니다.", "Срок действия кода истек."}},
+        {"promo_qa_denied", new [] {"This test code is not authorized for this account.", "Bu test kodu bu hesap için yetkilendirilmemiş.", "Cuenta no autorizada para este código de prueba.", "Compte non autorisé pour ce code de test.", "Konto für diesen Testcode nicht freigeschaltet.", "이 계정은 테스트 코드 사용 권한이 없습니다.", "Нет доступа к тестовому коду."}},
+        {"promo_sign_in", new [] {"Sign in to your account to use a code.", "Kod kullanmak için hesabına giriş yap.", "Inicia sesión para usar un código.", "Connectez-vous pour utiliser un code.", "Melde dich an, um einen Code zu nutzen.", "코드를 사용하려면 로그인하세요.", "Войдите в аккаунт для активации кода."}},
+        {"promo_account_not_ready", new [] {"Account data is not ready. Sign in again before redeeming.", "Hesap verileri hazır değil. Kod kullanmadan önce yeniden giriş yap.", "La cuenta no está lista. Inicia sesión de nuevo.", "Compte non prêt. Reconnectez-vous.", "Kontodaten nicht bereit. Bitte erneut anmelden.", "계정 데이터가 준비되지 않았습니다. 다시 로그인하세요.", "Данные аккаунта недоступны. Войдите снова."}},
+        {"promo_limit", new [] {"This code has reached its usage limit.", "Bu kodun kullanım sınırına ulaşıldı.", "Se alcanzó el límite de usos.", "Limite d'utilisation atteinte.", "Nutzungslimit erreicht.", "사용 가능 횟수를 초과했습니다.", "Лимит использования исчерпан."}},
+        {"promo_invalid_reward", new [] {"This code's reward could not be validated. No reward was granted.", "Bu kodun ödülü doğrulanamadı. Herhangi bir ödül verilmedi.", "No se pudo validar la recompensa.", "Récompense non validée.", "Belohnung konnte nicht geprüft werden.", "보상을 확인할 수 없습니다.", "Награда не прошла проверку."}},
+        {"promo_unavailable", new [] {"Promo service unavailable. Code could not be verified and no reward was confirmed. Try later.", "Promosyon servisine ulaşılamadı. Kod doğrulanamadı ve ödül onaylanmadı. Daha sonra yeniden dene.", "Servicio de códigos no disponible. Inténtalo más tarde.", "Service de codes indisponible. Réessayez plus tard.", "Code-Dienst nicht erreichbar. Bitte später versuchen.", "코드 서비스를 사용할 수 없습니다. 나중에 다시 시도하세요.", "Сервис кодов недоступен. Повторите попытку позже."}},
+        {"xp", new [] {"XP", "XP", "XP", "XP", "XP", "XP", "XP"}},
+        {"gold", new [] {"Gold", "Altın", "Oro", "Or", "Gold", "골드", "Золото"}},
+        {"atlas_coin", new [] {"Atlas Coin", "Atlas Coin", "Atlas Coin", "Atlas Coin", "Atlas Coin", "아틀라스 코인", "Атлас-монеты"}},
+    };
+
+    public static string WorldText(string key, string locale)
+    {
+        if (WorldStrings.TryGetValue(key ?? "", out string[] values))
+            return values[AtlasBoardLocalizationLanguages.IndexOf(locale)];
+        return key ?? "";
+    }
+
 }

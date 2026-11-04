@@ -249,13 +249,13 @@ public sealed class AtlasBoardMetaEconomyBridge : MonoBehaviour
         string code,
         string idempotencyKey)
     {
-        if (!await EnsureDevIdentityAsync())
+        if (IsLocalEmulatorMode && !await EnsureDevIdentityAsync())
         {
             return FailOperation();
         }
 
         string normalized = (code ?? string.Empty).Trim().ToUpperInvariant();
-        if (normalized.Length < 4 || normalized.Length > 32 ||
+        if (normalized.Length < 4 || normalized.Length > 48 ||
             string.IsNullOrWhiteSpace(idempotencyKey))
         {
             return new AtlasBoardMetaEconomyOperationResult
@@ -268,7 +268,8 @@ public sealed class AtlasBoardMetaEconomyBridge : MonoBehaviour
 
         PromoRedeemEnvelope envelope =
             await CallFunctionAsync<PromoRedeemRequest, PromoRedeemEnvelope>(
-                "promoTestRedeem",
+                IsLocalEmulatorMode && !normalized.StartsWith("ATLAS-", StringComparison.Ordinal)
+                    ? "promoTestRedeem" : "metaPromoRedeem",
                 new PromoRedeemRequest
                 {
                     code = normalized,
@@ -314,9 +315,123 @@ public sealed class AtlasBoardMetaEconomyBridge : MonoBehaviour
         return result;
     }
 
+    private async Task<AtlasBoardMetaEconomyOperationResult> ClaimWorldRewardAsync(
+        string rewardId)
+    {
+        WorldClaimEnvelope response = await CallFunctionAsync<
+            WorldClaimRequest, WorldClaimEnvelope>(
+                "metaWorldJourneyClaimReward", new WorldClaimRequest {rewardId = rewardId});
+        if (response == null || response.result == null || !response.result.ok)
+            return FailOperation();
+        return new AtlasBoardMetaEconomyOperationResult {
+            Success = true, Type = "WORLD_JOURNEY_CLAIM",
+            ReferenceId = response.result.referenceId ?? "",
+            TransactionId = response.result.transactionId ?? "",
+            IdempotentReplay = response.result.idempotentReplay,
+            Detail = response.result.rewardType ?? ""
+        };
+    }
+
+    // Keep these display-only dates in sync with the authoritative Cloud Function.
+    // Event claims and actual progress are NEVER computed client-side.
+    private const long WorldStartMs = 1793664000000L; // 2026-11-03T00:00Z
+    private const long WorldEndMs = 1814400000000L - 1; // 2027-06-30T23:59:59.999Z
+
+    private static AtlasBoardSeasonalOverview CreateWorldPreview(string reason)
+    {
+        long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        if (now < WorldStartMs || now > WorldEndMs)
+            return new AtlasBoardSeasonalOverview { Success = false,
+                ErrorKey = reason ?? "seasonal.error.unavailable" };
+
+        var result = new AtlasBoardSeasonalOverview {
+            Success = true, IsWorldJourney = true, WorldPreviewOnly = true,
+            CompletedMissions = 0, ClaimedRewards = 0,
+            ErrorKey = reason ?? "seasonal.error.server_sync_pending",
+            Event = new AtlasBoardSeasonalEvent {
+                Active = true, EventId = "world_journey_2027_s1",
+                TitleKey = "world.event.title", SubtitleKey = "world.event.subtitle",
+                StartsAtEpochMs = WorldStartMs, EndsAtEpochMs = WorldEndMs
+            },
+            WorldBonus = new AtlasBoardWorldBonus { RewardType = "inventory_item",
+                RewardItemId = "board_atlas_horizon", Claimable = false }
+        };
+        string[] ids = { "two_matches", "fifty_rolls", "ten_developments",
+            "three_wins", "twenty_turns", "three_maps",
+            "networth_5000", "world_explorer" };
+        int[] targets = { 2, 50, 10, 3, 20, 3, 5000, 7 };
+        string[] rewardTypes = { "gold", "xp", "atlas_coin", "gold", "xp",
+            "atlas_coin", "gold", "inventory_item" };
+        int[] rewardAmounts = { 500, 500, 100, 1000, 1000, 250, 2000, 1 };
+        for (int i = 0; i < ids.Length; i++) {
+            result.WorldMissions.Add(new AtlasBoardWorldMission {
+                MissionId = ids[i], Target = targets[i], Progress = 0,
+                RewardType = rewardTypes[i], RewardAmount = rewardAmounts[i],
+                RewardItemId = i == 7 ? "map_world" : "",
+                Claimed = false, Claimable = false
+            });
+        }
+        return result;
+    }
+
     public async Task<AtlasBoardSeasonalOverview>
         GetSeasonalOverviewAsync()
     {
+        if (!IsLocalEmulatorMode)
+        {
+            WorldOverviewEnvelope response = await CallFunctionAsync<
+                SeasonalEmptyRequest, WorldOverviewEnvelope>(
+                    "metaWorldJourneyGetOverview", new SeasonalEmptyRequest());
+            if (response == null || response.result == null || !response.result.ok)
+                return CreateWorldPreview(lastErrorKey);
+            WorldOverviewWire w = response.result;
+            // An old deployed function may still advertise a January start.
+            // Do not display it as Upcoming after the owner changed the schedule.
+            if (w.@event == null || w.@event.startsAtEpochMs != WorldStartMs)
+                return CreateWorldPreview("seasonal.error.server_version_mismatch");
+            var overview = new AtlasBoardSeasonalOverview {
+                Success = true, IsWorldJourney = true,
+                Upcoming = w.@event != null && w.@event.upcoming,
+                CompletedMissions = w.completedMissions,
+                ClaimedRewards = w.claimedRewards,
+                Event = new AtlasBoardSeasonalEvent {
+                    Active = w.@event != null && w.@event.active,
+                    EventId = w.@event != null ? w.@event.eventId : "",
+                    TitleKey = w.@event != null ? w.@event.titleKey : "",
+                    SubtitleKey = w.@event != null ? w.@event.subtitleKey : "",
+                    StartsAtEpochMs = w.@event != null ? w.@event.startsAtEpochMs : 0L,
+                    EndsAtEpochMs = w.@event != null ? w.@event.endsAtEpochMs : 0L
+                }
+            };
+            if (w.missions != null) foreach (WorldMissionWire mission in w.missions) {
+                if (mission == null) continue;
+                overview.WorldMissions.Add(new AtlasBoardWorldMission {
+                    MissionId = mission.missionId ?? "", TitleKey = mission.titleKey ?? "",
+                    DescriptionKey = mission.descriptionKey ?? "",
+                    Progress = mission.progress, Target = mission.target,
+                    RewardType = mission.rewardType ?? "", RewardAmount = mission.rewardAmount,
+                    RewardItemId = mission.rewardItemId ?? "",
+                    Claimed = mission.claimed, Claimable = mission.claimable
+                });
+            }
+            if (w.history != null) foreach (WorldHistoryWire h in w.history) {
+                if (h == null) continue;
+                overview.WorldHistory.Add(new AtlasBoardWorldRewardHistory {
+                    EventId = h.eventId ?? "", EventName = h.eventName ?? "",
+                    RewardId = h.rewardId ?? "", RewardType = h.rewardType ?? "",
+                    RewardItemId = h.rewardItemId ?? "", TransactionId = h.transactionId ?? "",
+                    Status = h.status ?? "", Source = h.source ?? "",
+                    RewardAmount = h.rewardAmount, ClaimedAt = h.claimedAt
+                });
+            }
+            overview.WorldBonus = new AtlasBoardWorldBonus {
+                Claimed = w.bonus != null && w.bonus.claimed,
+                Claimable = w.bonus != null && w.bonus.claimable,
+                RewardType = w.bonus != null ? w.bonus.rewardType : "",
+                RewardItemId = w.bonus != null ? w.bonus.rewardItemId : ""
+            };
+            return overview;
+        }
         if (!await EnsureDevIdentityAsync())
         {
             return new AtlasBoardSeasonalOverview
@@ -428,6 +543,8 @@ public sealed class AtlasBoardMetaEconomyBridge : MonoBehaviour
     public async Task<AtlasBoardMetaEconomyOperationResult>
         ClaimSeasonalChallengeAsync(string challengeId)
     {
+        if (!IsLocalEmulatorMode)
+            return await ClaimWorldRewardAsync(challengeId);
         if (!await EnsureDevIdentityAsync())
         {
             return FailOperation();
@@ -462,6 +579,8 @@ public sealed class AtlasBoardMetaEconomyBridge : MonoBehaviour
     public async Task<AtlasBoardMetaEconomyOperationResult>
         ClaimSeasonalTrackTierAsync(string tierId)
     {
+        if (!IsLocalEmulatorMode)
+            return await ClaimWorldRewardAsync(tierId);
         if (!await EnsureDevIdentityAsync())
         {
             return FailOperation();
@@ -1106,10 +1225,22 @@ public sealed class AtlasBoardMetaEconomyBridge : MonoBehaviour
         lastErrorKey = string.Empty;
         lastTechnicalMessage = string.Empty;
 
-        string token = lobbyBridge.AuthTokenForOnlineSubsystems;
-        string url =
-            $"http://{lobbyBridge.EmulatorHostForOnlineSubsystems}:{FunctionsPort}/" +
-            $"{ProjectId}/{Region}/{functionName}";
+        bool emulator = IsLocalEmulatorMode;
+        string expectedUid = AtlasBoardRtdbMetaEconomy.CurrentUid;
+        string token = emulator
+            ? lobbyBridge.AuthTokenForOnlineSubsystems
+            : await AtlasBoardRtdbMetaEconomy.GetCurrentCallableTokenAsync();
+        if (string.IsNullOrWhiteSpace(token) ||
+            string.IsNullOrWhiteSpace(expectedUid) ||
+            expectedUid != AtlasBoardRtdbMetaEconomy.CurrentUid)
+        {
+            lastErrorKey = "account.error.authentication_required";
+            return null;
+        }
+        string url = emulator
+            ? $"http://{lobbyBridge.EmulatorHostForOnlineSubsystems}:{FunctionsPort}/" +
+              $"{ProjectId}/{Region}/{functionName}"
+            : $"https://{Region}-{ProjectId}.cloudfunctions.net/{functionName}";
         string callableJson =
             "{\"data\":" + JsonUtility.ToJson(requestBody) + "}";
 
@@ -1121,8 +1252,13 @@ public sealed class AtlasBoardMetaEconomyBridge : MonoBehaviour
         request.SetRequestHeader("Content-Type", "application/json");
         request.SetRequestHeader("Authorization", $"Bearer {token}");
         request.timeout = 20;
-
+        await AtlasBoardAppCheckRequestSecurity.ApplyAsync(request);
         await SendRequestAsync(request);
+        if (expectedUid != AtlasBoardRtdbMetaEconomy.CurrentUid)
+        {
+            lastErrorKey = "account.error.authentication_required";
+            return null;
+        }
         string body = request.downloadHandler != null
             ? request.downloadHandler.text
             : string.Empty;
@@ -1131,12 +1267,12 @@ public sealed class AtlasBoardMetaEconomyBridge : MonoBehaviour
         {
             CallableErrorEnvelope error =
                 SafeFromJson<CallableErrorEnvelope>(body);
-            lastErrorKey =
-                error != null && error.error != null &&
-                error.error.details != null &&
-                !string.IsNullOrWhiteSpace(error.error.details.errorKey)
-                    ? error.error.details.errorKey
-                    : "meta.error.service_unavailable";
+            string structuredKey = error != null && error.error != null &&
+                error.error.details != null ? error.error.details.errorKey : null;
+            string messageKey = error != null && error.error != null
+                ? error.error.message : null;
+            lastErrorKey = !string.IsNullOrWhiteSpace(structuredKey)
+                ? structuredKey : MapKnownPromoServerError(messageKey);
             lastTechnicalMessage =
                 error != null && error.error != null &&
                 !string.IsNullOrWhiteSpace(error.error.message)
@@ -1153,6 +1289,25 @@ public sealed class AtlasBoardMetaEconomyBridge : MonoBehaviour
         }
 
         return envelope;
+    }
+
+    private static string MapKnownPromoServerError(string message)
+    {
+        switch (message ?? "")
+        {
+            case "PROMO_CODE_INVALID": return "promo.error.invalid_code";
+            case "PROMO_ALREADY_REDEEMED": return "promo.error.already_redeemed";
+            case "PROMO_REWARD_ALREADY_OWNED": return "promo.error.item_already_owned";
+            case "PROMO_NOT_FOUND": return "promo.error.not_found";
+            case "PROMO_DISABLED": return "promo.error.disabled";
+            case "PROMO_NOT_STARTED": return "promo.error.not_started";
+            case "PROMO_EXPIRED": return "promo.error.expired";
+            case "PROMO_QA_ACCESS_DENIED": return "promo.error.qa_denied";
+            case "PROMO_ACCOUNT_NOT_READY": return "promo.error.account_not_ready";
+            case "PROMO_SCOPE_INVALID":
+            case "PROMO_INVALID_REWARD": return "promo.error.invalid_reward";
+            default: return "meta.error.service_unavailable";
+        }
     }
 
     private async Task<FirestoreDocument> GetFirestoreDocumentAsync(
@@ -1449,6 +1604,35 @@ public sealed class AtlasBoardMetaEconomyBridge : MonoBehaviour
         public string currencyId;
         public string itemId;
         public int amount;
+    }
+
+    [Serializable] private sealed class WorldClaimRequest {public string rewardId;}
+    [Serializable] private sealed class WorldClaimEnvelope {public WorldClaimWire result;}
+    [Serializable] private sealed class WorldClaimWire {
+        public bool ok, applied, idempotentReplay;
+        public string eventId, referenceId, transactionId, rewardType;
+        public int rewardAmount;
+    }
+    [Serializable] private sealed class WorldOverviewEnvelope {public WorldOverviewWire result;}
+    [Serializable] private sealed class WorldOverviewWire {
+        public bool ok; public WorldEventWire @event;
+        public WorldMissionWire[] missions; public WorldHistoryWire[] history;
+        public WorldBonusWire bonus; public int completedMissions, claimedRewards;
+    }
+    [Serializable] private sealed class WorldEventWire {
+        public bool active, upcoming; public string eventId, eventName, titleKey, subtitleKey;
+        public long startsAtEpochMs, endsAtEpochMs;
+    }
+    [Serializable] private sealed class WorldMissionWire {
+        public string missionId, titleKey, descriptionKey, rewardType, rewardItemId;
+        public int target, progress, rewardAmount; public bool claimed, claimable;
+    }
+    [Serializable] private sealed class WorldHistoryWire {
+        public string transactionId, eventId, eventName, rewardId, rewardType, rewardItemId;
+        public string status, source; public int rewardAmount; public long claimedAt;
+    }
+    [Serializable] private sealed class WorldBonusWire {
+        public string rewardType, rewardItemId; public bool claimed, claimable;
     }
 
     [Serializable]

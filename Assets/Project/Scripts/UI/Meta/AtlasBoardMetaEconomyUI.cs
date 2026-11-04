@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -81,6 +81,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
     private string pendingCurrency = string.Empty;
     private string activeCategory = "all";
     private StorePage currentPage = StorePage.Home;
+    private int worldEventTab;
     private bool busy;
     private float nextOperationAllowedAt;
     private bool shopCardBound;
@@ -455,8 +456,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         BeginOperation("store.response.loading");
         string requestedUid = AtlasBoardRtdbMetaEconomy.CurrentUid;
         AtlasBoardMetaEconomySnapshot result = await bridge.RefreshAsync();
-        AtlasBoardSeasonalOverview seasonal = result != null && result.Success &&
-            bridge.IsLocalEmulatorMode
+        AtlasBoardSeasonalOverview seasonal = result != null && result.Success
             ? await bridge.GetSeasonalOverviewAsync()
             : null;
         EndOperation();
@@ -776,11 +776,10 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
 
 
         string code = (redeemInput.text ?? string.Empty).Trim().ToUpperInvariant();
-        if (code.Length < 4)
+        if (code.Length < 4 || code.Length > 48)
         {
-            ShowMessagePopup(
-                "store.popup.error_title",
-                T("store.error.promo_invalid"));
+            ShowMessagePopup(WorldText("promo_failed_title"),
+                PromoFeedback("promo.error.invalid_code"), true);
             return;
         }
 
@@ -795,22 +794,22 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         EndOperation();
 
 
-        if (!result.Success)
+        if (result == null || !result.Success)
         {
-            ShowMessagePopup(
-                "store.popup.error_title",
-                LocalizeError(result.ErrorKey));
-            return;
+            string failureKey = result != null ? result.ErrorKey :
+                "meta.error.service_unavailable";
+            ShowMessagePopup(WorldText("promo_failed_title"),
+                PromoFeedback(failureKey), true);
+            return; // keep typed code for retry; no success receipt was verified.
         }
-
 
         operationKeys.Remove(operationName);
         redeemInput.text = string.Empty;
-        ShowMessagePopup(
-            "store.popup.redeem_title",
-            T(
-                "store.response.redeem_done",
-                DescribeOperationRewards(result.Rewards)));
+        string rewardSummary = DescribeOperationRewards(result.Rewards);
+        ShowMessagePopup(WorldText("promo_success_title"),
+            WorldText("promo_success_body") + "\n" + rewardSummary +
+            "\n" + WorldText("transaction") + ": " +
+            (result.TransactionId ?? ""), true);
         RefreshAfterOperationAsync();
     }
 
@@ -1020,7 +1019,8 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             seasonalOverview != null &&
             seasonalOverview.Event != null &&
             seasonalOverview.Event.Active
-                ? T(seasonalOverview.Event.SubtitleKey)
+                ? (seasonalOverview.IsWorldJourney
+                    ? WorldText("subtitle") : T(seasonalOverview.Event.SubtitleKey))
                 : T("seasonal.home.inactive"));
         Button browse = CreateWideButton(
             featured.transform,
@@ -1197,7 +1197,10 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         }
 
 
-        List<AtlasBoardStorefrontItem> list = items.ToList();
+        // Exclusive World Journey unlocks are inventory items, never shop products.
+        List<AtlasBoardStorefrontItem> list = items.Where(item =>
+            item.ItemId != "map_world" &&
+            item.ItemId != "board_atlas_horizon").ToList();
         if (list.Count == 0)
         {
             AddInfoRow(itemContent, activeCategory == "map"
@@ -1497,6 +1500,14 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
 
     private void RebuildEventPage()
     {
+        if (seasonalOverview != null && seasonalOverview.Success &&
+            seasonalOverview.IsWorldJourney &&
+            seasonalOverview.Event != null &&
+            (seasonalOverview.Event.Active || seasonalOverview.Upcoming))
+        {
+            RebuildWorldJourneyPage();
+            return;
+        }
         CreateSectionTitle(contentRoot, T("seasonal.page.title"));
         if (seasonalOverview == null || !seasonalOverview.Success ||
             seasonalOverview.Event == null || !seasonalOverview.Event.Active)
@@ -1532,6 +1543,304 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         BuildSeasonalLimitedItems();
     }
 
+
+
+    private static string WorldText(string key)
+    {
+        AtlasBoardLocalizationManager loc = AtlasBoardLocalizationManager.Instance;
+        return AtlasBoardShopContentDraft.WorldText(key,
+            loc != null ? loc.CurrentLanguageCode : "en");
+    }
+
+    private string WorldRewardText(string rewardType, int amount, string itemId)
+    {
+        if (!string.IsNullOrWhiteSpace(itemId))
+        {
+            if (string.Equals(itemId, "map_world", StringComparison.Ordinal))
+                return WorldText("world_map_label");
+            AtlasBoardLocalizationManager loc = AtlasBoardLocalizationManager.Instance;
+            return AtlasBoardShopContentDraft.LocalizedName(itemId,
+                loc != null ? loc.CurrentLanguageCode : "en");
+        }
+        return amount.ToString("N0", CultureInfo.InvariantCulture) + " " +
+            WorldText(rewardType);
+    }
+
+    private async void ClaimWorldRewardAsync(string rewardId)
+    {
+        // Preview is UI-only. Never initiate reward requests against an absent
+        // backend; existing claim permissions and server authority remain intact.
+        if (seasonalOverview == null || seasonalOverview.WorldPreviewOnly) return;
+        if (!CanStartOperation() || bridge == null) return;
+        BeginOperation("store.response.processing");
+        AtlasBoardMetaEconomyOperationResult result =
+            await bridge.ClaimSeasonalChallengeAsync(rewardId);
+        EndOperation();
+        if (result == null || !result.Success)
+        {
+            ShowMessagePopup("store.popup.error_title", LocalizeError(
+                result != null ? result.ErrorKey : "meta.error.service_unavailable"));
+            return;
+        }
+        string rewardDescription = WorldRewardText("inventory_item", 1,
+            rewardId == "completion_bonus" ? "board_atlas_horizon" :
+            rewardId == "world_explorer" ? "map_world" : "");
+        foreach (AtlasBoardWorldMission mission in seasonalOverview.WorldMissions)
+            if (mission.MissionId == rewardId)
+            {
+                rewardDescription = WorldRewardText(mission.RewardType,
+                    mission.RewardAmount, mission.RewardItemId);
+                break;
+            }
+        ShowMessagePopup("seasonal.popup.track_title", WorldText("claimed") +
+            "\n" + rewardDescription + "\n" + WorldText("transaction") +
+            ": " + result.TransactionId);
+        RefreshAfterOperationAsync();
+    }
+
+    private void RebuildWorldJourneyPage()
+    {
+        // Uses the existing Store canvas and layout primitives; no extra scene or UI manager.
+        AtlasBoardSeasonalEvent e = seasonalOverview.Event;
+        // Single continuous game-themed inset. Avoid the former blank strip
+        // between the Store event heading and event content.
+        CreatePanel(contentRoot, "WorldJourneyBackdrop",
+            new Vector2(0f, -14f), new Vector2(1120f, 552f),
+            new Color32(222, 238, 250, 255));
+        GameObject banner = CreateCard(contentRoot, "WorldJourneyHero",
+            new Vector2(0f, 192f), new Vector2(1100f, 132f),
+            new Color32(14, 48, 88, 255));
+        Image bannerImage = banner.GetComponent<Image>();
+        Sprite heroSprite = Resources.Load<Sprite>("ATB_WorldJourneyHero");
+        if (bannerImage != null && heroSprite != null)
+        {
+            bannerImage.sprite = heroSprite;
+            bannerImage.type = Image.Type.Simple;
+            bannerImage.color = Color.white;
+        }
+        // One continuous semi-transparent midnight layer across the full hero.
+        // The old 714px left panel + 296px right panel left an 84px bright seam.
+        // Keep the globe illustration visible THROUGH the overlay; no split panels.
+        CreatePanel(banner.transform, "WorldJourneyUnifiedContrast",
+            Vector2.zero, new Vector2(1088f, 124f),
+            new Color32(7, 27, 60, 172));
+        CreatePanel(banner.transform, "WorldJourneyAccent",
+            new Vector2(-526f, 0f), new Vector2(7f, 98f), Orange);
+        TMP_Text title = CreateText(banner.transform, 34f, FontStyles.Bold,
+            TextAlignmentOptions.Center, Color.white);
+        SetAnchored(title.rectTransform, new Vector2(-194f, 17f),
+            new Vector2(675f, 53f));
+        title.enableAutoSizing = true;
+        title.fontSizeMin = 23f;
+        title.fontSizeMax = 34f;
+        title.overflowMode = TextOverflowModes.Ellipsis;
+        title.text = WorldText("title");
+        TMP_Text subtitle = CreateText(banner.transform, 15f, FontStyles.Normal,
+            TextAlignmentOptions.Center, new Color32(218, 235, 255, 255));
+        SetAnchored(subtitle.rectTransform, new Vector2(-194f, -30f),
+            new Vector2(648f, 45f));
+        subtitle.enableAutoSizing = true;
+        subtitle.fontSizeMin = 11f;
+        subtitle.fontSizeMax = 15f;
+        subtitle.text = WorldText("subtitle");
+        TMP_Text end = CreateText(banner.transform, 17f, FontStyles.Bold,
+            TextAlignmentOptions.Center, new Color32(255, 223, 130, 255));
+        SetAnchored(end.rectTransform, new Vector2(394f, 0f),
+            new Vector2(272f, 106f));
+        end.enableAutoSizing = true;
+        end.fontSizeMin = 12f;
+        end.fontSizeMax = 17f;
+        end.text = (seasonalOverview.Upcoming ? WorldText("starts") + ":\n" +
+            FormatSeasonalEnd(e.StartsAtEpochMs) + "\n" : "") +
+            WorldText("ends") + ":\n" + FormatSeasonalEnd(e.EndsAtEpochMs) +
+            (seasonalOverview.Upcoming ? "\n" + WorldText("status_upcoming") : "");
+
+        // Clearly separated navigation: no tab overlaps the hero or content cards.
+        string[] tabs = {"overview", "missions", "rewards", "history"};
+        for (int i = 0; i < tabs.Length; i++)
+        {
+            int next = i;
+            Button tab = CreateEventPill(contentRoot, WorldText(tabs[i]),
+                worldEventTab == i ? new Color32(20, 67, 117, 255) : Blue,
+                new Vector2(-399f + i * 266f, 84f),
+                new Vector2(238f, 43f), true);
+            tab.onClick.AddListener(() => {
+                worldEventTab = next;
+                RebuildCurrentPage();
+            });
+        }
+        if (worldEventTab == 0) BuildWorldOverview();
+        else if (worldEventTab == 1) BuildWorldMissions();
+        else if (worldEventTab == 2) BuildWorldRewards();
+        else BuildWorldHistory();
+    }
+
+    private void BuildWorldOverview()
+    {
+        GameObject progress = CreateCard(contentRoot, "WorldProgress",
+            new Vector2(-275f, -126f), new Vector2(530f, 306f), Cream);
+        AddCardTitle(progress.transform, WorldText("progress"), DarkBlue, 117f);
+        TMP_Text main = CreateText(progress.transform, 29f, FontStyles.Bold,
+            TextAlignmentOptions.Center, TextDark);
+        SetAnchored(main.rectTransform, new Vector2(0f, 16f),
+            new Vector2(485f, 110f));
+        main.text = WorldText("progress") + "  " +
+            (seasonalOverview.WorldPreviewOnly ? "0" :
+                seasonalOverview.CompletedMissions.ToString()) + " / 8\n" +
+            WorldText("claimed_progress") + "  " +
+            (seasonalOverview.WorldPreviewOnly ? "0" :
+                seasonalOverview.ClaimedRewards.ToString()) + " / 8";
+        if (seasonalOverview.WorldPreviewOnly)
+        {
+            TMP_Text notice = CreateText(progress.transform, 13f,
+                FontStyles.Normal, TextAlignmentOptions.Center, DarkBlue);
+            SetAnchored(notice.rectTransform, new Vector2(0f, -120f),
+                new Vector2(470f, 36f));
+            notice.text = WorldText("progress_unavailable");
+        }
+        GameObject barBack = CreatePanel(progress.transform, "ProgressTrack",
+            new Vector2(0f, -80f), new Vector2(440f, 19f), PanelBlue);
+        CreatePanel(barBack.transform, "ProgressFill",
+            new Vector2(-220f + 220f * Mathf.Clamp01(seasonalOverview.CompletedMissions / 8f), 0f),
+            new Vector2(440f * Mathf.Clamp01(seasonalOverview.CompletedMissions / 8f), 17f), Green);
+        GameObject awards = CreateCard(contentRoot, "WorldExclusiveRewards",
+            new Vector2(275f, -126f), new Vector2(530f, 306f), Cream);
+        AddCardTitle(awards.transform, WorldText("world_reward"), Orange, 117f);
+        TMP_Text preview = CreateText(awards.transform, 21f, FontStyles.Bold,
+            TextAlignmentOptions.Center, DarkBlue);
+        SetAnchored(preview.rectTransform, new Vector2(0f, 25f),
+            new Vector2(480f, 115f));
+        preview.text = WorldRewardText("inventory_item", 1, "map_world") +
+            "\n" + WorldRewardText("inventory_item", 1, "board_atlas_horizon");
+        TMP_Text footer = CreateText(awards.transform, 12f, FontStyles.Normal,
+            TextAlignmentOptions.Center, TextDark);
+        SetAnchored(footer.rectTransform, new Vector2(0f, -95f),
+            new Vector2(465f, 92f));
+        footer.text = WorldText("bonus_desc");
+    }
+
+    private void BuildWorldMissions()
+    {
+        RectTransform list = BuildScrollList(contentRoot, "WorldMissions",
+            new Vector2(0f, -130f), new Vector2(1080f, 340f), PanelBlue);
+        foreach (AtlasBoardWorldMission mission in seasonalOverview.WorldMissions)
+        {
+            GameObject row = CreateListRow(list, 100f, Cream);
+            TMP_Text t = CreateText(row.transform, 16f, FontStyles.Bold,
+                TextAlignmentOptions.Left, TextDark);
+            SetAnchored(t.rectTransform, new Vector2(-230f, 12f),
+                new Vector2(520f, 55f));
+            t.text = WorldText("mission." + mission.MissionId) +
+                "\n" + (seasonalOverview.WorldPreviewOnly ? "0" :
+                mission.Progress.ToString()) + "/" + mission.Target;
+            TMP_Text reward = CreateText(row.transform, 14f, FontStyles.Bold,
+                TextAlignmentOptions.Center, Orange);
+            SetAnchored(reward.rectTransform, new Vector2(287f, 0f),
+                new Vector2(365f, 70f));
+            reward.text = WorldRewardText(mission.RewardType,
+                mission.RewardAmount, mission.RewardItemId) + "\n" +
+                (mission.Claimed ? WorldText("claimed") :
+                 mission.Claimable ? WorldText("ready") : WorldText("locked"));
+            float ratio = mission.Target > 0 && !seasonalOverview.WorldPreviewOnly
+                ? Mathf.Clamp01(mission.Progress / (float)mission.Target) : 0f;
+            GameObject track = CreatePanel(row.transform, "MissionProgressTrack",
+                new Vector2(-231f, -34f), new Vector2(488f, 8f),
+                new Color32(211, 221, 228, 255));
+            if (ratio > 0f) CreatePanel(track.transform, "MissionProgressFill",
+                new Vector2(-244f + 244f * ratio, 0f),
+                new Vector2(488f * ratio, 8f), Green);
+        }
+    }
+
+    private void BuildWorldRewards()
+    {
+        RectTransform list = BuildScrollList(contentRoot, "WorldRewards",
+            new Vector2(0f, -130f), new Vector2(1080f, 340f), PanelBlue);
+        foreach (AtlasBoardWorldMission mission in seasonalOverview.WorldMissions)
+        {
+            GameObject row = CreateListRow(list, 95f, Cream);
+            TMP_Text t = CreateText(row.transform, 16f, FontStyles.Bold,
+                TextAlignmentOptions.Left, TextDark);
+            SetAnchored(t.rectTransform, new Vector2(-235f, 3f),
+                new Vector2(525f, 74f));
+            t.text = WorldText("mission." + mission.MissionId) + "\n" +
+                WorldRewardText(mission.RewardType,
+                    mission.RewardAmount, mission.RewardItemId);
+            Button claim = CreateEventPill(row.transform,
+                mission.Claimed ? WorldText("claimed") :
+                mission.Claimable ? WorldText("claim") : WorldText("locked"),
+                mission.Claimed ? Green : mission.Claimable ? Orange :
+                    new Color32(105, 126, 153, 255),
+                new Vector2(355f, 0f), new Vector2(260f, 49f));
+            claim.interactable = mission.Claimable &&
+                !seasonalOverview.WorldPreviewOnly && seasonalOverview.Event.Active;
+            string rewardId = mission.MissionId;
+            claim.onClick.AddListener(() => ClaimWorldRewardAsync(rewardId));
+        }
+        GameObject bonus = CreateListRow(list, 146f, new Color32(226, 221, 245, 255));
+        TMP_Text b = CreateText(bonus.transform, 16f, FontStyles.Bold,
+            TextAlignmentOptions.Left, DarkBlue);
+        SetAnchored(b.rectTransform, new Vector2(-225f, 27f),
+            new Vector2(560f, 74f));
+        b.text = WorldText("bonus") + "\n" +
+            WorldRewardText("inventory_item", 1, "board_atlas_horizon");
+        TMP_Text bonusDetails = CreateText(bonus.transform, 12f,
+            FontStyles.Normal, TextAlignmentOptions.Left, TextDark);
+        SetAnchored(bonusDetails.rectTransform, new Vector2(-225f, -41f),
+            new Vector2(565f, 66f));
+        bonusDetails.text = WorldText("bonus_desc");
+        Button take = CreateEventPill(bonus.transform,
+            seasonalOverview.WorldBonus.Claimed ? WorldText("claimed") :
+            seasonalOverview.WorldBonus.Claimable ? WorldText("claim") : WorldText("locked"),
+            seasonalOverview.WorldBonus.Claimed ? Green :
+                seasonalOverview.WorldBonus.Claimable ? Orange :
+                new Color32(105, 126, 153, 255),
+            new Vector2(355f, 0f), new Vector2(260f, 49f));
+        take.interactable = seasonalOverview.WorldBonus.Claimable &&
+            !seasonalOverview.WorldPreviewOnly && seasonalOverview.Event.Active;
+        take.onClick.AddListener(() => ClaimWorldRewardAsync("completion_bonus"));
+    }
+
+    private void BuildWorldHistory()
+    {
+        RectTransform list = BuildScrollList(contentRoot, "WorldRewardHistory",
+            new Vector2(0f, -130f), new Vector2(1080f, 340f), PanelBlue);
+        if (seasonalOverview.WorldHistory.Count == 0)
+        {
+            GameObject empty = CreateListRow(list, 290f,
+                new Color32(240, 246, 252, 255));
+            TMP_Text header = CreateText(empty.transform, 25f,
+                FontStyles.Bold, TextAlignmentOptions.Center, DarkBlue);
+            SetAnchored(header.rectTransform, new Vector2(0f, 49f),
+                new Vector2(940f, 58f));
+            header.text = WorldText(seasonalOverview.WorldPreviewOnly ?
+                "history_unavailable" : "no_history");
+            TMP_Text detail = CreateText(empty.transform, 17f,
+                FontStyles.Normal, TextAlignmentOptions.Center, TextDark);
+            SetAnchored(detail.rectTransform, new Vector2(0f, -25f),
+                new Vector2(925f, 85f));
+            detail.text = WorldText(seasonalOverview.WorldPreviewOnly ?
+                "history_unavailable_body" : "no_history_body");
+            CreatePanel(empty.transform, "HistoryAccent",
+                new Vector2(0f, -93f), new Vector2(290f, 5f), Orange);
+            return;
+        }
+        foreach (AtlasBoardWorldRewardHistory receipt in seasonalOverview.WorldHistory)
+        {
+            GameObject row = CreateListRow(list, 96f, Cream);
+            TMP_Text text = CreateText(row.transform, 14f, FontStyles.Normal,
+                TextAlignmentOptions.Left, TextDark);
+            SetAnchored(text.rectTransform, Vector2.zero, new Vector2(1020f, 87f));
+            string when = receipt.ClaimedAt > 0
+                ? FormatSeasonalEnd(receipt.ClaimedAt) : "-";
+            text.text = "<b>" + WorldText("title") + "</b>  ·  " + when +
+                "\n" + WorldRewardText(receipt.RewardType,
+                    receipt.RewardAmount, receipt.RewardItemId) +
+                "  ·  " + receipt.Status +
+                "\n" + WorldText("transaction") + ": " +
+                receipt.TransactionId;
+        }
+    }
 
     // Calm, seven-language showcase rather than one isolated "service unavailable" row.
     // The existing LIVE event path below remains unchanged if an event is active.
@@ -1746,7 +2055,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             T("store.redeem.placeholder"),
             new Vector2(0f, -8f),
             new Vector2(430f, 58f));
-        redeemInput.characterLimit = 32;
+        redeemInput.characterLimit = 48;
         redeemInput.contentType = TMP_InputField.ContentType.Standard;
 
 
@@ -2532,7 +2841,8 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
 
     private void ShowMessagePopup(
         string titleKey,
-        string body)
+        string body,
+        bool localizedTitle = false)
     {
         if (resultRoot == null ||
             resultTitleText == null ||
@@ -2542,7 +2852,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         }
 
 
-        resultTitleText.text = T(titleKey);
+        resultTitleText.text = localizedTitle ? (titleKey ?? string.Empty) : T(titleKey);
         resultBodyText.text = body ?? string.Empty;
 
 
@@ -2556,6 +2866,27 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         resultRoot.transform.SetAsLastSibling();
     }
 
+
+    // Stable ATB codes are user-facing UI categories, not raw backend details.
+    private static string PromoFeedback(string key)
+    {
+        switch (key ?? "")
+        {
+            case "promo.error.invalid_code": return "ATB-430 · " + WorldText("promo_invalid");
+            case "promo.error.already_redeemed": return "ATB-434 · " + WorldText("promo_used");
+            case "promo.error.item_already_owned": return "ATB-435 · " + WorldText("promo_owned");
+            case "promo.error.not_found": return "ATB-433 · " + WorldText("promo_not_found");
+            case "promo.error.disabled": return "ATB-432 · " + WorldText("promo_disabled");
+            case "promo.error.not_started": return "ATB-437 · " + WorldText("promo_not_started");
+            case "promo.error.expired": return "ATB-438 · " + WorldText("promo_expired");
+            case "promo.error.qa_denied": return "ATB-441 · " + WorldText("promo_qa_denied");
+            case "account.error.authentication_required": return "ATB-431 · " + WorldText("promo_sign_in");
+            case "promo.error.account_not_ready": return "ATB-440 · " + WorldText("promo_account_not_ready");
+            case "promo.error.limit_reached": return "ATB-439 · " + WorldText("promo_limit");
+            case "promo.error.invalid_reward": return "ATB-436 · " + WorldText("promo_invalid_reward");
+            default: return "ATB-424 · " + WorldText("promo_unavailable");
+        }
+    }
 
     private string LocalizeItemName(AtlasBoardStorefrontItem item)
     {
@@ -3018,6 +3349,59 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             size ?? new Vector2(320f, 52f));
     }
 
+
+    private static Sprite eventButtonSprite;
+
+    private static Sprite GetEventButtonSprite()
+    {
+        if (eventButtonSprite != null) return eventButtonSprite;
+        const int side = 48;
+        const float radius = 13f;
+        Texture2D texture = new Texture2D(side, side, TextureFormat.RGBA32, false);
+        texture.filterMode = FilterMode.Bilinear;
+        texture.wrapMode = TextureWrapMode.Clamp;
+        Color[] pixels = new Color[side * side];
+        for (int y = 0; y < side; y++)
+        for (int x = 0; x < side; x++)
+        {
+            float dx = Mathf.Max(radius - x - .5f, 0f);
+            dx = Mathf.Max(dx, x - (side - radius - .5f));
+            float dy = Mathf.Max(radius - y - .5f, 0f);
+            dy = Mathf.Max(dy, y - (side - radius - .5f));
+            float a = Mathf.Clamp01(radius + .5f - Mathf.Sqrt(dx * dx + dy * dy));
+            pixels[y * side + x] = new Color(1f, 1f, 1f, a);
+        }
+        texture.SetPixels(pixels);
+        texture.Apply(false, true);
+        eventButtonSprite = Sprite.Create(texture,
+            new Rect(0f, 0f, side, side), new Vector2(.5f, .5f),
+            100f, 0, SpriteMeshType.FullRect,
+            new Vector4(15f, 15f, 15f, 15f));
+        eventButtonSprite.name = "AtlasBoardEventRoundedButton";
+        return eventButtonSprite;
+    }
+
+    private static Button CreateEventPill(Transform parent, string label,
+        Color color, Vector2 position, Vector2 size, bool selected = false)
+    {
+        Button button = CreateSmallButton(parent, label, color, position, size);
+        Image image = button.GetComponent<Image>();
+        image.sprite = GetEventButtonSprite();
+        image.type = Image.Type.Sliced;
+        button.transition = Selectable.Transition.ColorTint;
+        ColorBlock palette = button.colors;
+        palette.normalColor = Color.white;
+        palette.highlightedColor = new Color(.92f, .97f, 1f, 1f);
+        palette.pressedColor = new Color(.80f, .89f, 1f, 1f);
+        palette.selectedColor = Color.white;
+        palette.disabledColor = Color.white; // keep lock styling readable
+        palette.colorMultiplier = 1f;
+        button.colors = palette;
+        Outline shadow = button.gameObject.AddComponent<Outline>();
+        shadow.effectColor = new Color(0.04f, 0.10f, 0.22f, selected ? .50f : .20f);
+        shadow.effectDistance = new Vector2(1.8f, -2.4f);
+        return button;
+    }
 
     private static Button CreateSmallButton(
         Transform parent,

@@ -14,3 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AtlasBoardPremiumMapReferences
   germany: {fileID: 11400000, guid: 062e8a57ebb746d27d8cad104b13afb3, type: 2}
   mexico: {fileID: 11400000, guid: 66881cfbb70b3ad38a0bb9f5259ba653, type: 2}
+  world: {fileID: 11400000, guid: 795b79560c3f4eb380774752fe170c3a, type: 2}

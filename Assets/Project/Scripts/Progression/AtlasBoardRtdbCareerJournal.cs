@@ -1179,24 +1179,59 @@ public static class AtlasBoardRtdbCareerJournal
     }
 
 
+    private static async Task<int> VerifiedBonusXpAsync(string uid, string token)
+    {
+        // A distinct server-issued bonus source, never a fabricated match claim.
+        try {
+            string raw = await RequestAsync(
+                "/users/" + Safe(uid) + "/seasonalRewards/xp", token);
+            JToken value = JToken.Parse(raw);
+            if (value.Type != JTokenType.Integer) return 0;
+            return Mathf.Clamp((int?)value ?? 0, 0, 100000000);
+        }
+        catch { return 0; } // Old accounts need no bonus field.
+    }
+
+    private static void ApplyBonusLevel(AtlasBoardProgressionSnapshot snapshot,
+        int bonusXp)
+    {
+        if (snapshot == null || bonusXp <= 0) return;
+        snapshot.TotalXp = (int)Math.Min(100000000L,
+            (long)Math.Max(0, snapshot.TotalXp) + bonusXp);
+        int level = 1, start = 0;
+        while (level < MaxLevel)
+        {
+            int needed = Mathf.RoundToInt(500f * Mathf.Pow(1.1f, level - 1));
+            if (snapshot.TotalXp < start + needed) break;
+            start += needed; level++;
+        }
+        snapshot.Level = level;
+        snapshot.LevelStartXp = start;
+        snapshot.NextLevelXp = level >= MaxLevel ? start :
+            start + Mathf.RoundToInt(500f * Mathf.Pow(1.1f, level - 1));
+    }
+
     public static async Task<AtlasBoardProgressionSnapshot> MergeAsync(
         AtlasBoardProgressionSnapshot snapshot, string uid, string token)
     {
         if (snapshot == null || !snapshot.Success ||
             string.IsNullOrEmpty(uid) || string.IsNullOrEmpty(token))
             return snapshot;
+        int bonusXp = await VerifiedBonusXpAsync(uid, token);
         JObject claims = ObjectOrNull(await RequestAsync(
             "/careerClaims/" + UnityWebRequest.EscapeURL(uid), token));
         JObject participationCredits = ObjectOrNull(await RequestAsync(
             "/careerParticipationCredits/" + Safe(uid), token));
         if ((claims == null || claims.Count == 0) &&
-            (participationCredits == null || participationCredits.Count == 0))
+            (participationCredits == null || participationCredits.Count == 0) &&
+            bonusXp == 0)
             return snapshot;
         // Server projection takes precedence for totals. Claims may still
         // enrich user-facing result/Gold fields without double-adding XP.
         if (snapshot.TechnicalMessage != "empty_authoritative_profile")
         {
             ApplyClaimDisplayFields(snapshot, claims, uid);
+            ApplyBonusLevel(snapshot, bonusXp);
             await RefreshRecentMatchFinalResultsAsync(snapshot, token);
             return snapshot;
         }
@@ -1215,7 +1250,7 @@ public static class AtlasBoardRtdbCareerJournal
                 Int(x,"xpAwarded",1) == 1)
             .OrderByDescending(x => (long?)x["atMs"] ?? 0).ToList();
         var stats = new AtlasBoardCareerStats();
-        int totalXp = partial.Count; // one XP per distinct eligible unfinished attestation
+        int totalXp = bonusXp + partial.Count; // server bonus + distinct eligible unfinished attestation
 
 
         int streak = 0;

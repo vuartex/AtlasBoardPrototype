@@ -17,7 +17,8 @@ public static class AtlasBoardPhase19ABPremiumMapsInstaller
         if (EditorApplication.isPlaying) { Debug.LogError("Exit Play Mode first."); return; }
         var germany = AssetDatabase.LoadAssetAtPath<BoardMapDefinition>("Assets/Project/Data/Maps/map_germany.asset");
         var mexico = AssetDatabase.LoadAssetAtPath<BoardMapDefinition>("Assets/Project/Data/Maps/map_mexico.asset");
-        if (germany == null || mexico == null || germany.Tiles.Count != 32 || mexico.Tiles.Count != 32)
+        var world = AssetDatabase.LoadAssetAtPath<BoardMapDefinition>("Assets/Project/Data/Maps/map_world.asset");
+        if (germany == null || mexico == null || world == null || germany.Tiles.Count != 32 || mexico.Tiles.Count != 32 || world.Tiles.Count != 32)
         { Debug.LogError("Premium maps missing or invalid: expected two 32-tile assets."); return; }
         int setupCount = 0, dropdownCount = 0;
         foreach (var setup in UnityEngine.Object.FindObjectsByType<MatchSetupManager>(FindObjectsInactive.Include))
@@ -27,7 +28,7 @@ public static class AtlasBoardPhase19ABPremiumMapsInstaller
             if (prop == null) continue;
             List<UnityEngine.Object> maps = new List<UnityEngine.Object>();
             for (int i=0; i<prop.arraySize; i++) maps.Add(prop.GetArrayElementAtIndex(i).objectReferenceValue);
-            foreach (var added in new BoardMapDefinition[] { germany, mexico }) if (!maps.Contains(added)) maps.Add(added);
+            foreach (var added in new BoardMapDefinition[] { germany, mexico, world }) if (!maps.Contains(added)) maps.Add(added);
             prop.arraySize = maps.Count;
             for (int i=0; i<maps.Count; i++) prop.GetArrayElementAtIndex(i).objectReferenceValue=maps[i];
             so.ApplyModifiedProperties(); EditorUtility.SetDirty(setup); setupCount++;
@@ -45,7 +46,7 @@ public static class AtlasBoardPhase19ABPremiumMapsInstaller
             if(prop!=null && prop.arraySize>0) { var dd=prop.GetArrayElementAtIndex(0).objectReferenceValue as TMP_Dropdown; if(dd!=null && Append(dd)) dropdownCount++; }
         }
         EditorSceneManager.MarkAllScenesDirty(); AssetDatabase.SaveAssets();
-        Debug.Log("ATB_MAP_INSTALL status=ready added_maps=2 setup_components="+setupCount+" dropdowns="+dropdownCount+" Save scene (Ctrl+S) and verify owner entitlement before online match.");
+        Debug.Log("ATB_MAP_INSTALL status=ready added_maps=3 setup_components="+setupCount+" dropdowns="+dropdownCount+" Save scene (Ctrl+S) and verify owner entitlement before online match.");
     }
     private static bool Append(TMP_Dropdown dd)
     {

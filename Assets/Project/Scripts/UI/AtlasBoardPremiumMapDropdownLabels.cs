@@ -20,13 +20,16 @@ public sealed class AtlasBoardPremiumMapDropdownLabels : MonoBehaviour
             target.options.Add(new TMP_Dropdown.OptionData("Germany"));
         if (target.options.Count == 4)
             target.options.Add(new TMP_Dropdown.OptionData("Mexico"));
-        if (target.options.Count < 5)
+        if (target.options.Count == 5)
+            target.options.Add(new TMP_Dropdown.OptionData("World"));
+        if (target.options.Count < 6)
             return false;
 
         string locale = AtlasBoardLocalizationManager.Instance != null
             ? AtlasBoardLocalizationManager.Instance.CurrentLanguageCode : "en";
         target.options[3].text = AtlasBoardShopContentDraft.LocalizedName("map_germany", locale);
         target.options[4].text = AtlasBoardShopContentDraft.LocalizedName("map_mexico", locale);
+        target.options[5].text = AtlasBoardShopContentDraft.LocalizedName("map_world", locale);
         target.RefreshShownValue();
         return true;
     }
@@ -56,9 +59,10 @@ public sealed class AtlasBoardPremiumMapDropdownLabels : MonoBehaviour
 
     private void PreviewSelection(int index)
     {
-        if (correcting || index < 0 || index > 4) return;
+        if (correcting || index < 0 || index > 5) return;
         string premium = index == 3 ? "map_germany" :
-            index == 4 ? "map_mexico" : "";
+            index == 4 ? "map_mexico" :
+            index == 5 ? "map_world" : "";
         if (premium.Length > 0 &&
             !AtlasBoardRtdbMetaEconomy.IsPremiumMapOwnedForCurrentUid(premium))
         {
@@ -73,7 +77,7 @@ public sealed class AtlasBoardPremiumMapDropdownLabels : MonoBehaviour
             return;
         }
         lastAllowedIndex = index;
-        PreviewMap(index == 3 ? "Germany" : index == 4 ? "Mexico" :
+        PreviewMap(index == 3 ? "Germany" : index == 4 ? "Mexico" : index == 5 ? "World" :
             index == 2 ? "USA" : index == 1 ? "Colorado" : "Turkey");
     }
 

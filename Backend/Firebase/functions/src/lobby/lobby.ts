@@ -877,6 +877,7 @@ function hostDisplayName(snapshot: LobbySnapshot): string {
  * @param {LobbySnapshot} snapshot Authoritative lobby snapshot.
  * @param {number} createdAtEpochMs Original lobby creation time.
  * @return {FirebaseFirestore.DocumentData} Discovery document.
+ * @param {*} hostHeartbeatAtEpochMs Input value.
  */
 function publicDiscoveryData(
   snapshot: LobbySnapshot,
@@ -1427,6 +1428,11 @@ function assertCompatible(
   }
 }
 
+/**
+ * Validates or processes hostHeartbeatEpochMs for the existing backend flow.
+ * @param {*} data Validated input.
+ * @return {*} Result of the existing operation.
+ */
 function hostHeartbeatEpochMs(
   data: FirebaseFirestore.DocumentData,
 ): number {
@@ -1445,6 +1451,12 @@ function hostHeartbeatEpochMs(
   return 0;
 }
 
+/**
+ * Validates or processes hostHeartbeatIsStale for the existing backend flow.
+ * @param {*} data Validated input.
+ * @param {*} now Validated input.
+ * @return {*} Result of the existing operation.
+ */
 function hostHeartbeatIsStale(
   data: FirebaseFirestore.DocumentData,
   now = Date.now(),
@@ -1455,6 +1467,12 @@ function hostHeartbeatIsStale(
     now - heartbeat > HOST_HEARTBEAT_STALE_MS;
 }
 
+/**
+ * Closes an expired waiting lobby without affecting active matches.
+ * @param {*} lobbyId Validated input.
+ * @param {*} now Validated input.
+ * @return {*} Result of the existing operation.
+ */
 async function closeStaleWaitingLobbyIfNeeded(
   lobbyId: string,
   now = Date.now(),
@@ -1518,6 +1536,10 @@ async function closeStaleWaitingLobbyIfNeeded(
   });
 }
 
+/**
+ * Validates or processes assertWaitingHostAlive for the existing backend flow.
+ * @param {*} lobbyId Validated input.
+ */
 async function assertWaitingHostAlive(
   lobbyId: string,
 ): Promise<void> {
@@ -1549,6 +1571,7 @@ async function assertWaitingHostAlive(
 
 /**
  * Host presence lease. The client renews this periodically.
+ * @param {*} input Input value.
  */
 export async function touchLobbyHostHeartbeat(
   input: LobbyHostHeartbeatInput,

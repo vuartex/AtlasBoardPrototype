@@ -23,6 +23,11 @@ const VERIFICATION_METHOD = "server_authoritative_replay_v1";
 const VERIFIER_ID = "atlasboard-backend-verifier-v1";
 const COMPLETED_PHASE = "match_complete";
 
+/**
+ * Validates or processes invalidMatchId for the existing backend flow.
+ * @param {*} value Validated input.
+ * @return {*} Result of the existing operation.
+ */
 function invalidMatchId(value: unknown): string {
   if (typeof value !== "string" || value.length < 8 || value.length > 128 ||
     !/^[a-zA-Z0-9_-]+$/.test(value)) {
@@ -33,6 +38,11 @@ function invalidMatchId(value: unknown): string {
   return value;
 }
 
+/**
+ * Validates or processes requireAuthenticatedUid for the existing backend flow.
+ * @param {*} auth Validated input.
+ * @return {*} Result of the existing operation.
+ */
 function requireAuthenticatedUid(auth: {uid: string} | undefined): string {
   if (!auth?.uid) {
     throw new HttpsError("unauthenticated", "AUTHENTICATION_REQUIRED", {
@@ -42,8 +52,15 @@ function requireAuthenticatedUid(auth: {uid: string} | undefined): string {
   return auth.uid;
 }
 
-/** A separately minted, protected replay receipt is mandatory for all rewards. */
-async function hasTrustedMatchResult(matchId: string, uid: string): Promise<boolean> {
+/**
+ * A separately minted, protected replay receipt is mandatory for all
+ * rewards.
+ * @param {*} matchId Input value.
+ * @param {*} uid Input value.
+ */
+async function hasTrustedMatchResult(
+  matchId: string, uid: string,
+): Promise<boolean> {
   const db = getFirestore();
   const matchRef = db.collection("matches").doc(matchId);
   const [matchSnap, networkSnap, verificationSnap] = await Promise.all([
@@ -64,7 +81,8 @@ async function hasTrustedMatchResult(matchId: string, uid: string): Promise<bool
   const snapshotJson = network.snapshotJson;
   if (typeof snapshotJson !== "string" || snapshotJson.length < 2 ||
     snapshotJson.length > 64 * 1024) return false;
-  const sha256 = createHash("sha256").update(snapshotJson, "utf8").digest("hex");
+  const sha256 = createHash("sha256")
+    .update(snapshotJson, "utf8").digest("hex");
   return (
     proof.schemaVersion === VERIFICATION_SCHEMA_VERSION &&
     proof.verificationStatus === "verified" &&
@@ -119,9 +137,10 @@ export const matchHostPublishState = onCall(
           data.eventSequence < 2 ||
           typeof data.snapshotJson !== "string" ||
           data.snapshotJson.length > 64 * 1024) {
-          throw new HttpsError("failed-precondition", "PREMATURE_MATCH_COMPLETE", {
-            errorKey: "match.error.premature_completion",
-          });
+          throw new HttpsError(
+            "failed-precondition", "PREMATURE_MATCH_COMPLETE", {
+              errorKey: "match.error.premature_completion",
+            });
         }
         let frame: Record<string, unknown>;
         try {
@@ -134,16 +153,18 @@ export const matchHostPublishState = onCall(
         if (!frame || frame.phase !== COMPLETED_PHASE ||
           !frame.matchResult ||
           (frame.matchResult as Record<string, unknown>).valid !== true) {
-          throw new HttpsError("failed-precondition", "MATCH_RESULT_NOT_READY", {
-            errorKey: "match.error.premature_completion",
-          });
+          throw new HttpsError(
+            "failed-precondition", "MATCH_RESULT_NOT_READY", {
+              errorKey: "match.error.premature_completion",
+            });
         }
         const check = validateMatchResultConsistency(frame);
         if (!check.ok) {
-          throw new HttpsError("failed-precondition", "INCONSISTENT_MATCH_RESULT", {
-            errorKey: "match.error.invalid_result_consistency",
-            reason: check.reason,
-          });
+          throw new HttpsError(
+            "failed-precondition", "INCONSISTENT_MATCH_RESULT", {
+              errorKey: "match.error.invalid_result_consistency",
+              reason: check.reason,
+            });
         }
         // A consistency PASS never creates proof, XP, achievements or wins.
       }

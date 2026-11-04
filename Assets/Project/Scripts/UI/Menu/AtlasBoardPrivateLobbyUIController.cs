@@ -1663,27 +1663,29 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         if (boardThemePicker == null || gameSettingsOverlay == null ||
             !gameSettingsOverlay.activeInHierarchy ||
             beforeUid != AtlasBoardRtdbMetaEconomy.CurrentUid) return;
-        bool ownAzure = false, ownMaple = false, ownAurora = false;
+        bool ownAzure = false, ownMaple = false, ownAurora = false, ownHorizon = false;
         if (wallet != null && wallet.WalletVerified)
             foreach (AtlasBoardStorefrontItem item in wallet.Items)
             {
-                if (item.ItemType != "board_theme" || !item.Owned || item.PreviewOnly) continue;
+                if (item.ItemType != "board_theme" || !item.Owned) continue;
                 if (item.ItemId == "board_midnight_azure") ownAzure = true;
                 if (item.ItemId == "board_ember_maple") ownMaple = true;
                 if (item.ItemId == "board_arctic_aurora") ownAurora = true;
+                if (item.ItemId == "board_atlas_horizon") ownHorizon = true;
             }
         if (wallet != null && wallet.WalletVerified && localIsHost &&
             selectedBoardThemeId != "default_board" &&
             !(selectedBoardThemeId == "board_midnight_azure" && ownAzure) &&
             !(selectedBoardThemeId == "board_ember_maple" && ownMaple) &&
-            !(selectedBoardThemeId == "board_arctic_aurora" && ownAurora))
+            !(selectedBoardThemeId == "board_arctic_aurora" && ownAurora) &&
+            !(selectedBoardThemeId == "board_atlas_horizon" && ownHorizon))
         {
             selectedBoardThemeId = "default_board";
             AtlasBoardBoardThemeVisuals.ApplySelection(selectedBoardThemeId);
             QueueHostConfigurationSync();
         }
         boardThemePicker.Configure(localIsHost && wallet != null && wallet.WalletVerified,
-            ownAzure, ownMaple, ownAurora, selectedBoardThemeId);
+            ownAzure, ownMaple, ownAurora, ownHorizon, selectedBoardThemeId);
     }
 
 
@@ -3289,7 +3291,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
         {
             int mapIndex = hostSettingsDropdowns[0].value;
             string requestedPremium = mapIndex == 3 ? "map_germany" :
-                mapIndex == 4 ? "map_mexico" : string.Empty;
+                mapIndex == 4 ? "map_mexico" : mapIndex == 5 ? "map_world" : string.Empty;
             if (requestedPremium.Length > 0 &&
                 !AtlasBoardRtdbMetaEconomy.IsPremiumMapOwnedForCurrentUid(requestedPremium))
             {
@@ -3302,6 +3304,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                         case "USA": priorIndex = 2; break;
                         case "Germany": priorIndex = 3; break;
                         case "Mexico": priorIndex = 4; break;
+                        case "World": priorIndex = 5; break;
                     }
                 }
                 suppressSeatEvents = true;
@@ -3317,7 +3320,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
             // acknowledgement; the backend snapshot remains authoritative.
             if (requestedPremium.Length > 0)
                 AtlasBoardPremiumMapDropdownLabels.PreviewMap(
-                    mapIndex == 3 ? "Germany" : "Mexico");
+                    mapIndex == 3 ? "Germany" : mapIndex == 4 ? "Mexico" : "World");
         }
 
 
@@ -5096,6 +5099,7 @@ public class AtlasBoardPrivateLobbyUIController : MonoBehaviour
                         "USA" => 2,
                         "Germany" => 3,
                         "Mexico" => 4,
+                        "World" => 5,
                         _ => 0
                     });
 

@@ -80,6 +80,11 @@ interface RawCursorPosition {
   documentId: string;
 }
 
+/**
+ * Validates or processes invalidRequest for the existing backend flow.
+ * @param {*} fieldName Validated input.
+ * @return {*} Result of the existing operation.
+ */
 function invalidRequest(fieldName: string): HttpsError {
   return new HttpsError(
     "invalid-argument",
@@ -91,6 +96,10 @@ function invalidRequest(fieldName: string): HttpsError {
   );
 }
 
+/**
+ * Validates or processes validateVersions for the existing backend flow.
+ * @param {*} versions Validated input.
+ */
 function validateVersions(versions: PublicLobbyVersionInfo): void {
   if (
     typeof versions.gameVersion !== "string" ||
@@ -117,6 +126,10 @@ function validateVersions(versions: PublicLobbyVersionInfo): void {
   }
 }
 
+/**
+ * Validates or processes assertActiveAccount for the existing backend flow.
+ * @param {*} uid Validated input.
+ */
 async function assertActiveAccount(uid: string): Promise<void> {
   const db = getFirestore();
   const [userSnapshot] = await Promise.all([
@@ -145,6 +158,10 @@ async function assertActiveAccount(uid: string): Promise<void> {
   // A missing public profile is tolerated by the legacy implementation.
 }
 
+/**
+ * Validates or processes getCursorSecret for the existing backend flow.
+ * @return {*} Result of the existing operation.
+ */
 function getCursorSecret(): string {
   if (process.env.FUNCTIONS_EMULATOR === "true") {
     return LOCAL_CURSOR_PEPPER;
@@ -162,6 +179,11 @@ function getCursorSecret(): string {
   return pepper;
 }
 
+/**
+ * Validates or processes normalizedFilterHash for the existing backend flow.
+ * @param {*} versions Validated input.
+ * @return {*} Result of the existing operation.
+ */
 function normalizedFilterHash(
   versions: PublicLobbyVersionInfo,
 ): string {
@@ -179,12 +201,23 @@ function normalizedFilterHash(
     .digest("hex");
 }
 
+/**
+ * Validates or processes cursorSignature for the existing backend flow.
+ * @param {*} encodedPayload Validated input.
+ * @return {*} Result of the existing operation.
+ */
 function cursorSignature(encodedPayload: string): Buffer {
   return createHmac("sha256", getCursorSecret())
     .update(`atlasboard:public-lobby-cursor:v1:${encodedPayload}`, "utf8")
     .digest();
 }
 
+/**
+ * Validates or processes encodeCursor for the existing backend flow.
+ * @param {*} position Validated input.
+ * @param {*} filterHash Validated input.
+ * @return {*} Result of the existing operation.
+ */
 function encodeCursor(
   position: RawCursorPosition,
   filterHash: string,
@@ -205,6 +238,12 @@ function encodeCursor(
   return `${encodedPayload}.${signature}`;
 }
 
+/**
+ * Validates or processes decodeCursor for the existing backend flow.
+ * @param {*} cursor Validated input.
+ * @param {*} expectedFilterHash Validated input.
+ * @return {*} Result of the existing operation.
+ */
 function decodeCursor(
   cursor: string | undefined,
   expectedFilterHash: string,
@@ -267,6 +306,11 @@ function decodeCursor(
   }
 }
 
+/**
+ * Validates or processes hostHeartbeatEpochMs for the existing backend flow.
+ * @param {*} data Validated input.
+ * @return {*} Result of the existing operation.
+ */
 function hostHeartbeatEpochMs(
   data: FirebaseFirestore.DocumentData,
 ): number {
@@ -282,6 +326,12 @@ function hostHeartbeatEpochMs(
   return 0;
 }
 
+/**
+ * Validates or processes hostHeartbeatIsStale for the existing backend flow.
+ * @param {*} data Validated input.
+ * @param {*} now Validated input.
+ * @return {*} Result of the existing operation.
+ */
 function hostHeartbeatIsStale(
   data: FirebaseFirestore.DocumentData,
   now: number,
@@ -290,6 +340,11 @@ function hostHeartbeatIsStale(
   return heartbeat <= 0 || now - heartbeat > HOST_HEARTBEAT_STALE_MS;
 }
 
+/**
+ * Validates or processes discoveryCardFromData for the existing backend flow.
+ * @param {*} data Validated input.
+ * @return {*} Result of the existing operation.
+ */
 function discoveryCardFromData(
   data: FirebaseFirestore.DocumentData,
 ): PublicLobbyCard | null {
@@ -337,6 +392,12 @@ function discoveryCardFromData(
   };
 }
 
+/**
+ * Validates or processes isCompatible for the existing backend flow.
+ * @param {*} card Validated input.
+ * @param {*} versions Validated input.
+ * @return {*} Result of the existing operation.
+ */
 function isCompatible(
   card: PublicLobbyCard,
   versions: PublicLobbyVersionInfo,
@@ -356,6 +417,12 @@ function isCompatible(
     card.regionId === requestedRegion;
 }
 
+/**
+ * Closes an expired waiting lobby without affecting active matches.
+ * @param {*} lobbyId Validated input.
+ * @param {*} now Validated input.
+ * @return {*} Result of the existing operation.
+ */
 async function closeStaleWaitingLobbyIfNeeded(
   lobbyId: string,
   now: number,
@@ -417,6 +484,7 @@ async function closeStaleWaitingLobbyIfNeeded(
  * Cursor-based public-lobby discovery. The cursor advances by the last raw
  * discovery document scanned, not the last compatible card returned. This is
  * what prevents incompatible/stale documents from creating stable-data skips.
+ * @param {*} input Input value.
  */
 export async function listPublicLobbyPage(
   input: PublicLobbyPageInput,

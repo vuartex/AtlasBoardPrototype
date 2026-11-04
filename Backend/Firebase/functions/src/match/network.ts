@@ -147,9 +147,8 @@ function requireInteger(
 }
 
 /**
- * Converts a Firestore Timestamp-like value into epoch milliseconds.
- * @param {unknown} value Timestamp-like value.
- * @return {number} Epoch milliseconds, or zero when unavailable.
+ * Rejects stale match state with safe diagnostic details.
+ * @param {*} details Redacted stale-state metadata.
  */
 function staleClientState(
   details: Record<string, unknown>,

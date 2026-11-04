@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -1368,7 +1368,8 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
             "Colorado",
             "USA",
             "Germany",
-            "Mexico"
+            "Mexico",
+            "World"
         };
 
 
@@ -2772,6 +2773,12 @@ public sealed class AtlasBoardProgressionUI : MonoBehaviour
         {
             AtlasBoardLocalizationManager loc = AtlasBoardLocalizationManager.Instance;
             return AtlasBoardShopContentDraft.LocalizedName("map_germany",
+                loc != null ? loc.CurrentLanguageCode : "en");
+        }
+        if (normalized == "world" || normalized == "map_world")
+        {
+            AtlasBoardLocalizationManager loc = AtlasBoardLocalizationManager.Instance;
+            return AtlasBoardShopContentDraft.LocalizedName("map_world",
                 loc != null ? loc.CurrentLanguageCode : "en");
         }
         if (normalized == "mexico" || normalized == "map_mexico")

@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
+
 /// <summary>
 /// Main Menu player help and license presentation, built from Unity UI and TMP.
 /// No IMGUI window, second menu authority or gameplay effects. The main menu
@@ -31,6 +32,7 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
     private bool showingHelp = true;
     private string currentLanguage = string.Empty;
 
+
     private static readonly Color Ink = Hex("#F0F6FF");
     private static readonly Color Secondary = Hex("#A9BED5");
     private static readonly Color Midnight = Hex("#102239");
@@ -38,6 +40,7 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
     private static readonly Color Card = Hex("#213C5A");
     private static readonly Color Cyan = Hex("#39C7E5");
     private static readonly Color Gold = Hex("#F7B928");
+
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -48,7 +51,9 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
         instance = host.AddComponent<AtlasBoardPlayerHelpCredits>();
     }
 
+
     private void OnDestroy() { if (instance == this) instance = null; }
+
 
     private void Update()
     {
@@ -61,6 +66,7 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Escape)) Close();
 #endif
     }
+
 
     private void LateUpdate()
     {
@@ -85,6 +91,7 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
             overlay.gameObject.SetActive(false);
     }
 
+
     private string Language
     {
         get
@@ -93,6 +100,7 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
             return lm == null ? "en" : (lm.CurrentLanguageCode ?? "en").ToLowerInvariant();
         }
     }
+
 
     private static string Tr(string lang, string en, string tr, string es,
         string fr, string de, string ko, string ru)
@@ -109,15 +117,18 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
         }
     }
 
+
     private string HelpTitle => Tr(Language, "HELP / FAQ", "YARDIM / SSS", "AYUDA / PREGUNTAS", "AIDE / FAQ", "HILFE / FAQ", "도움말 / FAQ", "ПОМОЩЬ / FAQ");
     private string CreditsTitle => Tr(Language, "CREDITS & LICENSES", "KATKIDA BULUNANLAR / LİSANSLAR", "CRÉDITOS Y LICENCIAS", "CRÉDITS ET LICENCES", "MITWIRKENDE & LIZENZEN", "제작진 / 라이선스", "АВТОРЫ И ЛИЦЕНЗИИ");
     private string CloseLabel => Tr(Language, "CLOSE", "KAPAT", "CERRAR", "FERMER", "SCHLIESSEN", "닫기", "ЗАКРЫТЬ");
+
 
     private static Color Hex(string value)
     {
         ColorUtility.TryParseHtmlString(value, out Color color);
         return color;
     }
+
 
     private static RectTransform Rect(Transform parent, string name)
     {
@@ -127,6 +138,7 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
         rect.localScale = Vector3.one;
         return rect;
     }
+
 
     // One generated, reusable 9-slice sprite. No imported textures or font files.
     // Rounded cards/buttons are actual Unity UI geometry, not IMGUI boxes.
@@ -155,6 +167,7 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
         return roundedSprite;
     }
 
+
     private static Image Background(RectTransform rect, Color color)
     {
         Image image = rect.gameObject.AddComponent<Image>();
@@ -167,6 +180,7 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
         image.raycastTarget = true;
         return image;
     }
+
 
     private TextMeshProUGUI Text(RectTransform parent, string name,
         string value, int size, Color color, FontStyles weight = FontStyles.Normal,
@@ -185,6 +199,7 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
         label.raycastTarget = false;
         return label;
     }
+
 
     private TextMeshProUGUI Button(RectTransform parent, string name,
         Vector2 anchoredPosition, Vector2 size, Color color,
@@ -220,12 +235,14 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
         return caption;
     }
 
+
     private void BuildUi()
     {
         TMP_Text sample = null;
         foreach (TMP_Text entry in menuRoot.GetComponentsInChildren<TMP_Text>(true))
             if (entry != null && entry.font != null) { sample = entry; break; }
         menuFont = sample != null ? sample.font : TMP_Settings.defaultFontAsset;
+
 
         helpButtonLabel = Button(menuRoot, "AtlasBoard_Help_Entry",
             new Vector2(20f, 18f), new Vector2(188f, 48f), Panel,
@@ -234,6 +251,7 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
             new Vector2(220f, 18f), new Vector2(228f, 48f), Panel,
             "CREDITS & LICENSES", () => Open(false), 18);
 
+
         overlay = Rect(menuRoot, "AtlasBoard_Information_Modal");
         overlay.anchorMin = Vector2.zero; overlay.anchorMax = Vector2.one;
         overlay.offsetMin = Vector2.zero; overlay.offsetMax = Vector2.zero;
@@ -241,6 +259,7 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
         UnityEngine.UI.Button backdrop = overlay.gameObject.AddComponent<UnityEngine.UI.Button>();
         backdrop.targetGraphic = dim;
         backdrop.onClick.AddListener(Close);
+
 
         RectTransform panel = Rect(overlay, "InformationDialog");
         panel.anchorMin = panel.anchorMax = new Vector2(0.5f, 0.5f);
@@ -254,12 +273,14 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
         border.effectColor = new Color(0.35f, 0.65f, 0.85f, 0.42f);
         border.effectDistance = new Vector2(2f, -2f);
 
+
         RectTransform accent = Rect(panel, "AccentBar");
         accent.anchorMin = new Vector2(0f, 1f);
         accent.anchorMax = new Vector2(1f, 1f);
         accent.pivot = new Vector2(0.5f, 1f);
         accent.sizeDelta = new Vector2(0f, 7f);
         Background(accent, Gold).raycastTarget = false;
+
 
         RectTransform titleArea = Rect(panel, "TitleArea");
         titleArea.anchorMin = new Vector2(0f, 1f);
@@ -278,6 +299,7 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
         Button(titleArea, "CloseX", new Vector2(776f, 35f), new Vector2(62f, 44f), Card,
             "X", Close, 23);
 
+
         RectTransform tabs = Rect(panel, "Tabs");
         tabs.anchorMin = new Vector2(0f, 1f);
         tabs.anchorMax = new Vector2(1f, 1f);
@@ -290,6 +312,7 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
             "CREDITS & LICENSES", () => SelectTab(false), 17);
         helpTabBackground = helpTabLabel.GetComponentInParent<Image>();
         creditsTabBackground = creditsTabLabel.GetComponentInParent<Image>();
+
 
         RectTransform viewport = Rect(panel, "ScrollViewport");
         viewport.anchorMin = new Vector2(0f, 0f);
@@ -322,6 +345,7 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
         scroll.content = contents;
         scroll.viewport = viewport;
 
+
         RectTransform foot = Rect(panel, "Footer");
         foot.anchorMin = new Vector2(0f, 0f);
         foot.anchorMax = new Vector2(1f, 0f);
@@ -338,6 +362,7 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
         RefreshText();
     }
 
+
     private void RefreshText()
     {
         if (helpButtonLabel == null) return;
@@ -349,6 +374,7 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
         if (overlay != null && overlay.gameObject.activeSelf) RenderContent();
     }
 
+
     private void Open(bool help)
     {
         if (overlay == null) return;
@@ -358,16 +384,19 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
         RenderContent();
     }
 
+
     private void SelectTab(bool help)
     {
         showingHelp = help;
         RenderContent();
     }
 
+
     private void Close()
     {
         if (overlay != null) overlay.gameObject.SetActive(false);
     }
+
 
     private void RenderContent()
     {
@@ -392,6 +421,7 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
         else contents.anchoredPosition = Vector2.zero;
     }
 
+
     private void Entry(string question, string answer)
     {
         RectTransform card = Rect(contents, "InformationCard");
@@ -411,14 +441,24 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
         paragraph.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
     }
 
+
     private void Note(string message)
     {
         Entry(Tr(Language,"IMPORTANT","ÖNEMLİ","IMPORTANTE","IMPORTANT","WICHTIG","중요","ВАЖНО"), message);
     }
 
+
     private void DrawHelp()
     {
         string l = Language;
+        Entry(Tr(l,"How does Atlas World Journey work?","Atlas Dünya Yolculuğu nasıl çalışıyor?","¿Cómo funciona Viaje Mundial Atlas?","Comment fonctionne le Voyage Mondial Atlas ?","Wie funktioniert die Atlas-Weltreise?","아틀라스 세계 여행은 어떻게 진행되나요?","Как работает мировое путешествие Атласа?"),
+            Tr(l,"Play verified online matches from November 3, 2026 through June 30, 2027. Complete eight missions, then open Store > Event > Rewards to claim each unlocked reward yourself.","3 Kasım 2026 – 30 Haziran 2027 arasında doğrulanmış çevrim içi maçlar oyna. Sekiz görevi tamamla; açılan ödüllerini Mağaza > Etkinlik > Ödüller bölümünden tek tek kendin al.","Juega partidas online verificadas entre el 3 de noviembre de 2026 y el 30 de junio de 2027. Reclama las recompensas en Tienda > Evento > Premios.","Jouez des parties en ligne vérifiées du 3 novembre 2026 au 30 juin 2027. Récupérez chaque récompense dans Boutique > Événement > Récompenses.","Spiele vom 3. November 2026 bis zum 30. Juni 2027 bestätigte Online-Partien. Hole Belohnungen unter Shop > Event > Belohnungen ab.","2026년 11월 3일부터 2027년 6월 30일까지 인증된 온라인 경기를 플레이하세요. 상점 > 이벤트 > 보상에서 직접 수령하세요.","Играйте проверенные онлайн-матчи с 3 ноября 2026 по 30 июня 2027 года. Забирайте награды в Магазин > События > Награды."));
+        Entry(Tr(l,"How do I unlock the World Map and Atlas Horizon Board?","Dünya Haritası ve Atlas Ufuk Tahtası nasıl açılır?","¿Cómo desbloqueo el mapa mundial y el tablero Atlas?","Comment obtenir la carte du monde et le plateau Atlas ?","Wie schalte ich Weltkarte und Atlas-Horizont frei?","세계 지도와 아틀라스 보드는 어떻게 잠금 해제하나요?","Как открыть карту мира и доску Атласа?"),
+            Tr(l,"Claim the first seven event rewards, then claim the World Map as reward eight. Claim all eight rewards to unlock the exclusive Atlas Horizon Board. Neither item is sold in the Shop; owned maps work in online and offline modes.","Önce ilk yedi etkinlik ödülünü al, ardından sekizinci ödül olarak Dünya Haritası'nı al. Sekiz ödülün tamamını aldıktan sonra özel Atlas Ufuk Tahtası'nı kazan. İkisi de mağazada satılmaz; sahip olduğun harita çevrim içi ve çevrim dışı oynanabilir.","Reclama los siete primeros premios y después el Mapa Mundial. Obtén los ocho para recibir el tablero Atlas exclusivo. No se venden en la tienda.","Récupérez sept récompenses puis la Carte du monde en huitième. Les huit récompenses débloquent le plateau Atlas exclusif, introuvable en boutique.","Hole zuerst sieben Belohnungen und danach die Weltkarte. Alle acht Belohnungen schalten das exklusive Atlas-Brett frei; beide sind nicht kaufbar.","처음 7개 보상을 받은 뒤 8번째 세계 지도를 받으세요. 보상 8개를 모두 받으면 한정 아틀라스 보드를 얻습니다. 상점에서는 판매하지 않습니다.","Заберите семь наград, затем карту мира восьмой. Все восемь наград открывают особую доску Атласа; они не продаются."));
+        Entry(Tr(l,"Why didn't my mission reward arrive automatically?","Görev ödülüm neden otomatik gelmedi?","¿Por qué no recibí el premio automáticamente?","Pourquoi ma récompense n'arrive-t-elle pas automatiquement ?","Warum kam die Missionsbelohnung nicht automatisch?","임무 보상이 자동으로 지급되지 않은 이유는?","Почему награда за задание не выдана автоматически?"),
+            Tr(l,"Finishing a mission only makes its reward claimable. Tap Claim in Store > Event > Rewards to receive it. Progress is account-specific and comes from verified online match results.","Görevi bitirmek ödülü yalnızca alınabilir yapar. Hesabına eklenmesi için Mağaza > Etkinlik > Ödüller kısmından ÖDÜLÜ AL'a bas. İlerleme doğrulanmış online maç sonuçlarından hesaplanır.","Completar una misión habilita el premio; debes pulsar Reclamar en Tienda > Evento > Premios.","Terminer une mission rend sa récompense disponible, mais il faut la récupérer dans Boutique > Événement > Récompenses.","Ein Missionsabschluss macht die Belohnung abholbereit. Hole sie im Shop > Event > Belohnungen ab.","임무를 완료하면 보상을 받을 수 있게 됩니다. 상점 > 이벤트 > 보상에서 직접 수령하세요.","Задание только открывает награду. Нажмите Получить в Магазин > События > Награды."));
+        Entry(Tr(l,"How do promo codes work?","Promosyon kodları nasıl kullanılır?","¿Cómo funcionan los códigos promocionales?","Comment utiliser un code promotionnel ?","Wie löse ich einen Aktionscode ein?","프로모션 코드는 어떻게 사용하나요?","Как использовать промокод?"),
+            Tr(l,"Open Store > Redeem Code and enter a valid active code. Each code can be used only once per account. Successful rewards and transaction IDs are stored under your account; invalid, already-used or unavailable codes do not grant rewards.","Mağaza > Kod Kullan bölümünden aktif kodu gir. Her kod hesap başına yalnız bir kez kullanılabilir. Başarılı ödül ve işlem kimliği hesabında saklanır; geçersiz, önceden kullanılmış veya erişilemeyen kodlar ödül vermez.","Introduce un código activo en Tienda > Canjear. Cada código se usa una vez por cuenta y el premio queda registrado.","Saisissez un code actif dans Boutique > Code. Un code ne peut être utilisé qu'une seule fois par compte et son historique est conservé.","Gib einen gültigen Code im Shop > Code ein. Jeder Code gilt nur einmal pro Konto; erfolgreiche Belohnungen werden erfasst.","상점 > 코드 사용에 활성 코드를 입력하세요. 코드는 계정당 한 번만 사용되며 보상과 거래 ID가 저장됩니다.","Введите активный код в Магазин > Промокод. Один код используется только один раз на аккаунт, награда записывается."));
         Entry(Tr(l,"How do I join a friend?","Arkadaşımın odasına nasıl katılırım?","¿Cómo me uno a un amigo?","Comment rejoindre un ami ?","Wie trete ich einem Freund bei?","친구 방에 어떻게 참가하나요?","Как присоединиться к другу?"),
             Tr(l,"Open Private Table and enter the six-digit room code, or browse Public Rooms.","Private Table'a girip altı haneli oda kodunu yaz veya Public Rooms'tan oda seç.","Abre Private Table y escribe el código de seis dígitos, o busca en Public Rooms.","Ouvrez Private Table et saisissez le code à six chiffres, ou utilisez Public Rooms.","Öffne Private Table und gib den sechsstelligen Raumcode ein, oder nutze Public Rooms.","Private Table에서 6자리 방 코드를 입력하거나 Public Rooms를 이용하세요.","Откройте Private Table и введите шестизначный код или выберите Public Rooms."));
         Entry(Tr(l,"What happens if I disconnect?","Bağlantım koparsa ne olur?","¿Qué pasa si pierdo la conexión?","Et si ma connexion est coupée ?","Was passiert bei Verbindungsabbruch?","연결이 끊기면 어떻게 되나요?","Что будет при обрыве связи?"),
@@ -449,6 +489,7 @@ public sealed class AtlasBoardPlayerHelpCredits : MonoBehaviour
             Tr(l,"Contact AtlasBoard support through the official store or support channel. Include the ATB error code and a short description, without private credentials.","Resmî mağaza veya destek kanalından AtlasBoard desteğine ulaş. ATB hata kodunu ve kısa açıklamayı paylaş; özel giriş bilgilerini ekleme.","Contacta soporte desde el canal oficial e incluye el código ATB.","Contactez l'assistance officielle et indiquez le code ATB.","Melde dich beim offiziellen Support und nenne den ATB-Code.","공식 지원 채널에 ATB 오류 코드를 알려 주세요.","Обратитесь в официальную поддержку и укажите код ATB."));
         Note(Tr(l,"Support: quote the ATB error code shown on screen; never share passwords or authentication tokens.","Destek ekibine ATB hata kodunu ve sorunun kısa açıklamasını ilet. Şifreni, giriş kodlarını veya hesap erişimini hiç kimseyle paylaşma; AtlasBoard desteği bunları istemez.","Para soporte, indica el código ATB; no compartas contraseñas.","Pour l'assistance, indiquez le code ATB, jamais vos identifiants.","Für Support den ATB-Code angeben, keine Passwörter teilen.","지원 시 ATB 오류 코드를 전달하고 비밀번호는 공유하지 마세요.","Для поддержки сообщите код ATB, но не пароли."));
     }
+
 
     private void DrawCredits()
     {
