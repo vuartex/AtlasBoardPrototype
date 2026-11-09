@@ -1,3 +1,64 @@
+# AtlasBoard v5.49.12cp — Owner acceptance: Promo CLOSED / World Journey RTDB NEXT (2026-11-09)
+
+**Scope of this owner-status-only checkpoint:** canonical `MASTER_ROADMAP.md` updated, previous entire roadmap preserved; **no C#, Firebase Rules, database records, or Cloud Functions are changed by this checkpoint**. Keep current `co` source and `cp` UI history changes, do not replace with GitHub `cn` content.
+
+## Promo Code — OWNER PASS / CLOSED for accepted scope
+
+- Owner ran `firebase.cmd database:update /promoCodes ./promoCodes_public.json --project atlasboard-usa --instance atlasboard-usa-default-rtdb` and confirmed `Data updated successfully`.
+- Owner ran `firebase.cmd deploy --only database --project atlasboard-usa` and confirmed rules syntax valid, rules released and `Deploy complete!`. No Cloud Functions deployment required for promo.
+- Unity Editor Play Mode accepted a real **50 Gold** code on **Jr. Vuartex** (wallet displayed 50 Gold), displayed reward receipt/transaction ID in Used Codes and Store History.
+- Same Firebase UID entering the same code again received **ATB-434 / code already used**. No additional award observed. Owner explicitly said **promo code section complete; close it**.
+- Public 64-code definitions are in `/promoCodes`; promo no longer needs `owner_qa` or a Dev Tester allowlist. DEV WALLET test allowlist is unchanged.
+- `v5.49.12cp` UI enhancement adds actual redeemed code and reward detail to the existing Used Codes and History rows; owner accepted promo generally, but separate screenshot of the newly improved `cp` row is not in the acceptance evidence. Do not fabricate independent visual validation.
+- **QA boundary:** first claim and same-UID duplicate rejection visually proven for one Gold code. Second account, all reward categories, simultaneous-client race, and reinstall persistence remain optional extra coverage; do not label those tests individually PASS without execution.
+
+## Atlas World Journey — UI VISIBLE; RTDB LIVE PROGRESSION / CLAIM NOT DONE
+
+- Owner supplied screenshots showing **Overview**, **Missions**, **Rewards** and **Claim History** tabs in Unity Editor. Banner/end-date display, eight missions/0-of-8 summary, and disabled reward buttons can render. **Claim History reads `Reward history unavailable`**, not a successful empty real-history response.
+- Current `Assets/Project/Scripts/Meta/AtlasBoardMetaEconomyBridge.cs` still calls `metaWorldJourneyGetOverview` in `GetSeasonalOverviewAsync()` and `metaWorldJourneyClaimReward` via `ClaimWorldRewardAsync()`. `CreateWorldPreview` fallback renders visual preview and is **not evidence of RTDB event accounting**. Cloud Functions were not deployed and are prohibited as a new dependency under owner's **Firebase Spark + RTDB-only** decision.
+- **Next implementation**: replace these two event callables with RTDB-based event overview, mission calculation, claim validation and persistent per-UID receipt/history. Protect gold/XP/AtlasCoin and item grants against replay/concurrent claims using RTDB transactions/ETag and strict emulated Security Rules. Event rewards must be tied to authoritative match/Career evidence, not client-supplied arbitrary counts; verify proof-source support before writing rules. Owner QA-only test tools must never ship in Android/Steam builds.
+- **Editor QA requirement**: Unity Editor Play Mode must exercise real Store Event UI without new Android/Windows builds. Provide an editor-only World Journey QA panel to advance/inspect individual missions and all eight mission completion in a controlled test environment; do not forge production Career match proofs or expose arbitrary grant controls to ordinary clients. Include reset/test isolation and claim-once verification.
+- **Acceptance after implementation**: mission counters update and persist after restart; each of eight claims grants exactly the configured item/currency/XP once; claimed button + claim history reflect canonical RTDB receipts; duplicate/simultaneous claims reject; World Map unlocks only from event and can be selected/used in lobby and match; Atlas Horizon Board completion bonus unlocks after eight valid claims and can be equipped, used, and retained after restart. No full event PASS until all gates verified.
+
+## GitHub handoff checkpoint
+
+- As checked during this request, GitHub `main` latest visible commit was **v5.49.12cn** (`97d7d9c056f4c89a6d3dd72078c3392dd0d9b8d0`), behind locally installed `co`/`cp`. **Owner will push local current project**, including this updated roadmap. Assistant has not pushed.
+- Suggested commit summary: `feat: AtlasBoard v5.49.12cp - Public RTDB promo redemption PASS and World Journey QA baseline`.
+- After owner push, consume latest live GitHub sources for full event migration. Never replace local `co`/`cp` files with older `cn` baseline.
+
+---
+
+# AtlasBoard v5.49.12cp — Promo history visible code + World Journey Editor test gate (2026-11-09)
+
+**Owner-proven current LIVE promo acceptance (screenshots + Firebase CLI):**
+- `/promoCodes` child data update returned `Data updated successfully`; `firebase.cmd deploy --only database` returned valid rules and `Deploy complete!` on `atlasboard-usa-default-rtdb` in europe-west1. No further promo database import or rules deployment needed for this UI-only checkpoint.
+- One authenticated account `Jr. Vuartex` successfully redeemed the 50-Gold code. The Store showed the reward granted, wallet 50 Gold, redeem receipt and transaction History. A second redemption of the same code on the same account returned `ATB-434`; the balance remained 50 Gold. **PASS (one owner UID, first claim and same-UID duplicate rejection)**. Cross-UID shared code, XP, Atlas Coin, cosmetics, concurrent-client race and reinstall persistence are still additional coverage; do not assert full 64-code QA from the single Gold example.
+
+**UI-only source correction:**
+- `Assets/Project/Scripts/UI/Meta/AtlasBoardMetaEconomyUI.cs`: `HistoryDetail` now renders the *existing* RTDB receipt's `ReferenceId` (the actual redeemed code) inside both **Store > Redeem Code > Used Codes / Rewards** and **Store > History** rows; optionally adds amount/currency for Gold, Atlas Coin, XP or inventory item ID. Seven-language `Code` label uses existing `StoreAccountText` helper. Transaction ID and time remain in the original untouched header/footer rows; row dimensions, scrolling, popup, balance calculation, promo redemption, authorization and RTDB Rules unchanged.
+- Scope contains no rules, Cloud Functions, promo code JSON, personal user exports, account balances, matchmaking, daily rewards or event-gift mutations. No Firebase/Steam/Google Cloud changes and no GitHub push.
+- Source static checks: receipt `ReferenceId = entry.Name` and both history pages use `AddHistoryRow -> HistoryDetail` verified; bridge remains `AtlasBoardRtdbMetaEconomy.RedeemPromoAsync`; existing `ATB-434` path retained. Unity compilation/visual QA is **NOT RUN** in this environment.
+
+**Atlas World Journey QA gate (not yet live-pass):**
+- Live `AtlasBoardMetaEconomyBridge.GetSeasonalOverviewAsync()` still calls `metaWorldJourneyGetOverview`; claim still calls `metaWorldJourneyClaimReward`. Spark/free deployment was not completed. Current fallback `CreateWorldPreview` is display-only and may show eight missions and 0/8, but **cannot award or prove mission progress**. Do not mark World Map `map_world`, Horizon Board `board_atlas_horizon`, reward claims or event histories PASS from preview.
+- Owner may use Unity Editor **Play Mode > Store > Event** for layout, language, banner, 0/8 counter and button disabled-state inspection without a platform build. For functional test, migrate verified event progress/claims to RTDB with an emulator-validated authorization model, then add an Editor-only test driver that submits event-proof/test data to the emulator (no production admin bypass and no release-build cheat). Validate all eight manually claimed mission rewards, exclusive World Map, final board, account isolation and persistence. No unvalidated fake Career win/Gold data in live RTDB.
+
+---
+
+# AtlasBoard v5.49.12co — Public promo RTDB ETag redemption, 64-code scope update (2026-11-09)
+
+**Latest canonical source decision; supersedes older `owner_qa`, Cloud Function promo and seed instructions below.** This is a SOURCE/STATIC-QA package; it has **not** been installed in owner Unity, run against the official Firebase emulator, deployed to RTDB Rules, or tested in production. Owner must confirm PASS in Unity Play Mode.
+
+- **PROMO catalog:** 64 source definitions carried forward unchanged except `scope: owner_qa` → `scope: public`. `perAccountLimit: 1` retained for every definition; the same code can be redeemed on different UIDs but **not twice on one UID**. Source file `Backend/Firebase/promoCodes_public.json` is the child contents of `/promoCodes` only; update that child path, **NEVER import at database root**. Do not include user exports in the game build.
+- **PROMO redeem client:** Replaced the `metaPromoRedeem`/`promoTestRedeem` callable path for Store `REDEEM CODE` with `AtlasBoardRtdbMetaEconomy.RedeemPromoAsync` on the existing `europe-west1` RTDB. Applies Gold, Atlas Coin, cosmetic or `promoXp` to canonical `/users/{uid}/metaEconomy` using `If-Match`/ETag and appends `|CODE|` to its **existing append-only `rewardHistory` ledger in the same atomic wallet write**. Duplicate and concurrent attempts reject before a second award. Informational receipt `/users/{uid}/promoRedemptions/{CODE}` is written AFTER successful wallet commit and can be retried; receipt failures cannot result in another grant.
+- **Rules:** `/promoCodes/$code` read only for authenticated exact-code lookups (no list read); catalog remains client-write denied. `PROMO` mode added to existing wallet security expression with immutable catalog reward/amount/time/UID validation, exact wallet/XP/inventory delta and one-use ledger append; all unrelated wallet/inventory fields unchanged. The legacy wallet operations are constrained to preserve `promoXp`. `promoRedemptions` receipts are create-only after the ledger marker. No Dev Tester/Owner QA permission needed for promo; DEV WALLET privileges are UNCHANGED.
+- **XP:** `promoXp` is a bounded source-of-truth field inside the same canonical wallet ETag write; Career's verified bonus path reads `seasonalRewards/xp` plus `metaEconomy/promoXp`, without turning promo into false Career match claims.
+- **QA:** Static synthetic Security Rules gates 87/87 PASS incl. all 64 definitions and negative tamper tests; JSON parse and source inspection PASS. **Official emulator, Unity compile and LIVE owner acceptance remain OPEN.** Run Store test on two UIDs: first claim, same UID repeat, second UID first claim, restart persistence, item/XP/Gold/coin, concurrent two-client attempt.
+- **Scope boundary:** World Journey mission progress/claim service is **NOT** silently converted in this promo package: its backend verification depends on separately authenticated event progress. `metaWorldJourneyGetOverview` and `metaWorldJourneyClaimReward` remain OPEN for the next Spark/RTDB phase; do not falsely mark World Map or Atlas Horizon Board PASS. Legacy local-Firestore emulator commerce tests are not part of Store promo redemption.
+- **No** new Cloud Function, Secret Manager, paid Google API, production write, GitHub push or private user database dump is included in the source package.
+
+---
+
 # AtlasBoard v5.49.12cn — Promo seed cleanup / source-backup checkpoint (2026-11-03)
 
 **Latest authoritative status — overrides superseded temporary seed instructions below.** This checkpoint is a source cleanup package, **not** a Firebase deployment, completed live reward test, Unity build, or GitHub push. The owner's separate RTDB export (not shipped in game package) has **23 root keys including `/promoCodes` with 64 entries**. The original 22 roots are still present in that submitted export. This verifies the supplied export structure only; it does not prove the production RTDB currently contains those same values.

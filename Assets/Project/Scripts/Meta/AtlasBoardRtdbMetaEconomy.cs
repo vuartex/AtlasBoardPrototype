@@ -1,6 +1,7 @@
 using System;
 using System.Text;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Firebase.Auth;
 using Newtonsoft.Json.Linq;
@@ -405,6 +406,8 @@ public static class AtlasBoardRtdbMetaEconomy
     private sealed class Economy
     {
         public int schemaVersion = 1;
+        // Atomic source of bonus XP from public promo redemptions.
+        public int promoXp;
         public Wallet wallet = new Wallet();
         public Inventory inventory = new Inventory();
         public Equipped equipped = new Equipped();
@@ -721,6 +724,233 @@ public static class AtlasBoardRtdbMetaEconomy
         return await MutateAsync("DAILY", "", false);
     }
 
+
+    // Public promo redemption uses the same ETag-protected canonical wallet as
+    // daily grants and purchases. No Cloud Functions, Owner QA or DEV allowlist.
+    // rewardHistory is the atomic one-use ledger; the separate receipt is display-only.
+    public static async Task<AtlasBoardMetaEconomyOperationResult> RedeemPromoAsync(
+        string requestedCode)
+    {
+        string code = (requestedCode ?? "").Trim().ToUpperInvariant();
+        if (!System.Text.RegularExpressions.Regex.IsMatch(code,
+            @"^ATLAS-(G|XP|AC|IT)-[0-9A-F]{18}$"))
+            return Failure("promo.error.invalid_code");
+
+        Identity identity = await ResolveIdentityAsync();
+        if (identity == null)
+            return Failure("account.error.authentication_required");
+        try
+        {
+            if (!identity.IsRestGuest &&
+                !await AtlasBoardRtdbUserProfileMirror.SyncCurrentUserAsync("", false))
+                return Failure("promo.error.account_not_ready");
+
+            Response catalogResponse = await RequestAsync(identity, "GET",
+                "/promoCodes/" + UnityWebRequest.EscapeURL(code) + ".json",
+                null, null);
+            if (catalogResponse.Status == 401 || catalogResponse.Status == 403)
+                return Failure("promo.error.account_not_ready",
+                    "PROMO_RULES_READ_HTTP_" + catalogResponse.Status);
+            if (catalogResponse.Status != 200)
+                return Failure("meta.error.service_unavailable",
+                    "PROMO_CATALOG_HTTP_" + catalogResponse.Status);
+            if (string.IsNullOrWhiteSpace(catalogResponse.Body) ||
+                catalogResponse.Body.Trim() == "null")
+                return Failure("promo.error.not_found");
+
+            JObject definition = JObject.Parse(catalogResponse.Body);
+            if ((bool?)definition["active"] != true ||
+                (string)definition["scope"] != "public")
+                return Failure("promo.error.disabled");
+            long now = Now();
+            if (now < ((long?)definition["startsAtEpochMs"] ?? 0L))
+                return Failure("promo.error.not_started");
+            if (now >= ((long?)definition["endsAtEpochMs"] ?? 0L))
+                return Failure("promo.error.expired");
+            JObject reward = definition["reward"] as JObject;
+            string type = (string)reward?["type"] ?? "";
+            string itemId = (string)reward?["itemId"] ?? "";
+            int amount = (int?)reward?["amount"] ?? 0;
+            if ((string)definition["code"] != code ||
+                (int?)definition["perAccountLimit"] != 1 ||
+                (int?)definition["quantity"] != amount ||
+                amount < 1 || amount > 5000 ||
+                (type != "gold" && type != "atlas_coin" && type != "xp" &&
+                 type != "inventory_item") ||
+                (type == "inventory_item" && (amount != 1 ||
+                    string.IsNullOrWhiteSpace(itemId) ||
+                    itemId == "map_world" || itemId == "board_atlas_horizon")) ||
+                (type != "inventory_item" && !string.IsNullOrEmpty(itemId)))
+                return Failure("promo.error.invalid_reward");
+
+            string digest = PromoTransactionHash(identity.Uid + ":" + code);
+            for (int attempt = 0; attempt < 7; attempt++)
+            {
+                // Fetch the ETag again after every conflict. No stale wallet overwrite.
+                ReadState state = await ReadAsync(identity);
+                if (state.Document == null)
+                {
+                    await InitializeAsync(identity, state.ETag);
+                    continue;
+                }
+                Economy wallet = state.Document;
+                string marker = "|" + code + "|";
+                string ledger = wallet.rewardHistory ?? "";
+                if (ledger.Contains(marker))
+                {
+                    await WritePromoReceiptBestEffortAsync(identity, code,
+                        digest, type, itemId, amount, Now());
+                    return Failure("promo.error.already_redeemed");
+                }
+                if (ledger.Length + marker.Length > 1000000)
+                    return Failure("promo.error.limit_reached");
+                if (type == "inventory_item")
+                {
+                    bool supported = IsPremiumMap(itemId) && itemId != "map_world" ||
+                        AtlasBoardEmotes.IsPaid(itemId) || IsPaidPawn(itemId) ||
+                        IsBoard(itemId) && itemId != "board_atlas_horizon" ||
+                        IsDice(itemId) || itemId.StartsWith("frame_",
+                            StringComparison.Ordinal);
+                    if (!supported) return Failure("promo.error.invalid_reward");
+                    bool owned = IsPremiumMap(itemId) ? wallet.inventory.maps.IsOwned(itemId) :
+                        AtlasBoardEmotes.IsPaid(itemId) ? wallet.inventory.emotes.IsOwned(itemId) :
+                        IsPaidPawn(itemId) ? wallet.inventory.pawns.IsOwned(itemId) :
+                        IsBoard(itemId) ? wallet.inventory.boards.IsOwned(itemId) :
+                        IsDice(itemId) ? wallet.inventory.dice.IsOwned(itemId) :
+                        wallet.inventory.profile_frames.IsOwned(itemId);
+                    if (owned) return Failure("promo.error.item_already_owned");
+                    if (IsPremiumMap(itemId)) wallet.inventory.maps.SetOwned(itemId, true);
+                    else if (AtlasBoardEmotes.IsPaid(itemId)) wallet.inventory.emotes.SetOwned(itemId, true);
+                    else if (IsPaidPawn(itemId)) wallet.inventory.pawns.SetOwned(itemId, true);
+                    else if (IsBoard(itemId)) wallet.inventory.boards.SetOwned(itemId, true);
+                    else if (IsDice(itemId)) wallet.inventory.dice.SetOwned(itemId, true);
+                    else wallet.inventory.profile_frames.SetOwned(itemId, true);
+                }
+                else if (type == "gold")
+                {
+                    if (wallet.wallet.gold > 10000000 - amount)
+                        return Failure("promo.error.limit_reached");
+                    wallet.wallet.gold += amount;
+                }
+                else if (type == "atlas_coin")
+                {
+                    if (wallet.wallet.atlasCoin > 1000000 - amount)
+                        return Failure("promo.error.limit_reached");
+                    wallet.wallet.atlasCoin += amount;
+                }
+                else
+                {
+                    if (wallet.promoXp > 100000000 - amount)
+                        return Failure("promo.error.limit_reached");
+                    wallet.promoXp += amount;
+                }
+
+                long timestamp = Now();
+                if (wallet.operation != null &&
+                    wallet.operation.atMs >= timestamp)
+                    timestamp = wallet.operation.atMs + 1;
+                wallet.rewardHistory = ledger + marker;
+                wallet.operation = new Operation {
+                    id = Guid.NewGuid().ToString("N"), type = "PROMO",
+                    itemId = code, atMs = timestamp
+                };
+                JObject body = JObject.Parse(JsonUtility.ToJson(wallet));
+                if (state.Raw?["dailyReward"]?["lastClaimAt"] == null)
+                    body.Remove("dailyReward");
+                if (identity.Uid != CurrentUid)
+                    return Failure("promo.error.account_not_ready");
+                Response applied = await RequestAsync(identity, "PUT",
+                    EconomyPath(identity.Uid),
+                    body.ToString(Newtonsoft.Json.Formatting.None), state.ETag);
+                if (applied.Status == 412) continue;
+                if (applied.Status == 401 || applied.Status == 403)
+                {
+                    if (await RefreshRegisteredRestBearerAsync(identity))
+                        continue;
+                    return Failure("promo.error.account_not_ready",
+                        "PROMO_WALLET_HTTP_" + applied.Status);
+                }
+                if (applied.Status < 200 || applied.Status >= 300)
+                    return Failure("meta.error.service_unavailable",
+                        "PROMO_WALLET_HTTP_" + applied.Status);
+
+                if (type == "inventory_item")
+                {
+                    if (IsPremiumMap(itemId)) {
+                        cachedMapUid = identity.Uid; CachedOwnedMaps.Add(itemId);
+                    }
+                    if (IsPaidPawn(itemId)) {
+                        cachedPawnOwnerUid = identity.Uid; CachedOwnedPawnIds.Add(itemId);
+                    }
+                    if (AtlasBoardEmotes.IsPaid(itemId)) {
+                        cachedEmoteUid = identity.Uid; CachedPaidEmotes.Add(itemId);
+                    }
+                }
+                await WritePromoReceiptBestEffortAsync(identity, code,
+                    digest, type, itemId, amount, timestamp);
+                var result = new AtlasBoardMetaEconomyOperationResult {
+                    Success = true, Type = "REDEEM_CODE", TransactionId = digest,
+                    ReferenceId = code, Detail = code,
+                    Gold = wallet.wallet.gold, AtlasCoin = wallet.wallet.atlasCoin
+                };
+                result.Rewards.Add(new AtlasBoardMetaRewardLine {
+                    Type = type, CurrencyId = type,
+                    ItemId = itemId, Amount = amount
+                });
+                Debug.Log("ATB_PROMO_RTDB result=credited type=" + type +
+                    " uid_suffix=" + ShortUid(identity.Uid));
+                return result;
+            }
+            return Failure("meta.error.concurrent_write");
+        }
+        catch (Exception error)
+        {
+            Debug.LogWarning("ATB_PROMO_RTDB result=failed reason=" +
+                Sanitize(error.Message));
+            return Failure("meta.error.service_unavailable", error.Message);
+        }
+    }
+
+    private static string PromoTransactionHash(string data)
+    {
+        using (SHA256 sha = SHA256.Create())
+            return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(data)))
+                .Replace("-", "").ToLowerInvariant();
+    }
+
+    private static async Task WritePromoReceiptBestEffortAsync(
+        Identity identity, string code, string transactionId, string type,
+        string itemId, int amount, long claimedAt)
+    {
+        try
+        {
+            JObject receipt = new JObject {
+                ["code"] = code, ["transactionId"] = transactionId,
+                ["claimedAt"] = claimedAt, ["rewardType"] = type,
+                ["rewardAmount"] = amount, ["rewardItemId"] = itemId,
+                ["status"] = "succeeded"
+            };
+            Response existing = await RequestAsync(identity, "GET",
+                "/users/" + UnityWebRequest.EscapeURL(identity.Uid) +
+                "/promoRedemptions/" + UnityWebRequest.EscapeURL(code) +
+                ".json", null, null);
+            if (existing.Status == 200 && existing.Body != "null")
+                return;
+            Response written = await RequestAsync(identity, "PUT",
+                "/users/" + UnityWebRequest.EscapeURL(identity.Uid) +
+                "/promoRedemptions/" + UnityWebRequest.EscapeURL(code) +
+                ".json", receipt.ToString(Newtonsoft.Json.Formatting.None),
+                "null_etag");
+            if (written.Status < 200 || written.Status >= 300)
+                Debug.LogWarning("ATB_PROMO_RECEIPT pending=true http=" +
+                    written.Status);
+        }
+        catch (Exception error)
+        {
+            Debug.LogWarning("ATB_PROMO_RECEIPT pending=true type=" +
+                error.GetType().Name);
+        }
+    }
 
     private static string currentDiceUid = "";
     private static string cachedDiceId = "";

@@ -3078,6 +3078,40 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
         }
 
 
+        if (item.Type == "REDEEM_CODE")
+        {
+            // The RTDB receipt keeps the entered code in ReferenceId.
+            // Show it in both Store > Redeem > Used Codes and Store > History;
+            // transaction IDs remain in their existing separate audit row.
+            string code = !string.IsNullOrWhiteSpace(item.ReferenceId)
+                ? item.ReferenceId
+                : (item.Detail ?? string.Empty);
+            string codeLabel = StoreAccountText(
+                "Code", "Kod", "Código", "Code", "Code", "코드", "Код");
+            string reward = string.Empty;
+            if (string.Equals(item.CurrencyId, "inventory_item",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                // Cosmetic receipts carry the granted inventory ID in Detail.
+                reward = item.Detail ?? string.Empty;
+            }
+            else if (item.Amount > 0)
+            {
+                string currency = string.Equals(item.CurrencyId, "xp",
+                    StringComparison.OrdinalIgnoreCase)
+                    ? "XP"
+                    : CurrencyLabel(item.CurrencyId);
+                reward = "+" + item.Amount.ToString("N0") + " " + currency;
+            }
+            else if (!string.IsNullOrWhiteSpace(item.Detail) &&
+                     !string.Equals(item.Detail, code, StringComparison.Ordinal))
+            {
+                reward = item.Detail;
+            }
+            return codeLabel + ": " + code +
+                (string.IsNullOrWhiteSpace(reward) ? string.Empty : "  •  " + reward);
+        }
+
         if (item.Type == "DAILY" || item.Type == "DEV_GRANT")
             return "+" + item.Amount.ToString("N0") + " " + CurrencyLabel(item.CurrencyId);
         if (item.Type == "RESET_PURCHASES")

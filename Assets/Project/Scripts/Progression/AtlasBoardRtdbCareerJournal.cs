@@ -1181,15 +1181,30 @@ public static class AtlasBoardRtdbCareerJournal
 
     private static async Task<int> VerifiedBonusXpAsync(string uid, string token)
     {
-        // A distinct server-issued bonus source, never a fabricated match claim.
-        try {
+        // Two independently rule-protected sources. Promo XP is credited in
+        // the same ETag wallet commit as its one-use code marker, not from a
+        // client-authored match result or an unverified receipt.
+        int seasonal = 0;
+        int promo = 0;
+        try
+        {
             string raw = await RequestAsync(
                 "/users/" + Safe(uid) + "/seasonalRewards/xp", token);
             JToken value = JToken.Parse(raw);
-            if (value.Type != JTokenType.Integer) return 0;
-            return Mathf.Clamp((int?)value ?? 0, 0, 100000000);
+            if (value.Type == JTokenType.Integer)
+                seasonal = Mathf.Clamp((int?)value ?? 0, 0, 100000000);
         }
-        catch { return 0; } // Old accounts need no bonus field.
+        catch { } // Legacy user with no seasonal rewards.
+        try
+        {
+            string raw = await RequestAsync(
+                "/users/" + Safe(uid) + "/metaEconomy/promoXp", token);
+            JToken value = JToken.Parse(raw);
+            if (value.Type == JTokenType.Integer)
+                promo = Mathf.Clamp((int?)value ?? 0, 0, 100000000);
+        }
+        catch { } // Legacy user with no promotional XP.
+        return (int)Math.Min(100000000L, (long)seasonal + promo);
     }
 
     private static void ApplyBonusLevel(AtlasBoardProgressionSnapshot snapshot,

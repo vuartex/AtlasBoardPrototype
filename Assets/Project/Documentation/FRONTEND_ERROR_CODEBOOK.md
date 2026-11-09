@@ -1,3 +1,12 @@
+## v5.49.12co — Public RTDB promo redemption (2026-11-09)
+
+- `REDEEM CODE` now performs authenticated exact-code RTDB catalog lookup and an ETag-protected canonical wallet mutation. Owner QA / Dev Tester is NOT required to redeem a public promo. `ATB-434` means wallet `rewardHistory` already contains that `|CODE|` marker; it is not based on a mutable UI cache or an optional display receipt.
+- `ATB-433` is returned only for a confirmed `null` exact-code lookup. `ATB-432` means inactive/non-public catalog definition. `ATB-424` remains a service/rules failure, **not** an invalid-code or already-used result. `ATB-435` is a valid item code for an already-owned cosmetic. No new user-facing code IDs were introduced.
+- An informational `/users/{uid}/promoRedemptions/{CODE}` receipt may lag its atomic `metaEconomy` wallet+ledger commit; retry never pays twice. XP uses canonical `metaEconomy/promoXp`, read by Career.
+- World Journey claim/overview Cloud Functions are not changed by this promo-only package; migrate/test separately. Prior `metaPromoRedeem` and `owner_qa` directives below are historical, not active instructions.
+
+---
+
 ## v5.49.12cn — RTDB promo catalog; obsolete seeding removed (2026-11-03)
 
 - Owner has supplied 64 definitions under root `/promoCodes`, separately from game source. **No Editor/in-game seed button, one-off seed callable, Node seeder or embedded QA code manifest remains.** Do not recreate these retired mechanisms.

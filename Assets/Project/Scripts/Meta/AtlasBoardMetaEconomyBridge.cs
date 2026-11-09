@@ -246,73 +246,12 @@ public sealed class AtlasBoardMetaEconomyBridge : MonoBehaviour
     }
 
     public async Task<AtlasBoardMetaEconomyOperationResult> RedeemCodeAsync(
-        string code,
-        string idempotencyKey)
+        string code, string idempotencyKey)
     {
-        if (IsLocalEmulatorMode && !await EnsureDevIdentityAsync())
-        {
-            return FailOperation();
-        }
-
-        string normalized = (code ?? string.Empty).Trim().ToUpperInvariant();
-        if (normalized.Length < 4 || normalized.Length > 48 ||
-            string.IsNullOrWhiteSpace(idempotencyKey))
-        {
-            return new AtlasBoardMetaEconomyOperationResult
-            {
-                Success = false,
-                ErrorKey = "promo.error.invalid_code",
-                TechnicalMessage = "Redeem code format is invalid."
-            };
-        }
-
-        PromoRedeemEnvelope envelope =
-            await CallFunctionAsync<PromoRedeemRequest, PromoRedeemEnvelope>(
-                IsLocalEmulatorMode && !normalized.StartsWith("ATLAS-", StringComparison.Ordinal)
-                    ? "promoTestRedeem" : "metaPromoRedeem",
-                new PromoRedeemRequest
-                {
-                    code = normalized,
-                    idempotencyKey = idempotencyKey
-                });
-
-        if (envelope == null || envelope.result == null || !envelope.result.ok)
-        {
-            return FailOperation();
-        }
-
-        AtlasBoardMetaEconomyOperationResult result =
-            new AtlasBoardMetaEconomyOperationResult
-            {
-                Success = true,
-                Type = "REDEEM_CODE",
-                TransactionId = envelope.result.redemptionEventId,
-                ReferenceId = envelope.result.redemptionId,
-                IdempotentReplay = envelope.result.idempotentReplay,
-                Detail = normalized
-            };
-
-        if (envelope.result.rewards != null)
-        {
-            foreach (PromoRewardWire reward in envelope.result.rewards)
-            {
-                if (reward == null)
-                {
-                    continue;
-                }
-
-                result.Rewards.Add(
-                    new AtlasBoardMetaRewardLine
-                    {
-                        Type = reward.type ?? string.Empty,
-                        CurrencyId = reward.currencyId ?? string.Empty,
-                        ItemId = reward.itemId ?? string.Empty,
-                        Amount = reward.amount
-                    });
-            }
-        }
-
-        return result;
+        // Always use RTDB for the live Store and Editor Play Mode.
+        // The wallet's append-only rewardHistory is the idempotency authority;
+        // the local UI operation key is not a second grant permission.
+        return await AtlasBoardRtdbMetaEconomy.RedeemPromoAsync(code);
     }
 
     private async Task<AtlasBoardMetaEconomyOperationResult> ClaimWorldRewardAsync(
@@ -1570,40 +1509,6 @@ public sealed class AtlasBoardMetaEconomyBridge : MonoBehaviour
         public string status;
         public int balanceAfter;
         public bool idempotentReplay;
-    }
-
-    [Serializable]
-    private sealed class PromoRedeemRequest
-    {
-        public string code;
-        public string idempotencyKey;
-    }
-
-    [Serializable]
-    private sealed class PromoRedeemEnvelope
-    {
-        public PromoRedeemWire result;
-    }
-
-    [Serializable]
-    private sealed class PromoRedeemWire
-    {
-        public bool ok;
-        public bool applied;
-        public bool idempotentReplay;
-        public string promoId;
-        public string redemptionId;
-        public string redemptionEventId;
-        public PromoRewardWire[] rewards;
-    }
-
-    [Serializable]
-    private sealed class PromoRewardWire
-    {
-        public string type;
-        public string currencyId;
-        public string itemId;
-        public int amount;
     }
 
     [Serializable] private sealed class WorldClaimRequest {public string rewardId;}
