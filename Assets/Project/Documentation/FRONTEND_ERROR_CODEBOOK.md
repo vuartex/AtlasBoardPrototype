@@ -1,3 +1,12 @@
+## v5.49.12cr — Duplicate non-store item rewards (2026-11-09)
+
+- **PROMO / World Journey:** If a cosmetic/item is already owned at the time of an otherwise valid **first** promo redemption or event claim, grant a fixed RTDB-rules-verified Gold compensation (Pawn 200, Dice 300, Board 800, Map 1200, Profile Frame 250, Emote 120). The item remains owned; no money is minted by ordinary Store purchases and an already used promo code is **still rejected** with ATB-434.
+- **ATB-435 historical note:** `promo.error.item_already_owned` used to reject an item already in inventory. After this update, eligible items instead receive category Gold compensation; preserve ATB-435 mapping only for backwards compatibility, not as the standard duplicate-gift outcome.
+- QA claim-marker reset is editor-only and requires `devWalletTesters/{uid}=true` plus a QA-mode World Journey proof. It never refunds or removes previously earned balances/items, and each subsequent actual claim is subject to normal RTDB Event claim verification.
+- No new user-facing error codes introduced. `ATB-424` continues to mean reward verification/service failure.
+
+---
+
 ## v5.49.12co — Public RTDB promo redemption (2026-11-09)
 
 - `REDEEM CODE` now performs authenticated exact-code RTDB catalog lookup and an ETag-protected canonical wallet mutation. Owner QA / Dev Tester is NOT required to redeem a public promo. `ATB-434` means wallet `rewardHistory` already contains that `|CODE|` marker; it is not based on a mutable UI cache or an optional display receipt.

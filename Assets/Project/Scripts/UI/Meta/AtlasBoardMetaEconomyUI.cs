@@ -82,6 +82,7 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
     private string activeCategory = "all";
     private StorePage currentPage = StorePage.Home;
     private int worldEventTab;
+    private int lastWorldQaRevision;
     private bool busy;
     private float nextOperationAllowedAt;
     private bool shopCardBound;
@@ -154,6 +155,15 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
 
         if (storeRoot != null && storeRoot.activeSelf)
         {
+            // Editor QA writes update RTDB while the Store canvas remains
+            // open. Refresh in place; do not force a close/reopen cycle.
+            if (currentPage == StorePage.Event && !busy &&
+                bridge != null && Time.unscaledTime >= nextOperationAllowedAt &&
+                lastWorldQaRevision != AtlasBoardRtdbMetaEconomy.WorldQaRevision)
+            {
+                lastWorldQaRevision = AtlasBoardRtdbMetaEconomy.WorldQaRevision;
+                RefreshAsync();
+            }
             CloseLegacyShopModal();
             if (currentPage == StorePage.Home && !busy &&
                 Time.unscaledTime >= nextDailyButtonVisualAt)
@@ -1592,6 +1602,15 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
                     mission.RewardAmount, mission.RewardItemId);
                 break;
             }
+        if (result.Rewards.Count > 0)
+        {
+            AtlasBoardMetaRewardLine actual = result.Rewards[0];
+            rewardDescription = WorldRewardText(actual.Type,
+                actual.Amount, actual.ItemId);
+            if (result.Detail != null &&
+                result.Detail.StartsWith("duplicate_item_gold:", StringComparison.Ordinal))
+                rewardDescription += " (already owned item)";
+        }
         ShowMessagePopup("seasonal.popup.track_title", WorldText("claimed") +
             "\n" + rewardDescription + "\n" + WorldText("transaction") +
             ": " + result.TransactionId);
@@ -1728,11 +1747,17 @@ public sealed class AtlasBoardMetaEconomyUI : MonoBehaviour
             GameObject row = CreateListRow(list, 100f, Cream);
             TMP_Text t = CreateText(row.transform, 16f, FontStyles.Bold,
                 TextAlignmentOptions.Left, TextDark);
-            SetAnchored(t.rectTransform, new Vector2(-230f, 12f),
-                new Vector2(520f, 55f));
-            t.text = WorldText("mission." + mission.MissionId) +
-                "\n" + (seasonalOverview.WorldPreviewOnly ? "0" :
-                mission.Progress.ToString()) + "/" + mission.Target;
+            SetAnchored(t.rectTransform, new Vector2(-230f, 20f),
+                new Vector2(520f, 33f));
+            t.text = WorldText("mission." + mission.MissionId);
+            TMP_Text progressText = CreateText(row.transform, 13f,
+                FontStyles.Normal, TextAlignmentOptions.Left, TextDark);
+            SetAnchored(progressText.rectTransform, new Vector2(-230f, -9f),
+                new Vector2(520f, 28f));
+            progressText.text = "Progress: " +
+                (seasonalOverview.WorldPreviewOnly ? "0" :
+                    mission.Progress.ToString(CultureInfo.InvariantCulture)) + "/" +
+                mission.Target.ToString(CultureInfo.InvariantCulture);
             TMP_Text reward = CreateText(row.transform, 14f, FontStyles.Bold,
                 TextAlignmentOptions.Center, Orange);
             SetAnchored(reward.rectTransform, new Vector2(287f, 0f),

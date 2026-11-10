@@ -177,6 +177,16 @@ public sealed class AtlasBoardCivicProjectManager : MonoBehaviour
                     case 1: return LocalizedProjectName(lang, "Mexican Transit Network", "Meksika Ulaşım Ağı", "Red de Transporte de México", "Réseau de Transport Mexicain", "Mexikanisches Verkehrsnetz");
                     default: return LocalizedProjectName(lang, "Mexico City Innovation Center", "Mexico City İnovasyon Merkezi", "Centro de Innovación de Ciudad de México", "Centre d’Innovation de Mexico", "Innovationszentrum Mexiko-Stadt");
                 }
+            case "map_world":
+                switch (id)
+                {
+                    case 0: return LocalizedProjectName(lang, "Bosphorus Cultural Bridge", "Boğaziçi Kültür Köprüsü",
+                        "Puente Cultural del Bósforo", "Pont culturel du Bosphore", "Kulturbrücke Bosporus");
+                    case 1: return LocalizedProjectName(lang, "Global Rapid Transit Network", "Küresel Hızlı Ulaşım Ağı",
+                        "Red Mundial de Transporte Rápido", "Réseau mondial de transport rapide", "Globales Schnellverkehrsnetz");
+                    default: return LocalizedProjectName(lang, "World Renewable Energy Center", "Dünya Yenilenebilir Enerji Merkezi",
+                        "Centro Mundial de Energía Renovable", "Centre mondial des énergies renouvelables", "Weltzentrum für erneuerbare Energien");
+                }
             case "map_usa":
                 switch (id)
                 {

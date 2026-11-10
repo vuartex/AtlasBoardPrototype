@@ -1,3 +1,99 @@
+# AtlasBoard v5.49.12cr — Owner QA acceptance addendum and natural online progression gate (2026-11-09)
+
+**DOCUMENTATION-ONLY checkpoint.** This entry updates the owner's latest locally supplied `v5.49.12cr` canonical roadmap, not the older GitHub `main` copy (`v5.49.12cp` at prior read). **Game/source version stays v5.49.12cr; no code release/version increment.** All previous roadmap bytes and historical decisions are preserved unchanged below this addendum. No Unity source/Editor menu, Firebase RTDB Rules, Cloud Functions, existing economy or other documentation files are modified.
+
+## New owner-confirmed World Journey acceptance (2026-11-09)
+
+| Area | Current disposition | Exactly what the owner confirmed |
+| --- | --- | --- |
+| Pre-owned item reward compensation | **OWNER PASS / CLOSED (tested scenario)** | When an eligible Event reward grants an item the account already owns, the reward issued the corresponding Gold compensation. The previous ownership was retained. This does **not** assert that every cosmetic category, every promo code, concurrent redemption or unauthorized claimant was individually tested. |
+| World Map Civic project names | **OWNER PASS / CLOSED (visual display)** | The three project names are visible in the World Map: **Bosphorus Cultural Bridge**, **Global Rapid Transit Network**, **World Renewable Energy Center**. Previous map/project implementation is retained; no duplicate manager or names needed. |
+| World Journey Missions progress-row layout | **OWNER PASS / CLOSED (visual alignment)** | `Progress: N/target` appears at the expected consistent position on mission rows. Do not rebuild the Missions UI or reopen this alignment issue without new regression evidence. |
+
+**Preserve previously accepted scope from v5.49.12cr and earlier:** Editor QA reward-path demonstrations, World Map and Atlas Horizon Board ownership/functionality, one-time public promo redemption and second-use rejection, canonical wallet/XP/Atlas Coin/inventory/history, daily rewards, purchase history, account ownership boundaries and all independently owner-PASS multiplayer/emote/rematch cases. A QA-created mission counter and successful manual reward claim **must not** be misreported as a successfully verified natural online match progression.
+
+## Remaining World Journey acceptance — real match evidence → Event progress (OPEN)
+
+**Question resolved from reviewed source contracts:** Mission 1 is `two_matches` / **Complete 2 online matches**, target **2**, reward **500 Gold**. Its real progress is supposed to come from accepted UID-scoped `careerClaims/{uid}/{matchId}` evidence and the current Spark/RTDB World Journey adapter, NOT from a local/offline match count. The existing Career proof path requires a completed online match, authenticated participation and a second **distinct human Firebase UID** attesting to the final archive. **Editor + separate Guest Build playing online together qualifies if all proofs are accepted**; offline single-player + bots or online host + bots without a second human does **not** satisfy this proof requirement. Whether the complete natural RTDB/UI pipeline works in owner's live runtime is **OWNER TEST PENDING**, not PASS.
+
+**Minimal first-mission manual acceptance** (reuse the existing two-client Guest QA flow; add NO Editor buttons or duplicate QA tools):
+
+1. Sign in with two independently authenticated Firebase UIDs: Unity Editor player and the separate Windows Live Spark Guest QA client. Use a clean test state where mission one is shown as `0/2`, if available. Do not manufacture, erase or transfer real Career match proofs; prior genuine matches for that UID may already be counted.
+2. Create/join the **same online Private/Public room** and complete a real match with both human clients participating (the remaining seats may be bots). Observe the result and Career persistence before reloading Store > Event > Missions.
+3. Confirm the **first unique completed online match** creates accepted `careerClaims/{editorUid}/{matchId}` (and corresponding Guest UID claim if its proof is accepted). Verify the editor account's mission progress becomes `1/2` after the real RTDB overview/progress refresh. Claim creation and display are separate observations; do not assume one proves the other.
+4. Complete a **second distinct online match** with the same two actual player UIDs; confirm a second distinct `matchId` and progress `2/2` for the tested account. The associated **500 Gold** reward must become claimable only when conditions are met, and then be credited **once** through the existing manual Store > Event > Rewards claim; do not introduce automatic grants.
+5. Reload Career and Store/Event, and verify UID isolation, persisted evidence and no duplicate count on reopened screens/rejoin/rematch/retry. If progression stays at `0/2` or `1/2`, inspect signed participation, completed archive, peer attestation, `careerFinalProofs`, `careerClaims/{uid}/{matchId}` and the existing `/users/{uid}/worldJourney` ingestion/progress state before proposing a change. Do not mark failure's root cause without matching logs/proof.
+
+**Expanded final gate retained from v5.49.12cr:** Three distinct real online matches on **three distinct maps** should update verified World Journey map count and other applicable mission values exactly once, with cross-UID proof forgery rejected. This additional acceptance is also **OPEN**; the two-match smoke check does not close the 3-map gate or every mission.
+
+## Delivery / release boundaries
+
+- **CURRENT:** `WORLD_GIFT_ALREADY_OWNED_COMPENSATION=OWNER_PASS_TESTED`; `WORLD_CIVIC_NAMES=OWNER_PASS_VISUAL`; `WORLD_MISSIONS_PROGRESS_ALIGNMENT=OWNER_PASS_VISUAL`; `WORLD_TWO_REAL_ONLINE_MATCHES=OWNER_QA_PENDING`; `WORLD_NATURAL_CAREER_TO_EVENT_PROGRESS=OPEN`; `WORLD_THREE_MAPS_NATURAL_PROOF=OPEN`.
+- This checkpoint **does not run** a Unity build, official Firebase Auth+RTDB Emulator, security rules suite or live game test. The historical `32/32`, `24/24`, `87/87` source assertions belong only to their stated past tests, not to this documentation-only edit.
+- **NO Firebase deploy needed** for this roadmap-only ZIP; no production write, no GitHub push, no account data adjustment and no new `.md` file. The owner alone decides when to back up/push current local source. Keep the existing Editor menu consolidated under `Atlas Board > QA & Diagnostics > World Journey (Editor Only)`.
+- ZIP contains exactly one **complete** file at `Assets/Project/Documentation/MASTER_ROADMAP.md`, preserving all original project-relative structure. No patches, PS1/BAT, tests, game code or separate documents.
+
+---
+
+# AtlasBoard v5.49.12cr — World Journey QA refresh, gift compensation & owner acceptance (2026-11-09)
+
+**Baseline:** v5.49.12cq World Journey RTDB full-source package applied over GitHub `v5.49.12cp` main. This is a source-only change package; no production Firebase deploy or GitHub push performed. Canonical roadmap history below preserved.
+
+## OWNER-ACCEPTED / CLOSED SCOPE (do not regress)
+
+- Public PROMO: Owner PASS; 50 Gold code first redemption credited, same UID second claim rejected, used-code and transaction history visible. Keep all 64 public codes, RTDB ETag atomic wallet ledger, existing store/daily-reward behavior.
+- **Atlas World Journey** real Editor Play Mode: Owner demonstrated QA counters from 0/N to targets, claimed the 7 normal mission rewards, unlocked World Map (mission 8) and Atlas Horizon Board (completion bonus), and verified **both Map gameplay and Board functionality** PASS. Gold, Atlas Coin, XP and claim history shown by user. **Natural match-to-Career-proof-to-Event-progress flow is still NOT tested** and remains final acceptance gate.
+
+## v5.49.12cr source changes / QA behavior
+
+- QA menu consolidated under exactly `Atlas Board > QA & Diagnostics > World Journey (Editor Only)`, not under another `QA` submenu. No other QA windows created.
+- Editor QA writes increment a revision signal consumed by the active Store/Event screen; Missions/Rewards/History refresh in Play Mode without closing and reopening the Store. Mission row typography separates identical left-aligned `Progress: N/target` text from mission titles.
+- Owner requested **Clear QA / Reset Claims** for repeat reward tests. It clears *only* `/users/{uid}/metaEconomy/worldClaims` for a Firebase-authenticated UID whose `/devWalletTesters/{uid}` is true and whose `/users/{uid}/worldJourney/qaMode` is true. Existing Gold, Atlas Coin, XP, owned items and immutable receipt history are **NOT deleted or refunded**. A subsequent real Rewards claim still goes through the original RTDB security-validated ETag ledger, and test rewards are cumulative. Normal players CANNOT reset claims.
+- Gift compensation is intentionally limited to **promo / event** item grants (NOT regular Store purchases): previously owned Pawns +200 Gold, Dice +300, Boards +800, Maps +1200, Profile Frames +250, Emotes +120. The real item is granted on first ownership. Duplicate ownership at the *time of first allowed code/event claim* yields fixed Gold instead; amount must match RTDB Rules, never a client-configurable value. A promo code still cannot be used a second time by the same UID. Event normal claims remain one-time, with QA-only reset pathway.
+- World Journey receipt keys are now `{rewardId}_{transactionId}` to preserve multiple authorized QA test runs as append-only audit, while reading old receipt values by their canonical `rewardId` field. Compensation is displayed by the actual awarded Gold in claim popup/history.
+- **Civic World map project names**: canonical `AtlasBoardCivicProjectManager.cs` now provides three actual project names for `map_world` in EN/TR/ES/FR/DE: Bosphorus Cultural Bridge (Türkiye), Global Rapid Transit Network and World Renewable Energy Center. Existing names for Turkey/Colorado/Germany/Mexico/USA unchanged; KO/RU deliberately use EN proper names as before. Runtime UI and map labels still require owner visual QA.
+- **Events safety**: no new Cloud Functions, Google Cloud billing, Firestore, broad client economy write, root JSON import, or automatic reward-seeding routes.
+
+## Validation / rollout gates
+
+- Static rule regression: `phase19cq_world_journey_rtdb_contract.test.cjs` and `phase19co_promo_public_rtdb_rules_contract.test.cjs`; new `phase19cr_reward_qa_compensation_contract.test.cjs` covers the fixed band table, whitelist reset and new receipt identities. These are NOT the official Firebase emulator or Unity compile.
+- Full `database.rules.json` remains below Firebase 256 KiB rules source-size limit. **Before deploying, back up current live RTDB rules**, run all three Node tests, then `firebase.cmd deploy --only database --project atlasboard-usa`. Never run a root database JSON import.
+- In Unity Editor Play Mode on a whitelisted test UID: open Store/Event, QA Complete All (observe UI update *without close*), claim rewards, QA Clear Claims, claim again; World Map should grant +1200 Gold and Atlas Horizon Board +800 Gold on replay, while keeping originals owned. A different unlisted UID must be denied QA reset.
+- **Final natural-flow gate:** three real online matches on distinct maps, signed Career claims recorded and World Journey counts updated exactly once each; second client cannot forge other UID proof. Do not mark full Event progression PASS before owner confirms this.
+- Unity compiler, real emulator Rules evaluator and live QA of the new compensation/reset behavior remain pending. Do not label them PASS until observed.
+
+---
+
+# AtlasBoard v5.49.12cq — World Journey Spark/RTDB Source + Unity Editor QA (2026-11-09)
+
+**Authoritative base:** GitHub `vuartex/AtlasBoardPrototype` `main` at `490f2f8c4ac93931dd8f0729fd563097f2b860ea` (`v5.49.12cp`, 2026-11-09). Source SHA matched the pushed versions of the Bridge, RTDB economy, UI, Career, and database.rules.json. Canonical roadmap history below is preserved. This is a **source package pending owner Unity/real RTDB acceptance**, not a completed deployment.
+
+## PROMO — owner PASS / CLOSED; leave it unchanged
+
+- Owner verified first 50 Gold redemption on Jr. Vuartex, used-code receipt/Store history, second redemption rejected as `ATB-434`. All 64 promo definitions are public in `/promoCodes`; promo grant remains ETag-atomic and rules-validated. Never reintroduce owner_qa or Cloud Functions to promo.
+- Existing `phase19co_promo_public_rtdb_rules_contract.test.cjs`: 87/87 synthetic regression checks still PASS with the new event rules. No promo catalog rewrite, import, code seeder or extra function deployed in this phase.
+
+## World Journey — v5.49.12cq SOURCE IMPLEMENTED; LIVE QA PENDING
+
+- Removed active `metaWorldJourneyGetOverview` / `metaWorldJourneyClaimReward` and legacy event-limited purchase callables from the live World Journey Bridge methods. Event Overview and manually triggered claims now use `AtlasBoardRtdbMetaEconomy` RTDB-only partial source `AtlasBoardRtdbWorldJourney.cs`. Firebase Spark/no Cloud Functions/no Firestore required for World Journey.
+- Mission definitions and thresholds retained exactly: two_matches 2 → 500 Gold, fifty_rolls 50 → 500 XP, ten_developments 10 → 100 Atlas Coin, three_wins 3 → 1,000 Gold, twenty_turns 20 → 1,000 XP, three_maps 3 → 250 Atlas Coin, networth_5000 5000 → 2,000 Gold, world_explorer seven prior awards → map_world, final completion_bonus all eight awards → board_atlas_horizon. Event window 2026-11-03 UTC through 2027-06-30 UTC.
+- **Verified Career evidence**: `/careerClaims/{uid}/{matchId}` is read for signed, accepted participation since event start. Each proof is folded using a separate ETag-protected `/users/{uid}/worldJourney` record; RTDB Rules verify UID, match ID, claim date, exact per-claim increments, unique map and single-use `|matchId|` marker. No direct client-defined match totals are authorized for ordinary players.
+- **Atomic award**: each manual claim uses existing `/users/{uid}/metaEconomy` ETag record; server rules check exact progress requirement, exact Gold/Atlas Coin/XP delta or event-only inventory entitlement and append-only `worldClaims` marker. No reward can be claimed twice by the same UID or minted by changing the requested amount. XP is credited into existing `promoXp` and included by Career's existing verified bonus read (not counterfeit match claims). Separate `/users/{uid}/worldJourneyHistory/{rewardId}` receipt is create-only after atomic commit, with missing receipts reconstructed from the authoritative claim ledger for display.
+- **World Map & Horizon Board**: `/inventory/maps/map_world` can only flip to true during `world_explorer` verified claim; `/inventory/boards/board_atlas_horizon` can only flip to true during `completion_bonus`. A World lobby map requires map_world ownership; Horizon Board can be equipped once owned. Existing purchased Germany/Mexico and existing Store operation rules must remain intact.
+- **Emulator safety:** World Journey RTDB adapter uses the canonical LIVE Europe RTDB. If Unity is explicitly in Local Emulator mode, World Journey overview/claims/QA are blocked with `WORLD_EMULATOR_ENDPOINT_NOT_CONFIGURED` rather than silently writing to production. Editor **Play Mode with live Firebase login** remains supported and does not require Android/Windows builds.
+- **Editor QA only**: `Atlas Board → QA → World Journey (Editor Only)` in Unity Play Mode can set seven mission progress counters or clear QA counters, but **never grants awards**. RTDB QA progress writes require `devWalletTesters/{uid} == true` and a valid authenticated same UID; normal player proof ingestion is not bypassed. QA writes are labeled `qaMode`. Complete requirements, then use real **Store → Event → Rewards** buttons for seven claims, World Map as claim eight, and final Atlas Horizon Board. Restart Play Mode to verify persistence. Clearing QA counters does NOT undo legitimately claimed rewards or reset account wallet.
+- For production accounts the QA branch is inaccessible, and only rule-verified Career claims count. Do not ship Editor scripts to platform builds; compiler guards are in place.
+
+## Checks / release gates
+
+- `Backend/Firebase/qa/phase19cq_world_journey_rtdb_contract.test.cjs`: **24/24 synthetic rule-expression checks PASS** (signed Career proof, duplicate match prevention, fake dice rejection, extra wallet mint rejection, foreign UID block, XP/Coin/Gold grants, seven-claim World map, bonus board, dev-only QA and reset).
+- `phase19co_promo_public_rtdb_rules_contract.test.cjs`: **87/87 synthetic regressions PASS**. Updated entire rules file stays below 256 KiB serialized limit.
+- **NOT YET TESTED:** Unity C# editor compilation, official Firebase RTDB emulator rule-evaluation suite, Firebase LIVE rules deployment, actual Event claim payouts, claim history persistence, Android/Steam builds, 8/8 owner acceptance. Do not label these PASS until completed.
+- Owner install: merge full source ZIP at project root, then PowerShell `cd "C:\Users\crazy\AtlasBoardPrototype\Backend\Firebase"`; execute `node qa/phase19cq_world_journey_rtdb_contract.test.cjs` and `node qa/phase19co_promo_public_rtdb_rules_contract.test.cjs`, and only after local validation `firebase.cmd deploy --only database --project atlasboard-usa` (requires owner confirmation; **NEVER database root import or Cloud Functions deploy**). Retain current live rule backup before deploy.
+- Owner Editor test: enter Play Mode as known DEV tester → QA window Complete All 7 → Store/Event/Rewards manual claim seven, then World Map and final Board → open History → close/reopen Editor Play Mode → equip Horizon Board and create World map lobby. A normal user without dev allowlist must be unable to use QA shortcut but can redeem actual verified Career missions.
+
+---
+
 # AtlasBoard v5.49.12cp — Owner acceptance: Promo CLOSED / World Journey RTDB NEXT (2026-11-09)
 
 **Scope of this owner-status-only checkpoint:** canonical `MASTER_ROADMAP.md` updated, previous entire roadmap preserved; **no C#, Firebase Rules, database records, or Cloud Functions are changed by this checkpoint**. Keep current `co` source and `cp` UI history changes, do not replace with GitHub `cn` content.

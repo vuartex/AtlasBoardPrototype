@@ -17,7 +17,7 @@ using UnityEngine.Networking;
 /// balance and entitlement transition. Clients never receive direct write
 /// permission to an unconstrained currency field.
 /// </summary>
-public static class AtlasBoardRtdbMetaEconomy
+public static partial class AtlasBoardRtdbMetaEconomy
 {
     private static readonly System.Collections.Generic.HashSet<string>
         ConfirmedMatchGoldKeys = new System.Collections.Generic.HashSet<string>(
@@ -408,6 +408,8 @@ public static class AtlasBoardRtdbMetaEconomy
         public int schemaVersion = 1;
         // Atomic source of bonus XP from public promo redemptions.
         public int promoXp;
+        // Server-validated append-only World Journey claims.
+        public string worldClaims = "";
         public Wallet wallet = new Wallet();
         public Inventory inventory = new Inventory();
         public Equipped equipped = new Equipped();
@@ -804,6 +806,7 @@ public static class AtlasBoardRtdbMetaEconomy
                 }
                 if (ledger.Length + marker.Length > 1000000)
                     return Failure("promo.error.limit_reached");
+                int compensationGold = 0;
                 if (type == "inventory_item")
                 {
                     bool supported = IsPremiumMap(itemId) && itemId != "map_world" ||
@@ -818,7 +821,16 @@ public static class AtlasBoardRtdbMetaEconomy
                         IsBoard(itemId) ? wallet.inventory.boards.IsOwned(itemId) :
                         IsDice(itemId) ? wallet.inventory.dice.IsOwned(itemId) :
                         wallet.inventory.profile_frames.IsOwned(itemId);
-                    if (owned) return Failure("promo.error.item_already_owned");
+                    if (owned)
+                    {
+                        compensationGold = AtlasBoardDuplicateRewardGold
+                            .ForCatalogItemType((string)reward["itemType"]);
+                        if (compensationGold <= 0)
+                            return Failure("promo.error.invalid_reward");
+                        if (wallet.wallet.gold > 10000000 - compensationGold)
+                            return Failure("promo.error.limit_reached");
+                        wallet.wallet.gold += compensationGold;
+                    }
                     if (IsPremiumMap(itemId)) wallet.inventory.maps.SetOwned(itemId, true);
                     else if (AtlasBoardEmotes.IsPaid(itemId)) wallet.inventory.emotes.SetOwned(itemId, true);
                     else if (IsPaidPawn(itemId)) wallet.inventory.pawns.SetOwned(itemId, true);
@@ -887,17 +899,20 @@ public static class AtlasBoardRtdbMetaEconomy
                     }
                 }
                 await WritePromoReceiptBestEffortAsync(identity, code,
-                    digest, type, itemId, amount, timestamp);
+                    digest, type, itemId, amount, timestamp, compensationGold);
                 var result = new AtlasBoardMetaEconomyOperationResult {
                     Success = true, Type = "REDEEM_CODE", TransactionId = digest,
                     ReferenceId = code, Detail = code,
                     Gold = wallet.wallet.gold, AtlasCoin = wallet.wallet.atlasCoin
                 };
                 result.Rewards.Add(new AtlasBoardMetaRewardLine {
-                    Type = type, CurrencyId = type,
-                    ItemId = itemId, Amount = amount
+                    Type = compensationGold > 0 ? "gold" : type,
+                    CurrencyId = compensationGold > 0 ? "gold" : type,
+                    ItemId = compensationGold > 0 ? "" : itemId,
+                    Amount = compensationGold > 0 ? compensationGold : amount
                 });
-                Debug.Log("ATB_PROMO_RTDB result=credited type=" + type +
+                Debug.Log("ATB_PROMO_RTDB result=credited type=" +
+                    (compensationGold > 0 ? "duplicate_item_gold" : type) +
                     " uid_suffix=" + ShortUid(identity.Uid));
                 return result;
             }
@@ -920,7 +935,7 @@ public static class AtlasBoardRtdbMetaEconomy
 
     private static async Task WritePromoReceiptBestEffortAsync(
         Identity identity, string code, string transactionId, string type,
-        string itemId, int amount, long claimedAt)
+        string itemId, int amount, long claimedAt, int compensationGold = 0)
     {
         try
         {
@@ -928,6 +943,7 @@ public static class AtlasBoardRtdbMetaEconomy
                 ["code"] = code, ["transactionId"] = transactionId,
                 ["claimedAt"] = claimedAt, ["rewardType"] = type,
                 ["rewardAmount"] = amount, ["rewardItemId"] = itemId,
+                ["compensationGold"] = compensationGold,
                 ["status"] = "succeeded"
             };
             Response existing = await RequestAsync(identity, "GET",
@@ -1996,12 +2012,16 @@ public static class AtlasBoardRtdbMetaEconomy
             long at = (long?)receipt["claimedAt"] ?? 0;
             if (id.Length != 64 || at <= 0) continue;
             string rewardType = (string)receipt["rewardType"] ?? "";
+            int compensationGold = (int?)receipt["compensationGold"] ?? 0;
+            string originalItem = (string)receipt["rewardItemId"] ?? "";
             snapshot.History.Add(new AtlasBoardMetaHistoryItem {
                 Type = "REDEEM_CODE", TransactionId = id,
                 ReferenceId = entry.Name, Status = "completed",
-                CurrencyId = rewardType,
-                Amount = (int?)receipt["rewardAmount"] ?? 0,
-                Detail = (string)receipt["rewardItemId"] ?? "",
+                CurrencyId = compensationGold > 0 ? "gold" : rewardType,
+                Amount = compensationGold > 0 ? compensationGold :
+                    ((int?)receipt["rewardAmount"] ?? 0),
+                Detail = compensationGold > 0 ? originalItem + " (owned: gold fallback)" :
+                    originalItem,
                 CreatedAtUtc = DateTimeOffset.FromUnixTimeMilliseconds(at)
                     .UtcDateTime.ToString("o")
             });
