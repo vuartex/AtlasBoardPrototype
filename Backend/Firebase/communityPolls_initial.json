@@ -1,0 +1,39 @@
+{
+  "community_feature_priority_2026w46": {
+    "active": true,
+    "questionTr": "Atlas Board için sırada hangi özelliği geliştirelim?",
+    "questionEn": "Which Atlas Board feature should we develop next?",
+    "startsAtMs": 1794268800000,
+    "endsAtMs": 1801440000000,
+    "options": {
+      "maps": {
+        "labelTr": "Haritalar",
+        "labelEn": "Maps"
+      },
+      "pawns": {
+        "labelTr": "Piyonlar",
+        "labelEn": "Pawns"
+      },
+      "avatars": {
+        "labelTr": "Profil Fotoğrafı",
+        "labelEn": "Avatars"
+      },
+      "dice": {
+        "labelTr": "Zarlar",
+        "labelEn": "Dice"
+      },
+      "boards": {
+        "labelTr": "Tahtalar",
+        "labelEn": "Boards"
+      },
+      "profile_frames": {
+        "labelTr": "Profil Çerçeveleri",
+        "labelEn": "Profile Frames"
+      },
+      "emotes": {
+        "labelTr": "Emote",
+        "labelEn": "Emotes"
+      }
+    }
+  }
+}

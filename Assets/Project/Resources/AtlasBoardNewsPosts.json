@@ -1,0 +1,164 @@
+{
+  "posts": [
+    {
+      "id": "atb_dev_21",
+      "date": "2026-11-10",
+      "titleTr": "NEWS ve Topluluk Oylaması Yayında",
+      "titleEn": "NEWS and Community Voting Are Live",
+      "bodyTr": "Topluluk Oylaması, NEWS ekranında yedi seçenekli tek bir oylama olarak kullanıma açıldı. Haritalar, piyonlar, profil fotoğrafları, zarlar, tahtalar, profil çerçeveleri ve emote seçeneklerinden yalnızca biri seçilebiliyor. Oylar kayıtlı Firebase hesabına bağlı olarak bir kez kaydediliyor ve sonuçlar kimlik göstermeyen oy kayıtlarından hesaplanıyor. Firebase Auth ve RTDB emülatöründe 17 güvenlik testi başarıyla tamamlandı; canlı güvenlik kuralları ve oylama tanımı yayınlandı. NEWS ve Topluluk Oylaması geliştirmeleri kullanıcı kabulüyle PASS olarak kapatıldı.",
+      "bodyEn": "Community Voting is available inside NEWS as one poll with seven choices. Players may choose only one of Maps, Pawns, Avatars, Dice, Boards, Profile Frames or Emotes. Each registered Firebase account can cast one vote, and results are counted from vote records that do not expose player identities. All 17 Firebase Auth and RTDB emulator security tests passed, and the production rules and poll definition were published. NEWS and Community Voting have received owner acceptance."
+    },
+    {
+      "id": "atb_dev_01",
+      "date": "2026-11-09",
+      "titleTr": "Maç Sonucu X ve Oda Güvenliği",
+      "titleEn": "Match Result Exit and Room Safety",
+      "bodyTr": "Maç sonucu tabletindeki X düğmesi ana menüye dönüş onayını gösteriyor. Host bu düğmeyle ayrıldığında oda sunucuda kapatılıyor. Diğer oyuncu kapanmış odada bekletilmiyor. Mevcut REMATCH ve oyuncu çıkış seçenekleri korunuyor.",
+      "bodyEn": "The result tablet now asks for confirmation before exiting to the main menu. When the host confirms, the online room is closed through the existing backend. The other player is no longer left waiting in a terminated session. The REMATCH and guest exit flows remain available."
+    },
+    {
+      "id": "atb_dev_02",
+      "date": "2026-11-09",
+      "titleTr": "World Journey Gerçek Maç İlerlemesi",
+      "titleEn": "Real Online World Journey Progress",
+      "bodyTr": "İki farklı gerçek oyuncuyla oynanan tamamlanmış çevrim içi maçın görev ilerlemesine yansıdığı doğrulandı. Görevler doğrulanmış Career kayıtlarına dayanıyor. Tekrarlanan maç kayıtları ek ilerleme oluşturmamalı. Bu temel akış geliştirme testinde PASS olarak kapatıldı.",
+      "bodyEn": "A completed online match between two real human players was confirmed to advance event progress. The mission system uses verified Career evidence. Duplicate match records must not create extra progress. The owner accepted this core path during testing."
+    },
+    {
+      "id": "atb_dev_03",
+      "date": "2026-11-09",
+      "titleTr": "Etkinlikte Sahip Olunan Ürün Telafisi",
+      "titleEn": "Duplicate Event Item Compensation",
+      "bodyTr": "Etkinlik ödüllerinde oyuncunun zaten sahip olduğu ürünlere yönelik Gold telafisi eklendi. Sahip olunan ürün envanterden silinmiyor. Telafi tutarı ürün kategorisine göre sabit kalıyor. İşlem geçmişi ve tek seferlik ödül doğrulaması korunuyor.",
+      "bodyEn": "Event rewards now support fixed Gold compensation when the player already owns the awarded cosmetic. Previously owned items remain in inventory. Compensation amounts are tied to item categories. Receipt and one-time-claim behavior remain protected."
+    },
+    {
+      "id": "atb_dev_04",
+      "date": "2026-11-09",
+      "titleTr": "World Haritası Civic Projeleri",
+      "titleEn": "World Map Civic Projects",
+      "bodyTr": "World haritasına özel üç Civic projesinin adları düzenlendi. Bosphorus Cultural Bridge yeni proje adlarından biridir. Global Rapid Transit Network ve World Renewable Energy Center da projeler arasında bulunuyor. Diğer haritaların Civic içerikleri korunuyor.",
+      "bodyEn": "Three named Civic projects were updated for the World map. The projects include Bosphorus Cultural Bridge. Global Rapid Transit Network and World Renewable Energy Center complete the set. Existing Civic content for other maps remains unchanged."
+    },
+    {
+      "id": "atb_dev_05",
+      "date": "2026-11-09",
+      "titleTr": "World Journey Görev Ekranı",
+      "titleEn": "World Journey Mission Screen",
+      "bodyTr": "Mağaza içindeki etkinlik görev kartlarının ilerleme yazıları hizalandı. Her görev kendi hedef değerini ilerleme çubuğuyla birlikte gösteriyor. Görev tamamlandığında ödül ayrıca alınabiliyor. Önceden kazanılmış haklar korunuyor.",
+      "bodyEn": "Mission progress text in the Store event panel was aligned. Each task displays its target alongside a progress bar. Completed rewards can be claimed through the existing manual action. Previously earned entitlements remain intact."
+    },
+    {
+      "id": "atb_dev_06",
+      "date": "2026-11-09",
+      "titleTr": "World Haritası ve Atlas Ufuk Tahtası",
+      "titleEn": "World Map and Atlas Horizon Board",
+      "bodyTr": "World Journey görevleri üzerinden kazanılan Dünya Haritası oyunda kullanılabilir hale geldi. Sekiz etkinlik ödülünün tamamı özel Atlas Ufuk Tahtası için gerekli. Bu içerikler sıradan mağaza satışlarına dahil edilmiyor. Testlerde harita ve tahta işlevleri kontrol edildi.",
+      "bodyEn": "The World Map can be unlocked through World Journey rewards. Claiming all eight event rewards is required for the exclusive Atlas Horizon Board. These items are not sold through the normal Store. Their in-game functionality was checked in owner QA."
+    },
+    {
+      "id": "atb_dev_07",
+      "date": "2026-11-09",
+      "titleTr": "Kod Kullan: Gerçek Ödül Takibi",
+      "titleEn": "Redeem Code Reward Tracking",
+      "bodyTr": "Kod kullanma sistemi Firebase RTDB üzerindeki doğrulanmış cüzdana bağlandı. İlk kullanımda ödül ve işlem kaydı oluşturuluyor. Aynı hesap aynı koddan ikinci kez ödül alamıyor. Kullanılmış kodun adı ve ödülü geçmiş ekranında görüntüleniyor.",
+      "bodyEn": "The redeem flow uses the authenticated Firebase RTDB wallet. A first successful redemption records its reward and receipt. The same account cannot claim the same code twice. Redeemed codes and reward details appear in the history interface."
+    },
+    {
+      "id": "atb_dev_08",
+      "date": "2026-11-09",
+      "titleTr": "64 Genel Promosyon Kodu",
+      "titleEn": "64 Public Promotion Codes",
+      "bodyTr": "Promosyon kataloğunda 64 kodluk içerik planı korunuyor. Kodların geçerliliği ve hesap bazlı kullanım sınırı denetleniyor. Başarılı kazanımlar ana cüzdan ve envantere işleniyor. World Journey özel ödülleri promosyonla dağıtılmıyor.",
+      "bodyEn": "The promotion catalog contains 64 public code definitions. Eligibility and per-account redemption limits are checked. Valid grants use the existing wallet and inventory. World Journey exclusive items are excluded from promotion grants."
+    },
+    {
+      "id": "atb_dev_09",
+      "date": "2026-11-03",
+      "titleTr": "Etkinlik Arayüzü Yenilendi",
+      "titleEn": "Event Interface Refresh",
+      "bodyTr": "World Journey ana başlığı ve bitiş tarihi tek bir bütünleşik banner içinde sunuluyor. Görev, ödül ve geçmiş bölümleri okunabilir kartlarla düzenlendi. Oyuncu aldığı ödülü ve işlem kimliğini görebiliyor. Yedi dildeki arayüz akışı korunuyor.",
+      "bodyEn": "The World Journey title and end date share a unified banner. Mission, reward and history sections use readable cards. Players can inspect claimed rewards and transaction identifiers. The existing multilingual interface structure was preserved."
+    },
+    {
+      "id": "atb_dev_10",
+      "date": "2026-11-03",
+      "titleTr": "Çevrim İçi Emote Gösterimi",
+      "titleEn": "Online Emote Presentation",
+      "bodyTr": "Sahip olunan emote maç sırasında diğer oyuncunun avatarı üzerinde görüntüleniyor. Görüntülenen içerik hesabın sahip olduğu emote ile eşleşiyor. Kullanıcının seçili emote listesi korunuyor. İki oyunculu gerçek test PASS olarak kaydedildi.",
+      "bodyEn": "Owned emotes can appear above another player’s avatar during an online match. The displayed cosmetic corresponds to account ownership. Existing emote selections are preserved. This behavior received owner acceptance in two-client gameplay."
+    },
+    {
+      "id": "atb_dev_11",
+      "date": "2026-11-03",
+      "titleTr": "Bağlantı Kopması ve Oyuna Dönüş",
+      "titleEn": "Disconnect and Rejoin",
+      "bodyTr": "Çevrim içi maç sırasında bağlantı kopma ve aynı hesapla geri dönme akışı test edildi. Host migration desteği korunuyor. Tamamlanan maç ödülleri doğrulanmış hesaplara bağlanıyor. Aynı sonuç için çift Gold veya XP verilmemesi hedefleniyor.",
+      "bodyEn": "The disconnect and same-account rejoin flow was tested during online play. Host migration support remains intact. Completed-match rewards are tied to verified accounts. Duplicate Gold and XP payouts for the same match are prevented by the existing reward design."
+    },
+    {
+      "id": "atb_dev_12",
+      "date": "2026-11-03",
+      "titleTr": "Mağaza ve Günlük Ödül İyileştirmesi",
+      "titleEn": "Store and Daily Reward Improvements",
+      "bodyTr": "Mağaza satın alma akışı günlük ödül durumundan bağımsız çalışıyor. Günlük ödül alındığında buton doğru şekilde pasifleşiyor. Satın alınmış ürünler ve makbuzları korunuyor. Gereksiz ekran yenilemeleri azaltıldı.",
+      "bodyEn": "Store purchases operate independently of Daily Reward records. The Daily Reward button becomes unavailable after a successful claim. Owned products and immutable receipts are preserved. Excessive UI rebuilding was reduced."
+    },
+    {
+      "id": "atb_dev_13",
+      "date": "2026-11-03",
+      "titleTr": "Profil Çerçevesi Kalıcılığı",
+      "titleEn": "Profile Frame Persistence",
+      "bodyTr": "Kuşanılmış profil çerçevesi kariyer ve mağazanın yanında ana menü ile lobide de görünüyor. Aynı Firebase UID için doğrulanmış ekipman seçimi kullanılıyor. Farklı hesapların çerçeve bilgileri birbirine karıştırılmıyor. Owner testi PASS olarak sonuçlandı.",
+      "bodyEn": "Equipped profile frames now appear in the main menu and lobby as well as Career and Store. Presentation reads the verified equipment choice for the current UID. Cross-account frame data must remain isolated. The owner accepted the corrected flow."
+    },
+    {
+      "id": "atb_dev_14",
+      "date": "2026-11-03",
+      "titleTr": "Yerel Maçta REMATCH",
+      "titleEn": "Local Match Rematch",
+      "bodyTr": "Yerel özel maç bittikten sonra REMATCH aynı modern lobiye geri döndürüyor. Host oda ayarlarını yeniden kullanabiliyor. Oyun başlatma akışı tekrar etkinleşiyor. Bu değişiklik çevrim içi maçın yeniden başlatılma sistemini değiştirmiyor.",
+      "bodyEn": "REMATCH after a local private game returns to the existing modern lobby. The host can reuse the room settings. The match start flow becomes available again. The online rematch implementation is left untouched."
+    },
+    {
+      "id": "atb_dev_15",
+      "date": "2026-11-03",
+      "titleTr": "Career Zar İstatistikleri",
+      "titleEn": "Career Dice Statistics",
+      "bodyTr": "Career ekranında zar sayısı yanında toplam ve en yüksek zar değeri için ek gözlem alanları hazırlandı. Eksik eski veriler için sahte rakam üretilmiyor. Çevrim içi gerçek maç kayıtları Firebase hesabıyla eşleştiriliyor. İki istemcili kapsamlı doğrulama ayrı bir yayın testi olarak sürüyor.",
+      "bodyEn": "Career telemetry was extended with dice totals and highest-roll observations. Missing historical values are not invented. Online match evidence is associated with the authenticated account. Full two-client statistical acceptance remains a separate release test."
+    },
+    {
+      "id": "atb_dev_16",
+      "date": "2026-11-02",
+      "titleTr": "Misafirden Kayıtlı Hesaba Geçiş",
+      "titleEn": "Guest to Registered Account Flow",
+      "bodyTr": "Misafir hesabını e-posta ile kaydetme akışı aynı Firebase UID bilgisini korumayı hedefliyor. Mevcut Gold, ürünler ve Career geçmişi kopyalanarak çoğaltılmıyor. Şifre sıfırlama ve oturum geri yükleme adımları iyileştirildi. Yayın öncesi hesap geçişi testleri sürüyor.",
+      "bodyEn": "The guest registration flow is designed to preserve the existing Firebase UID. Gold, items and Career history are not duplicated into another account. Password reset and session restoration were improved. Release-level identity tests remain open."
+    },
+    {
+      "id": "atb_dev_17",
+      "date": "2026-11-02",
+      "titleTr": "Giriş Formu Kullanılabilirliği",
+      "titleEn": "Account Form Usability",
+      "bodyTr": "Giriş ve kayıt ekranlarında yazma imleci ve alan geçişleri iyileştirildi. E-posta biçimi ve parola kuralları daha açık doğrulanıyor. Parola sıfırlama e-postası için kullanıcı bilgilendirmesi eklendi. Mevcut hesapla yeniden giriş işlemleri korunuyor.",
+      "bodyEn": "Account forms gained clearer caret and keyboard focus behavior. Email format and password policies are validated more explicitly. Password reset feedback was improved. Existing returning-account sign-in behavior was preserved."
+    },
+    {
+      "id": "atb_dev_18",
+      "date": "2026-11-02",
+      "titleTr": "Steam Oturum Kimliği Koruması",
+      "titleEn": "Steam Session Identity Safeguards",
+      "bodyTr": "Steam oyuncu adı ile Firebase hesap sahipliği birbirinden ayrıldı. Yerel test oturumlarının doğru UID kullanması için korumalar geliştirildi. Başka hesabın Gold veya envanterini aktarma yolu açılmadı. Perakende Steam bilet doğrulaması ayrı yayın koşulu olarak duruyor.",
+      "bodyEn": "Steam persona display is kept separate from Firebase account ownership. Development session identity safeguards were strengthened. No automatic wallet or inventory transfer across accounts was introduced. Retail Steam ticket verification remains a release requirement."
+    },
+    {
+      "id": "atb_dev_19",
+      "date": "2026-10-13",
+      "titleTr": "Güvenlik Testleri ve RTDB",
+      "titleEn": "Security Testing and RTDB",
+      "bodyTr": "Çevrim içi veri erişimi için Firebase Auth ve RTDB testleri genişletildi. Yetkisiz yazma ve yanlış kullanıcı hesabına erişim senaryoları denetlendi. Önceden kabul edilmiş güvenlik test kayıtları korunuyor. Yayın öncesi güncel kural sürümünün ayrıca doğrulanması gerekiyor.",
+      "bodyEn": "Firebase Auth and RTDB security checks were expanded. Unauthorized writes and cross-account access scenarios were exercised. Previous security acceptance evidence remains recorded. Current production rules still need separate release verification."
+    }
+  ]
+}
