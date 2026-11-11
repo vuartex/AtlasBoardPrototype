@@ -1,233 +1,893 @@
 {
   "weekly_20291105": {
     "weekId": "20291105",
-    "title": "Atlas Weekly 20291105",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Tokyo Lights Token",
+    "description": "This token is dedicated to the week of 05 November 2029. Inspired by Tokyo Lights and the heritage of its city.",
     "kind": "museum",
-    "startUtcMs": 1888531200000
+    "startUtcMs": 1888531200000,
+    "theme": "city",
+    "symbol": "city",
+    "titles": {
+      "en": "Tokyo Lights Token",
+      "tr": "Tokyo Işıkları Tokeni",
+      "es": "Ficha: Luces de Tokio",
+      "fr": "Jeton Lumières de Tokyo",
+      "de": "Lichter von Tokio-Token",
+      "ko": "도쿄의 불빛 토큰",
+      "ru": "Жетон «Огни Токио»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 05 November 2029. Inspired by Tokyo Lights and the heritage of its city.",
+      "tr": "Bu jeton 05 Kasım 2029 haftasına ithaf edilmiştir. Tokyo Işıkları ile anılan şehrin mirasından ilham alır.",
+      "es": "Esta ficha está dedicada a la semana del 05 de noviembre de 2029. Inspirada en Luces de Tokio y el patrimonio de su ciudad.",
+      "fr": "Ce jeton est dédié à la semaine du 05 novembre 2029. Inspiré par Lumières de Tokyo et le patrimoine de sa ville.",
+      "de": "Dieser Token ist der Woche vom 05. November 2029 gewidmet. Inspiriert von Lichter von Tokio und dem Erbe seiner Stadt.",
+      "ko": "이 토큰은 2029년 11월 5일 주간을 기념합니다. 도쿄의 불빛와 도시의 문화유산에서 영감을 받았습니다.",
+      "ru": "Этот жетон посвящён неделе с 05 ноября 2029 года. Вдохновлён темой «Огни Токио» и наследием города."
+    }
   },
   "weekly_20291210": {
     "weekId": "20291210",
-    "title": "Atlas Weekly 20291210",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Nikola Tesla Token",
+    "description": "This token is dedicated to the week of 10 December 2029. Honors Nikola Tesla, remembered for electrical engineering.",
     "kind": "museum",
-    "startUtcMs": 1891555200000
+    "startUtcMs": 1891555200000,
+    "theme": "name",
+    "symbol": "star",
+    "titles": {
+      "en": "Nikola Tesla Token",
+      "tr": "Nikola Tesla Tokeni",
+      "es": "Ficha: Nikola Tesla",
+      "fr": "Jeton Nikola Tesla",
+      "de": "Nikola Tesla-Token",
+      "ko": "Nikola Tesla 토큰",
+      "ru": "Жетон «Nikola Tesla»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 10 December 2029. Honors Nikola Tesla, remembered for electrical engineering.",
+      "tr": "Bu jeton 10 Aralık 2029 haftasına ithaf edilmiştir. Nikola Tesla anısına hazırlanmıştır; elektrik mühendisliği alanındaki katkıları anılır.",
+      "es": "Esta ficha está dedicada a la semana del 10 de diciembre de 2029. Homenaje a Nikola Tesla, recordado por sus aportes en la ingeniería eléctrica.",
+      "fr": "Ce jeton est dédié à la semaine du 10 décembre 2029. Hommage à Nikola Tesla, célèbre pour ses travaux en le génie électrique.",
+      "de": "Dieser Token ist der Woche vom 10. Dezember 2029 gewidmet. Würdigt Nikola Tesla, bekannt für Beiträge zu Elektrotechnik.",
+      "ko": "이 토큰은 2029년 12월 10일 주간을 기념합니다. 전기공학 분야의 업적으로 기억되는 Nikola Tesla을(를) 기립니다.",
+      "ru": "Этот жетон посвящён неделе с 10 декабря 2029 года. В честь Nikola Tesla, известного вкладом в электротехника."
+    }
   },
   "weekly_20300121": {
     "weekId": "20300121",
-    "title": "Atlas Weekly 20300121",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Sail Emblem Token",
+    "description": "This token is dedicated to the week of 21 January 2030. Inspired by Sail Emblem; a purely cosmetic collectible.",
     "kind": "museum",
-    "startUtcMs": 1895184000000
+    "startUtcMs": 1895184000000,
+    "theme": "object",
+    "symbol": "compass",
+    "titles": {
+      "en": "Sail Emblem Token",
+      "tr": "Yelken Rozeti Tokeni",
+      "es": "Ficha: Emblema de vela",
+      "fr": "Jeton Emblème de voile",
+      "de": "Segelemblem-Token",
+      "ko": "돛 문양 토큰",
+      "ru": "Жетон «Эмблема паруса»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 21 January 2030. Inspired by Sail Emblem; a purely cosmetic collectible.",
+      "tr": "Bu jeton 21 Ocak 2030 haftasına ithaf edilmiştir. Yelken Rozeti temasından ilham alan kozmetik bir koleksiyon jetonudur.",
+      "es": "Esta ficha está dedicada a la semana del 21 de enero de 2030. Inspirada en Emblema de vela; es solo un artículo cosmético.",
+      "fr": "Ce jeton est dédié à la semaine du 21 janvier 2030. Inspiré par Emblème de voile, un objet de collection purement cosmétique.",
+      "de": "Dieser Token ist der Woche vom 21. Januar 2030 gewidmet. Inspiriert von Segelemblem; ein rein kosmetisches Sammlerstück.",
+      "ko": "이 토큰은 2030년 1월 21일 주간을 기념합니다. 돛 문양에서 영감을 얻은 장식용 수집품입니다.",
+      "ru": "Этот жетон посвящён неделе с 21 января 2030 года. Вдохновлён темой «Эмблема паруса»; только декоративный предмет."
+    }
   },
   "weekly_20300211": {
     "weekId": "20300211",
-    "title": "Atlas Weekly 20300211",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Friendship Day 2030 Token",
+    "description": "This token is dedicated to the week of 11 February 2030. Commemorates Friendship Day 2030 as a cultural or seasonal theme.",
     "kind": "museum",
-    "startUtcMs": 1896998400000
+    "startUtcMs": 1896998400000,
+    "theme": "holiday",
+    "symbol": "ribbon",
+    "titles": {
+      "en": "Friendship Day 2030 Token",
+      "tr": "Dostluk Günü 2030 Tokeni",
+      "es": "Ficha: Día de la Amistad 2030",
+      "fr": "Jeton Journée de l’amitié 2030",
+      "de": "Tag der Freundschaft 2030-Token",
+      "ko": "우정의 날 2030 토큰",
+      "ru": "Жетон «День дружбы 2030»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 11 February 2030. Commemorates Friendship Day 2030 as a cultural or seasonal theme.",
+      "tr": "Bu jeton 11 Şubat 2030 haftasına ithaf edilmiştir. Dostluk Günü 2030 temasını kültürel veya mevsimsel bir anma olarak simgeler.",
+      "es": "Esta ficha está dedicada a la semana del 11 de febrero de 2030. Conmemora Día de la Amistad 2030 como tema cultural o estacional.",
+      "fr": "Ce jeton est dédié à la semaine du 11 février 2030. Évoque Journée de l’amitié 2030 dans un hommage culturel ou saisonnier.",
+      "de": "Dieser Token ist der Woche vom 11. Februar 2030 gewidmet. Erinnert an Tag der Freundschaft 2030 als kulturelles oder saisonales Motiv.",
+      "ko": "이 토큰은 2030년 2월 11일 주간을 기념합니다. 문화 또는 계절 기념 주제인 우정의 날 2030을(를) 담았습니다.",
+      "ru": "Этот жетон посвящён неделе с 11 февраля 2030 года. Посвящён теме «День дружбы 2030» как культурному или сезонному событию."
+    }
   },
   "weekly_20300304": {
     "weekId": "20300304",
-    "title": "Atlas Weekly 20300304",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Alan Turing Token",
+    "description": "This token is dedicated to the week of 04 March 2030. Honors Alan Turing, remembered for computer science.",
     "kind": "museum",
-    "startUtcMs": 1898812800000
+    "startUtcMs": 1898812800000,
+    "theme": "name",
+    "symbol": "star",
+    "titles": {
+      "en": "Alan Turing Token",
+      "tr": "Alan Turing Tokeni",
+      "es": "Ficha: Alan Turing",
+      "fr": "Jeton Alan Turing",
+      "de": "Alan Turing-Token",
+      "ko": "Alan Turing 토큰",
+      "ru": "Жетон «Alan Turing»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 04 March 2030. Honors Alan Turing, remembered for computer science.",
+      "tr": "Bu jeton 04 Mart 2030 haftasına ithaf edilmiştir. Alan Turing anısına hazırlanmıştır; bilgisayar bilimi alanındaki katkıları anılır.",
+      "es": "Esta ficha está dedicada a la semana del 04 de marzo de 2030. Homenaje a Alan Turing, recordado por sus aportes en la informática.",
+      "fr": "Ce jeton est dédié à la semaine du 04 mars 2030. Hommage à Alan Turing, célèbre pour ses travaux en l’informatique.",
+      "de": "Dieser Token ist der Woche vom 04. März 2030 gewidmet. Würdigt Alan Turing, bekannt für Beiträge zu Informatik.",
+      "ko": "이 토큰은 2030년 3월 4일 주간을 기념합니다. 컴퓨터 과학 분야의 업적으로 기억되는 Alan Turing을(를) 기립니다.",
+      "ru": "Этот жетон посвящён неделе с 04 марта 2030 года. В честь Alan Turing, известного вкладом в информатика."
+    }
   },
   "weekly_20300415": {
     "weekId": "20300415",
-    "title": "Atlas Weekly 20300415",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Polar Journal Token",
+    "description": "This token is dedicated to the week of 15 April 2030. Inspired by Polar Journal; a purely cosmetic collectible.",
     "kind": "museum",
-    "startUtcMs": 1902441600000
+    "startUtcMs": 1902441600000,
+    "theme": "object",
+    "symbol": "compass",
+    "titles": {
+      "en": "Polar Journal Token",
+      "tr": "Kutup Defteri Tokeni",
+      "es": "Ficha: Diario polar",
+      "fr": "Jeton Journal polaire",
+      "de": "Polartagebuch-Token",
+      "ko": "극지 탐험 일지 토큰",
+      "ru": "Жетон «Полярный дневник»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 15 April 2030. Inspired by Polar Journal; a purely cosmetic collectible.",
+      "tr": "Bu jeton 15 Nisan 2030 haftasına ithaf edilmiştir. Kutup Defteri temasından ilham alan kozmetik bir koleksiyon jetonudur.",
+      "es": "Esta ficha está dedicada a la semana del 15 de abril de 2030. Inspirada en Diario polar; es solo un artículo cosmético.",
+      "fr": "Ce jeton est dédié à la semaine du 15 avril 2030. Inspiré par Journal polaire, un objet de collection purement cosmétique.",
+      "de": "Dieser Token ist der Woche vom 15. April 2030 gewidmet. Inspiriert von Polartagebuch; ein rein kosmetisches Sammlerstück.",
+      "ko": "이 토큰은 2030년 4월 15일 주간을 기념합니다. 극지 탐험 일지에서 영감을 얻은 장식용 수집품입니다.",
+      "ru": "Этот жетон посвящён неделе с 15 апреля 2030 года. Вдохновлён темой «Полярный дневник»; только декоративный предмет."
+    }
   },
   "weekly_20300429": {
     "weekId": "20300429",
-    "title": "Atlas Weekly 20300429",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Workers’ Day 2030 Token",
+    "description": "This token is dedicated to the week of 29 April 2030. Commemorates Workers’ Day 2030 as a cultural or seasonal theme.",
     "kind": "museum",
-    "startUtcMs": 1903651200000
+    "startUtcMs": 1903651200000,
+    "theme": "holiday",
+    "symbol": "ribbon",
+    "titles": {
+      "en": "Workers’ Day 2030 Token",
+      "tr": "Emek Günü 2030 Tokeni",
+      "es": "Ficha: Día del Trabajo 2030",
+      "fr": "Jeton Fête du Travail 2030",
+      "de": "Tag der Arbeit 2030-Token",
+      "ko": "노동절 2030 토큰",
+      "ru": "Жетон «День труда 2030»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 29 April 2030. Commemorates Workers’ Day 2030 as a cultural or seasonal theme.",
+      "tr": "Bu jeton 29 Nisan 2030 haftasına ithaf edilmiştir. Emek Günü 2030 temasını kültürel veya mevsimsel bir anma olarak simgeler.",
+      "es": "Esta ficha está dedicada a la semana del 29 de abril de 2030. Conmemora Día del Trabajo 2030 como tema cultural o estacional.",
+      "fr": "Ce jeton est dédié à la semaine du 29 avril 2030. Évoque Fête du Travail 2030 dans un hommage culturel ou saisonnier.",
+      "de": "Dieser Token ist der Woche vom 29. April 2030 gewidmet. Erinnert an Tag der Arbeit 2030 als kulturelles oder saisonales Motiv.",
+      "ko": "이 토큰은 2030년 4월 29일 주간을 기념합니다. 문화 또는 계절 기념 주제인 노동절 2030을(를) 담았습니다.",
+      "ru": "Этот жетон посвящён неделе с 29 апреля 2030 года. Посвящён теме «День труда 2030» как культурному или сезонному событию."
+    }
   },
   "weekly_20300506": {
     "weekId": "20300506",
-    "title": "Atlas Weekly 20300506",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Oslo Northern Lights Token",
+    "description": "This token is dedicated to the week of 06 May 2030. Inspired by Oslo Northern Lights and the heritage of its city.",
     "kind": "museum",
-    "startUtcMs": 1904256000000
+    "startUtcMs": 1904256000000,
+    "theme": "city",
+    "symbol": "city",
+    "titles": {
+      "en": "Oslo Northern Lights Token",
+      "tr": "Oslo Kuzey Işıkları Tokeni",
+      "es": "Ficha: Auroras de Oslo",
+      "fr": "Jeton Aurores d’Oslo",
+      "de": "Nordlichter von Oslo-Token",
+      "ko": "오슬로의 오로라 토큰",
+      "ru": "Жетон «Северное сияние Осло»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 06 May 2030. Inspired by Oslo Northern Lights and the heritage of its city.",
+      "tr": "Bu jeton 06 Mayıs 2030 haftasına ithaf edilmiştir. Oslo Kuzey Işıkları ile anılan şehrin mirasından ilham alır.",
+      "es": "Esta ficha está dedicada a la semana del 06 de mayo de 2030. Inspirada en Auroras de Oslo y el patrimonio de su ciudad.",
+      "fr": "Ce jeton est dédié à la semaine du 06 mai 2030. Inspiré par Aurores d’Oslo et le patrimoine de sa ville.",
+      "de": "Dieser Token ist der Woche vom 06. Mai 2030 gewidmet. Inspiriert von Nordlichter von Oslo und dem Erbe seiner Stadt.",
+      "ko": "이 토큰은 2030년 5월 6일 주간을 기념합니다. 오슬로의 오로라와 도시의 문화유산에서 영감을 받았습니다.",
+      "ru": "Этот жетон посвящён неделе с 06 мая 2030 года. Вдохновлён темой «Северное сияние Осло» и наследием города."
+    }
   },
   "weekly_20300610": {
     "weekId": "20300610",
-    "title": "Atlas Weekly 20300610",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Emerald Leaf Token",
+    "description": "This token is dedicated to the week of 10 June 2030. Inspired by Emerald Leaf; a purely cosmetic collectible.",
     "kind": "museum",
-    "startUtcMs": 1907280000000
+    "startUtcMs": 1907280000000,
+    "theme": "object",
+    "symbol": "compass",
+    "titles": {
+      "en": "Emerald Leaf Token",
+      "tr": "Zümrüt Yaprak Tokeni",
+      "es": "Ficha: Hoja esmeralda",
+      "fr": "Jeton Feuille émeraude",
+      "de": "Smaragdblatt-Token",
+      "ko": "에메랄드 잎 토큰",
+      "ru": "Жетон «Изумрудный лист»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 10 June 2030. Inspired by Emerald Leaf; a purely cosmetic collectible.",
+      "tr": "Bu jeton 10 Haziran 2030 haftasına ithaf edilmiştir. Zümrüt Yaprak temasından ilham alan kozmetik bir koleksiyon jetonudur.",
+      "es": "Esta ficha está dedicada a la semana del 10 de junio de 2030. Inspirada en Hoja esmeralda; es solo un artículo cosmético.",
+      "fr": "Ce jeton est dédié à la semaine du 10 juin 2030. Inspiré par Feuille émeraude, un objet de collection purement cosmétique.",
+      "de": "Dieser Token ist der Woche vom 10. Juni 2030 gewidmet. Inspiriert von Smaragdblatt; ein rein kosmetisches Sammlerstück.",
+      "ko": "이 토큰은 2030년 6월 10일 주간을 기념합니다. 에메랄드 잎에서 영감을 얻은 장식용 수집품입니다.",
+      "ru": "Этот жетон посвящён неделе с 10 июня 2030 года. Вдохновлён темой «Изумрудный лист»; только декоративный предмет."
+    }
   },
   "weekly_20300805": {
     "weekId": "20300805",
-    "title": "Atlas Weekly 20300805",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Johannes Gutenberg Token",
+    "description": "This token is dedicated to the week of 05 August 2030. Honors Johannes Gutenberg, remembered for printing technology.",
     "kind": "museum",
-    "startUtcMs": 1912118400000
+    "startUtcMs": 1912118400000,
+    "theme": "name",
+    "symbol": "star",
+    "titles": {
+      "en": "Johannes Gutenberg Token",
+      "tr": "Johannes Gutenberg Tokeni",
+      "es": "Ficha: Johannes Gutenberg",
+      "fr": "Jeton Johannes Gutenberg",
+      "de": "Johannes Gutenberg-Token",
+      "ko": "Johannes Gutenberg 토큰",
+      "ru": "Жетон «Johannes Gutenberg»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 05 August 2030. Honors Johannes Gutenberg, remembered for printing technology.",
+      "tr": "Bu jeton 05 Ağustos 2030 haftasına ithaf edilmiştir. Johannes Gutenberg anısına hazırlanmıştır; matbaa teknolojisi alanındaki katkıları anılır.",
+      "es": "Esta ficha está dedicada a la semana del 05 de agosto de 2030. Homenaje a Johannes Gutenberg, recordado por sus aportes en la imprenta.",
+      "fr": "Ce jeton est dédié à la semaine du 05 août 2030. Hommage à Johannes Gutenberg, célèbre pour ses travaux en l’imprimerie.",
+      "de": "Dieser Token ist der Woche vom 05. August 2030 gewidmet. Würdigt Johannes Gutenberg, bekannt für Beiträge zu Drucktechnik.",
+      "ko": "이 토큰은 2030년 8월 5일 주간을 기념합니다. 인쇄 기술 분야의 업적으로 기억되는 Johannes Gutenberg을(를) 기립니다.",
+      "ru": "Этот жетон посвящён неделе с 05 августа 2030 года. В честь Johannes Gutenberg, известного вкладом в книгопечатание."
+    }
   },
   "weekly_20300812": {
     "weekId": "20300812",
-    "title": "Atlas Weekly 20300812",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Star Map Token",
+    "description": "This token is dedicated to the week of 12 August 2030. Inspired by Star Map; a purely cosmetic collectible.",
     "kind": "museum",
-    "startUtcMs": 1912723200000
+    "startUtcMs": 1912723200000,
+    "theme": "object",
+    "symbol": "compass",
+    "titles": {
+      "en": "Star Map Token",
+      "tr": "Yıldız Haritası Tokeni",
+      "es": "Ficha: Mapa estelar",
+      "fr": "Jeton Carte des étoiles",
+      "de": "Sternenkarte-Token",
+      "ko": "별자리 지도 토큰",
+      "ru": "Жетон «Карта звёзд»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 12 August 2030. Inspired by Star Map; a purely cosmetic collectible.",
+      "tr": "Bu jeton 12 Ağustos 2030 haftasına ithaf edilmiştir. Yıldız Haritası temasından ilham alan kozmetik bir koleksiyon jetonudur.",
+      "es": "Esta ficha está dedicada a la semana del 12 de agosto de 2030. Inspirada en Mapa estelar; es solo un artículo cosmético.",
+      "fr": "Ce jeton est dédié à la semaine du 12 août 2030. Inspiré par Carte des étoiles, un objet de collection purement cosmétique.",
+      "de": "Dieser Token ist der Woche vom 12. August 2030 gewidmet. Inspiriert von Sternenkarte; ein rein kosmetisches Sammlerstück.",
+      "ko": "이 토큰은 2030년 8월 12일 주간을 기념합니다. 별자리 지도에서 영감을 얻은 장식용 수집품입니다.",
+      "ru": "Этот жетон посвящён неделе с 12 августа 2030 года. Вдохновлён темой «Карта звёзд»; только декоративный предмет."
+    }
   },
   "weekly_20300902": {
     "weekId": "20300902",
-    "title": "Atlas Weekly 20300902",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Victory Day 2030 Token",
+    "description": "This token is dedicated to the week of 02 September 2030. Commemorates Victory Day 2030 as a cultural or seasonal theme.",
     "kind": "museum",
-    "startUtcMs": 1914537600000
+    "startUtcMs": 1914537600000,
+    "theme": "holiday",
+    "symbol": "ribbon",
+    "titles": {
+      "en": "Victory Day 2030 Token",
+      "tr": "Zafer Bayramı 2030 Tokeni",
+      "es": "Ficha: Día de la Victoria 2030",
+      "fr": "Jeton Fête de la victoire 2030",
+      "de": "Tag des Sieges 2030-Token",
+      "ko": "승전 기념일 2030 토큰",
+      "ru": "Жетон «День Победы 2030»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 02 September 2030. Commemorates Victory Day 2030 as a cultural or seasonal theme.",
+      "tr": "Bu jeton 02 Eylül 2030 haftasına ithaf edilmiştir. Zafer Bayramı 2030 temasını kültürel veya mevsimsel bir anma olarak simgeler.",
+      "es": "Esta ficha está dedicada a la semana del 02 de septiembre de 2030. Conmemora Día de la Victoria 2030 como tema cultural o estacional.",
+      "fr": "Ce jeton est dédié à la semaine du 02 septembre 2030. Évoque Fête de la victoire 2030 dans un hommage culturel ou saisonnier.",
+      "de": "Dieser Token ist der Woche vom 02. September 2030 gewidmet. Erinnert an Tag des Sieges 2030 als kulturelles oder saisonales Motiv.",
+      "ko": "이 토큰은 2030년 9월 2일 주간을 기념합니다. 문화 또는 계절 기념 주제인 승전 기념일 2030을(를) 담았습니다.",
+      "ru": "Этот жетон посвящён неделе с 02 сентября 2030 года. Посвящён теме «День Победы 2030» как культурному или сезонному событию."
+    }
   },
   "weekly_20300916": {
     "weekId": "20300916",
-    "title": "Atlas Weekly 20300916",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Vincent van Gogh Token",
+    "description": "This token is dedicated to the week of 16 September 2030. Honors Vincent van Gogh, remembered for painting.",
     "kind": "museum",
-    "startUtcMs": 1915747200000
+    "startUtcMs": 1915747200000,
+    "theme": "name",
+    "symbol": "star",
+    "titles": {
+      "en": "Vincent van Gogh Token",
+      "tr": "Vincent van Gogh Tokeni",
+      "es": "Ficha: Vincent van Gogh",
+      "fr": "Jeton Vincent van Gogh",
+      "de": "Vincent van Gogh-Token",
+      "ko": "Vincent van Gogh 토큰",
+      "ru": "Жетон «Vincent van Gogh»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 16 September 2030. Honors Vincent van Gogh, remembered for painting.",
+      "tr": "Bu jeton 16 Eylül 2030 haftasına ithaf edilmiştir. Vincent van Gogh anısına hazırlanmıştır; resim sanatı alanındaki katkıları anılır.",
+      "es": "Esta ficha está dedicada a la semana del 16 de septiembre de 2030. Homenaje a Vincent van Gogh, recordado por sus aportes en la pintura.",
+      "fr": "Ce jeton est dédié à la semaine du 16 septembre 2030. Hommage à Vincent van Gogh, célèbre pour ses travaux en la peinture.",
+      "de": "Dieser Token ist der Woche vom 16. September 2030 gewidmet. Würdigt Vincent van Gogh, bekannt für Beiträge zu Malerei.",
+      "ko": "이 토큰은 2030년 9월 16일 주간을 기념합니다. 회화 분야의 업적으로 기억되는 Vincent van Gogh을(를) 기립니다.",
+      "ru": "Этот жетон посвящён неделе с 16 сентября 2030 года. В честь Vincent van Gogh, известного вкладом в живопись."
+    }
   },
   "weekly_20310317": {
     "weekId": "20310317",
-    "title": "Atlas Weekly 20310317",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Spring Renewal 2031 Token",
+    "description": "This token is dedicated to the week of 17 March 2031. Commemorates Spring Renewal 2031 as a cultural or seasonal theme.",
     "kind": "museum",
-    "startUtcMs": 1931472000000
+    "startUtcMs": 1931472000000,
+    "theme": "holiday",
+    "symbol": "ribbon",
+    "titles": {
+      "en": "Spring Renewal 2031 Token",
+      "tr": "Nevruz Uyanışı 2031 Tokeni",
+      "es": "Ficha: Renacer de la primavera 2031",
+      "fr": "Jeton Renouveau du printemps 2031",
+      "de": "Frühlingserwachen 2031-Token",
+      "ko": "봄의 새 출발 2031 토큰",
+      "ru": "Жетон «Весеннее обновление 2031»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 17 March 2031. Commemorates Spring Renewal 2031 as a cultural or seasonal theme.",
+      "tr": "Bu jeton 17 Mart 2031 haftasına ithaf edilmiştir. Nevruz Uyanışı 2031 temasını kültürel veya mevsimsel bir anma olarak simgeler.",
+      "es": "Esta ficha está dedicada a la semana del 17 de marzo de 2031. Conmemora Renacer de la primavera 2031 como tema cultural o estacional.",
+      "fr": "Ce jeton est dédié à la semaine du 17 mars 2031. Évoque Renouveau du printemps 2031 dans un hommage culturel ou saisonnier.",
+      "de": "Dieser Token ist der Woche vom 17. März 2031 gewidmet. Erinnert an Frühlingserwachen 2031 als kulturelles oder saisonales Motiv.",
+      "ko": "이 토큰은 2031년 3월 17일 주간을 기념합니다. 문화 또는 계절 기념 주제인 봄의 새 출발 2031을(를) 담았습니다.",
+      "ru": "Этот жетон посвящён неделе с 17 марта 2031 года. Посвящён теме «Весеннее обновление 2031» как культурному или сезонному событию."
+    }
   },
   "weekly_20310407": {
     "weekId": "20310407",
-    "title": "Atlas Weekly 20310407",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Sapphire Telescope Token",
+    "description": "This token is dedicated to the week of 07 April 2031. Inspired by Sapphire Telescope; a purely cosmetic collectible.",
     "kind": "museum",
-    "startUtcMs": 1933286400000
+    "startUtcMs": 1933286400000,
+    "theme": "object",
+    "symbol": "compass",
+    "titles": {
+      "en": "Sapphire Telescope Token",
+      "tr": "Safir Dürbün Tokeni",
+      "es": "Ficha: Telescopio de zafiro",
+      "fr": "Jeton Télescope saphir",
+      "de": "Saphirteleskop-Token",
+      "ko": "사파이어 망원경 토큰",
+      "ru": "Жетон «Сапфировый телескоп»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 07 April 2031. Inspired by Sapphire Telescope; a purely cosmetic collectible.",
+      "tr": "Bu jeton 07 Nisan 2031 haftasına ithaf edilmiştir. Safir Dürbün temasından ilham alan kozmetik bir koleksiyon jetonudur.",
+      "es": "Esta ficha está dedicada a la semana del 07 de abril de 2031. Inspirada en Telescopio de zafiro; es solo un artículo cosmético.",
+      "fr": "Ce jeton est dédié à la semaine du 07 avril 2031. Inspiré par Télescope saphir, un objet de collection purement cosmétique.",
+      "de": "Dieser Token ist der Woche vom 07. April 2031 gewidmet. Inspiriert von Saphirteleskop; ein rein kosmetisches Sammlerstück.",
+      "ko": "이 토큰은 2031년 4월 7일 주간을 기념합니다. 사파이어 망원경에서 영감을 얻은 장식용 수집품입니다.",
+      "ru": "Этот жетон посвящён неделе с 07 апреля 2031 года. Вдохновлён темой «Сапфировый телескоп»; только декоративный предмет."
+    }
   },
   "weekly_20310512": {
     "weekId": "20310512",
-    "title": "Atlas Weekly 20310512",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Madrid Square Token",
+    "description": "This token is dedicated to the week of 12 May 2031. Inspired by Madrid Square and the heritage of its city.",
     "kind": "museum",
-    "startUtcMs": 1936310400000
+    "startUtcMs": 1936310400000,
+    "theme": "city",
+    "symbol": "city",
+    "titles": {
+      "en": "Madrid Square Token",
+      "tr": "Madrid Meydanı Tokeni",
+      "es": "Ficha: Plaza de Madrid",
+      "fr": "Jeton Place de Madrid",
+      "de": "Platz von Madrid-Token",
+      "ko": "마드리드 광장 토큰",
+      "ru": "Жетон «Площадь Мадрида»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 12 May 2031. Inspired by Madrid Square and the heritage of its city.",
+      "tr": "Bu jeton 12 Mayıs 2031 haftasına ithaf edilmiştir. Madrid Meydanı ile anılan şehrin mirasından ilham alır.",
+      "es": "Esta ficha está dedicada a la semana del 12 de mayo de 2031. Inspirada en Plaza de Madrid y el patrimonio de su ciudad.",
+      "fr": "Ce jeton est dédié à la semaine du 12 mai 2031. Inspiré par Place de Madrid et le patrimoine de sa ville.",
+      "de": "Dieser Token ist der Woche vom 12. Mai 2031 gewidmet. Inspiriert von Platz von Madrid und dem Erbe seiner Stadt.",
+      "ko": "이 토큰은 2031년 5월 12일 주간을 기념합니다. 마드리드 광장와 도시의 문화유산에서 영감을 받았습니다.",
+      "ru": "Этот жетон посвящён неделе с 12 мая 2031 года. Вдохновлён темой «Площадь Мадрида» и наследием города."
+    }
   },
   "weekly_20310922": {
     "weekId": "20310922",
-    "title": "Atlas Weekly 20310922",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Autumn Equinox 2031 Token",
+    "description": "This token is dedicated to the week of 22 September 2031. Commemorates Autumn Equinox 2031 as a cultural or seasonal theme.",
     "kind": "museum",
-    "startUtcMs": 1947801600000
+    "startUtcMs": 1947801600000,
+    "theme": "holiday",
+    "symbol": "ribbon",
+    "titles": {
+      "en": "Autumn Equinox 2031 Token",
+      "tr": "Sonbahar Ekinoksu 2031 Tokeni",
+      "es": "Ficha: Equinoccio de otoño 2031",
+      "fr": "Jeton Équinoxe d’automne 2031",
+      "de": "Herbst-Tagundnachtgleiche 2031-Token",
+      "ko": "추분 2031 토큰",
+      "ru": "Жетон «Осеннее равноденствие 2031»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 22 September 2031. Commemorates Autumn Equinox 2031 as a cultural or seasonal theme.",
+      "tr": "Bu jeton 22 Eylül 2031 haftasına ithaf edilmiştir. Sonbahar Ekinoksu 2031 temasını kültürel veya mevsimsel bir anma olarak simgeler.",
+      "es": "Esta ficha está dedicada a la semana del 22 de septiembre de 2031. Conmemora Equinoccio de otoño 2031 como tema cultural o estacional.",
+      "fr": "Ce jeton est dédié à la semaine du 22 septembre 2031. Évoque Équinoxe d’automne 2031 dans un hommage culturel ou saisonnier.",
+      "de": "Dieser Token ist der Woche vom 22. September 2031 gewidmet. Erinnert an Herbst-Tagundnachtgleiche 2031 als kulturelles oder saisonales Motiv.",
+      "ko": "이 토큰은 2031년 9월 22일 주간을 기념합니다. 문화 또는 계절 기념 주제인 추분 2031을(를) 담았습니다.",
+      "ru": "Этот жетон посвящён неделе с 22 сентября 2031 года. Посвящён теме «Осеннее равноденствие 2031» как культурному или сезонному событию."
+    }
   },
   "weekly_20310929": {
     "weekId": "20310929",
-    "title": "Atlas Weekly 20310929",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Seoul Lantern Token",
+    "description": "This token is dedicated to the week of 29 September 2031. Inspired by Seoul Lantern and the heritage of its city.",
     "kind": "museum",
-    "startUtcMs": 1948406400000
+    "startUtcMs": 1948406400000,
+    "theme": "city",
+    "symbol": "city",
+    "titles": {
+      "en": "Seoul Lantern Token",
+      "tr": "Seul Feneri Tokeni",
+      "es": "Ficha: Farol de Seúl",
+      "fr": "Jeton Lanterne de Séoul",
+      "de": "Laterne von Seoul-Token",
+      "ko": "서울의 등불 토큰",
+      "ru": "Жетон «Фонарь Сеула»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 29 September 2031. Inspired by Seoul Lantern and the heritage of its city.",
+      "tr": "Bu jeton 29 Eylül 2031 haftasına ithaf edilmiştir. Seul Feneri ile anılan şehrin mirasından ilham alır.",
+      "es": "Esta ficha está dedicada a la semana del 29 de septiembre de 2031. Inspirada en Farol de Seúl y el patrimonio de su ciudad.",
+      "fr": "Ce jeton est dédié à la semaine du 29 septembre 2031. Inspiré par Lanterne de Séoul et le patrimoine de sa ville.",
+      "de": "Dieser Token ist der Woche vom 29. September 2031 gewidmet. Inspiriert von Laterne von Seoul und dem Erbe seiner Stadt.",
+      "ko": "이 토큰은 2031년 9월 29일 주간을 기념합니다. 서울의 등불와 도시의 문화유산에서 영감을 받았습니다.",
+      "ru": "Этот жетон посвящён неделе с 29 сентября 2031 года. Вдохновлён темой «Фонарь Сеула» и наследием города."
+    }
   },
   "weekly_20311103": {
     "weekId": "20311103",
-    "title": "Atlas Weekly 20311103",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Republic Day 2031 Token",
+    "description": "This token is dedicated to the week of 03 November 2031. Commemorates Republic Day 2031 as a cultural or seasonal theme.",
     "kind": "museum",
-    "startUtcMs": 1951430400000
+    "startUtcMs": 1951430400000,
+    "theme": "holiday",
+    "symbol": "ribbon",
+    "titles": {
+      "en": "Republic Day 2031 Token",
+      "tr": "Cumhuriyet Bayramı 2031 Tokeni",
+      "es": "Ficha: Día de la República 2031",
+      "fr": "Jeton Fête de la République 2031",
+      "de": "Tag der Republik 2031-Token",
+      "ko": "공화국의 날 2031 토큰",
+      "ru": "Жетон «День Республики 2031»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 03 November 2031. Commemorates Republic Day 2031 as a cultural or seasonal theme.",
+      "tr": "Bu jeton 03 Kasım 2031 haftasına ithaf edilmiştir. Cumhuriyet Bayramı 2031 temasını kültürel veya mevsimsel bir anma olarak simgeler.",
+      "es": "Esta ficha está dedicada a la semana del 03 de noviembre de 2031. Conmemora Día de la República 2031 como tema cultural o estacional.",
+      "fr": "Ce jeton est dédié à la semaine du 03 novembre 2031. Évoque Fête de la République 2031 dans un hommage culturel ou saisonnier.",
+      "de": "Dieser Token ist der Woche vom 03. November 2031 gewidmet. Erinnert an Tag der Republik 2031 als kulturelles oder saisonales Motiv.",
+      "ko": "이 토큰은 2031년 11월 3일 주간을 기념합니다. 문화 또는 계절 기념 주제인 공화국의 날 2031을(를) 담았습니다.",
+      "ru": "Этот жетон посвящён неделе с 03 ноября 2031 года. Посвящён теме «День Республики 2031» как культурному или сезонному событию."
+    }
   },
   "weekly_20311110": {
     "weekId": "20311110",
-    "title": "Atlas Weekly 20311110",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Storm Bell Token",
+    "description": "This token is dedicated to the week of 10 November 2031. Inspired by Storm Bell; a purely cosmetic collectible.",
     "kind": "museum",
-    "startUtcMs": 1952035200000
+    "startUtcMs": 1952035200000,
+    "theme": "object",
+    "symbol": "compass",
+    "titles": {
+      "en": "Storm Bell Token",
+      "tr": "Fırtına Çanı Tokeni",
+      "es": "Ficha: Campana de tormenta",
+      "fr": "Jeton Cloche de tempête",
+      "de": "Sturmglocke-Token",
+      "ko": "폭풍의 종 토큰",
+      "ru": "Жетон «Штормовой колокол»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 10 November 2031. Inspired by Storm Bell; a purely cosmetic collectible.",
+      "tr": "Bu jeton 10 Kasım 2031 haftasına ithaf edilmiştir. Fırtına Çanı temasından ilham alan kozmetik bir koleksiyon jetonudur.",
+      "es": "Esta ficha está dedicada a la semana del 10 de noviembre de 2031. Inspirada en Campana de tormenta; es solo un artículo cosmético.",
+      "fr": "Ce jeton est dédié à la semaine du 10 novembre 2031. Inspiré par Cloche de tempête, un objet de collection purement cosmétique.",
+      "de": "Dieser Token ist der Woche vom 10. November 2031 gewidmet. Inspiriert von Sturmglocke; ein rein kosmetisches Sammlerstück.",
+      "ko": "이 토큰은 2031년 11월 10일 주간을 기념합니다. 폭풍의 종에서 영감을 얻은 장식용 수집품입니다.",
+      "ru": "Этот жетон посвящён неделе с 10 ноября 2031 года. Вдохновлён темой «Штормовой колокол»; только декоративный предмет."
+    }
   },
   "weekly_20311201": {
     "weekId": "20311201",
-    "title": "Atlas Weekly 20311201",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Coral Crown Token",
+    "description": "This token is dedicated to the week of 01 December 2031. Inspired by Coral Crown; a purely cosmetic collectible.",
     "kind": "museum",
-    "startUtcMs": 1953849600000
+    "startUtcMs": 1953849600000,
+    "theme": "object",
+    "symbol": "compass",
+    "titles": {
+      "en": "Coral Crown Token",
+      "tr": "Mercan Taç Tokeni",
+      "es": "Ficha: Corona de coral",
+      "fr": "Jeton Couronne de corail",
+      "de": "Korallenkrone-Token",
+      "ko": "산호 왕관 토큰",
+      "ru": "Жетон «Коралловая корона»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 01 December 2031. Inspired by Coral Crown; a purely cosmetic collectible.",
+      "tr": "Bu jeton 01 Aralık 2031 haftasına ithaf edilmiştir. Mercan Taç temasından ilham alan kozmetik bir koleksiyon jetonudur.",
+      "es": "Esta ficha está dedicada a la semana del 01 de diciembre de 2031. Inspirada en Corona de coral; es solo un artículo cosmético.",
+      "fr": "Ce jeton est dédié à la semaine du 01 décembre 2031. Inspiré par Couronne de corail, un objet de collection purement cosmétique.",
+      "de": "Dieser Token ist der Woche vom 01. Dezember 2031 gewidmet. Inspiriert von Korallenkrone; ein rein kosmetisches Sammlerstück.",
+      "ko": "이 토큰은 2031년 12월 1일 주간을 기념합니다. 산호 왕관에서 영감을 얻은 장식용 수집품입니다.",
+      "ru": "Этот жетон посвящён неделе с 01 декабря 2031 года. Вдохновлён темой «Коралловая корона»; только декоративный предмет."
+    }
   },
   "weekly_20311215": {
     "weekId": "20311215",
-    "title": "Atlas Weekly 20311215",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Albert Einstein Token",
+    "description": "This token is dedicated to the week of 15 December 2031. Honors Albert Einstein, remembered for modern physics.",
     "kind": "museum",
-    "startUtcMs": 1955059200000
+    "startUtcMs": 1955059200000,
+    "theme": "name",
+    "symbol": "star",
+    "titles": {
+      "en": "Albert Einstein Token",
+      "tr": "Albert Einstein Tokeni",
+      "es": "Ficha: Albert Einstein",
+      "fr": "Jeton Albert Einstein",
+      "de": "Albert Einstein-Token",
+      "ko": "Albert Einstein 토큰",
+      "ru": "Жетон «Albert Einstein»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 15 December 2031. Honors Albert Einstein, remembered for modern physics.",
+      "tr": "Bu jeton 15 Aralık 2031 haftasına ithaf edilmiştir. Albert Einstein anısına hazırlanmıştır; modern fizik alanındaki katkıları anılır.",
+      "es": "Esta ficha está dedicada a la semana del 15 de diciembre de 2031. Homenaje a Albert Einstein, recordado por sus aportes en la física moderna.",
+      "fr": "Ce jeton est dédié à la semaine du 15 décembre 2031. Hommage à Albert Einstein, célèbre pour ses travaux en la physique moderne.",
+      "de": "Dieser Token ist der Woche vom 15. Dezember 2031 gewidmet. Würdigt Albert Einstein, bekannt für Beiträge zu moderne Physik.",
+      "ko": "이 토큰은 2031년 12월 15일 주간을 기념합니다. 현대 물리학 분야의 업적으로 기억되는 Albert Einstein을(를) 기립니다.",
+      "ru": "Этот жетон посвящён неделе с 15 декабря 2031 года. В честь Albert Einstein, известного вкладом в современная физика."
+    }
   },
   "weekly_20311222": {
     "weekId": "20311222",
-    "title": "Atlas Weekly 20311222",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Winter Solstice 2031 Token",
+    "description": "This token is dedicated to the week of 22 December 2031. Commemorates Winter Solstice 2031 as a cultural or seasonal theme.",
     "kind": "museum",
-    "startUtcMs": 1955664000000
+    "startUtcMs": 1955664000000,
+    "theme": "holiday",
+    "symbol": "ribbon",
+    "titles": {
+      "en": "Winter Solstice 2031 Token",
+      "tr": "Kış Gündönümü 2031 Tokeni",
+      "es": "Ficha: Solsticio de invierno 2031",
+      "fr": "Jeton Solstice d’hiver 2031",
+      "de": "Wintersonnenwende 2031-Token",
+      "ko": "동지 2031 토큰",
+      "ru": "Жетон «Зимнее солнцестояние 2031»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 22 December 2031. Commemorates Winter Solstice 2031 as a cultural or seasonal theme.",
+      "tr": "Bu jeton 22 Aralık 2031 haftasına ithaf edilmiştir. Kış Gündönümü 2031 temasını kültürel veya mevsimsel bir anma olarak simgeler.",
+      "es": "Esta ficha está dedicada a la semana del 22 de diciembre de 2031. Conmemora Solsticio de invierno 2031 como tema cultural o estacional.",
+      "fr": "Ce jeton est dédié à la semaine du 22 décembre 2031. Évoque Solstice d’hiver 2031 dans un hommage culturel ou saisonnier.",
+      "de": "Dieser Token ist der Woche vom 22. Dezember 2031 gewidmet. Erinnert an Wintersonnenwende 2031 als kulturelles oder saisonales Motiv.",
+      "ko": "이 토큰은 2031년 12월 22일 주간을 기념합니다. 문화 또는 계절 기념 주제인 동지 2031을(를) 담았습니다.",
+      "ru": "Этот жетон посвящён неделе с 22 декабря 2031 года. Посвящён теме «Зимнее солнцестояние 2031» как культурному или сезонному событию."
+    }
   },
   "weekly_20320105": {
     "weekId": "20320105",
-    "title": "Atlas Weekly 20320105",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Singapore Gardens Token",
+    "description": "This token is dedicated to the week of 05 January 2032. Inspired by Singapore Gardens and the heritage of its city.",
     "kind": "museum",
-    "startUtcMs": 1956873600000
+    "startUtcMs": 1956873600000,
+    "theme": "city",
+    "symbol": "city",
+    "titles": {
+      "en": "Singapore Gardens Token",
+      "tr": "Singapur Bahçeleri Tokeni",
+      "es": "Ficha: Jardines de Singapur",
+      "fr": "Jeton Jardins de Singapour",
+      "de": "Gärten von Singapur-Token",
+      "ko": "싱가포르의 정원 토큰",
+      "ru": "Жетон «Сады Сингапура»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 05 January 2032. Inspired by Singapore Gardens and the heritage of its city.",
+      "tr": "Bu jeton 05 Ocak 2032 haftasına ithaf edilmiştir. Singapur Bahçeleri ile anılan şehrin mirasından ilham alır.",
+      "es": "Esta ficha está dedicada a la semana del 05 de enero de 2032. Inspirada en Jardines de Singapur y el patrimonio de su ciudad.",
+      "fr": "Ce jeton est dédié à la semaine du 05 janvier 2032. Inspiré par Jardins de Singapour et le patrimoine de sa ville.",
+      "de": "Dieser Token ist der Woche vom 05. Januar 2032 gewidmet. Inspiriert von Gärten von Singapur und dem Erbe seiner Stadt.",
+      "ko": "이 토큰은 2032년 1월 5일 주간을 기념합니다. 싱가포르의 정원와 도시의 문화유산에서 영감을 받았습니다.",
+      "ru": "Этот жетон посвящён неделе с 05 января 2032 года. Вдохновлён темой «Сады Сингапура» и наследием города."
+    }
   },
   "weekly_20320209": {
     "weekId": "20320209",
-    "title": "Atlas Weekly 20320209",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Friendship Day 2032 Token",
+    "description": "This token is dedicated to the week of 09 February 2032. Commemorates Friendship Day 2032 as a cultural or seasonal theme.",
     "kind": "museum",
-    "startUtcMs": 1959897600000
+    "startUtcMs": 1959897600000,
+    "theme": "holiday",
+    "symbol": "ribbon",
+    "titles": {
+      "en": "Friendship Day 2032 Token",
+      "tr": "Dostluk Günü 2032 Tokeni",
+      "es": "Ficha: Día de la Amistad 2032",
+      "fr": "Jeton Journée de l’amitié 2032",
+      "de": "Tag der Freundschaft 2032-Token",
+      "ko": "우정의 날 2032 토큰",
+      "ru": "Жетон «День дружбы 2032»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 09 February 2032. Commemorates Friendship Day 2032 as a cultural or seasonal theme.",
+      "tr": "Bu jeton 09 Şubat 2032 haftasına ithaf edilmiştir. Dostluk Günü 2032 temasını kültürel veya mevsimsel bir anma olarak simgeler.",
+      "es": "Esta ficha está dedicada a la semana del 09 de febrero de 2032. Conmemora Día de la Amistad 2032 como tema cultural o estacional.",
+      "fr": "Ce jeton est dédié à la semaine du 09 février 2032. Évoque Journée de l’amitié 2032 dans un hommage culturel ou saisonnier.",
+      "de": "Dieser Token ist der Woche vom 09. Februar 2032 gewidmet. Erinnert an Tag der Freundschaft 2032 als kulturelles oder saisonales Motiv.",
+      "ko": "이 토큰은 2032년 2월 9일 주간을 기념합니다. 문화 또는 계절 기념 주제인 우정의 날 2032을(를) 담았습니다.",
+      "ru": "Этот жетон посвящён неделе с 09 февраля 2032 года. Посвящён теме «День дружбы 2032» как культурному или сезонному событию."
+    }
   },
   "weekly_20320223": {
     "weekId": "20320223",
-    "title": "Atlas Weekly 20320223",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Mystery Seal Token",
+    "description": "This token is dedicated to the week of 23 February 2032. Inspired by Mystery Seal; a purely cosmetic collectible.",
     "kind": "museum",
-    "startUtcMs": 1961107200000
+    "startUtcMs": 1961107200000,
+    "theme": "object",
+    "symbol": "compass",
+    "titles": {
+      "en": "Mystery Seal Token",
+      "tr": "Gizemli Mühür Tokeni",
+      "es": "Ficha: Sello misterioso",
+      "fr": "Jeton Sceau mystérieux",
+      "de": "Geheimes Siegel-Token",
+      "ko": "신비한 인장 토큰",
+      "ru": "Жетон «Таинственная печать»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 23 February 2032. Inspired by Mystery Seal; a purely cosmetic collectible.",
+      "tr": "Bu jeton 23 Şubat 2032 haftasına ithaf edilmiştir. Gizemli Mühür temasından ilham alan kozmetik bir koleksiyon jetonudur.",
+      "es": "Esta ficha está dedicada a la semana del 23 de febrero de 2032. Inspirada en Sello misterioso; es solo un artículo cosmético.",
+      "fr": "Ce jeton est dédié à la semaine du 23 février 2032. Inspiré par Sceau mystérieux, un objet de collection purement cosmétique.",
+      "de": "Dieser Token ist der Woche vom 23. Februar 2032 gewidmet. Inspiriert von Geheimes Siegel; ein rein kosmetisches Sammlerstück.",
+      "ko": "이 토큰은 2032년 2월 23일 주간을 기념합니다. 신비한 인장에서 영감을 얻은 장식용 수집품입니다.",
+      "ru": "Этот жетон посвящён неделе с 23 февраля 2032 года. Вдохновлён темой «Таинственная печать»; только декоративный предмет."
+    }
   },
   "weekly_20320301": {
     "weekId": "20320301",
-    "title": "Atlas Weekly 20320301",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Stockholm Islands Token",
+    "description": "This token is dedicated to the week of 01 March 2032. Inspired by Stockholm Islands and the heritage of its city.",
     "kind": "museum",
-    "startUtcMs": 1961712000000
+    "startUtcMs": 1961712000000,
+    "theme": "city",
+    "symbol": "city",
+    "titles": {
+      "en": "Stockholm Islands Token",
+      "tr": "Stockholm Adaları Tokeni",
+      "es": "Ficha: Islas de Estocolmo",
+      "fr": "Jeton Îles de Stockholm",
+      "de": "Inseln von Stockholm-Token",
+      "ko": "스톡홀름의 섬 토큰",
+      "ru": "Жетон «Острова Стокгольма»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 01 March 2032. Inspired by Stockholm Islands and the heritage of its city.",
+      "tr": "Bu jeton 01 Mart 2032 haftasına ithaf edilmiştir. Stockholm Adaları ile anılan şehrin mirasından ilham alır.",
+      "es": "Esta ficha está dedicada a la semana del 01 de marzo de 2032. Inspirada en Islas de Estocolmo y el patrimonio de su ciudad.",
+      "fr": "Ce jeton est dédié à la semaine du 01 mars 2032. Inspiré par Îles de Stockholm et le patrimoine de sa ville.",
+      "de": "Dieser Token ist der Woche vom 01. März 2032 gewidmet. Inspiriert von Inseln von Stockholm und dem Erbe seiner Stadt.",
+      "ko": "이 토큰은 2032년 3월 1일 주간을 기념합니다. 스톡홀름의 섬와 도시의 문화유산에서 영감을 받았습니다.",
+      "ru": "Этот жетон посвящён неделе с 01 марта 2032 года. Вдохновлён темой «Острова Стокгольма» и наследием города."
+    }
   },
   "weekly_20320405": {
     "weekId": "20320405",
-    "title": "Atlas Weekly 20320405",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Rosalind Franklin Token",
+    "description": "This token is dedicated to the week of 05 April 2032. Honors Rosalind Franklin, remembered for X-ray crystallography.",
     "kind": "museum",
-    "startUtcMs": 1964736000000
+    "startUtcMs": 1964736000000,
+    "theme": "name",
+    "symbol": "star",
+    "titles": {
+      "en": "Rosalind Franklin Token",
+      "tr": "Rosalind Franklin Tokeni",
+      "es": "Ficha: Rosalind Franklin",
+      "fr": "Jeton Rosalind Franklin",
+      "de": "Rosalind Franklin-Token",
+      "ko": "Rosalind Franklin 토큰",
+      "ru": "Жетон «Rosalind Franklin»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 05 April 2032. Honors Rosalind Franklin, remembered for X-ray crystallography.",
+      "tr": "Bu jeton 05 Nisan 2032 haftasına ithaf edilmiştir. Rosalind Franklin anısına hazırlanmıştır; X-ışını kristalografisi alanındaki katkıları anılır.",
+      "es": "Esta ficha está dedicada a la semana del 05 de abril de 2032. Homenaje a Rosalind Franklin, recordado por sus aportes en la cristalografía de rayos X.",
+      "fr": "Ce jeton est dédié à la semaine du 05 avril 2032. Hommage à Rosalind Franklin, célèbre pour ses travaux en la cristallographie aux rayons X.",
+      "de": "Dieser Token ist der Woche vom 05. April 2032 gewidmet. Würdigt Rosalind Franklin, bekannt für Beiträge zu Röntgenkristallographie.",
+      "ko": "이 토큰은 2032년 4월 5일 주간을 기념합니다. X선 결정학 분야의 업적으로 기억되는 Rosalind Franklin을(를) 기립니다.",
+      "ru": "Этот жетон посвящён неделе с 05 апреля 2032 года. В честь Rosalind Franklin, известного вкладом в рентгеновская кристаллография."
+    }
   },
   "weekly_20320419": {
     "weekId": "20320419",
-    "title": "Atlas Weekly 20320419",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Vienna Melody Token",
+    "description": "This token is dedicated to the week of 19 April 2032. Inspired by Vienna Melody and the heritage of its city.",
     "kind": "museum",
-    "startUtcMs": 1965945600000
+    "startUtcMs": 1965945600000,
+    "theme": "city",
+    "symbol": "city",
+    "titles": {
+      "en": "Vienna Melody Token",
+      "tr": "Viyana Ezgisi Tokeni",
+      "es": "Ficha: Melodía de Viena",
+      "fr": "Jeton Mélodie de Vienne",
+      "de": "Wiener Melodie-Token",
+      "ko": "빈의 선율 토큰",
+      "ru": "Жетон «Мелодия Вены»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 19 April 2032. Inspired by Vienna Melody and the heritage of its city.",
+      "tr": "Bu jeton 19 Nisan 2032 haftasına ithaf edilmiştir. Viyana Ezgisi ile anılan şehrin mirasından ilham alır.",
+      "es": "Esta ficha está dedicada a la semana del 19 de abril de 2032. Inspirada en Melodía de Viena y el patrimonio de su ciudad.",
+      "fr": "Ce jeton est dédié à la semaine du 19 avril 2032. Inspiré par Mélodie de Vienne et le patrimoine de sa ville.",
+      "de": "Dieser Token ist der Woche vom 19. April 2032 gewidmet. Inspiriert von Wiener Melodie und dem Erbe seiner Stadt.",
+      "ko": "이 토큰은 2032년 4월 19일 주간을 기념합니다. 빈의 선율와 도시의 문화유산에서 영감을 받았습니다.",
+      "ru": "Этот жетон посвящён неделе с 19 апреля 2032 года. Вдохновлён темой «Мелодия Вены» и наследием города."
+    }
   },
   "weekly_20320517": {
     "weekId": "20320517",
-    "title": "Atlas Weekly 20320517",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Youth and Sports Day 2032 Token",
+    "description": "This token is dedicated to the week of 17 May 2032. Commemorates Youth and Sports Day 2032 as a cultural or seasonal theme.",
     "kind": "museum",
-    "startUtcMs": 1968364800000
+    "startUtcMs": 1968364800000,
+    "theme": "holiday",
+    "symbol": "ribbon",
+    "titles": {
+      "en": "Youth and Sports Day 2032 Token",
+      "tr": "Gençlik ve Spor Günü 2032 Tokeni",
+      "es": "Ficha: Día de Juventud y Deportes 2032",
+      "fr": "Jeton Journée jeunesse et sport 2032",
+      "de": "Tag der Jugend und des Sports 2032-Token",
+      "ko": "청소년 스포츠의 날 2032 토큰",
+      "ru": "Жетон «День молодёжи и спорта 2032»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 17 May 2032. Commemorates Youth and Sports Day 2032 as a cultural or seasonal theme.",
+      "tr": "Bu jeton 17 Mayıs 2032 haftasına ithaf edilmiştir. Gençlik ve Spor Günü 2032 temasını kültürel veya mevsimsel bir anma olarak simgeler.",
+      "es": "Esta ficha está dedicada a la semana del 17 de mayo de 2032. Conmemora Día de Juventud y Deportes 2032 como tema cultural o estacional.",
+      "fr": "Ce jeton est dédié à la semaine du 17 mai 2032. Évoque Journée jeunesse et sport 2032 dans un hommage culturel ou saisonnier.",
+      "de": "Dieser Token ist der Woche vom 17. Mai 2032 gewidmet. Erinnert an Tag der Jugend und des Sports 2032 als kulturelles oder saisonales Motiv.",
+      "ko": "이 토큰은 2032년 5월 17일 주간을 기념합니다. 문화 또는 계절 기념 주제인 청소년 스포츠의 날 2032을(를) 담았습니다.",
+      "ru": "Этот жетон посвящён неделе с 17 мая 2032 года. Посвящён теме «День молодёжи и спорта 2032» как культурному или сезонному событию."
+    }
   },
   "weekly_20320531": {
     "weekId": "20320531",
-    "title": "Atlas Weekly 20320531",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Silver Key Token",
+    "description": "This token is dedicated to the week of 31 May 2032. Inspired by Silver Key; a purely cosmetic collectible.",
     "kind": "museum",
-    "startUtcMs": 1969574400000
+    "startUtcMs": 1969574400000,
+    "theme": "object",
+    "symbol": "compass",
+    "titles": {
+      "en": "Silver Key Token",
+      "tr": "Gümüş Anahtar Tokeni",
+      "es": "Ficha: Llave de plata",
+      "fr": "Jeton Clé d’argent",
+      "de": "Silberschlüssel-Token",
+      "ko": "은빛 열쇠 토큰",
+      "ru": "Жетон «Серебряный ключ»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 31 May 2032. Inspired by Silver Key; a purely cosmetic collectible.",
+      "tr": "Bu jeton 31 Mayıs 2032 haftasına ithaf edilmiştir. Gümüş Anahtar temasından ilham alan kozmetik bir koleksiyon jetonudur.",
+      "es": "Esta ficha está dedicada a la semana del 31 de mayo de 2032. Inspirada en Llave de plata; es solo un artículo cosmético.",
+      "fr": "Ce jeton est dédié à la semaine du 31 mai 2032. Inspiré par Clé d’argent, un objet de collection purement cosmétique.",
+      "de": "Dieser Token ist der Woche vom 31. Mai 2032 gewidmet. Inspiriert von Silberschlüssel; ein rein kosmetisches Sammlerstück.",
+      "ko": "이 토큰은 2032년 5월 31일 주간을 기념합니다. 은빛 열쇠에서 영감을 얻은 장식용 수집품입니다.",
+      "ru": "Этот жетон посвящён неделе с 31 мая 2032 года. Вдохновлён темой «Серебряный ключ»; только декоративный предмет."
+    }
   },
   "weekly_20320607": {
     "weekId": "20320607",
-    "title": "Atlas Weekly 20320607",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Sky Bridge Token",
+    "description": "This token is dedicated to the week of 07 June 2032. Inspired by Sky Bridge; a purely cosmetic collectible.",
     "kind": "museum",
-    "startUtcMs": 1970179200000
+    "startUtcMs": 1970179200000,
+    "theme": "object",
+    "symbol": "compass",
+    "titles": {
+      "en": "Sky Bridge Token",
+      "tr": "Gökyüzü Köprüsü Tokeni",
+      "es": "Ficha: Puente del cielo",
+      "fr": "Jeton Pont du ciel",
+      "de": "Himmelsbrücke-Token",
+      "ko": "하늘 다리 토큰",
+      "ru": "Жетон «Небесный мост»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 07 June 2032. Inspired by Sky Bridge; a purely cosmetic collectible.",
+      "tr": "Bu jeton 07 Haziran 2032 haftasına ithaf edilmiştir. Gökyüzü Köprüsü temasından ilham alan kozmetik bir koleksiyon jetonudur.",
+      "es": "Esta ficha está dedicada a la semana del 07 de junio de 2032. Inspirada en Puente del cielo; es solo un artículo cosmético.",
+      "fr": "Ce jeton est dédié à la semaine du 07 juin 2032. Inspiré par Pont du ciel, un objet de collection purement cosmétique.",
+      "de": "Dieser Token ist der Woche vom 07. Juni 2032 gewidmet. Inspiriert von Himmelsbrücke; ein rein kosmetisches Sammlerstück.",
+      "ko": "이 토큰은 2032년 6월 7일 주간을 기념합니다. 하늘 다리에서 영감을 얻은 장식용 수집품입니다.",
+      "ru": "Этот жетон посвящён неделе с 07 июня 2032 года. Вдохновлён темой «Небесный мост»; только декоративный предмет."
+    }
   },
   "weekly_20321025": {
     "weekId": "20321025",
-    "title": "Atlas Weekly 20321025",
-    "description": "Limited weekly verified-match collectible. Cosmetic only.",
+    "title": "Republic Day 2032 Token",
+    "description": "This token is dedicated to the week of 25 October 2032. Commemorates Republic Day 2032 as a cultural or seasonal theme.",
     "kind": "museum",
-    "startUtcMs": 1982275200000
+    "startUtcMs": 1982275200000,
+    "theme": "holiday",
+    "symbol": "ribbon",
+    "titles": {
+      "en": "Republic Day 2032 Token",
+      "tr": "Cumhuriyet Bayramı 2032 Tokeni",
+      "es": "Ficha: Día de la República 2032",
+      "fr": "Jeton Fête de la République 2032",
+      "de": "Tag der Republik 2032-Token",
+      "ko": "공화국의 날 2032 토큰",
+      "ru": "Жетон «День Республики 2032»"
+    },
+    "descriptions": {
+      "en": "This token is dedicated to the week of 25 October 2032. Commemorates Republic Day 2032 as a cultural or seasonal theme.",
+      "tr": "Bu jeton 25 Ekim 2032 haftasına ithaf edilmiştir. Cumhuriyet Bayramı 2032 temasını kültürel veya mevsimsel bir anma olarak simgeler.",
+      "es": "Esta ficha está dedicada a la semana del 25 de octubre de 2032. Conmemora Día de la República 2032 como tema cultural o estacional.",
+      "fr": "Ce jeton est dédié à la semaine du 25 octobre 2032. Évoque Fête de la République 2032 dans un hommage culturel ou saisonnier.",
+      "de": "Dieser Token ist der Woche vom 25. Oktober 2032 gewidmet. Erinnert an Tag der Republik 2032 als kulturelles oder saisonales Motiv.",
+      "ko": "이 토큰은 2032년 10월 25일 주간을 기념합니다. 문화 또는 계절 기념 주제인 공화국의 날 2032을(를) 담았습니다.",
+      "ru": "Этот жетон посвящён неделе с 25 октября 2032 года. Посвящён теме «День Республики 2032» как культурному или сезонному событию."
+    }
   }
 }
