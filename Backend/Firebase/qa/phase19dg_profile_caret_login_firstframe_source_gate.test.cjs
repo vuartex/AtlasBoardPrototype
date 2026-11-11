@@ -1,0 +1,47 @@
+'use strict';
+// Phase19DG strictly local source/geometry gate, no cloud writes or Unity claims.
+const fs=require('node:fs');
+const path=require('node:path');
+const assert=require('node:assert/strict');
+const base=path.resolve(__dirname,'../../..');
+const read=p=>fs.readFileSync(path.join(base,p),'utf8');
+const profile=read('Assets/Project/Scripts/UI/Menu/AtlasBoardUnifiedProfileScreen.cs');
+const skin=read('Assets/Project/Scripts/UI/Menu/AtlasBoardLoginVisualRefresh.cs');
+const roadmap=read('Assets/Project/Documentation/MASTER_ROADMAP.md');
+let count=0;
+function test(name,check){assert.ok(check,name);console.log('PASS '+name);count++;}
+function segment(source,from,to){const a=source.indexOf(from);assert.ok(a>=0,from);const b=source.indexOf(to,a+from.length);assert.ok(b>a,to);return source.slice(a,b);}
+const login=segment(skin,'private void SynchronizeLoginLayout()','private void ResetOriginalLayout()');
+const rename=segment(profile,'private void OpenRenameAccountManager()','private async Task ApplyRenameFromProfileAsync');
+const guide=segment(profile,'private void KeepRenameCaretVisible()','private async Task ApplyRenameFromProfileAsync');
+const dismiss=segment(profile,'private void DismissAccountDialog()','private static string MaskEmail');
+test('Only one canonical profile route and one cosmetic login skin', (profile.match(/class AtlasBoardUnifiedProfileScreen/g)||[]).length===1 && (skin.match(/class AtlasBoardLoginVisualRefresh/g)||[]).length===1);
+test('The original login controller is never cloned', !/AddComponent<AtlasBoardAccountAccessUI>|new AtlasBoardAccountAccessUI/.test(skin));
+test('Skin subscribes before Canvas actually renders',skin.includes('Canvas.willRenderCanvases += SynchronizeBeforeCanvasRender;'));
+test('Canvas callback is unsubscribed cleanly',skin.includes('Canvas.willRenderCanvases -= SynchronizeBeforeCanvasRender;'));
+test('Render callback synchronously reapplies login layout',skin.includes('private void SynchronizeBeforeCanvasRender()') && skin.includes('SynchronizeLoginLayout();'));
+test('Existing visible login window is never gated by 0.22 second throttle',login.indexOf('Time.unscaledTime < nextScan') < login.indexOf('window = FindWindow();') && login.indexOf('Transform form = window.Find')>login.indexOf('if (window == null) return;'));
+test('Modern skin remains scoped to actual login fields',login.includes('form.Find("LoginEmail")') && login.includes('form.Find("Button_SignIn")'));
+test('Register and other views still reset the canonical window',login.includes('ResetOriginalLayout()') && skin.includes('new Vector2(980f, 900f)'));
+test('Status copy is not replaced or emptied',!/status\.text\s*=/.test(skin) && skin.includes('original text and its localization verbatim'));
+test('Existing quality gate clash reconciled just before rendering',login.includes('KeepLoginFooterAligned(form);') && skin.includes('AccountFormQualityGate.StabilizeStatusText()'));
+test('Guest CTA moved lower and toward the form center',skin.includes('Move(form, "Button_ContinueAsGuest", 155f, -348f, 470f, 60f)'));
+test('Guest CTA remains inside original 900 reference window',-52-348-60/2 >= -450);
+test('Status is horizontally centered over right-hand form',skin.includes('Vector2 position = new Vector2(161f, -330f)'));
+test('Status is below reset and above the guest CTA', -330-44/2 < -204-54/2-20 && -330-44/2 > -52-348+60/2+10);
+test('Status reads as multiline but does not overlap CTA',skin.includes('status.textWrappingMode = TextWrappingModes.Normal;') && skin.includes('status.alignment = TextAlignmentOptions.Center;'));
+test('Underlying sign-in, register, reset and guest actions untouched',!skin.includes('.onClick.AddListener') && !skin.includes('.onClick.RemoveAllListeners'));
+test('Username editor still uses a real TMP input rather than fake text',rename.includes('AddComponent<TMP_InputField>()') && rename.includes('input.textComponent = edit;'));
+test('Username editor retains live click/selection and keyboard behavior',rename.includes('input.textViewport = viewport;') && rename.includes('input.lineType = TMP_InputField.LineType.SingleLine;'));
+test('Caret color and width explicitly visible',rename.includes('input.customCaretColor = true;') && rename.includes('input.caretWidth = 4;') && rename.includes('input.caretColor = Gold;'));
+test('Caret guide is a native Unity Image, not Unicode glyph',rename.includes('"RenameCaretGuide"') && rename.includes('renameCaretGuide.raycastTarget = false;'));
+test('Caret guide starts hidden until input receives real focus',rename.includes('renameCaretGuide.gameObject.SetActive(false);') && guide.includes('input.isFocused'));
+test('Caret guide position follows TMP caret and character advance',guide.includes('input.caretPosition') && guide.includes('info.characterInfo[index].origin') && guide.includes('.xAdvance'));
+test('Caret is clamped within text viewport',guide.includes('Mathf.Clamp(x, -half, half)'));
+test('Deferred selection activates after button click event',rename.includes('StartCoroutine(FocusRenameInputNextFrame(input));') && rename.includes('input.ActivateInputField();'));
+test('Removing dialog clears focus coroutine and guide',dismiss.includes('StopCoroutine(renameFocusCoroutine)') && dismiss.includes('renameCaretGuide = null;'));
+test('No new account backend or currency handling is introduced',!skin.includes('UnityWebRequest') && !profile.includes('ServerValue.increment'));
+test('Canonical rename enforces original REST 24h rule',profile.includes('"RenameRegisteredRestAccountAsync", PrivateInstance'));
+test('Steam account cannot log out through Profile',profile.includes('signOutAction.gameObject.SetActive(allowed)'));
+test('Older owner-approved roadmap entries remain intact',roadmap.startsWith('# AtlasBoard v5.49.12dg') && roadmap.includes('# AtlasBoard v5.49.12df') && roadmap.includes('# AtlasBoard v5.49.12ct'));
+console.log(`PROFILE_DG_SOURCE_GATE=${count}/${count} PASS; UNITY_COMPILER=NOT_RUN; OWNER_VISUAL_QA=REQUIRED; FIREBASE_DEPLOY=NOT_REQUIRED`);
