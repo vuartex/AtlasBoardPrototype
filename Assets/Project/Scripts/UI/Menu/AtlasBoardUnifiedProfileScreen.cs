@@ -86,6 +86,10 @@ public sealed class AtlasBoardUnifiedProfileScreen : MonoBehaviour
     private float nextWeeklyNetworkAt;
     private string displayName = "";
     private Coroutine restoreCoroutine;
+    private string museumSelectedToken = "";
+    private int museumSelectedSlot = -1;
+    private int museumRevision = -1;
+
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -133,6 +137,15 @@ public sealed class AtlasBoardUnifiedProfileScreen : MonoBehaviour
                 }
             }
             RefreshWeeklyLiveTexts();
+            if (selectedRoute == "museum" || selectedRoute == "general")
+            {
+                var museum = AtlasBoardMuseumCollection.Instance;
+                if (museum != null && museum.Revision != museumRevision)
+                {
+                    museumRevision = museum.Revision;
+                    RefreshMuseumLiveTexts();
+                }
+            }
         }
 
         string uid = AtlasBoardRtdbMetaEconomy.CurrentUid ?? "";
@@ -143,6 +156,7 @@ public sealed class AtlasBoardUnifiedProfileScreen : MonoBehaviour
             loadedPlayerId = "";
             loadedAccountEmail = "";
             confirmedName = confirmedNameUid = "";
+            museumSelectedToken = ""; museumSelectedSlot = -1; museumRevision = -1;
             DismissAccountDialog();
             currentSnapshot = null;
             careerReadComplete = false;
@@ -1439,7 +1453,10 @@ public sealed class AtlasBoardUnifiedProfileScreen : MonoBehaviour
                 subtitleText.text = L("Three collectible display slots",
                     "Üç koleksiyon jetonu sergileme yuvası", "Tres espacios de colección",
                     "Trois emplacements", "Drei Sammelplätze", "전시 슬롯 세 개", "Три слота коллекции");
-                RenderMuseum(); break;
+                RenderMuseum();
+                if (AtlasBoardMuseumCollection.Instance != null)
+                    _ = AtlasBoardMuseumCollection.Instance.RefreshAsync(true);
+                break;
             case "passport":
                 headerText.text = names[3];
                 subtitleText.text = L("Keep your journey and stamps together",
@@ -1455,6 +1472,7 @@ public sealed class AtlasBoardUnifiedProfileScreen : MonoBehaviour
         }
         RefreshVisibleIdentity();
         RefreshWeeklyLiveTexts();
+        RefreshMuseumLiveTexts();
     }
 
     private void RenderOverview()
@@ -1629,10 +1647,10 @@ public sealed class AtlasBoardUnifiedProfileScreen : MonoBehaviour
                 new Vector2(39, 30), new Color(0f, 0f, 0f, 0f));
             RectTransform shortStroke = Rect(check, "StrokeA", new Vector2(-9, -2),
                 new Vector2(7, 17), C("#55E59B"));
-            shortStroke.localRotation = Quaternion.Euler(0, 0, -45);
+            shortStroke.localRotation = Quaternion.Euler(0, 0, 45);
             RectTransform longStroke = Rect(check, "StrokeB", new Vector2(4, 2),
                 new Vector2(7, 27), C("#55E59B"));
-            longStroke.localRotation = Quaternion.Euler(0, 0, 42);
+            longStroke.localRotation = Quaternion.Euler(0, 0, -42);
             check.gameObject.SetActive(false);
         }
         Text(stage, "WeeklyPolicy", L("Server-verified missions and UTC week",
@@ -1708,10 +1726,7 @@ public sealed class AtlasBoardUnifiedProfileScreen : MonoBehaviour
                 long remaining = Math.Max(0L, v.endUtcMs - DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
                 long days = remaining / 86400000L;
                 long hours = remaining / 3600000L % 24;
-                string reward = L("3 XP + 1 Gold reward", "3 XP + 1 Gold ödülü",
-                    "3 XP y 1 Gold", "3 XP et 1 Gold", "3 XP + 1 Gold",
-                    "XP 3개 + Gold 1개", "3 XP + 1 Gold");
-                info = reward + "  ·  " + v.FinishedCount + "/4  ·  " + days + "d " + hours + "h UTC";
+                info = v.FinishedCount + "/4  ·  " + days + "d " + hours + "h UTC";
                 if (v.claimed && v.tokenOwned)
                     info += " · " + L("Surprise collectible earned!", "Sürpriz koleksiyon jetonu kazanıldı!",
                         "¡Ficha sorpresa!", "Jeton surprise !", "Überraschungstoken!",
@@ -1735,19 +1750,134 @@ public sealed class AtlasBoardUnifiedProfileScreen : MonoBehaviour
 
     private void RenderMuseum()
     {
-        RectTransform display = Rect(stage, "MuseumDisplay", new Vector2(0, 43),
-            new Vector2(1410, 520), C("#302B68"));
+        // Slots and inventory are two independent panels; only verified UID-owned
+        // tokens are ever offered for equipping. No local token issuance exists.
+        RectTransform display = Rect(stage, "MuseumDisplay", new Vector2(0, 140),
+            new Vector2(1410, 338), C("#302B68"));
         Text(display, "MuseumTitle", L("YOUR DISPLAY CASE", "KOLEKSİYON VİTRİNİN",
             "TU COLECCIÓN", "VOTRE COLLECTION", "DEINE SAMMLUNG",
-            "내 컬렉션", "ВАША КОЛЛЕКЦИЯ"), new Vector2(0, 205),
-            new Vector2(1250, 55), 32, Gold, TextAlignmentOptions.Center, true);
-        DrawMuseumCoins(display, 0, true);
-        Text(display, "Notice", L("Token art and equipping will be activated after server ownership verification.",
-            "Jeton görselleri ve kuşanma, sunucu sahiplik doğrulamasından sonra etkinleştirilecek.",
-            "La propiedad se verificará en el servidor.", "Propriété vérifiée par le serveur.",
-            "Besitz wird serverseitig geprüft.", "서버 소유권 확인 후 활성화됩니다.",
-            "Владение проверяется сервером."),
-            new Vector2(0, -196), new Vector2(1280, 62), 21, Muted);
+            "내 컬렉션", "ВАША КОЛЛЕКЦИЯ"), new Vector2(0, 133),
+            new Vector2(1250, 45), 29, Gold, TextAlignmentOptions.Center, true);
+        for (int i = 0; i < 3; i++)
+        {
+            int slot = i;
+            Button b = Btn(display, "MuseumSlot_" + i, new[] {"I", "II", "III"}[i],
+                new Vector2((i - 1) * 290, 6), new Vector2(176, 152), C("#423680"),
+                () => { museumSelectedSlot = slot; RefreshMuseumLiveTexts(); }, 34);
+            var outline = Rect(b.transform, "GoldFrame", Vector2.zero, new Vector2(181, 157), Gold);
+            outline.SetAsFirstSibling();
+            Text(display, "MuseumSlotStatus_" + i, L("Empty slot", "Boş yuva",
+                "Vacío", "Vide", "Leer", "비어 있음", "Пусто"),
+                new Vector2((i - 1) * 290, -105), new Vector2(250, 30), 16, Muted);
+        }
+        RectTransform inventory = Rect(stage, "MuseumInventory", new Vector2(0, -217),
+            new Vector2(1410, 348), C("#25366C"));
+        Text(inventory, "InventoryTitle", L("YOUR TOKEN INVENTORY", "JETON ENVANTERİN",
+            "INVENTARIO", "INVENTAIRE", "INVENTAR", "토큰 보관함", "ИНВЕНТАРЬ"),
+            new Vector2(-400, 137), new Vector2(550, 43), 27, Gold,
+            TextAlignmentOptions.Left, true);
+        Text(inventory, "MuseumStatus", L("Loading verified tokens...", "Doğrulanmış jetonlar yükleniyor...",
+            "Cargando", "Chargement", "Laden", "로드 중", "Загрузка"),
+            new Vector2(-45, 90), new Vector2(1250, 35), 18, Muted);
+        // 12 visible inventory entries with pagination. Each button maps to
+        // a verified owned token, not an arbitrary token ID.
+        for (int i = 0; i < 12; i++)
+        {
+            int idx = i;
+            Btn(inventory, "OwnedToken_" + i, "", new Vector2(-504 + (i % 4) * 337,
+                28 - (i / 4) * 59), new Vector2(316, 50), C("#384782"),
+                () => SelectMuseumInventoryToken(idx), 16);
+        }
+        Btn(inventory, "MuseumPrevious", "<", new Vector2(-620, -147),
+            new Vector2(58, 37), Violet, () => { museumPage = Math.Max(0, museumPage - 1); RefreshMuseumLiveTexts(); }, 20);
+        Text(inventory, "MuseumPage", "1 / 1", new Vector2(-520, -147),
+            new Vector2(130, 34), 16, Muted);
+        Btn(inventory, "MuseumNext", ">", new Vector2(-410, -147),
+            new Vector2(58, 37), Violet, () => { museumPage++; RefreshMuseumLiveTexts(); }, 20);
+        Btn(inventory, "MuseumEquip", L("EQUIP SELECTED", "SEÇİLENİ YERLEŞTİR",
+            "EQUIPAR", "ÉQUIPER", "AUSRÜSTEN", "장착", "НАЗНАЧИТЬ"),
+            new Vector2(310, -147), new Vector2(305, 44), Teal, () => _ = EquipMuseumAsync(false), 17);
+        Btn(inventory, "MuseumRemove", L("REMOVE FROM SLOT", "YUVADAN ÇIKAR",
+            "QUITAR", "RETIRER", "ENTFERNEN", "해제", "УБРАТЬ"),
+            new Vector2(592, -147), new Vector2(220, 44), Violet, () => _ = EquipMuseumAsync(true), 15);
+        RefreshMuseumLiveTexts();
+    }
+
+    private int museumPage;
+    private void SelectMuseumInventoryToken(int localIndex)
+    {
+        var museum = AtlasBoardMuseumCollection.Instance;
+        int index = museumPage * 12 + localIndex;
+        if (museum == null || !museum.Loaded || index >= museum.Owned.Count) return;
+        museumSelectedToken = museum.Owned[index].Id;
+        RefreshMuseumLiveTexts();
+    }
+
+    private async Task EquipMuseumAsync(bool remove)
+    {
+        var museum = AtlasBoardMuseumCollection.Instance;
+        if (museum == null || museumSelectedSlot < 0 || !museum.Loaded || museum.Busy ||
+            (!remove && string.IsNullOrEmpty(museumSelectedToken))) return;
+        await museum.EquipAsync(museumSelectedSlot, remove ? "" : museumSelectedToken);
+        RefreshMuseumLiveTexts();
+    }
+
+    private void RefreshMuseumLiveTexts()
+    {
+        if (stage == null || selectedRoute != "museum") return;
+        var museum = AtlasBoardMuseumCollection.Instance;
+        if (museum == null) return;
+        int pages = Math.Max(1, (museum.Owned.Count + 11) / 12);
+        museumPage = Mathf.Clamp(museumPage, 0, pages - 1);
+        Transform display = stage.Find("MuseumDisplay");
+        Transform inventory = stage.Find("MuseumInventory");
+        if (display == null || inventory == null) return;
+        for (int i = 0; i < 3; i++)
+        {
+            string id = museum.Slots[i];
+            var token = museum.Owned.Find(t => t.Id == id);
+            Transform slot = display.Find("MuseumSlot_" + i);
+            if (slot != null)
+            {
+                var label = slot.GetComponentInChildren<TMP_Text>(true);
+                if (label != null) label.text = new[] {"I", "II", "III"}[i];
+                var img = slot.GetComponent<Image>();
+                if (img != null) img.color = museumSelectedSlot == i ? Bright : C("#423680");
+            }
+            Transform status = display.Find("MuseumSlotStatus_" + i);
+            if (status != null && status.TryGetComponent(out TMP_Text t))
+                t.text = token == null ? L("Empty slot", "Boş yuva", "Vacío", "Vide", "Leer", "비어 있음", "Пусто") : token.Title;
+        }
+        for (int i = 0; i < 12; i++)
+        {
+            int index = museumPage * 12 + i;
+            Transform button = inventory.Find("OwnedToken_" + i);
+            if (button == null) continue;
+            bool exists = museum.Loaded && index < museum.Owned.Count;
+            button.gameObject.SetActive(exists);
+            if (!exists) continue;
+            var token = museum.Owned[index];
+            var label = button.GetComponentInChildren<TMP_Text>(true);
+            if (label != null) label.text = token.Title;
+            var image = button.GetComponent<Image>();
+            if (image != null) image.color = museumSelectedToken == token.Id ? Bright : C("#384782");
+        }
+        Transform statusNode = inventory.Find("MuseumStatus");
+        if (statusNode != null && statusNode.TryGetComponent(out TMP_Text statusText))
+            statusText.text = museum.Loaded && museum.Owned.Count == 0 ?
+                L("You do not own any collection tokens yet", "Henüz koleksiyon jetonun yok",
+                "Sin fichas", "Aucun jeton", "Keine Jetons", "보유 토큰 없음", "Жетонов нет") : museum.Message;
+        Transform pageNode = inventory.Find("MuseumPage");
+        if (pageNode != null && pageNode.TryGetComponent(out TMP_Text pageText))
+            pageText.text = (museumPage + 1) + " / " + pages;
+        Transform equipNode = inventory.Find("MuseumEquip");
+        if (equipNode != null && equipNode.TryGetComponent(out Button equipButton))
+            equipButton.interactable = museum.Loaded && !museum.Busy && museumSelectedSlot >= 0 &&
+                museum.Owned.Exists(t => t.Id == museumSelectedToken);
+        Transform removeNode = inventory.Find("MuseumRemove");
+        if (removeNode != null && removeNode.TryGetComponent(out Button removeButton))
+            removeButton.interactable = museum.Loaded && !museum.Busy && museumSelectedSlot >= 0 &&
+                !string.IsNullOrEmpty(museum.Slots[museumSelectedSlot]);
     }
 
     private void RenderPassport()
