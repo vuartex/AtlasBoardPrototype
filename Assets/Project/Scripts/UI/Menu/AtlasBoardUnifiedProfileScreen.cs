@@ -82,6 +82,8 @@ public sealed class AtlasBoardUnifiedProfileScreen : MonoBehaviour
     private string currentLanguage = "";
     private float scanAt;
     private float refreshAt;
+    private float weeklyUiRefreshAt;
+    private float nextWeeklyNetworkAt;
     private string displayName = "";
     private Coroutine restoreCoroutine;
 
@@ -115,6 +117,23 @@ public sealed class AtlasBoardUnifiedProfileScreen : MonoBehaviour
         }
         if (screen == null || !screen.gameObject.activeSelf) return;
         KeepRenameCaretVisible();
+        if (Time.unscaledTime >= weeklyUiRefreshAt)
+        {
+            weeklyUiRefreshAt = Time.unscaledTime + 0.6f;
+            var missions = AtlasBoardWeeklyMissions.Instance;
+            if (missions != null && missions.Current.uid == currentUid &&
+                !missions.Current.loaded && !missions.Current.busy)
+            {
+                // A pending/offline catalog is retried at a bounded cadence;
+                // RefreshAsync internally coalesces concurrent calls.
+                if (Time.unscaledTime >= nextWeeklyNetworkAt)
+                {
+                    nextWeeklyNetworkAt = Time.unscaledTime + 10f;
+                    _ = missions.RefreshAsync();
+                }
+            }
+            RefreshWeeklyLiveTexts();
+        }
 
         string uid = AtlasBoardRtdbMetaEconomy.CurrentUid ?? "";
         if (!string.Equals(uid, currentUid, StringComparison.Ordinal))
@@ -239,12 +258,27 @@ public sealed class AtlasBoardUnifiedProfileScreen : MonoBehaviour
         selectedRoute = "general";
         currentLanguage = Lang;
         screen.gameObject.SetActive(true);
+        nextWeeklyNetworkAt = Time.unscaledTime + 12f;
+        if (AtlasBoardWeeklyMissions.Instance != null)
+            _ = AtlasBoardWeeklyMissions.Instance.RefreshAsync(true);
         if (previousParent != null) previousParent.SetActive(false);
         RenderRoute();
         RefreshVisibleIdentity();
         _ = LoadAccountDataAsync(dataGeneration, currentUid);
         Debug.Log("ATB_PROFILE_ROUTE opened=true source=" +
                   (fromSettings ? "settings" : "career") + " uidScoped=true");
+    }
+
+    /// <summary>Store's Weekly Missions shortcut uses THIS screen and UID state.</summary>
+    public static void ShowWeeklyFromStore()
+    {
+        if (instance == null) return;
+        if (instance.screen == null || !instance.screen.gameObject.activeSelf)
+            instance.OpenScreen(false);
+        instance.selectedRoute = "weekly";
+        instance.RenderRoute();
+        if (AtlasBoardWeeklyMissions.Instance != null)
+            _ = AtlasBoardWeeklyMissions.Instance.RefreshAsync(true);
     }
 
     private void CloseScreen()
@@ -270,6 +304,17 @@ public sealed class AtlasBoardUnifiedProfileScreen : MonoBehaviour
         if (previousParent != null) previousParent.SetActive(true);
         previousParent = null;
         restoreCoroutine = null;
+    }
+
+    // A weekly XP payout updates the ORIGINAL Career bridge, not a private
+    // Profile-only XP counter. Keeps Overview and Profile in sync immediately.
+    public static void RefreshCareerAfterWeeklyPayout()
+    {
+        if (instance == null || instance.screen == null ||
+            !instance.screen.gameObject.activeSelf) return;
+        string uid = AtlasBoardRtdbMetaEconomy.CurrentUid ?? "";
+        if (string.IsNullOrEmpty(uid) || uid != instance.currentUid) return;
+        _ = instance.LoadAccountDataAsync(instance.dataGeneration, uid);
     }
 
     private async Task LoadAccountDataAsync(int generation, string uid)
@@ -1409,6 +1454,7 @@ public sealed class AtlasBoardUnifiedProfileScreen : MonoBehaviour
                 RenderOverview(); break;
         }
         RefreshVisibleIdentity();
+        RefreshWeeklyLiveTexts();
     }
 
     private void RenderOverview()
@@ -1563,23 +1609,128 @@ public sealed class AtlasBoardUnifiedProfileScreen : MonoBehaviour
         for (int i = 0; i < 4; ++i)
         {
             RectTransform line = Rect(stage, "WeeklyMissionSlot_" + i,
-                new Vector2(0, 250 - i * 121), new Vector2(1440, 102), C("#293B80"));
-            Text(line, "Number", (i + 1).ToString("00"), new Vector2(-639, 0),
-                new Vector2(100, 59), 34, Gold, TextAlignmentOptions.Center, true);
-            Text(line, "Pending", L("Waiting for an account-specific verified mission",
-                "Hesaba özel doğrulanmış görev bekleniyor", "Esperando misión verificada",
-                "Mission vérifiée en attente", "Verifizierte Aufgabe ausstehend",
-                "확인된 개인 임무 대기", "Ожидается проверенное задание"),
-                new Vector2(20, 0), new Vector2(1070, 75), 24, TextColor,
+                new Vector2(0, 242 - i * 119), new Vector2(1440, 104), C("#293B80"));
+            Text(line, "Number", (i + 1).ToString("00"), new Vector2(-645, 6),
+                new Vector2(100, 55), 34, Gold, TextAlignmentOptions.Center, true);
+            Text(line, "MissionName", L("Loading your verified objective", "Doğrulanmış görev yükleniyor",
+                "Cargando misión", "Chargement", "Aufgabe wird geladen", "로드 중", "Загрузка"),
+                new Vector2(-57, 16), new Vector2(1050, 44), 22, TextColor,
                 TextAlignmentOptions.Left);
+            RectTransform track = Rect(line, "ProgressTrack", new Vector2(-33, -29),
+                new Vector2(1060, 13), C("#171F4B"));
+            Rect(track, "ProgressFill", new Vector2(-525, 0), new Vector2(10, 13), Gold);
+            Text(line, "RewardAmount", "", new Vector2(582, 18),
+                new Vector2(180, 34), 19, Gold, TextAlignmentOptions.Center, true);
+            Text(line, "ProgressText", "0 / 1", new Vector2(593, -27),
+                new Vector2(120, 34), 19, Muted, TextAlignmentOptions.Center);
+            // The checkmark is drawn geometrically rather than as a font glyph.
+            // It appears ONLY after the canonical wallet ledger confirms payment.
+            RectTransform check = Rect(line, "WeeklyPaidCheck", new Vector2(680, -26),
+                new Vector2(39, 30), new Color(0f, 0f, 0f, 0f));
+            RectTransform shortStroke = Rect(check, "StrokeA", new Vector2(-9, -2),
+                new Vector2(7, 17), C("#55E59B"));
+            shortStroke.localRotation = Quaternion.Euler(0, 0, -45);
+            RectTransform longStroke = Rect(check, "StrokeB", new Vector2(4, 2),
+                new Vector2(7, 27), C("#55E59B"));
+            longStroke.localRotation = Quaternion.Euler(0, 0, 42);
+            check.gameObject.SetActive(false);
         }
-        Text(stage, "WeeklyPolicy", L(
-            "Weekly missions will only advance after trusted online match results. Tokens are not granted by this screen.",
-            "Haftalık görevler yalnızca doğrulanmış online maçlarla ilerleyecek. Bu ekran jeton vermez.",
-            "Solo cuentan partidas verificadas.", "Seules les parties vérifiées comptent.",
-            "Nur bestätigte Online-Partien zählen.", "검증된 온라인 게임만 적용됩니다.",
-            "Учитываются только подтверждённые онлайн-матчи."),
-            new Vector2(0, -279), new Vector2(1375, 98), 20, Muted);
+        Text(stage, "WeeklyPolicy", L("Server-verified missions and UTC week",
+            "Doğrulanmış görevler · UTC hafta sonu", "Semana UTC", "Semaine UTC",
+            "UTC-Woche", "UTC 주간", "Неделя UTC"),
+            new Vector2(-190, -248), new Vector2(1030, 73), 19, Muted);
+        Btn(stage, "WeeklyClaim", L("COLLECT REWARDS", "ÖDÜLLERİ AL", "COBRAR PREMIOS",
+            "RÉCUPÉRER", "BELOHNUNGEN", "보상 받기", "ПОЛУЧИТЬ НАГРАДЫ"),
+            new Vector2(-344, -328), new Vector2(560, 52), Gold,
+            () => { if (AtlasBoardWeeklyMissions.Instance != null)
+                _ = AtlasBoardWeeklyMissions.Instance.CollectRewardsAsync(); }, 19);
+        Btn(stage, "WeeklyRefresh", L("REFRESH", "YENİLE", "ACTUALIZAR",
+            "ACTUALISER", "AKTUALISIEREN", "새로고침", "ОБНОВИТЬ"),
+            new Vector2(330, -328), new Vector2(400, 52), Teal,
+            () => { if (AtlasBoardWeeklyMissions.Instance != null)
+                _ = AtlasBoardWeeklyMissions.Instance.RefreshAsync(true); }, 19);
+    }
+
+    private void RefreshWeeklyLiveTexts()
+    {
+        if (stage == null || screen == null || !screen.gameObject.activeSelf) return;
+        var service = AtlasBoardWeeklyMissions.Instance;
+        AtlasBoardWeeklyMissions.View v = service != null ? service.Current : null;
+        bool ready = v != null && v.loaded && v.uid == currentUid;
+        for (int i = 0; i < 4; ++i)
+        {
+            string caption = ready ? AtlasBoardWeeklyMissions.MissionLabel(v.missions[i], Lang) :
+                v != null && v.scheduleMissing ?
+                L("No new weekly missions available", "Yeni haftalık görev bulunamadı",
+                  "No hay misiones nuevas", "Aucune nouvelle mission", "Keine neuen Wochenaufgaben",
+                  "새 주간 임무가 없습니다", "Новые задания не найдены") :
+                L("Waiting for verified missions", "Doğrulanmış görev bekleniyor",
+                  "Esperando misiones", "Missions en attente", "Warte auf Missionen",
+                  "확인된 임무 대기", "Ожидание заданий");
+            bool done = ready && v.complete[i];
+            Transform row = stage.Find("WeeklyMissionSlot_" + i);
+            if (row != null)
+            {
+                Transform m = row.Find("MissionName");
+                if (m != null && m.TryGetComponent(out TMP_Text text)) text.text = caption;
+                Transform progress = row.Find("ProgressText");
+                if (progress != null && progress.TryGetComponent(out TMP_Text pt))
+                    pt.text = done ? "1 / 1" : "0 / 1";
+                Transform rewardNode = row.Find("RewardAmount");
+                if (rewardNode != null && rewardNode.TryGetComponent(out TMP_Text rewardText))
+                    rewardText.text = ready && v.rewards[i] != null ?
+                        "+" + v.rewards[i].amount + " " +
+                        (v.rewards[i].kind == "gold" ? "Gold" : "XP") : "";
+                Transform check = row.Find("WeeklyPaidCheck");
+                if (check != null) check.gameObject.SetActive(ready && v.paid[i]);
+                Transform fill = row.Find("ProgressTrack/ProgressFill");
+                if (fill != null && fill is RectTransform fr)
+                {
+                    float w = done ? 1058 : 8;
+                    fr.sizeDelta = new Vector2(w, 13);
+                    fr.anchoredPosition = new Vector2(-530 + w / 2, 0);
+                }
+            }
+            Transform preview = stage.Find("WeeklyPreview/MissionPreview_" + i + "/Mission");
+            if (preview != null && preview.TryGetComponent(out TMP_Text pt2))
+            {
+                pt2.text = (ready && v.paid[i] ? "[PAID] " : done ? "[READY] " : "[ ] ") + caption;
+                pt2.color = done ? Gold : Muted;
+                pt2.fontSize = 15;
+            }
+        }
+        Transform policy = stage.Find("WeeklyPolicy");
+        if (policy != null && policy.TryGetComponent(out TMP_Text policyText))
+        {
+            string info = v != null ? v.message : "Waiting for account";
+            if (ready)
+            {
+                long remaining = Math.Max(0L, v.endUtcMs - DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+                long days = remaining / 86400000L;
+                long hours = remaining / 3600000L % 24;
+                string reward = L("3 XP + 1 Gold reward", "3 XP + 1 Gold ödülü",
+                    "3 XP y 1 Gold", "3 XP et 1 Gold", "3 XP + 1 Gold",
+                    "XP 3개 + Gold 1개", "3 XP + 1 Gold");
+                info = reward + "  ·  " + v.FinishedCount + "/4  ·  " + days + "d " + hours + "h UTC";
+                if (v.claimed && v.tokenOwned)
+                    info += " · " + L("Surprise collectible earned!", "Sürpriz koleksiyon jetonu kazanıldı!",
+                        "¡Ficha sorpresa!", "Jeton surprise !", "Überraschungstoken!",
+                        "깜짝 토큰 획득!", "Сюрприз-жетон!");
+                if (v.claimed && !v.tokenOwned) info += " · " + L("Ownership synchronizing", "Sahiplik eşitleniyor", "Sincronizando", "Synchronisation", "Synchronisierung", "동기화", "Синхронизация");
+            }
+            policyText.text = info;
+        }
+        Transform claimNode = stage.Find("WeeklyClaim");
+        if (claimNode != null && claimNode.TryGetComponent(out Button claimButton))
+        {
+            claimButton.interactable = ready && v.CanCollect;
+            var label = claimButton.GetComponentInChildren<TMP_Text>(true);
+            if (label != null) label.text = ready && v.PaidCount == 4 ?
+                L("REWARDS COLLECTED", "ÖDÜLLER ALINDI", "COBRADOS", "RÉCUPÉRÉS",
+                  "BELOHNUNGEN ERHALTEN", "보상 수령 완료", "ПОЛУЧЕНО") :
+                L("COLLECT REWARDS", "ÖDÜLLERİ AL", "COBRAR PREMIOS",
+                  "RÉCUPÉRER", "BELOHNUNGEN", "보상 받기", "ПОЛУЧИТЬ НАГРАДЫ");
+        }
     }
 
     private void RenderMuseum()

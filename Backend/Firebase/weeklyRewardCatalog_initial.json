@@ -1,0 +1,5618 @@
+{
+  "20261109": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20261116": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20261123": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20261130": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20261207": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20261214": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20261221": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20261228": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20270104": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20270111": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20270118": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20270125": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20270201": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20270208": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20270215": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20270222": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20270301": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20270308": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20270315": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20270322": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20270329": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20270405": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20270412": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20270419": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20270426": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20270503": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20270510": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20270517": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20270524": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20270531": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20270607": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20270614": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20270621": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20270628": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20270705": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20270712": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20270719": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20270726": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20270802": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20270809": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20270816": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20270823": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20270830": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20270906": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20270913": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20270920": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20270927": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20271004": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20271011": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20271018": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20271025": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20271101": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20271108": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20271115": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20271122": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20271129": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20271206": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20271213": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20271220": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20271227": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20280103": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20280110": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20280117": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20280124": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20280131": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20280207": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20280214": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20280221": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20280228": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20280306": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20280313": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20280320": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20280327": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20280403": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20280410": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20280417": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20280424": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20280501": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20280508": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20280515": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20280522": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20280529": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20280605": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20280612": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20280619": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20280626": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20280703": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20280710": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20280717": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20280724": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20280731": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20280807": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20280814": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20280821": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20280828": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20280904": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20280911": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20280918": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20280925": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20281002": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20281009": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20281016": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20281023": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20281030": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20281106": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20281113": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20281120": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20281127": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20281204": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20281211": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20281218": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20281225": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20290101": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20290108": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20290115": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20290122": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20290129": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20290205": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20290212": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20290219": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20290226": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20290305": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20290312": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20290319": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20290326": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20290402": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20290409": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20290416": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20290423": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20290430": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20290507": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20290514": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20290521": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20290528": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20290604": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20290611": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20290618": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20290625": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20290702": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20290709": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20290716": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20290723": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20290730": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20290806": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20290813": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20290820": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20290827": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20290903": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20290910": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20290917": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20290924": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20291001": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20291008": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20291015": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20291022": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20291029": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20291105": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20291112": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20291119": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20291126": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20291203": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20291210": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20291217": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20291224": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20291231": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20300107": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20300114": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20300121": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20300128": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20300204": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20300211": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20300218": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20300225": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20300304": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20300311": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20300318": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20300325": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20300401": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20300408": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20300415": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20300422": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20300429": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20300506": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20300513": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20300520": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20300527": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20300603": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20300610": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20300617": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20300624": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20300701": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20300708": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20300715": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20300722": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20300729": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20300805": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20300812": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20300819": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20300826": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20300902": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20300909": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20300916": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20300923": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20300930": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20301007": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20301014": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20301021": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20301028": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20301104": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20301111": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20301118": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20301125": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20301202": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20301209": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20301216": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20301223": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20301230": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20310106": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20310113": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20310120": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20310127": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20310203": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20310210": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20310217": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20310224": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20310303": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20310310": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20310317": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20310324": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20310331": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20310407": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20310414": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20310421": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20310428": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20310505": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20310512": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20310519": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20310526": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20310602": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20310609": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20310616": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20310623": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20310630": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20310707": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20310714": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20310721": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20310728": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20310804": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20310811": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20310818": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20310825": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20310901": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20310908": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20310915": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20310922": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20310929": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20311006": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20311013": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20311020": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20311027": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20311103": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20311110": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20311117": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20311124": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20311201": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20311208": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20311215": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20311222": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20311229": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20320105": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20320112": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20320119": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20320126": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20320202": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20320209": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20320216": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20320223": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20320301": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20320308": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20320315": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20320322": {
+    "s0": {
+      "kind": "xp",
+      "amount": 325
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20320329": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20320405": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20320412": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20320419": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20320426": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20320503": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20320510": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20320517": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20320524": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20320531": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20320607": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20320614": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20320621": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20320628": {
+    "s0": {
+      "kind": "xp",
+      "amount": 250
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20320705": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20320712": {
+    "s0": {
+      "kind": "xp",
+      "amount": 150
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20320719": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20320726": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20320802": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20320809": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20320816": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20320823": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20320830": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 85
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 100
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20320906": {
+    "s0": {
+      "kind": "xp",
+      "amount": 225
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 125
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 120
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20320913": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 130
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20320920": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20320927": {
+    "s0": {
+      "kind": "xp",
+      "amount": 300
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 95
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 15
+    }
+  },
+  "20321004": {
+    "s0": {
+      "kind": "xp",
+      "amount": 175
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 105
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 20
+    }
+  },
+  "20321011": {
+    "s0": {
+      "kind": "xp",
+      "amount": 200
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 110
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 25
+    }
+  },
+  "20321018": {
+    "s0": {
+      "kind": "xp",
+      "amount": 350
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 115
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 90
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  },
+  "20321025": {
+    "s0": {
+      "kind": "xp",
+      "amount": 275
+    },
+    "s1": {
+      "kind": "xp",
+      "amount": 75
+    },
+    "s2": {
+      "kind": "xp",
+      "amount": 140
+    },
+    "s3": {
+      "kind": "gold",
+      "amount": 30
+    }
+  }
+}
