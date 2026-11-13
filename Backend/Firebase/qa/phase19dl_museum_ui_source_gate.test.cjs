@@ -54,6 +54,16 @@ const checks=[
  ['seven-language Museum slot selection and cancellation',visual.includes('JETON HANGİ YUVADA')&&visual.includes('¿EN QUÉ ESPACIO')&&visual.includes('"ANNULER"')&&visual.includes('"ОТМЕНА"')],
  ['general profile title and weekly payment labels localized in place',visual.includes('RefreshProfileChromeLocale()')&&visual.includes('"ПРОФИЛЬ"')&&visual.includes('"[PAID] "')&&visual.includes('"[READY] "')],
  ['CJK and Cyrillic dynamic UI fonts use localization profile',visual.includes('manager.ResolveFont(label.font)')&&visual.includes('ApplyFont(t);')],
+ ['profile paid/ready flicker fix runs in existing LateUpdate before frame render',visual.includes('private void LateUpdate()')&&visual.includes('RefreshProfileChromeLocale();')&&visual.includes('private void RefreshProfileChromeLocale()')&&visual.includes('string localizedPrefix = "[" + (received ? paid : ready) + "] ";')],
+ ['weekly prefix localization is not delayed by the old 0.25s time gate',!visual.includes('if (Time.unscaledTime < nextProfileLocaleAt) return;\n        nextProfileLocaleAt = Time.unscaledTime + 0.25f;\n        GameObject profile = GameObject.Find(')&&visual.includes('if (prefix == localizedPrefix) continue;')],
+ ['seven-language paid and ready labels remain available',[
+   '"PAID", "ALINDI", "COBRADO", "REÇU"',
+   '"ERHALTEN", "수령", "ПОЛУЧЕНО"',
+   '"READY", "HAZIR", "LISTO", "PRÊT"',
+   '"BEREIT", "준비", "ГОТОВО"'
+ ].every(t=>visual.includes(t))],
+ ['profile locale refresh reuses cached UI references without adding managers',visual.includes('private GameObject profileChromeRoot;')&&visual.includes('private readonly TMP_Text[] profileChromeMissionLabels = new TMP_Text[4];')&&visual.includes('profileChromeWeekly = profileChromeRoot.transform.Find("ProfileStage/WeeklyPreview")')&&visual.includes('profileChromeRoot = GameObject.Find("AtlasProfile")')&&!visual.includes('new AtlasBoardMuseumCollection(')],
+ ['weekly receipt truth remains sourced from existing verified paid status',ui.includes('ready && v.paid[i]')&&visual.includes('if (!received && !completed) continue;')&&visual.includes('label.text = localizedPrefix + value.Substring(end + 2);')],
  ['no duplicated slot storage or token grant path',!visual.includes('collectibleTokens.json')&&museum.includes('"PUT", payload, old.etag')&&!visual.includes('AddToken')],
 ];
 for(const [name,pass] of checks){assert(pass,name);console.log('PASS '+name)}

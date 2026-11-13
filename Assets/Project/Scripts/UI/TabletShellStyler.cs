@@ -610,7 +610,7 @@ public class TabletShellStyler : MonoBehaviour
         tmp.fontStyle = FontStyles.Bold;
         tmp.alignment = alignment;
         tmp.color = color;
-        tmp.enableWordWrapping = true;
+        tmp.textWrappingMode = TextWrappingModes.Normal;
         tmp.overflowMode = TextOverflowModes.Ellipsis;
         tmp.raycastTarget = false;
         return tmp;

@@ -76,7 +76,7 @@ public static partial class AtlasBoardRtdbMetaEconomy
     {
         get
         {
-            var lobby = UnityEngine.Object.FindFirstObjectByType<AtlasBoardLobbyRuntimeBridge>();
+            var lobby = UnityEngine.Object.FindAnyObjectByType<AtlasBoardLobbyRuntimeBridge>();
             return lobby != null && lobby.UsingLocalEmulators;
         }
     }

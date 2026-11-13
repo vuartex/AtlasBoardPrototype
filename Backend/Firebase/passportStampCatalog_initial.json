@@ -1,0 +1,527 @@
+{
+  "tr_horizon": {
+    "title": "Turkey Horizon",
+    "titles": {
+      "en": "Turkey Horizon",
+      "tr": "Türkiye Ufku",
+      "es": "Horizonte turco",
+      "fr": "Horizon turc",
+      "de": "Türkei-Horizont",
+      "ko": "튀르키예 지평선",
+      "ru": "Горизонт Турции"
+    },
+    "descriptions": {
+      "en": "A decorative stamp for a verified match achievement.",
+      "tr": "Doğrulanmış maç başarısı için hatıra damgası.",
+      "es": "Sello conmemorativo por un logro en partida verificada.",
+      "fr": "Tampon souvenir obtenu grâce à une partie vérifiée.",
+      "de": "Erinnerungsstempel für eine bestätigte Spielleistung.",
+      "ko": "검증된 경기 성과를 기념하는 장식 스탬프입니다.",
+      "ru": "Памятная печать за достижение в подтверждённом матче."
+    },
+    "map": "Turkey",
+    "metric": "rounds",
+    "min": 12,
+    "win": false
+  },
+  "co_trail": {
+    "title": "Colorado Trail",
+    "titles": {
+      "en": "Colorado Trail",
+      "tr": "Colorado Patikası",
+      "es": "Ruta de Colorado",
+      "fr": "Piste du Colorado",
+      "de": "Colorado-Pfad",
+      "ko": "콜로라도 트레일",
+      "ru": "Тропа Колорадо"
+    },
+    "descriptions": {
+      "en": "A decorative stamp for a verified match achievement.",
+      "tr": "Doğrulanmış maç başarısı için hatıra damgası.",
+      "es": "Sello conmemorativo por un logro en partida verificada.",
+      "fr": "Tampon souvenir obtenu grâce à une partie vérifiée.",
+      "de": "Erinnerungsstempel für eine bestätigte Spielleistung.",
+      "ko": "검증된 경기 성과를 기념하는 장식 스탬프입니다.",
+      "ru": "Памятная печать за достижение в подтверждённом матче."
+    },
+    "map": "Colorado",
+    "metric": "turns",
+    "min": 10,
+    "win": false
+  },
+  "us_estate": {
+    "title": "American Skyline",
+    "titles": {
+      "en": "American Skyline",
+      "tr": "Amerikan Ufku",
+      "es": "Horizonte americano",
+      "fr": "Horizon américain",
+      "de": "Amerikanische Skyline",
+      "ko": "미국 스카이라인",
+      "ru": "Горизонт Америки"
+    },
+    "descriptions": {
+      "en": "A decorative stamp for a verified match achievement.",
+      "tr": "Doğrulanmış maç başarısı için hatıra damgası.",
+      "es": "Sello conmemorativo por un logro en partida verificada.",
+      "fr": "Tampon souvenir obtenu grâce à une partie vérifiée.",
+      "de": "Erinnerungsstempel für eine bestätigte Spielleistung.",
+      "ko": "검증된 경기 성과를 기념하는 장식 스탬프입니다.",
+      "ru": "Памятная печать за достижение в подтверждённом матче."
+    },
+    "map": "USA",
+    "metric": "properties",
+    "min": 3,
+    "win": false
+  },
+  "de_arch": {
+    "title": "Berlin Gate",
+    "titles": {
+      "en": "Berlin Gate",
+      "tr": "Berlin Kapısı",
+      "es": "Puerta de Berlín",
+      "fr": "Porte de Berlin",
+      "de": "Berliner Tor",
+      "ko": "베를린의 문",
+      "ru": "Берлинские ворота"
+    },
+    "descriptions": {
+      "en": "A decorative stamp for a verified match achievement.",
+      "tr": "Doğrulanmış maç başarısı için hatıra damgası.",
+      "es": "Sello conmemorativo por un logro en partida verificada.",
+      "fr": "Tampon souvenir obtenu grâce à une partie vérifiée.",
+      "de": "Erinnerungsstempel für eine bestätigte Spielleistung.",
+      "ko": "검증된 경기 성과를 기념하는 장식 스탬프입니다.",
+      "ru": "Памятная печать за достижение в подтверждённом матче."
+    },
+    "map": "Germany",
+    "metric": "rounds",
+    "min": 12,
+    "win": false
+  },
+  "mx_sun": {
+    "title": "Mexican Sun",
+    "titles": {
+      "en": "Mexican Sun",
+      "tr": "Meksika Güneşi",
+      "es": "Sol mexicano",
+      "fr": "Soleil mexicain",
+      "de": "Mexikanische Sonne",
+      "ko": "멕시코의 태양",
+      "ru": "Солнце Мексики"
+    },
+    "descriptions": {
+      "en": "A decorative stamp for a verified match achievement.",
+      "tr": "Doğrulanmış maç başarısı için hatıra damgası.",
+      "es": "Sello conmemorativo por un logro en partida verificada.",
+      "fr": "Tampon souvenir obtenu grâce à une partie vérifiée.",
+      "de": "Erinnerungsstempel für eine bestätigte Spielleistung.",
+      "ko": "검증된 경기 성과를 기념하는 장식 스탬프입니다.",
+      "ru": "Памятная печать за достижение в подтверждённом матче."
+    },
+    "map": "Mexico",
+    "metric": "developments",
+    "min": 2,
+    "win": false
+  },
+  "world_route": {
+    "title": "World Route",
+    "titles": {
+      "en": "World Route",
+      "tr": "Dünya Rotası",
+      "es": "Ruta mundial",
+      "fr": "Route du monde",
+      "de": "Weltroute",
+      "ko": "세계의 길",
+      "ru": "Мировой маршрут"
+    },
+    "descriptions": {
+      "en": "A decorative stamp for a verified match achievement.",
+      "tr": "Doğrulanmış maç başarısı için hatıra damgası.",
+      "es": "Sello conmemorativo por un logro en partida verificada.",
+      "fr": "Tampon souvenir obtenu grâce à une partie vérifiée.",
+      "de": "Erinnerungsstempel für eine bestätigte Spielleistung.",
+      "ko": "검증된 경기 성과를 기념하는 장식 스탬프입니다.",
+      "ru": "Памятная печать за достижение в подтверждённом матче."
+    },
+    "map": "World",
+    "metric": "diceRolls",
+    "min": 6,
+    "win": false
+  },
+  "first_victory": {
+    "title": "First Arrival",
+    "titles": {
+      "en": "First Arrival",
+      "tr": "İlk Varış",
+      "es": "Primera llegada",
+      "fr": "Première arrivée",
+      "de": "Erste Ankunft",
+      "ko": "첫 도착",
+      "ru": "Первое прибытие"
+    },
+    "descriptions": {
+      "en": "A decorative stamp for a verified match achievement.",
+      "tr": "Doğrulanmış maç başarısı için hatıra damgası.",
+      "es": "Sello conmemorativo por un logro en partida verificada.",
+      "fr": "Tampon souvenir obtenu grâce à une partie vérifiée.",
+      "de": "Erinnerungsstempel für eine bestätigte Spielleistung.",
+      "ko": "검증된 경기 성과를 기념하는 장식 스탬프입니다.",
+      "ru": "Памятная печать за достижение в подтверждённом матче."
+    },
+    "map": "*",
+    "metric": "rounds",
+    "min": 1,
+    "win": true
+  },
+  "long_voyage": {
+    "title": "Long Voyage",
+    "titles": {
+      "en": "Long Voyage",
+      "tr": "Uzun Yolculuk",
+      "es": "Largo viaje",
+      "fr": "Long voyage",
+      "de": "Lange Reise",
+      "ko": "긴 여정",
+      "ru": "Долгое путешествие"
+    },
+    "descriptions": {
+      "en": "A decorative stamp for a verified match achievement.",
+      "tr": "Doğrulanmış maç başarısı için hatıra damgası.",
+      "es": "Sello conmemorativo por un logro en partida verificada.",
+      "fr": "Tampon souvenir obtenu grâce à une partie vérifiée.",
+      "de": "Erinnerungsstempel für eine bestätigte Spielleistung.",
+      "ko": "검증된 경기 성과를 기념하는 장식 스탬프입니다.",
+      "ru": "Памятная печать за достижение в подтверждённом матче."
+    },
+    "map": "*",
+    "metric": "rounds",
+    "min": 20,
+    "win": false
+  },
+  "property_archivist": {
+    "title": "Property Archivist",
+    "titles": {
+      "en": "Property Archivist",
+      "tr": "Mülk Arşivcisi",
+      "es": "Archivero de propiedades",
+      "fr": "Archiviste des biens",
+      "de": "Immobilienarchivar",
+      "ko": "부동산 기록관",
+      "ru": "Архивариус владений"
+    },
+    "descriptions": {
+      "en": "A decorative stamp for a verified match achievement.",
+      "tr": "Doğrulanmış maç başarısı için hatıra damgası.",
+      "es": "Sello conmemorativo por un logro en partida verificada.",
+      "fr": "Tampon souvenir obtenu grâce à une partie vérifiée.",
+      "de": "Erinnerungsstempel für eine bestätigte Spielleistung.",
+      "ko": "검증된 경기 성과를 기념하는 장식 스탬프입니다.",
+      "ru": "Памятная печать за достижение в подтверждённом матче."
+    },
+    "map": "*",
+    "metric": "properties",
+    "min": 6,
+    "win": false
+  },
+  "dice_compass": {
+    "title": "Dice Compass",
+    "titles": {
+      "en": "Dice Compass",
+      "tr": "Zar Pusulası",
+      "es": "Brújula de dados",
+      "fr": "Boussole des dés",
+      "de": "Würfelkompass",
+      "ko": "주사위 나침반",
+      "ru": "Компас кубиков"
+    },
+    "descriptions": {
+      "en": "A decorative stamp for a verified match achievement.",
+      "tr": "Doğrulanmış maç başarısı için hatıra damgası.",
+      "es": "Sello conmemorativo por un logro en partida verificada.",
+      "fr": "Tampon souvenir obtenu grâce à une partie vérifiée.",
+      "de": "Erinnerungsstempel für eine bestätigte Spielleistung.",
+      "ko": "검증된 경기 성과를 기념하는 장식 스탬프입니다.",
+      "ru": "Памятная печать за достижение в подтверждённом матче."
+    },
+    "map": "*",
+    "metric": "diceRolls",
+    "min": 12,
+    "win": false
+  },
+  "builder_stamp": {
+    "title": "Builder Badge",
+    "titles": {
+      "en": "Builder Badge",
+      "tr": "Yapıcı Nişanı",
+      "es": "Insignia de constructor",
+      "fr": "Insigne de bâtisseur",
+      "de": "Baumeister-Abzeichen",
+      "ko": "건설가 휘장",
+      "ru": "Знак строителя"
+    },
+    "descriptions": {
+      "en": "A decorative stamp for a verified match achievement.",
+      "tr": "Doğrulanmış maç başarısı için hatıra damgası.",
+      "es": "Sello conmemorativo por un logro en partida verificada.",
+      "fr": "Tampon souvenir obtenu grâce à une partie vérifiée.",
+      "de": "Erinnerungsstempel für eine bestätigte Spielleistung.",
+      "ko": "검증된 경기 성과를 기념하는 장식 스탬프입니다.",
+      "ru": "Памятная печать за достижение в подтверждённом матче."
+    },
+    "map": "*",
+    "metric": "developments",
+    "min": 5,
+    "win": false
+  },
+  "patient_walker": {
+    "title": "Patient Wanderer",
+    "titles": {
+      "en": "Patient Wanderer",
+      "tr": "Sabırlı Gezgin",
+      "es": "Viajero paciente",
+      "fr": "Voyageur patient",
+      "de": "Geduldiger Wanderer",
+      "ko": "인내의 여행자",
+      "ru": "Терпеливый странник"
+    },
+    "descriptions": {
+      "en": "A decorative stamp for a verified match achievement.",
+      "tr": "Doğrulanmış maç başarısı için hatıra damgası.",
+      "es": "Sello conmemorativo por un logro en partida verificada.",
+      "fr": "Tampon souvenir obtenu grâce à une partie vérifiée.",
+      "de": "Erinnerungsstempel für eine bestätigte Spielleistung.",
+      "ko": "검증된 경기 성과를 기념하는 장식 스탬프입니다.",
+      "ru": "Памятная печать за достижение в подтверждённом матче."
+    },
+    "map": "*",
+    "metric": "turns",
+    "min": 20,
+    "win": false
+  },
+  "grand_ledger": {
+    "title": "Grand Ledger",
+    "titles": {
+      "en": "Grand Ledger",
+      "tr": "Büyük Defter",
+      "es": "Gran libro mayor",
+      "fr": "Grand registre",
+      "de": "Großes Kassenbuch",
+      "ko": "대장부",
+      "ru": "Большая книга"
+    },
+    "descriptions": {
+      "en": "A decorative stamp for a verified match achievement.",
+      "tr": "Doğrulanmış maç başarısı için hatıra damgası.",
+      "es": "Sello conmemorativo por un logro en partida verificada.",
+      "fr": "Tampon souvenir obtenu grâce à une partie vérifiée.",
+      "de": "Erinnerungsstempel für eine bestätigte Spielleistung.",
+      "ko": "검증된 경기 성과를 기념하는 장식 스탬프입니다.",
+      "ru": "Памятная печать за достижение в подтверждённом матче."
+    },
+    "map": "*",
+    "metric": "netWorth",
+    "min": 5000,
+    "win": false
+  },
+  "double_crossing": {
+    "title": "Lucky Crossing",
+    "titles": {
+      "en": "Lucky Crossing",
+      "tr": "Şanslı Geçiş",
+      "es": "Cruce afortunado",
+      "fr": "Passage chanceux",
+      "de": "Glückliche Überfahrt",
+      "ko": "행운의 건넘",
+      "ru": "Счастливая переправа"
+    },
+    "descriptions": {
+      "en": "A decorative stamp for a verified match achievement.",
+      "tr": "Doğrulanmış maç başarısı için hatıra damgası.",
+      "es": "Sello conmemorativo por un logro en partida verificada.",
+      "fr": "Tampon souvenir obtenu grâce à une partie vérifiée.",
+      "de": "Erinnerungsstempel für eine bestätigte Spielleistung.",
+      "ko": "검증된 경기 성과를 기념하는 장식 스탬프입니다.",
+      "ru": "Памятная печать за достижение в подтверждённом матче."
+    },
+    "map": "*",
+    "metric": "doublesRolled",
+    "min": 3,
+    "win": false
+  },
+  "tr_champion": {
+    "title": "Anatolian Crown",
+    "titles": {
+      "en": "Anatolian Crown",
+      "tr": "Anadolu Tacı",
+      "es": "Corona de Anatolia",
+      "fr": "Couronne anatolienne",
+      "de": "Anatolische Krone",
+      "ko": "아나톨리아의 왕관",
+      "ru": "Корона Анатолии"
+    },
+    "descriptions": {
+      "en": "A decorative stamp for a verified match achievement.",
+      "tr": "Doğrulanmış maç başarısı için hatıra damgası.",
+      "es": "Sello conmemorativo por un logro en partida verificada.",
+      "fr": "Tampon souvenir obtenu grâce à une partie vérifiée.",
+      "de": "Erinnerungsstempel für eine bestätigte Spielleistung.",
+      "ko": "검증된 경기 성과를 기념하는 장식 스탬프입니다.",
+      "ru": "Памятная печать за достижение в подтверждённом матче."
+    },
+    "map": "Turkey",
+    "metric": "rounds",
+    "min": 18,
+    "win": true
+  },
+  "co_champion": {
+    "title": "Mountain Laurels",
+    "titles": {
+      "en": "Mountain Laurels",
+      "tr": "Dağ Defneleri",
+      "es": "Laureles de montaña",
+      "fr": "Lauriers des montagnes",
+      "de": "Berglorbeer",
+      "ko": "산의 월계관",
+      "ru": "Горные лавры"
+    },
+    "descriptions": {
+      "en": "A decorative stamp for a verified match achievement.",
+      "tr": "Doğrulanmış maç başarısı için hatıra damgası.",
+      "es": "Sello conmemorativo por un logro en partida verificada.",
+      "fr": "Tampon souvenir obtenu grâce à une partie vérifiée.",
+      "de": "Erinnerungsstempel für eine bestätigte Spielleistung.",
+      "ko": "검증된 경기 성과를 기념하는 장식 스탬프입니다.",
+      "ru": "Памятная печать за достижение в подтверждённом матче."
+    },
+    "map": "Colorado",
+    "metric": "netWorth",
+    "min": 3000,
+    "win": true
+  },
+  "us_builder": {
+    "title": "Golden District",
+    "titles": {
+      "en": "Golden District",
+      "tr": "Altın Bölge",
+      "es": "Distrito dorado",
+      "fr": "Quartier doré",
+      "de": "Goldener Bezirk",
+      "ko": "황금 지구",
+      "ru": "Золотой район"
+    },
+    "descriptions": {
+      "en": "A decorative stamp for a verified match achievement.",
+      "tr": "Doğrulanmış maç başarısı için hatıra damgası.",
+      "es": "Sello conmemorativo por un logro en partida verificada.",
+      "fr": "Tampon souvenir obtenu grâce à une partie vérifiée.",
+      "de": "Erinnerungsstempel für eine bestätigte Spielleistung.",
+      "ko": "검증된 경기 성과를 기념하는 장식 스탬프입니다.",
+      "ru": "Памятная печать за достижение в подтверждённом матче."
+    },
+    "map": "USA",
+    "metric": "developments",
+    "min": 3,
+    "win": false
+  },
+  "de_master": {
+    "title": "Rhine Navigator",
+    "titles": {
+      "en": "Rhine Navigator",
+      "tr": "Ren Rehberi",
+      "es": "Navegante del Rin",
+      "fr": "Navigateur du Rhin",
+      "de": "Rhein-Navigator",
+      "ko": "라인강 항해자",
+      "ru": "Лоцман Рейна"
+    },
+    "descriptions": {
+      "en": "A decorative stamp for a verified match achievement.",
+      "tr": "Doğrulanmış maç başarısı için hatıra damgası.",
+      "es": "Sello conmemorativo por un logro en partida verificada.",
+      "fr": "Tampon souvenir obtenu grâce à une partie vérifiée.",
+      "de": "Erinnerungsstempel für eine bestätigte Spielleistung.",
+      "ko": "검증된 경기 성과를 기념하는 장식 스탬프입니다.",
+      "ru": "Памятная печать за достижение в подтверждённом матче."
+    },
+    "map": "Germany",
+    "metric": "properties",
+    "min": 4,
+    "win": true
+  },
+  "mx_master": {
+    "title": "Aztec Trail",
+    "titles": {
+      "en": "Aztec Trail",
+      "tr": "Aztek Yolu",
+      "es": "Senda azteca",
+      "fr": "Sentier aztèque",
+      "de": "Aztekenpfad",
+      "ko": "아즈텍의 길",
+      "ru": "Путь ацтеков"
+    },
+    "descriptions": {
+      "en": "A decorative stamp for a verified match achievement.",
+      "tr": "Doğrulanmış maç başarısı için hatıra damgası.",
+      "es": "Sello conmemorativo por un logro en partida verificada.",
+      "fr": "Tampon souvenir obtenu grâce à une partie vérifiée.",
+      "de": "Erinnerungsstempel für eine bestätigte Spielleistung.",
+      "ko": "검증된 경기 성과를 기념하는 장식 스탬프입니다.",
+      "ru": "Памятная печать за достижение в подтверждённом матче."
+    },
+    "map": "Mexico",
+    "metric": "turns",
+    "min": 14,
+    "win": true
+  },
+  "world_ambassador": {
+    "title": "Atlas Ambassador",
+    "titles": {
+      "en": "Atlas Ambassador",
+      "tr": "Atlas Elçisi",
+      "es": "Embajador Atlas",
+      "fr": "Ambassadeur Atlas",
+      "de": "Atlas-Botschafter",
+      "ko": "아틀라스 대사",
+      "ru": "Посол Атласа"
+    },
+    "descriptions": {
+      "en": "A decorative stamp for a verified match achievement.",
+      "tr": "Doğrulanmış maç başarısı için hatıra damgası.",
+      "es": "Sello conmemorativo por un logro en partida verificada.",
+      "fr": "Tampon souvenir obtenu grâce à une partie vérifiée.",
+      "de": "Erinnerungsstempel für eine bestätigte Spielleistung.",
+      "ko": "검증된 경기 성과를 기념하는 장식 스탬프입니다.",
+      "ru": "Памятная печать за достижение в подтверждённом матче."
+    },
+    "map": "World",
+    "metric": "rounds",
+    "min": 15,
+    "win": true
+  },
+  "final_harbor": {
+    "title": "Final Harbor",
+    "titles": {
+      "en": "Final Harbor",
+      "tr": "Son Liman",
+      "es": "Último puerto",
+      "fr": "Dernier port",
+      "de": "Letzter Hafen",
+      "ko": "마지막 항구",
+      "ru": "Последняя гавань"
+    },
+    "descriptions": {
+      "en": "A decorative stamp for a verified match achievement.",
+      "tr": "Doğrulanmış maç başarısı için hatıra damgası.",
+      "es": "Sello conmemorativo por un logro en partida verificada.",
+      "fr": "Tampon souvenir obtenu grâce à une partie vérifiée.",
+      "de": "Erinnerungsstempel für eine bestätigte Spielleistung.",
+      "ko": "검증된 경기 성과를 기념하는 장식 스탬프입니다.",
+      "ru": "Памятная печать за достижение в подтверждённом матче."
+    },
+    "map": "*",
+    "metric": "cash",
+    "min": 2500,
+    "win": true
+  }
+}

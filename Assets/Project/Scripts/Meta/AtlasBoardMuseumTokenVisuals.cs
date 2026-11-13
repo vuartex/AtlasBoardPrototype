@@ -42,7 +42,14 @@ public sealed class AtlasBoardMuseumTokenVisuals : MonoBehaviour
     private TMP_Text overviewTooltipText;
     private float nextOverviewCheckAt;
     private float nextOverviewLoadAt;
+    // Cache the existing Profile chrome instead of repeatedly searching the scene.
+    // UnifiedProfileScreen updates the mission preview in Update(); this component
+    // normalizes the visible prefix in LateUpdate() before rendering that frame.
     private float nextProfileLocaleAt;
+    private GameObject profileChromeRoot;
+    private TMP_Text profileChromeHeading;
+    private Transform profileChromeWeekly;
+    private readonly TMP_Text[] profileChromeMissionLabels = new TMP_Text[4];
     private static Sprite coinSprite;
 
     private static readonly Color Gold = new Color32(246, 195, 73, 255);
@@ -105,29 +112,71 @@ public sealed class AtlasBoardMuseumTokenVisuals : MonoBehaviour
         if (display != null) RefreshVisualState();
     }
 
-    // Localizes the two remaining hardcoded labels on the existing Profile page.
+    // The canonical weekly preview's receipt status is written by the existing
+    // UnifiedProfileScreen.Update() every ~0.6s. Normalize only its PRESENTATION
+    // in LateUpdate on the same rendered frame; waiting 0.25s made the English
+    // [PAID] and localized [REÇU] prefixes visibly alternate.
+    // No changes to paid/ready flags, Firebase reads, claims, wallet, or receipts.
     private void RefreshProfileChromeLocale()
     {
-        if (Time.unscaledTime < nextProfileLocaleAt) return;
-        nextProfileLocaleAt = Time.unscaledTime + 0.25f;
-        GameObject profile = GameObject.Find("AtlasProfile");
-        if (profile == null) return;
-        Transform title = profile.transform.Find("Title");
-        if (title != null && title.TryGetComponent(out TMP_Text heading))
+        // Only scan for the existing root while it is absent; when the screen
+        // is open the cached references keep this path cheap on mobile devices.
+        if (profileChromeRoot == null || !profileChromeRoot.activeInHierarchy)
+        {
+            profileChromeRoot = null;
+            profileChromeHeading = null;
+            profileChromeWeekly = null;
+            for (int i = 0; i < profileChromeMissionLabels.Length; ++i)
+                profileChromeMissionLabels[i] = null;
+            if (Time.unscaledTime < nextProfileLocaleAt) return;
+            nextProfileLocaleAt = Time.unscaledTime + 0.25f;
+            profileChromeRoot = GameObject.Find("AtlasProfile");
+            if (profileChromeRoot == null) return;
+            nextProfileLocaleAt = 0f;
+        }
+
+        if (profileChromeHeading == null)
+        {
+            Transform title = profileChromeRoot.transform.Find("Title");
+            if (title != null) title.TryGetComponent(out profileChromeHeading);
+        }
+        if (profileChromeHeading != null)
         {
             string translated = AtlasBoardL.R("PROFILE", "PROFİL", "PERFIL", "PROFIL",
                 "PROFIL", "프로필", "ПРОФИЛЬ");
-            if (heading.text != translated) heading.text = translated;
-            ApplyFont(heading);
+            if (!string.Equals(profileChromeHeading.text, translated, StringComparison.Ordinal))
+            {
+                profileChromeHeading.text = translated;
+                ApplyFont(profileChromeHeading);
+            }
         }
-        Transform weekly = profile.transform.Find("ProfileStage/WeeklyPreview");
-        if (weekly == null) return;
-        string paid = AtlasBoardL.R("PAID", "ALINDI", "COBRADO", "REÇU", "ERHALTEN", "수령", "ПОЛУЧЕНО");
-        string ready = AtlasBoardL.R("READY", "HAZIR", "LISTO", "PRÊT", "BEREIT", "준비", "ГОТОВО");
-        for (int i = 0; i < 4; i++)
+
+        // Unity destroys and recreates the WeeklyPreview on route switches.
+        // UnityEngine.Object's null comparison detects the retired transform.
+        if (profileChromeWeekly == null)
         {
-            Transform node = weekly.Find("MissionPreview_" + i + "/Mission");
-            if (node == null || !node.TryGetComponent(out TMP_Text label)) continue;
+            if (Time.unscaledTime < nextProfileLocaleAt) return;
+            nextProfileLocaleAt = Time.unscaledTime + 0.25f;
+            profileChromeWeekly = profileChromeRoot.transform.Find("ProfileStage/WeeklyPreview");
+            if (profileChromeWeekly == null) return;
+            for (int i = 0; i < profileChromeMissionLabels.Length; ++i)
+                profileChromeMissionLabels[i] = null;
+        }
+
+        string paid = AtlasBoardL.R("PAID", "ALINDI", "COBRADO", "REÇU",
+            "ERHALTEN", "수령", "ПОЛУЧЕНО");
+        string ready = AtlasBoardL.R("READY", "HAZIR", "LISTO", "PRÊT",
+            "BEREIT", "준비", "ГОТОВО");
+        for (int i = 0; i < profileChromeMissionLabels.Length; i++)
+        {
+            TMP_Text label = profileChromeMissionLabels[i];
+            if (label == null)
+            {
+                Transform node = profileChromeWeekly.Find("MissionPreview_" + i + "/Mission");
+                if (node != null) node.TryGetComponent(out label);
+                profileChromeMissionLabels[i] = label;
+            }
+            if (label == null) continue;
             string value = label.text;
             int end = value.IndexOf("] ", StringComparison.Ordinal);
             if (end < 0 || !value.StartsWith("[", StringComparison.Ordinal)) continue;
@@ -138,8 +187,11 @@ public sealed class AtlasBoardMuseumTokenVisuals : MonoBehaviour
             bool completed = prefix == "[READY] " || prefix == "[HAZIR] " ||
                 prefix == "[LISTO] " || prefix == "[PRÊT] " ||
                 prefix == "[BEREIT] " || prefix == "[준비] " || prefix == "[ГОТОВО] ";
-            if (received) label.text = "[" + paid + "] " + value.Substring(end + 2);
-            else if (completed) label.text = "[" + ready + "] " + value.Substring(end + 2);
+            if (!received && !completed) continue;
+            string localizedPrefix = "[" + (received ? paid : ready) + "] ";
+            if (prefix == localizedPrefix) continue;
+            label.text = localizedPrefix + value.Substring(end + 2);
+            ApplyFont(label);
         }
     }
 

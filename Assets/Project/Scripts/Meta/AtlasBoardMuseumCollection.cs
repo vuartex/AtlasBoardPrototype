@@ -62,6 +62,9 @@ public sealed class AtlasBoardMuseumCollection : MonoBehaviour
         // no second manager, bootstrap, menu or ownership writer.
         if (GetComponent<AtlasBoardMuseumTokenVisuals>() == null)
             gameObject.AddComponent<AtlasBoardMuseumTokenVisuals>();
+        // Passport is a separate collection type but shares this existing Profile runtime.
+        if (GetComponent<AtlasBoardPassportFeature>() == null)
+            gameObject.AddComponent<AtlasBoardPassportFeature>();
     }
     private void OnDestroy() { if (Instance == this) Instance = null; }
     private void Notify() { ++Revision; Changed?.Invoke(); }
