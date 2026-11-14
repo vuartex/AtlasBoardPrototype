@@ -4,14 +4,14 @@ using UnityEditor;
 using UnityEngine;
 
 /// <summary>
-/// Align a legacy imported AtlasBoard project with the 0.9.0 beta release label.
-/// Only upgrades the known 0.1.0 prototype ProjectSettings value. Never
-/// overrides a version already changed by the owner for a later release.
+/// Keep the existing ProjectSettings version consistent with the owner-approved
+/// current release family. It upgrades only the exact prior AtlasBoard build;
+/// later versions are never overwritten by this Editor initializer.
 /// </summary>
 [InitializeOnLoad]
 public static class AtlasBoardReleaseVersionEditor
 {
-    private const string NewVersion = "0.9.0-beta.1";
+    private const string NewVersion = "0.9.1";
 
     static AtlasBoardReleaseVersionEditor()
     {
@@ -22,7 +22,8 @@ public static class AtlasBoardReleaseVersionEditor
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode) return;
         string current = PlayerSettings.bundleVersion ?? string.Empty;
-        if (string.Equals(current, "0.5.0", StringComparison.Ordinal) ||
+        if (string.Equals(current, "0.9.0-beta.1", StringComparison.Ordinal) ||
+            string.Equals(current, "0.5.0", StringComparison.Ordinal) ||
             string.Equals(current, "0.1.0", StringComparison.Ordinal) ||
             string.Equals(current, "0.1", StringComparison.Ordinal))
         {
@@ -31,8 +32,8 @@ public static class AtlasBoardReleaseVersionEditor
                 " version=" + NewVersion + " PlayerSettings=true");
         }
         if (string.Equals(PlayerSettings.bundleVersion, NewVersion, StringComparison.Ordinal) &&
-            PlayerSettings.Android.bundleVersionCode < 9)
-            PlayerSettings.Android.bundleVersionCode = 9;
+            PlayerSettings.Android.bundleVersionCode < 10)
+            PlayerSettings.Android.bundleVersionCode = 10;
     }
 }
 #endif
