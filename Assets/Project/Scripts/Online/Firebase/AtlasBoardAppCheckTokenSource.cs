@@ -20,6 +20,7 @@ public static class AtlasBoardAppCheckTokenSource
 
     private static bool debugProviderConfigured;
     private static bool steamProviderConfigured;
+    private static bool androidProviderConfigured;
     private static string configurationMessage =
         string.Empty;
 
@@ -34,6 +35,10 @@ public static class AtlasBoardAppCheckTokenSource
 
     public static bool SteamProviderConfigured =>
         steamProviderConfigured;
+
+
+    public static bool AndroidProviderConfigured =>
+        androidProviderConfigured;
 
 
     public static string ConfigurationMessage =>
@@ -161,6 +166,10 @@ public static class AtlasBoardAppCheckTokenSource
             false;
 
 
+        androidProviderConfigured =
+            false;
+
+
         configurationMessage =
             string.Empty;
 
@@ -219,7 +228,8 @@ public static class AtlasBoardAppCheckTokenSource
 
 
         if (!debugProviderConfigured &&
-            !steamProviderConfigured)
+            !steamProviderConfigured &&
+            !androidProviderConfigured)
         {
             ConfigureProviderForCurrentBuild();
         }
@@ -279,6 +289,10 @@ public static class AtlasBoardAppCheckTokenSource
 
 
             steamProviderConfigured =
+                false;
+
+
+            androidProviderConfigured =
                 false;
 
 
@@ -357,14 +371,16 @@ public static class AtlasBoardAppCheckTokenSource
 
 
         if (!debugProviderConfigured &&
-            !steamProviderConfigured)
+            !steamProviderConfigured &&
+            !androidProviderConfigured)
         {
             ConfigureProviderForCurrentBuild();
         }
 
 
         if (!debugProviderConfigured &&
-            !steamProviderConfigured)
+            !steamProviderConfigured &&
+            !androidProviderConfigured)
         {
             return string.Empty;
         }
@@ -417,6 +433,37 @@ public static class AtlasBoardAppCheckTokenSource
 #if UNITY_EDITOR
         TryConfigureDebugProviderFromEnvironment(
             out _);
+#elif UNITY_ANDROID
+        // Firebase's documented Android production provider. Register before
+        // other Firebase services initialize; never use debug attestation in
+        // a shipped Android build. Google Play signing and PLAY_RECOGNIZED
+        // still require separate device QA before RTDB enforcement is enabled.
+        try
+        {
+            FirebaseAppCheck.SetAppCheckProviderFactory(
+                PlayIntegrityProviderFactory.Instance);
+
+            androidProviderConfigured = true;
+            debugProviderConfigured = false;
+            steamProviderConfigured = false;
+            configurationMessage =
+                "Android Play Integrity App Check provider configured; " +
+                "real device attestation not yet verified.";
+
+            Debug.Log(
+                "ATB_APPCHECK_ANDROID provider=PlayIntegrity " +
+                "configured=true enforcement_not_assumed=true");
+        }
+        catch (Exception exception)
+        {
+            androidProviderConfigured = false;
+            configurationMessage =
+                "Android Play Integrity provider setup failed (" +
+                exception.GetType().Name + ").";
+            Debug.LogWarning(
+                "ATB_APPCHECK_ANDROID provider=PlayIntegrity " +
+                "configured=false category=" + exception.GetType().Name);
+        }
 #elif UNITY_STANDALONE_WIN || UNITY_STANDALONE_OSX || UNITY_STANDALONE_LINUX
         try
         {
@@ -430,6 +477,10 @@ public static class AtlasBoardAppCheckTokenSource
 
 
             debugProviderConfigured =
+                false;
+
+
+            androidProviderConfigured =
                 false;
 
 

@@ -1,3 +1,124 @@
+# AtlasBoard v5.49.12eo — Wallet Security QA Installed-Source Verification (2026-11-13)
+
+**STATUS: PHASE19BJ_01/02/03 OWNER EMULATOR PASS; WALLET INIT OWNER EMULATOR PASS AFTER v5.49.12em; PHASE19BJ_04 STOPPED AT LOCAL PRICE PARSER CHECK; FULL SECURITY PASS NOT CLAIMED.**
+
+- Owner reran `phase19bj_full_security_suite.cjs`: identity/privacy 44/44 PASS, rooms/migration 62/62 PASS, chat/emotes 59/59 PASS; wallet INIT succeeds, DEV_GRANT and DAILY steps passed, but Stage04 stops at `price parser sees frame_halloween=350` again. Purchase and inventory fuzz stages did **not** finish.
+- Verified the delivered `v5.49.12en` shared helper supports both compact `=='item'?350:0` and spaced `=== 'item' ? 350 : 0` expressions; verified the `v5.49.12em` scoped Rules expression still parses `frame_halloween=350`, `dice_ruby_red=350`. Source logic is correct in the delivered archive. **The user-local helper SHA/contents have not yet been observed; outdated or incorrectly extracted local helper is a plausible cause, not a confirmed diagnosis.**
+- `phase19eo_wallet_price_parser_gate.test.cjs` now reads the *actual installed* `qa/phase19bj_security_shared.cjs` and `Backend/Firebase/database.rules.json`, prints SHA-256 of both, requires the release-specific marker, verifies the owner-reported v5.49.12em Rules hash and scoped wallet fix, checks real prices, compact and spaced syntax, and contradictory price rejection. It stops early with a clear extraction-path diagnostic instead of launching the lengthy emulator suite blindly.
+- Re-deliver the complete shared QA helper as a full file in its canonical directory. No gameplay manager, Unity C#, store prices, Wallet rules, purchase history or production data changed. No PS1, patch, diff or separate document.
+- Re-test procedure: extract ZIP into `C:\Users\crazy\AtlasBoardPrototype`, run `node qa/phase19eo_wallet_price_parser_gate.test.cjs`, require PASS, then run `firebase.cmd emulators:exec --only auth,database --project demo-atlasboard "node qa/phase19bj_full_security_suite.cjs"`. If local Rules SHA differs, investigate rather than overwrite.
+- Keep RTDB App Check `Unenforced`; Android real Play Integrity token, RTDB REST App Check headers, and Steam Spark attestation are not yet fully verified. No production deploy or GitHub push. Do **not** close Firebase Security P0 before comprehensive emulator and client tests pass.
+
+---
+
+# AtlasBoard v5.49.12en — Phase19BJ Wallet Security QA Price Parser Compatibility (2026-11-13)
+
+**STATUS: OWNER EMULATOR RUN PARTIAL PASS; PHASE19BJ_04 PRICE MAP QA FIX IMPLEMENTED; FULL EMULATOR SUITE NOT YET RETESTED; PRODUCTION DEPLOY NOT DONE.**
+
+- Owner installed v5.49.12em local RTDB Rules: SHA-256 `aadc3be5358737b62775a7d831e4e925543fc1451aaad673c5d7874f4d8da86e`, 261842/262144 bytes. Phase19BJ_00 preflight passed 1666 checks. No live deploy.
+- `phase19bj_full_security_suite.cjs` returned Phase19BJ_01 44/44 PASS; Phase19BJ_02 62/62 PASS; Phase19BJ_03 59/59 PASS; Phase19BJ_04 `registered wallet INIT allowed` now PASSED and progressed into `legitimate_dev_daily_purchase`, but stopped at `price parser sees frame_halloween=350` (a stale source-test parser; not a demonstrated RTDB price or permission failure).
+- Root cause: `phase19bj_security_shared.cjs` `SecurityQa.priceMap()` expected `operation/itemId').val() === 'item' ? 350 : 0`, whereas production Rules serialization uses `operation/itemId').val()=='item'?350:0`. The existing QA helper now supports `==` and `===` with optional whitespace. It also rejects contradictory amounts for the same item. Real server price constants remain unchanged.
+- **Only existing QA helper source changed** (full file included). No Unity source, wallet schema, store prices, inventory, Firebase Rules, gameplay, production data or user accounts changed. No extra manager/menu/docs introduced.
+- **Local QA:** JavaScript syntax and isolated parser compatibility tests with minified/pretty formatting PASS. Unity compiler and complete Auth+RTDB emulator regressions NOT RUN in package environment. Do not claim Phase19BJ_04 or overall Firebase security PASS yet.
+- Owner should rerun the existing suite using the already locally prepared v5.49.12em Rules; if another failure occurs preserve exact error and stop. RTDB App Check remains `Unenforced`. No GitHub push or production deploy performed.
+
+---
+
+# AtlasBoard v5.49.12em — Wallet INIT Write-Rule Scope Repair (2026-11-13)
+
+**STATUS: RULES FIX PREPARED, OWNER EMULATOR DIAGNOSIS VERIFIED; AUTH+RTDB EMULATOR REGRESSION AND PRODUCTION DEPLOY NOT RUN.**
+
+- Owner ran `phase19el_wallet_init_permission_diagnostic.test.cjs` on `demo-atlasboard`: baseline 401; meta `.write` override 200; meta `.validate` override 401; users parent validation override 401; combined override 200. Original emulator Rules restored successfully. Root cause localized to `users/{uid}/metaEconomy/.write`, not App Check and not the wallet payload validation.
+- Exact root cause isolated in canonical current `.write`: one trailing reward-specific `promoXp` check required `operation.type` to be `MATCH_REWARD` or `WEEKLY_REWARD` for **all** the earlier `INIT`, `DEV_GRANT`, `DAILY`, `PURCHASE`, `EQUIP`, `EQUIP_BOARD`, `EQUIP_DICE`, and `RESET_PURCHASES` operations. INIT therefore passed its own zero-wallet constraints but failed this later unrelated operation-type guard.
+- New `phase19em_wallet_init_rules_prepare.cjs` validates the precise existing Rules SHA-256 `2e0e86346231d7d067a7c8fc0cf9362582ed068d4477f3627548cc95c9ac670a`, preserves all branches and conditional checks, and restricts the trailing `promoXp` guard to the two reward operation types. Neither `MATCH_REWARD` nor `WEEKLY_REWARD` receives weaker reward checks. Fail-closed baseline guard, full JSON structure check, exact-only change check, 256 KiB size check and out-of-repository backup are mandatory. No patch/diff/PowerShell installer supplied.
+- `--write` generates the **complete** updated local `Backend/Firebase/database.rules.json`; not deployed automatically. If current local Rules differ, the generator aborts rather than overwriting them. This is the existing complete-Rules preparation workflow; the large canonical Rules file must be derived from the user's verified current local baseline.
+- **Required before any production deploy:** rerun existing `phase19bj_00_rules_preflight.test.cjs`, then `firebase.cmd emulators:exec --only auth,database --project demo-atlasboard "node qa/phase19bj_full_security_suite.cjs"`. Check INIT, legitimate DEV_GRANT/DAILY/PURCHASE/EQUIP, unauthorized purchase, account isolation, replay, ETag and reward restrictions. A source assertion alone is NOT a security PASS.
+- Do not press Firebase App Check RTDB Enforce. REST transport gaps, Steam production attestation uncertainty, host semantic trust and authenticated intent flood remain OPEN and separate from the wallet INIT failure.
+- Existing Unity code, Firebase production Rules/data, Gold/XP, shop inventory and prior OWNER CLOSED decisions remain unchanged in this package. No new managers, UI menus, docs or automatic GitHub push.
+
+---
+
+# AtlasBoard v5.49.12el — Wallet INIT Security Emulator Diagnosis (2026-11-13)
+
+**STATUS: PHASE19BJ SECURITY SUITE PARTIAL PASS / WALLET INIT DENIED / EMULATOR ROOT CAUSE UNDER DIAGNOSIS / PRODUCTION RULES UNCHANGED.** This checkpoint records the owner's real emulator logs; it does not claim the wallet security issue is fixed. Previous history is preserved below.
+
+## Owner-observed evidence
+
+- Phase19BJ preflight: **1666 assertions PASS**, confirming the corrected QA preflight is working.
+- Phase19BJ_01 identity/privacy: **44/44 PASS**.
+- Phase19BJ_02 rooms and host migration: **62/62 PASS**.
+- Phase19BJ_03 chat/emote abuse: **59/59 PASS**.
+- Phase19BJ_04 wallet: **FAIL**, first registered-wallet `INIT` PUT returned HTTP 401 Permission denied.
+- Subsequent wallet security matrix, Phase19BJ_05 trust-boundary probe and phase19ai regression were not reached; do not mark them PASS.
+- Repo `database.rules.json` `metaEconomy/.write` INIT branch compares 40 direct wallet/entitlement fields. Source comparison found no mismatch in those 40 fields with the current QA zero-wallet fixture; this does not rule out ancestor/descendant `.validate`, Auth token claims or a separate enclosing rule guard.
+
+## Non-production diagnostic
+
+- Add only `Backend/Firebase/qa/phase19el_wallet_init_permission_diagnostic.test.cjs`; reuse the existing Phase19BJ emulator helper. No new manager, no duplicated tests, no production rule edits.
+- The diagnostic requires both Auth and Database emulators on loopback under `demo-atlasboard`. It checks the current rule snapshot, reproduces wallet INIT, then temporarily isolates `.write`, metaEconomy `.validate`, and user-root `.validate` in the **local emulator only**. A finally block restores the original emulator rules and verifies restoration.
+- Temporary bypasses are diagnostic only. They must never be deployed or committed as production RTDB Rules. Any run without a verified emulator is forbidden.
+- Do not change production wallet permissions, user balances, App Check enforcement or game clients until the diagnostic results identify the failing boundary.
+
+## Remaining App Check gates
+
+- Android Play Integrity registration source gate 19/19 PASS; actual Play-delivered Android attestation NOT RUN.
+- RTDB REST header coverage incomplete; Steam Spark-compatible production attestation not yet verified; RTDB App Check production enforcement MUST REMAIN OFF.
+- This package is QA diagnostic + canonical roadmap only. GitHub push, production data edits and Firebase deployment NOT DONE.
+
+---
+
+# AtlasBoard v5.49.12ek — Firebase Rules Preflight QA False Positive Fix (2026-11-13)
+
+**STATUS: QA SOURCE CORRECTED / OWNER LOCAL RETEST REQUIRED / FIREBASE APP CHECK PRODUCTION ENFORCEMENT STILL OFF.** This checkpoint is a full-file test correction, not a Firebase Rules or deployment change. All previous history, including v5.49.12ej App Check Android Stage A, remains intact below.
+
+## Root cause and evidence
+
+- Owner ran `phase19ej_appcheck_security_source_gate.test.cjs` successfully: **19/19 PASS**. That result is a static source check, not proof that Android Play Integrity works on a signed device.
+- The next run, `phase19bj_00_rules_preflight.test.cjs`, stopped at `joinable must use explicit boolean comparison` while the production-intended RTDB rule already contained `newData.isBoolean()&&(newData.val()==false||...)`.
+- Old QA expected the exact text `newData.val() === false`, including spaces and strict operator. The compacted rule uses `==false`; after an `isBoolean()` requirement both expressions compare a boolean to boolean `false` with the same intended result.
+- Only the existing `Backend/Firebase/qa/phase19bj_00_rules_preflight.test.cjs` is updated to accept either `== false` or `=== false` independent of whitespace **while still requiring `newData.isBoolean()`**, explicit false comparison, no unsafe `!newData.val()`, closed-room and available-seat checks, rejection of unknown directory fields, and password-hash guard checks. No security assertions were removed.
+
+## Validation and deployment boundaries
+
+- Local developer regression fixture and script syntax checks: **PASS** for compact and spaced boolean expressions, and **EXPECTED FAIL** when the boolean type check or false comparison is removed. The user must rerun against the real local `database.rules.json`; until then **OWNER QA = NOT RUN after correction**.
+- `Backend/Firebase/database.rules.json` is **UNCHANGED**. No Firebase Rules deploy, App Check enforcement toggle, live DB modification, GitHub push, editor menu, new manager or secondary QA suite was performed.
+- **App Check Android / Steam / RTDB enforcement remains OPEN:** real Play Integrity attestation, missing REST headers, supported Steam token flow on Spark, and the broader Phase19BJ emulator security suite are still unverified. Keep Realtime Database **UNENFORCED** and Authentication **Monitoring** until independent readiness tests pass.
+- This QA-only fix does not address host-authored forged match states or authenticated intent flooding. Those remain separate documented security boundaries.
+
+---
+
+# AtlasBoard v5.49.12ej — Firebase Security Review / App Check Android Stage A (2026-11-13)
+
+**STATUS: ANDROID PLAY INTEGRITY PROVIDER SOURCE IMPLEMENTED / LIVE VALIDATION OPEN / RTDB APPCHECK ENFORCEMENT MUST REMAIN OFF.** This checkpoint does not claim full Firebase security acceptance. Existing owner-directed closures, Passport, Museum, AFK and version UI are preserved; previous roadmap history is unchanged below.
+
+## Evidence and precise failure mechanism
+
+- Owner Firebase Console screenshots show Android `com.atlasboardgame.atlasboard` **Registered** for App Check / Play Integrity, TTL **1 hour**, `PLAY_RECOGNIZED` required, `LICENSED` not required and no explicit minimum device integrity. In the API screen Realtime Database is **Unenforced**, Authentication is **Monitoring** (0% verified / 100% unverified for the displayed sample), and RTDB metrics show no collected requests yet. This is the owner's screenshot state; it does not establish live production attestation.
+- Current GitHub `AtlasBoardAppCheckTokenSource.cs` had Editor Debug and Windows/Steam custom provider branches but **no Android Play Integrity provider branch**. Android previously reported no production App Check provider and `GetTokenAsync` returned an empty token. Root cause identified before enabling enforcement.
+- Stage A updates the **existing** token source (not a new manager) to register `FirebaseAppCheck.SetAppCheckProviderFactory(PlayIntegrityProviderFactory.Instance)` for `UNITY_ANDROID` before other Firebase services, and tracks Android provider readiness in both the startup retry and shared token path. Editor debug, disposable loopback emulator Guest, live Development Guest and Steam custom provider paths stay intact. Production Android does not fall back to a debug or fabricated App Check token.
+- Existing `AtlasBoardAppCheckRequestSecurity` caches short-lived valid tokens and backs off failures, and sets `X-Firebase-AppCheck` on participating REST calls. This is not yet universal: at least `AtlasBoardNewsCommunityHub.cs`, `AtlasBoardReleaseVersionBadge.cs`, `AtlasBoardRtdbCasualLobbyTransport.cs`, and `AtlasBoardSparkRtdbMatchTransport.cs` send RTDB REST requests without this shared attachment. Audit every REST sender before enforcement; Firebase SDK requests and direct UnityWebRequest calls do not have the same automatic header behavior.
+- Windows/Steam `AtlasBoardSteamAppCheckProvider` obtains attestation through `platformSteamCreateAppCheckToken` callable Cloud Function. Firebase Cloud Functions requires Blaze for deployment; user expressly requires Spark. Do **not** claim that this Steam attestation endpoint is available in Spark or enable universal RTDB App Check enforcement without a working, verified compatible Steam plan. Old Windows/Guest QA paths must remain operable.
+- Firebase Security Rules remain separate from App Check. Earlier Phase19BJ boundary probes identified a trusted host that can submit semantically false match snapshots and excessive commands from authenticated clients as residual risks. App Check does not make host gameplay trustworthy and does not itself rate-limit signed-in clients. No direct RTDB admin privilege or rule relaxation was introduced.
+
+## Stage A files / validations
+
+- Full-file change only: `Assets/Project/Scripts/Online/Firebase/AtlasBoardAppCheckTokenSource.cs`.
+- New targeted QA source gate: `Backend/Firebase/qa/phase19ej_appcheck_security_source_gate.test.cjs` (read-only, reports uncovered request paths and never calls live services). Existing `phase19bj_full_security_suite.cjs` remains the canonical comprehensive adversarial emulator runner; do not duplicate it.
+- `database.rules.json` is unchanged; no new Firebase branches, provider secrets, external functions, paid plans, new manager or Editor menu. No Cloud Functions deployment, Console enforcement toggle or live Firebase write was performed.
+- **NEXT REQUIRED TESTS / NOT RUN IN THIS CHECKPOINT:** Unity Android compile; actual Play Store internal-test signed Android install with Play Integrity verdict; successful RTDB REST App Check token header / verified request metrics; Windows/Steam and Editor/Guest protected-traffic compatibility; inventory of every RTDB REST request lacking the header; Auth+RTDB emulator adversarial security suite; production Rules deployed hash comparison. Keep separate technical PASS/FAIL for each.
+- **PRODUCTION RELEASE GATE:** RTDB App Check **UNENFORCED** until all supported platforms are attested, every relevant request path is covered, metrics show legitimate traffic verified, and an explicitly approved rollback plan exists. Authentication App Check enforcement remains off; its monitoring status is not an Auth acceptance proof. Do not use an unenforced registration screen to declare full protection.
+
+## Manual acceptance order (Spark only)
+
+1. Run `node qa/phase19ej_appcheck_security_source_gate.test.cjs` in `Backend/Firebase`; Android source gate may pass while RTDB enforcement readiness explicitly remains **NO**.
+2. Build on Unity's correct Android Firebase App Check package and install via Google Play internal testing; distinguish Play-signed builds from sideloaded/debug builds, which may fail `PLAY_RECOGNIZED`. Check Google Play Integrity API/Firebase project linkage and certificate fingerprint match without sharing private keys.
+3. Confirm that Android provider configuration logs appear and actual valid App Check tokens are sent on RTDB REST requests. Check Firebase Console verified/unverified metrics **before** making any enforcement decision. Do not interpret a successful login alone as App Check PASS while RTDB is Unenforced.
+4. Run existing read-only/preflight and full Auth+RTDB emulator adversarial suite, then evaluate remaining host snapshot semantic trust, authenticated command flooding and Steam deployment feasibility. Avoid Firestore/Functions/Blaze migration and preserve production data.
+
+**No owner release PASS for this security review yet. No GitHub push.**
+
+---
+
 # AtlasBoard v5.49.12ei — Six Owner-Directed Closure Decisions & GitHub Backup (2026-11-13)
 
 **STATUS: ROADMAP-ONLY OWNER CLOSURE / SIX ITEMS ADMINISTRATIVELY CLOSED ON OWNER INSTRUCTION / HISTORICAL TEST EVIDENCE UNCHANGED / NO CODE, FIREBASE, UNITY OR PRODUCTION CHANGES.** This record supersedes conflicting OPEN status labels in earlier roadmap entries **only for the six named items below**; historical entries are preserved verbatim and remain an audit trail of their status at the time. The owner explicitly requested closure in the current conversation. These are owner-directed status decisions, not evidence that new tests were performed in this roadmap-only update.

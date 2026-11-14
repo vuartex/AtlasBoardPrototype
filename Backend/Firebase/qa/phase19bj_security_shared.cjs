@@ -1,4 +1,7 @@
 'use strict';
+// ATB_WALLET_PRICE_PARSER_BUILD=v5.49.12eo
+// This shared helper is checked against the real local Rules BEFORE the emulator suite.
+// Do not change the Rules or Store prices merely to pass source QA.
 const assert=require('node:assert/strict');
 const crypto=require('node:crypto');
 const fs=require('node:fs');
@@ -35,7 +38,7 @@ class SecurityQa{
   defaults(node){const out={};for(const [k,v] of Object.entries(node)){if(k.startsWith('.')||k.startsWith('$'))continue;if(v&&typeof v==='object'){const ch=Object.keys(v).filter(x=>!x.startsWith('.')&&!x.startsWith('$'));if(ch.length)out[k]=this.defaults(v);else if(v['.validate']?.includes('isBoolean'))out[k]=false;else if(v['.validate']?.includes('isNumber'))out[k]=0;else out[k]='';}}return out;}
   startWallet(){const inv=this.defaults(this.rules.users.$uid.metaEconomy.inventory);return{schemaVersion:1,wallet:{gold:0,atlasCoin:0,starterGrantClaimed:false},inventory:inv,equipped:{profileFrameId:'',boardId:'',diceId:''},dailyReward:{lastClaimAt:0},dev:{grantCount:0,resetCount:0},operation:{id:this.xid(),type:'INIT',itemId:'',atMs:this.now()},rewardHistory:''};}
   advance(w,type,itemId=''){const x=clone(w);x.operation={id:this.xid(),type,itemId,atMs:Math.max(this.now(),Number(w.operation.atMs||0)+1)};return x;}
-  priceMap(){const s=this.rules.users.$uid.metaEconomy['.write'];const map={};for(const m of s.matchAll(/operation\/itemId'\)\.val\(\) === '([^']+)' \? (\d+) : 0/g))map[m[1]]=Number(m[2]);return map;}
+  priceMap(){const s=this.rules.users.$uid.metaEconomy['.write'];const map={};for(const m of s.matchAll(/operation\/itemId'\)\.val\(\)\s*={2,3}\s*'([^']+)'\s*\?\s*(\d+)\s*:\s*0\b/g)){const amount=Number(m[2]);if(Object.prototype.hasOwnProperty.call(map,m[1])&&map[m[1]]!==amount)throw new Error('Conflicting price in RTDB Rules for '+m[1]);map[m[1]]=amount;}if(!Object.keys(map).length)throw new Error('PRICE_MAP_EMPTY: Local phase19bj_security_shared.cjs may be stale, or RTDB Rules price format changed. Run phase19eo_wallet_price_parser_gate.test.cjs before the security suite.');return map;}
   member(user,role,joinedAt,active=true,displayName){return{uid:user.uid,active,role,joinedAt,displayName:displayName||user.label};}
   roomMeta(host,opts={}){const at=opts.createdAt||this.now();return{hostUid:host.uid,mode:opts.mode||'privateCasualOnline',createdAt:at,updatedAt:opts.updatedAt||at,closed:false,maxPlayers:opts.maxPlayers||4,mapId:opts.mapId||'Turkey',roundLimit:opts.roundLimit||20,themeId:opts.themeId||'classic_table',passwordHash:opts.passwordHash||'',inviteCode:'',authorityEpoch:opts.authorityEpoch??1,activeMatchId:opts.activeMatchId||''};}
   seats(users,hostUid){return{seats:users.map((u,i)=>({uid:u.uid,ownerUid:u.uid,seatId:`seat_${i}`,mode:u.uid===hostUid?'hostlocal':'remotehuman',name:u.label,controller:'human',connection:'connected',slotIndex:i,host:u.uid===hostUid,afkLockedOut:false,reconnectExpiresAt:0,disconnectedAt:0,removalReason:''}))};}
