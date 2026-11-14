@@ -1,3 +1,29 @@
+# AtlasBoard v5.49.12ei — Six Owner-Directed Closure Decisions & GitHub Backup (2026-11-13)
+
+**STATUS: ROADMAP-ONLY OWNER CLOSURE / SIX ITEMS ADMINISTRATIVELY CLOSED ON OWNER INSTRUCTION / HISTORICAL TEST EVIDENCE UNCHANGED / NO CODE, FIREBASE, UNITY OR PRODUCTION CHANGES.** This record supersedes conflicting OPEN status labels in earlier roadmap entries **only for the six named items below**; historical entries are preserved verbatim and remain an audit trail of their status at the time. The owner explicitly requested closure in the current conversation. These are owner-directed status decisions, not evidence that new tests were performed in this roadmap-only update.
+
+## Owner-closed items (6)
+
+1. **OWNER CLOSED — Passport security: prevention of duplicate placement across different pages and final emulator acceptance.** Owner directed closure. Preserve already-shipped immutable ownership, passport ledger and placement rules. Earlier emulator PASS records remain as originally logged; no additional final cross-page adversarial emulator run was supplied in this request. Do not describe a newly verified server-global uniqueness invariant solely based on this closure.
+2. **OWNER CLOSED — Steam UID mapping and account isolation: Steam account changes, UID identity, wallet, Career and inventory separation.** Owner directed closure after the project's previous account mapping/identity fixes and user testing. No new separate multi-Steam-account test transcript was supplied in this turn; retain earlier reported passes and keep general account-security regression in release QA without reopening this specific named task automatically.
+3. **OWNER CLOSED (ADMINISTRATIVE, SECURITY ASSURANCE NOT CLAIMED) — Server-side obsolete-client version enforcement.** Owner directed closure of this roadmap item. The known current/last-version popup and Unity client-side admission check are distinct from RTDB Rules rejecting modified or already-distributed legacy clients. The prior roadmap explicitly documented this distinction; **no new RTDB admission-rule implementation or Auth+RTDB rejection evidence was provided with this closure**. Do not claim Firebase-enforced legacy-client denial as proven; keep this residual risk in the broad Firebase security audit and reassess before public release if needed, while treating this specific roadmap task as closed by owner decision.
+4. **OWNER CLOSED — Weekly missions/economy: XP/Gold rewards, 312-week catalog and duplicate-claim acceptance.** Owner directed closure; keep original historical tests and production-catalog records, and preserve existing wallet/history/claim idempotency logic. No reward grants or catalog edits were made by this entry; no new transaction trace is being invented.
+5. **OWNER CLOSED — Passport Android QA: long press, orientation and cross-account stamp isolation.** Owner directed closure. Previous device/test evidence is not altered and this roadmap-only change does not imply that new Android build logs were executed here.
+6. **OWNER CLOSED — AFK extended QA: genuine 300-second idle, 180-second wallpaper rotation, Android touch and controller.** Owner directed closure on top of prior confirmed 7-language display and mouse/keyboard wake acceptance. The previous `eh` record stated the timed/device-specific tests had not been separately reported at that point; **this turn supplies an owner closure decision, not new timer telemetry or device logs**. Do not confuse these four closures with proof of Spark RTDB socket reduction.
+
+## Status precedence and remaining independent quality gates
+
+- Remove these six exact work items from the *current action backlog*; older OPEN labels referring to them are historical only. When preparing a current status summary, use this `ei` owner-closure decision as the latest status rather than opening them again from older history.
+- **Still open / not part of the six closures:** broader Firebase Rules/App Check security review (including residual legacy-client bypass risk); measurement of actual Firebase RTDB simultaneous connection/socket reduction in AFK; Android FPS, memory and thermals; Unity warning cleanup release-console verification; multi-person stability/load regression; Google Play Open Beta and Steam distribution readiness. Other roadmap items not explicitly mentioned retain their existing status.
+- **Evidence discipline:** `OWNER CLOSED` records the user's project-management acceptance. `EMULATOR PASS`, `UNITY COMPILE PASS`, `RUNTIME PASS` or a verified security property must be based on specific logs/tests and never inferred solely from roadmap closure. Source and historical QA evidence stay intact.
+
+## Delivery and backup scope
+
+- Update only the **existing canonical** `Assets/Project/Documentation/MASTER_ROADMAP.md` from `v5.49.12eh` to `v5.49.12ei` by prepending this acceptance record; **preserve the entire previous roadmap byte-for-byte below this new entry**.
+- No new manager, Editor menu, parallel roadmap, QA test, Unity code change, asset change, RTDB Rules change, Firebase deploy or live data mutation. No automatic GitHub push. Owner will extract the single complete roadmap file in one ZIP and manually back up the current local project.
+
+---
+
 # AtlasBoard v5.49.12eh — Localized AFK Owner Acceptance & GitHub Backup (2026-11-13)
 
 **STATUS: OWNER QA PASS — LOCALIZED AFK WALLPAPER SELECTION + MOUSE/KEYBOARD WAKE / NO SOURCE OR FIREBASE CHANGES THIS ENTRY / REMAINING EXTENDED QA OPEN.** This is a roadmap-only acceptance update on top of `v5.49.12eg`, not a new AFK runtime, duplicate manager or extra documentation file. All earlier canonical roadmap history below remains unchanged.
